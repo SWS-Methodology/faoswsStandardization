@@ -1,5 +1,6 @@
-# Data files
+# Specific to this repo
 *.csv
+sandbox/*.png
 
 #################
 ## Eclipse

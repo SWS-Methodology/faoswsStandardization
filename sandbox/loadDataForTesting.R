@@ -8,12 +8,12 @@ GetTestEnvironment(
     ## token = "90bb0f92-e345-4401-945d-1e43af801167"
 )
 
-for(file in dir(path = "~/Documents/Github/sws_standardization/faoswsStandardization/R/",
+for(file in dir(path = "~/Documents/Github/sws_standardization/R/",
                 full.names = TRUE))
     source(file)
 
-extractionRateData = fread("~/Documents/Github/sws_standardization/faoswsStandardization/data/extractionRate2011.csv")
-shareData = fread("~/Documents/Github/sws_standardization/faoswsStandardization/data/shares2011.csv")
+extractionRateData = fread("~/Documents/Github/sws_standardization/data/extractionRate2011.csv")
+shareData = fread("~/Documents/Github/sws_standardization/data/shares2011.csv")
 
 setnames(extractionRateData,
          old = c("measuredItemFS", "timePointYears",
@@ -29,10 +29,10 @@ setnames(commodityTree, "Geographic Area.y", "geographicAreaName")
 setnames(commodityTree, "Item Parent", "itemParentName")
 setnames(commodityTree, "Item Child", "itemChildName")
 setnames(commodityTree, "Aupus Required", "aupusRequired")
-save(commodityTree, file = "~/Documents/Github/sws_standardization/faoswsStandardization/data/commodityTree2011.RData")
-load("~/Documents/Github/sws_standardization/faoswsStandardization/data/commodityTree2011.RData")
+save(commodityTree, file = "~/Documents/Github/sws_standardization/data/commodityTree2011.RData")
+load("~/Documents/Github/sws_standardization/data/commodityTree2011.RData")
 oldCommodityTree = copy(commodityTree)
-commodityMap = fread("~/Documents/Github/sws_standardization/Map_HS2FCL/HS2FCL_Valentina.csv",
+commodityMap = fread("~/Documents/Github/sws_standardization/Old_code_and_documentation/Map_HS2FCL/HS2FCL_Valentina.csv",
                      colClasses = rep("character", 7))
 setnames(commodityMap, old = colnames(commodityMap),
          new = c("itemCodeHS2007", "itemNameHS2007", "itemCodeHS2012",
@@ -41,6 +41,25 @@ commodityMap[, bad := NULL]
 commodityMap = commodityMap[, list(itemCodeHS2012, itemCodeFCL)]
 newColname = "itemCodeHS2012"
 oldColname = "itemCodeFCL"
+
+## Plot Commodity Trees in FCL
+plotCommodityTrees(
+    commodityTree = commodityTree[geographicAreaFS == 1 &
+                                  timePointYearsSP == 2011, ],
+    parentColname = "measuredItemParentFS",
+    childColname = "measuredItemChildFS", extractionColname = "extractionRate",
+    dir = "~/Documents/Github/sws_standardization/sandbox/", prefix = "",
+    adjExtractionRates = TRUE)
+
+plotCommodityTrees(
+#     commodityTree = commodityTree[, mean(extractionRate),
+#                                    by = c("measuredItemParentFS",
+#                                           "measuredItemChildFS")],
+    commodityTree,
+    parentColname = "measuredItemParentFS",
+    childColname = "measuredItemChildFS", extractionColname = "V1",
+    dir = "~/Documents/Github/sws_standardization/sandbox/", prefix = "full",
+    adjExtractionRates = TRUE)
 
 
 ## Check that everything works:

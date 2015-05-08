@@ -15,12 +15,22 @@
 ##' of the child node.
 ##' @param extractionColname The column name of commodityTree which contains
 ##' the extraction rate data.
+##' @param dir The directory where the commodity trees should be saved.
+##' @param prefix The prefix to add to the name of the plot(s) which will be
+##' saved to dir.  One plot is created for each commodity tree.
+##' @param adjExtractionRates Logical.  Typically, the extraction rates are
+##' stored as percentages multiplied by 10000, i.e. 5% is represented as 
+##' 0.05*10000 = 500.  If TRUE, the function converts them to percentages.
 ##' 
-##' @return
+##' @return No object is returned, but image files of the plots are written
+##' out to .png files.  The input parameter dir specifies where these files
+##' will be placed.
 ##' 
 
 plotCommodityTrees = function(commodityTree, parentColname, childColname,
-                              extractionColname){
+                              extractionColname, dir = getwd(),
+                              prefix = "commodity_tree",
+                              adjExtractionRates = TRUE){
     
     ## Data Quality Checks
     stopifnot(is(commodityTree, "data.table"))
@@ -30,6 +40,9 @@ plotCommodityTrees = function(commodityTree, parentColname, childColname,
         stop("This function is not designed to work for multiple countries, ",
              "years, etc.  Please subset the data and loop to generate ",
              "multiple such trees.")
+    
+    if(adjExtractionRates)
+        commodityTree[, c(extractionColname) := get(extractionColname)/10000]
     
     ## Find the top nodes.
     topNodes = setdiff(commodityTree[[parentColname]],
@@ -47,7 +60,7 @@ plotCommodityTrees = function(commodityTree, parentColname, childColname,
     ## cases, we'll need to group treeID's into the same group.
     commodityTree[, oldTreeID := NA_character_]
     commodityTree[get(parentColname) %in% topNodes,
-                  oldTreeID := get(parentColname)]
+                  oldTreeID := as.character(get(parentColname))]
     while(any(is.na(commodityTree[, oldTreeID]))){
         ids = commodityTree[!is.na(oldTreeID), .N,
                             by = c(childColname, "oldTreeID")]
@@ -64,21 +77,11 @@ plotCommodityTrees = function(commodityTree, parentColname, childColname,
     ## Group together oldTreeID's into relevant groups
     commodityTree[, finalTreeID := oldTreeID[1], by = childColname]
     commodityTree[, oldTreeID := NULL]
-    
-    edges2Plot = function(edges){
-        allNodes = unique(c(edges[[parentColname]], edges[[childColname]]))
-        edges[, c(parentColname) := factor(get(parentColname),
-                                           levels = allNodes)]
-        edges[, c(childColname) := factor(get(childColname),
-                                          levels = allNodes)]
-        A = matrix(0, length(allNodes), length(allNodes))
-        indices = as.matrix(edges[, list(as.numeric(get(childColname)),
-                                         as.numeric(get(parentColname)))])
-        A[indices] = 1
-        rownames(A) = allNodes
-        colnames(A) = allNodes
-        plotmat(A, curve = 0, relsize = .7)
-    }
-    for(id in commodityTree[, unique(finalTreeID)]){
+    for(treeID in unique(commodityTree$finalTreeID)){
+        png(paste0(dir, "/", prefix, "_commodity_tree_", treeID, ".png"),
+            width = 10, height = 10, units = "in", res = 400)
+        plotSingleTree(commodityTree[finalTreeID == treeID, ], parentColname,
+                       childColname, extractionColname)
+        dev.off()
     }
 }
