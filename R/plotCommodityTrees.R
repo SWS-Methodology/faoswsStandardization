@@ -49,38 +49,29 @@ plotCommodityTrees = function(commodityTree, parentColname, childColname,
                        commodityTree[[childColname]])
     
     ## Now, we'll assume that each topNode corresponds ot a unique commodity
-    ## tree (at least initially).  However, we may find that two topNodes feed
-    ## into the same child, and thus we may need to combine 
-    ## combine some of these "topNodes" into one tree, and so this table can
-    ## be modified later in the code if topNodes are grouped into one tree.
+    ## tree.
     ##
     ## Assign the edges to the approriate tree.  Any child node receives the
     ## treeID of it's parent, if available.  Some children may be children
     ## of multiple parents and hence (possibly) multiple treeID's.  In those
     ## cases, we'll need to group treeID's into the same group.
-    commodityTree[, oldTreeID := NA_character_]
+    commodityTree[, treeID := NA_character_]
     commodityTree[get(parentColname) %in% topNodes,
-                  oldTreeID := as.character(get(parentColname))]
-    while(any(is.na(commodityTree[, oldTreeID]))){
-        ids = commodityTree[!is.na(oldTreeID), .N,
-                            by = c(childColname, "oldTreeID")]
-        ## Update ids with the first appearing id.  We'll group the duplicate
-        ## treeID's together later.
-        aggregatedIds = ids[, list(treeID = oldTreeID[1]), by = childColname]
-        setnames(aggregatedIds, childColname, parentColname)
-        commodityTree = merge(commodityTree, aggregatedIds,
-                              by = parentColname, all.x = TRUE)
-        commodityTree[is.na(oldTreeID), oldTreeID := treeID]
-        commodityTree[, treeID := NULL]
+                  treeID := as.character(get(parentColname))]
+    while(any(is.na(commodityTree[, treeID]))){
+        ids = commodityTree[!is.na(treeID), .N, by = c(childColname, "treeID")]
+        ids[, N := NULL]
+        setnames(ids, c(childColname, "treeID"), c(parentColname, "newTreeID"))
+        commodityTree = merge(commodityTree, ids, by = parentColname,
+                              all.x = TRUE, allow.cartesian = TRUE)
+        commodityTree[is.na(treeID), treeID := newTreeID]
+        commodityTree[, newTreeID := NULL]
     }
     
-    ## Group together oldTreeID's into relevant groups
-    commodityTree[, finalTreeID := oldTreeID[1], by = childColname]
-    commodityTree[, oldTreeID := NULL]
-    for(treeID in unique(commodityTree$finalTreeID)){
-        png(paste0(dir, "/", prefix, "_commodity_tree_", treeID, ".png"),
+    for(currentTreeID in unique(commodityTree$treeID)){
+        png(paste0(dir, "/", prefix, "_commodity_tree_", currentTreeID, ".png"),
             width = 10, height = 10, units = "in", res = 400)
-        plotSingleTree(commodityTree[finalTreeID == treeID, ], parentColname,
+        plotSingleTree(commodityTree[treeID == currentTreeID, ], parentColname,
                        childColname, extractionColname)
         dev.off()
     }

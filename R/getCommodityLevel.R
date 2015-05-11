@@ -1,22 +1,27 @@
 ##' Get Commodity Level
 ##' 
-##' This function takes a commodity tree and provides the level of each
+##' This function takes a commodity tree and provides the level of each 
 ##' commodity within that tree.
 ##' 
-##' @param commodityTree A data.table with parent and child node IDs
-##' (corresponding to the IDs in nodes) which specify the commodity tree
-##' structure.
-##' @param parentColname The column name of commodityTree which contains the ID
-##' of the parent node.
-##' @param childColname The column name of commodityTree which contains the ID
-##' of the child node.
-##' 
-##' @return A data.table with two columns: node (the ID of the commodity code)
-##' and level.  A level of 0 indicates a top level node which is then processed
-##' into a level 1 node.  Level 1 nodes are processed into level 2, and so on.
-##' 
+##' @param commodityTree A data.table with parent and child node IDs 
+##'   (corresponding to the IDs in nodes) which specify the commodity tree 
+##'   structure.
+##' @param parentColname The column name of commodityTree which contains the ID 
+##'   of the parent node.
+##' @param childColname The column name of commodityTree which contains the ID 
+##'   of the child node.
+##' @param returnMinLevel Logical.  If a node exists at multiple processing
+##'   levels, should the minimum level be returned?  Or, should multiple records
+##'   be returned for each level?
+##'   
+##' @return A data.table with two columns: node (the ID of the commodity code) 
+##'   and level.  A level of 0 indicates a top level node which is then
+##'   processed into a level 1 node.  Level 1 nodes are processed into level 2,
+##'   and so on.
+##'   
 
-getCommodityLevel = function(commodityTree, parentColname, childColname){
+getCommodityLevel = function(commodityTree, parentColname, childColname,
+                             returnMinLevel = TRUE){
     
     ## Data Quality Checks
     stopifnot(is(commodityTree, "data.table"))

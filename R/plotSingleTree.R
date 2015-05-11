@@ -21,6 +21,12 @@ plotSingleTree = function(edges, parentColname, childColname,
                               extractionColname){
     nodes = unique(c(edges[[parentColname]], edges[[childColname]]))
     
+    ## Get the level for each node so we know which group to plot it in.
+    level = getCommodityLevel(commodityTree = edges,
+                              parentColname = parentColname,
+                              childColname = childColname)
+    level = level[order(level), ]
+    
     ## Create an adjacency matrix to define the plotting structure.
     A = matrix(0, nrow = length(nodes), ncol = length(nodes))
     colnames(A) = nodes
@@ -29,17 +35,19 @@ plotSingleTree = function(edges, parentColname, childColname,
     indices = apply(indices, c(1, 2), as.character)
     A[indices] = round(edges[[extractionColname]], 2)*100
     
-    ## Get the level for each node so we know which group to plot it in.
-    level = getCommodityLevel(commodityTree = edges,
-                              parentColname = parentColname,
-                              childColname = childColname)
-    level = level[order(level), ]
+    ## Create a matrix specifying curvature.  Default value should be
+    curve = merge.data.frame(level, level, by = NULL)
+    curve$curvature = ifelse(curve$level.y >= curve$level.x, .2, 0)
+    curve = reshape::cast(curve, node.x ~ node.y, value = "curvature")
+    rownames(curve) = curve$node.x
+    curve$node.x = NULL
     
     ## Reorder A based on the levels
     A = A[as.character(level$node), as.character(level$node)]
+    curve = curve[as.character(level$node), as.character(level$node)]
 
     ## Plot it!
     levelCounts = level[order(level), .N, by = "level"]
-    diagram::plotmat(A, pos = levelCounts$N, curve = 0, relsize = 1,
-                     box.size = 0.01, box.type = "rect", shadow.size = 0)
+    diagram::plotmat(A, pos = levelCounts$N, curve = curve, relsize = 1,
+                     box.size = 0.03, box.type = "rect", shadow.size = 0)
 }
