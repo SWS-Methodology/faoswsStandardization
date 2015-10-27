@@ -1,0 +1,19 @@
+Package: faoswsStandardization
+Type: Package
+Title: Package to perform standardization of SUA (supply utilization account) data to FBS level.
+Version: 0.1
+Date: 2015-09-22
+Authors@R: c(person("Josh", "Browning", role = c("aut", "cre"), email = "joshua.browning@fao.org"))
+Author: Josh Browning <joshua.browning@fao.org>
+Maintainer: Josh Browning <joshua.browning@fao.org>
+Description: The package implements standardization of SUA data according to provided commodity trees.  Essentially, this is the process of converting processed products into primary equivalents.  This package provides all of the necessary logic for this standardization as well as some tools (such as cleaning up commodity trees with extreme/unreasonable extraction rates).
+License: GPL (>= 3)
+LazyData: yes
+Imports:
+    faosws (>= 0.3.2),
+    data.table (>= 1.9.2),
+    reshape (>= 0.7.2),
+    diagram (>= 1.6.3)
+ZipData: no
+VignetteBuilder: knitr
+Suggests: knitr, ggplot2
