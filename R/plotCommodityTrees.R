@@ -26,6 +26,8 @@
 ##' out to .png files.  The input parameter dir specifies where these files
 ##' will be placed.
 ##' 
+##' @export
+##' 
 
 plotCommodityTrees = function(commodityTree, parentColname, childColname,
                               extractionColname, dir = getwd(),

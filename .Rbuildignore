@@ -1,2 +1,4 @@
-sandbox
-wheat_network.png
+^sandbox
+^documentation$
+.git*
+README.md

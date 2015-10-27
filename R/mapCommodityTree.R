@@ -35,7 +35,9 @@
 ##' the user may want to include year, country, etc. if the passed commodity
 ##' tree has those dimensions.
 ##' 
-##' @return
+##' @return A data.table of the new commodity tree.
+##' 
+##' @export
 ##' 
 
 mapCommodityTree = function(oldCommodityTree, commodityMap,

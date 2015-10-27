@@ -8,7 +8,9 @@
 ##' @param timePointYears A character vector containing the years for which
 ##' commodity trees are wanted.
 ##' 
-##' @return
+##' @return A data.table of the commodity tree.
+##' 
+##' @export
 ##' 
 
 getOldCommodityTree = function(geographicAreaFS, timePointYears){
