@@ -9,6 +9,7 @@
 
 ## load the library
 library(faosws)
+library(data.table)
 
 oldProductionCode = "51"
 importCode = "5600"
@@ -32,7 +33,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
         ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "7b588793-8c9a-4732-b967-b941b396ce4d"
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "1b6bc897-b002-4c0b-af4f-12bd000f3b2c"
+        token = "07b4651d-a306-47e1-ac7d-38c0f561b6cd"
     )
 }
 

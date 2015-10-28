@@ -30,7 +30,7 @@
 	</Params>
 	<Datasets>
 		<MainDataset>
-			<Code>suafbs</Code>
+			<Code>sua</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
 				<SelectableDimension compulsory="true">measuredElementSuaFbs</SelectableDimension>
