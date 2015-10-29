@@ -30,13 +30,18 @@
 ##' 6. Update calories of processed products proportionally based on updated 
 ##' food element values.
 ##' 
-##' 7. (only if fbsTree is provided) Sum all commodities up to their FBS level
+##' 7. (only if fbsTree is provided) Sum all commodities up to their FBS level 
 ##' categories.  This is the final step to prepare data for FAOSTAT.
 ##' 
-##' @param data The data.table containing the full dataset for standardization.
+##' @param data The data.table containing the full dataset for standardization. 
+##'   It should have columns corresponding to year, country, element, commodity,
+##'   and value.  The specific names of these columns should be in standParams.
 ##' @param tree The commodity tree which details how elements can be processed 
 ##'   into other elements.  It does not, however, specify which elements get 
-##'   aggregated into others.
+##'   aggregated into others.  This data.table should have columns parent, 
+##'   child, extraction rate, share, and target (target specifying if an element
+##'   is processed forward or not).  Names of these columns should be provided
+##'   in standParams.
 ##' @param fbsTree This "tree" should just have three columns: 
 ##'   standParams$parentID, standParams$childID, and standParams$extractVar 
 ##'   (which if missing will just be assigned all values of 1).  This tree 
@@ -60,7 +65,7 @@
 ##' @return A data.table containing the final balanced and standardized SUA 
 ##'   data.  Additionally, this table will have new elements in it if 
 ##'   nutrientData was provided.
-##' 
+##'   
 ##' @export
 ##' 
 
@@ -73,7 +78,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## STEP 0: Data Quality Checks
     # Checks for data
     stopifnot(c(p$geoVar, p$yearVar, p$itemVar,
-                "element", "Value") %in% colnames(data))
+                p$elementVar, "Value") %in% colnames(data))
     if(!"standardDeviation" %in% colnames(data))
         data[, standardDeviation := NA]
     data[, c(p$geoVar) := as.character(get(p$geoVar))]
@@ -134,7 +139,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                           standParams = p)$data
     ## Delete nodes processed forward
     forwardParents = tree[get(p$targetVar) == "F", unique(get(p$parentVar))]
-    tree = tree[!parentID %in% forwardParents, ]
+    tree = tree[!get(p$parentVar) %in% forwardParents, ]
     if(length(printCodes) > 0){
         cat("\nSUA table after processing forward:")
         data = markUpdated(new = data, old = old, standParams = p)
@@ -154,7 +159,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     primaryEl = c(primaryEl, nonTreeEl)
     foodProcEl = unique(tree[get(p$targetVar) == "F",
                              get(p$parentVar)])
-    officialProd = data[element == p$productionCode & Value > 0,
+    officialProd = data[get(p$elementVar) == p$productionCode & Value > 0,
                         get(p$itemVar)]
     ## Elements with official production shouldn't have their production 
     ## updated.  Instead, the food value should be updated, and this is what 
@@ -178,25 +183,25 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         ## Convert nutrient values into total nutrient info using food
         ## allocation.
         sapply(nutrientElements, function(nutrient){
-            data[, c(nutrient) := get(nutrient) * Value[element == p$foodCode],
+            data[, c(nutrient) := get(nutrient) * Value[get(p$elementVar) == p$foodCode],
                  by = c(p$itemVar)]
         })
     }
     
     ## STEP 3: Compute availability and hence shares
     data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                            ifelse(element == p$productionCode, 1,
-                            ifelse(element == p$importCode, 1,
-                            ifelse(element == p$exportCode, -1,
-                            ifelse(element == p$stockCode, -1,
-                            ifelse(element == p$foodCode, -1,
-                            ifelse(element == p$foodProcCode, 0,
-                            ifelse(element == p$feedCode, -1,
-                            ifelse(element == p$wasteCode, -1,
-                            ifelse(element == p$seedCode, -1,
-                            ifelse(element == p$industrialCode, -1,
-                            ifelse(element == p$touristCode, -1,
-                            ifelse(element == p$residualCode, -1, 0))))))))))))),
+                            ifelse(get(p$elementVar) == p$productionCode, 1,
+                            ifelse(get(p$elementVar) == p$importCode, 1,
+                            ifelse(get(p$elementVar) == p$exportCode, -1,
+                            ifelse(get(p$elementVar) == p$stockCode, -1,
+                            ifelse(get(p$elementVar) == p$foodCode, -1,
+                            ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                            ifelse(get(p$elementVar) == p$feedCode, -1,
+                            ifelse(get(p$elementVar) == p$wasteCode, -1,
+                            ifelse(get(p$elementVar) == p$seedCode, -1,
+                            ifelse(get(p$elementVar) == p$industrialCode, -1,
+                            ifelse(get(p$elementVar) == p$touristCode, -1,
+                            ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
          by = c(p$mergeKey)]
     # There's only one availability value per group, but we need an aggregation
     # function so we use mean.
@@ -250,25 +255,25 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }
     
     ## STEP 5: Balance at the balancing level.
-    data = data[element %in% c(p$productionCode, p$importCode, p$exportCode,
+    data = data[get(p$elementVar) %in% c(p$productionCode, p$importCode, p$exportCode,
                                p$stockCode, p$foodCode, p$feedCode, p$seedCode,
                                p$touristCode, p$industrialCode, p$wasteCode,
                                nutrientElements, p$foodProcCode), ]
-    data[, nutrientElement := element %in% nutrientElements]
+    data[, nutrientElement := get(p$elementVar) %in% nutrientElements]
     warning("Not sure how to compute standard deviations!  Currently just 10% ",
             "of value!")
     data[, standardDeviation := Value * .1]
-    data[!element %in% nutrientElements,
+    data[!get(p$elementVar) %in% nutrientElements,
          balancedValue := balancing(param1 = sapply(Value, na2zero),
               param2 = sapply(standardDeviation, na2zero),
-              sign = ifelse(element %in% c(p$productionCode, p$importCode), 1, -1),
-              lbounds = ifelse(element %in% c(p$stockCode, p$touristCode), -Inf, 0),
+              sign = ifelse(get(p$elementVar) %in% c(p$productionCode, p$importCode), 1, -1),
+              lbounds = ifelse(get(p$elementVar) %in% c(p$stockCode, p$touristCode), -Inf, 0),
               optimize = "constrOptim", constrTol = 1e-6),
          by = c(p$itemVar)]
     ## To adjust calories later, compute the ratio for how much food has been 
     ## adjusted by.  This looks like a "mean", but really we're just using the
     ## mean to select the one non-NA element.
-    data[, foodAdjRatio := mean(ifelse(element == p$foodCode,
+    data[, foodAdjRatio := mean(ifelse(get(p$elementVar) == p$foodCode,
                                        balancedValue / Value, NA),
                                 na.rm = TRUE),
          by = c(p$itemVar)]

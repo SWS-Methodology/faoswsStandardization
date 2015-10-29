@@ -26,15 +26,14 @@ addMissingElements = function(data, standParams){
                              "industrialCode", "touristCode", "residualCode")]
     elements = as.character(elements)
     fullTable = expand.grid(unique(data[[standParams$itemVar]]), elements)
-    fullTable = expand.grid(unique(data[[standParams$itemVar]]), elements)
-    colnames(fullTable) = c(standParams$itemVar, "element")
+    colnames(fullTable) = c(standParams$itemVar, standParams$elementVar)
     fullTable[[standParams$yearVar]] = data[[standParams$yearVar]][1]
     fullTable[[standParams$geoVar]] = data[[standParams$geoVar]][1]
     fullTable = data.table(fullTable)
     fullTable[, c(standParams$itemVar) := as.character(get(standParams$itemVar))]
-    fullTable[, element := as.character(element)]
+    fullTable[, c(standParams$elementVar) := as.character(get(standParams$elementVar))]
     
-    data = merge(data, fullTable, by = c(standParams$itemVar, "element",
+    data = merge(data, fullTable, by = c(standParams$itemVar, standParams$elementVar,
                                          standParams$geoVar, standParams$yearVar),
                  all = TRUE)
     return(data)

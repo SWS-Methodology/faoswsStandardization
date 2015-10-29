@@ -16,6 +16,7 @@ defaultStandardizationParameters = function(){
         geoVar = geoVar,
         yearVar = yearVar,
         itemVar = itemVar,
+        elementVar = "measuredElement",
         mergeKey = c(geoVar, yearVar, itemVar), # For merging with the main data
         groupID = "groupID",
         elementPrefix = "Value_measuredElement_",
@@ -39,7 +40,7 @@ defaultStandardizationParameters = function(){
         seedCode = "5525",
         industrialCode = "i???",
         touristCode = "t???",
-        residualCode = "r???",
-        adjustVar = "adjustment"
+        residualCode = "r???"
+#        adjustVar = "adjustment"
     )
 }
