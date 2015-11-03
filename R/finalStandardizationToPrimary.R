@@ -34,15 +34,15 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ## "Food Manufacturing".
     foodProcElements = tree[!is.na(get(standParams$standParentVar)),
                             unique(get(standParams$childVar))]
-    data[element == standParams$foodProcCode &
+    data[get(standParams$elementVar) == standParams$foodProcCode &
              !get(standParams$itemVar) %in% foodProcElements, Value := 0]
     ## Assign production of these commodities to their food processing element
     ## so that we can roll that up.
     toMerge = data[get(standParams$itemVar) %in% foodProcElements &
-                       element == "5510", ]
-    toMerge[, element := standParams$foodProcCode]
-    toMerge = toMerge[, c(standParams$mergeKey, "element", "Value"), with = FALSE]
-    data = merge(data, toMerge, by = c(standParams$mergeKey, "element"), all.x = TRUE,
+                       get(standParams$elementVar) == "5510", ]
+    toMerge[, c(standParams$elementVar) := standParams$foodProcCode]
+    toMerge = toMerge[, c(standParams$mergeKey, standParams$elementVar, "Value"), with = FALSE]
+    data = merge(data, toMerge, by = c(standParams$mergeKey, standParams$elementVar), all.x = TRUE,
                  suffixes = c("", ".new"))
     data[!is.na(Value.new), Value := Value.new]
     
@@ -51,7 +51,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ## processing.  Thus, we must keep both parents in the tree and use new 
     ## codes to identify the two cases.  The nodes rolling into new parentIDs
     ## get new_ prefixes.
-    data[get(standParams$itemVar) %in% foodProcElements & element == standParams$foodProcCode,
+    data[get(standParams$itemVar) %in% foodProcElements & get(standParams$elementVar) == standParams$foodProcCode,
          c(standParams$itemVar) := paste0("f???_", get(standParams$itemVar))]
     tree[get(standParams$childVar) %in% foodProcElements,
          c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
@@ -76,23 +76,26 @@ finalStandardizationToPrimary = function(data, tree, standParams,
         tree[, c(standParams$yearVar) := data[, get(standParams$yearVar)][1]]
         tree[, c(standParams$geoVar) := data[, get(standParams$geoVar)][1]]
     }
-    standTree = collapseEdges(edges = tree, keyCols = keyCols)
+    standTree = collapseEdges(edges = tree, keyCols = keyCols,
+                              parentName = standParams$parentVar,
+                              childName = standParams$childVar,
+                              extractionName = standParams$extractVar)
     localParams = standParams
     localParams$elementPrefix = ""
     out = data[, standardizeTree(data = .SD, tree = standTree,
                                  standParams = localParams, elements = "Value",
                                  sugarHack = sugarHack),
-               by = element]
+               by = c(standParams$elementVar)]
     if(length(additiveElements) > 0){
         additiveTree = copy(standTree)
         additiveTree[, c(standParams$extractVar) := 1]
         nutrients = lapply(additiveElements, function(nutrient){
-            temp = data[element == standParams$foodCode,
+            temp = data[get(standParams$elementVar) == standParams$foodCode,
                         standardizeTree(data = .SD, tree = additiveTree,
                                         standParams = localParams, elements = nutrient,
                                         sugarHack = sugarHack)]
             temp[, Value := get(nutrient)]
-            temp[, element := nutrient]
+            temp[, get(standParams$elementVar) := nutrient]
             temp[, c(nutrient) := NULL]
             temp
         })
@@ -101,9 +104,9 @@ finalStandardizationToPrimary = function(data, tree, standParams,
 
     ## Add on the primary value for use in some special cases of
     ## standardization.
-    out = merge(out, data[, c(standParams$mergeKey, "element", "Value"),
+    out = merge(out, data[, c(standParams$mergeKey, standParams$elementVar, "Value"),
                           with = FALSE],
-                by = c(standParams$mergeKey, "element"),
+                by = c(standParams$mergeKey, standParams$elementVar),
                 suffixes = c("", ".old"), all.x = TRUE)
     
 #     ## Standardizing food values is complicated.  The value reported under
@@ -139,7 +142,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     foodProcParents = tree[grepl("^f\\?\\?\\?_", get(standParams$childVar)),
                            unique(get(standParams$parentVar))]
     foodProcParents = c()
-    out[element %in% c(standParams$productionCode) &
+    out[get(standParams$elementVar) %in% c(standParams$productionCode) &
             !get(standParams$itemVar) %in% foodProcParents,
         Value := Value.old]
     warning("The standardization approach may not work for production in ",

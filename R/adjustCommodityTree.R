@@ -61,16 +61,18 @@ adjustCommodityTree = function(commodityTree,
     
     ## Estimate the mean and variance for each unique year/commodity pair
     byKey = c(byKey, parentColname, childColname)
-    ## Overwrite the default huber function so it returns NA/NA instead of
-    ## errors when the MAD (Median Absolute Deviation) can't be estimated.
-    huber = function(...){
-        values = try(MASS::huber(...), silent = TRUE)
-        if(is(values, "try-error"))
-            return(list(mu = NA_real_, s = NA_real_))
+    ## Overwrite the default huber function so it returns non robust mean/sd
+    ## instead of errors when the MAD (Median Absolute Deviation) can't be
+    ## estimated.
+    huber = function(y, ...){
+        values = try(MASS::huber(y, ...), silent = TRUE)
+        if(is(values, "try-error") | values[2] == 0){
+            return(list(mu = mean(y, na.rm = TRUE), s = sd(y, na.rm = TRUE)))
+        }
         return(values)
     }
     commodityTree[, c("meanRate", "sdRate") :=
-                       huber(get(extractionColname), k = 1.5), by = byKey]
+                       huber(y = get(extractionColname), k = 1.5), by = byKey]
     
     ## Now, update extreme values with the corresponding value on a normal
     ## curve (based on their quantiles).
@@ -83,5 +85,9 @@ adjustCommodityTree = function(commodityTree,
                                          sd = sdRate)]
     ## Update the extreme values, where "extreme" is defined based on a
     ## user-provided parameter.
-    commodityTree[normalScore > nSigma, extractionRate := normalValue]
+    commodityTree[normalScore > nSigma, extractionRate := pmax(0, normalValue)]
+    commodityTree[normalScore < -nSigma, extractionRate := pmax(0, normalValue)]
+    commodityTree[, c("meanRate", "sdRate", "normalScore", "extractionQuantile",
+                      "normalValue") := NULL]
+    commodityTree
 }

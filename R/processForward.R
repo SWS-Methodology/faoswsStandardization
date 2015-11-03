@@ -34,7 +34,8 @@ processForward = function(data, tree, standParams){
     level = getCommodityLevel(subTree, parentColname = standParams$parentVar,
                               childColname = standParams$childVar)
     setnames(level, c(standParams$parentVar, "level"))
-    if(length(unique(tree[parentID %in% subTree[, parentID], target])) > 1){
+    if(length(unique(tree[get(standParams$parentVar) %in%
+                          subTree[, get(standParams$parentVar)], target])) > 1){
         warning("Some parents have one edge set to be forward processed and ",
                 "another edge not.  How to handle such a case is not clear, ",
                 "and this may cause strange behavior.")
@@ -54,16 +55,17 @@ processForward = function(data, tree, standParams){
         ## Process the node down by first computing the availability of the
         ## parent as the balance
         dataToUpdate = dataToUpdate[, list(parentAvail = sum(Value *
-            ifelse(element %in% c(standParams$exportCode, standParams$stockCode,
-                                  standParams$foodCode, standParams$foodProcCode,
-                                  standParams$feedCode, standParams$wasteCode,
-                                  standParams$seedCode, standParams$industrialCode,
-                                  standParams$touristCode, standParams$residualCode), -1,
-                   ifelse(element %in% c(standParams$importCode,
+            ifelse(get(standParams$elementVar) %in%
+                       c(standParams$exportCode, standParams$stockCode,
+                         standParams$foodCode, standParams$foodProcCode,
+                         standParams$feedCode, standParams$wasteCode,
+                         standParams$seedCode, standParams$industrialCode,
+                         standParams$touristCode, standParams$residualCode), -1,
+                   ifelse(get(standParams$elementVar) %in% c(standParams$importCode,
                                          standParams$productionCode), 1, 0)),
             na.rm = TRUE),
             parentAvailSd = sqrt(sum(standardDeviation^2 *
-                ifelse(element %in% c(standParams$exportCode, standParams$stockCode,
+                ifelse(get(standParams$elementVar) %in% c(standParams$exportCode, standParams$stockCode,
                         standParams$foodCode, standParams$foodProcCode,
                         standParams$feedCode, standParams$wasteCode,
                         standParams$seedCode, standParams$industrialCode,
@@ -75,17 +77,18 @@ processForward = function(data, tree, standParams){
         dataToUpdate[, c(standParams$itemVar) := get(standParams$childVar)]
         dataToUpdate[, Value := get(standParams$extractVar) * parentAvail]
         dataToUpdate[, standardDeviation := get(standParams$extractVar) * parentAvailSd]
-        dataToUpdate[, element := standParams$productionCode]
-        dataToUpdate = dataToUpdate[, c(standParams$mergeKey, "element", "Value",
-                                        "standardDeviation"), with = FALSE]
+        dataToUpdate[, c(standParams$elementVar) := standParams$productionCode]
+        dataToUpdate = dataToUpdate[, c(standParams$mergeKey, standParams$elementVar,
+                                        "Value", "standardDeviation"), with = FALSE]
         ## Aggregate dataToUpdate in case there are multiple parents going into
         ## one child.
         dataToUpdate = dataToUpdate[, list(Value = sum(Value),
                     standardDeviation = sqrt(sum(standardDeviation^2))),
-                by = c(standParams$mergeKey, "element")]
+                by = c(standParams$mergeKey, standParams$elementVar)]
                 
         ## Add in the new data values
-        data = merge(data, dataToUpdate, by = c(standParams$mergeKey, "element"),
+        data = merge(data, dataToUpdate, by = c(standParams$mergeKey,
+                                                standParams$elementVar),
                      all = TRUE, suffixes = c("", ".new"))
         data[is.na(Value), c("Value", "standardDeviation") :=
                  list(Value.new, standardDeviation.new)]
