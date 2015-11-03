@@ -17,8 +17,9 @@
 ##'   
 
 markUpdated = function(new, old, standParams){
-    old = old[, c(standParams$mergeKey, "element", "Value"), with = FALSE]
-    new = merge(new, old, by = c(standParams$mergeKey, "element"),
+    old = old[, c(standParams$mergeKey, standParams$elementVar, "Value"),
+              with = FALSE]
+    new = merge(new, old, by = c(standParams$mergeKey, standParams$elementVar),
                 all.x = TRUE, suffixes = c("", ".old"))
     new[, updateFlag := !mapply(identical, x = Value, y = Value.old)]
     new[, Value.old := NULL]

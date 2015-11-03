@@ -22,10 +22,15 @@ printSUATable = function(data, standParams, printCodes, printProcessing = TRUE,
     if(!"updateFlag" %in% colnames(printDT)){
         printDT[, updateFlag := FALSE]
     }
-    printDT = printDT[, c(standParams$mergeKey, "element", "Value", "updateFlag"),
-                      with = FALSE]
-    printDT[, element := paste0("Value_measuredElement_", element)]
+    printDT = printDT[, c(standParams$mergeKey, standParams$elementVar,
+                          "Value", "updateFlag"), with = FALSE]
+    printDT[, c(standParams$elementVar) := paste0("Value_measuredElement_",
+                                                  get(standParams$elementVar))]
     printDT = printDT[get(standParams$itemVar) %in% printCodes, ]
+    if(nrow(printDT) == 0){
+        cat("None of the printCode are in the data!  Not printing anything...")
+        return(NULL)
+    }
     
     fbsElements = c(standParams$productionCode, standParams$feedCode,
                     standParams$seedCode, standParams$wasteCode,
@@ -37,14 +42,17 @@ printSUATable = function(data, standParams, printCodes, printProcessing = TRUE,
     printDT[, Value := ifelse(is.na(Value), "-", sapply(Value, roundNum))]
     printDT[(updateFlag), Value := paste0("**", Value, "**")]
     printDT[, updateFlag := NULL]
-    printDT = tidyr::spread(data = printDT, key = "element", value = "Value",
-                            fill = NA)
+    printDT = dcast(data = printDT, as.formula(paste0(standParams$itemVar, "~",
+                                                      standParams$elementVar)),
+                            value.var = "Value", fill = NA)
     setnames(printDT, standParams$itemVar, "Item")
 
-    setnames(printDT, paste0("Value_measuredElement_", fbsElements),
+    oldNames = paste0("Value_measuredElement_", fbsElements)
+    nameFilter = oldNames %in% colnames(printDT)
+    setnames(printDT, oldNames[nameFilter],
              c("Production", "Feed", "Seed", "Loss",
                "Food", "StockChange", "Imports", "Exports",
-               "Food Processing", "Industrial", "Tourist"))
+               "Food Processing", "Industrial", "Tourist")[nameFilter])
     if(printProcessing){
         items = c("Item", "Production", "Imports", "Exports", "StockChange",
                   "Food", "Food Processing", "Feed", "Seed", "Tourist",
