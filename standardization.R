@@ -82,13 +82,33 @@ data = split(data, f = data[, c("geographicAreaM49",
 tree = split(tree, f = tree[, c("geographicAreaM49",
                                 "timePointYearsSP", "type"), with = FALSE])
 tree = tree[names(data)]
-elementGroup = fread(paste0(R_SWS_SHARE_PATH, "/browningj/elementCodes.csv"))
+elementGroup = read.csv(paste0(R_SWS_SHARE_PATH, "/browningj/elementCodes.csv"))
+parentNodes = getCommodityLevel(tree[[1]], parentColname = "measuredItemParentCPC",
+                                childColname = "measuredItemChildCPC")
+parentNodes = parentNodes[level == 0, node]
 standardizationVectorized = function(data, tree){
-    params = 
-    printCodes = 
+    row = elementGroup$itemType == data[1, type]
+    params$productionCode = elementGroup[row, "production"]
+    params$importCode = elementGroup[row, "imports"]
+    params$exportCode = elementGroup[row, "exports"]
+    params$stockCode = elementGroup[row, "stockChange"]
+    params$foodCode = elementGroup[row, "food"]
+    params$feedCode = elementGroup[row, "feed"]
+    params$seedCode = elementGroup[row, "seed"]
+    params$wasteCode = elementGroup[row, "loss"]
+    params$industrialCode = elementGroup[row, "industrial"]
+    params$touristCode = elementGroup[row, "tourist"]
+    params$foodProcCode = elementGroup[row, "foodManufacturing"]
+    printCodes = sample(parentNodes, size = 1)
+    getChildren(commodityTree = tree, parentColname = params$parentVar,
+                childColname = params$childVar, topNodes = printCodes)
     out = try({
+        sink(paste0(R_SWS_SHARE_PATH, "/browningj/standardization/",
+                    data$timePointYears[1], "_", data$measuredItemSuaFbs[1], "_",
+                    data$geographicAreaM49[1], "_sample_test.md"))
         standardizationWrapper(data = data, tree = tree, standParams = params,
                                printCodes = printCodes)
+        sink()
     })
     if(is(out, "try-error")){
         return(NULL)
