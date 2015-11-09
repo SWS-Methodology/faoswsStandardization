@@ -51,13 +51,33 @@ key = DatasetKey(domain = "suafbs", dataset = "sua", dimensions = list(
     timePointYears = Dimension(name = "timePointYears", keys = yearVals)
 ))
 data = GetData(key)
+# data$key = 1:nrow(data)
+# data2 = elementCodesToNames(data = data, standParams = params)
+# compare = merge(data2, data, by = "key")
+# head(compare[, c("measuredItemSuaFbs.x", "measuredElementSuaFbs.x", "measuredElementSuaFbs.y"), with = FALSE], 50)
+data = elementCodesToNames(data = data, standParams = params)
 
+## Update params for specific dataset
 params = defaultStandardizationParameters()
 params$itemVar = "measuredItemSuaFbs"
 params$mergeKey[params$mergeKey == "measuredItemCPC"] = "measuredItemSuaFbs"
 params$elementVar = "measuredElementSuaFbs"
 params$childVar = "measuredItemChildCPC"
 params$parentVar = "measuredItemParentCPC"
+params$productionCode = "production"
+params$importCode = "import"
+params$exportCode = "export"
+params$stockCode = "stockChange"
+params$foodCode = "food"
+params$feedCode = "feed"
+params$seedCode = "seed"
+params$wasteCode = "loss"
+params$industrialCode = "industrial"
+params$touristCode = "tourist"
+params$foodProcCode = "foodManufacturing"
+
+## Update tree by setting some edges to "F", computing average extraction rates
+## when missing, and bringing in extreme extraction rates
 tree[, target := ifelse(measuredItemParentCPC %in% c("23511.01", "23512",
                                                      "01499.06", "01921.01"),
                         "F", "B")]
@@ -69,6 +89,7 @@ tree[, extractionRate := ifelse(is.na(extractionRate),
      by = c("measuredItemParentCPC", "measuredItemChildCPC")]
 tree[is.na(extractionRate), extractionRate := 1]
 
+
 itemMap = GetCodeList(domain = "agriculture", dataset = "agriculture", "measuredItemCPC")
 itemMap = itemMap[, c("code", "type"), with = FALSE]
 setnames(itemMap, "code", "measuredItemSuaFbs")
@@ -77,45 +98,57 @@ setnames(itemMap, "measuredItemSuaFbs", "measuredItemParentCPC")
 tree = merge(tree, itemMap, by = "measuredItemParentCPC")
 
 ## Split data based on the three factors we need to loop over
-data = split(data, f = data[, c("geographicAreaM49",
-                                "timePointYears", "type"), with = FALSE])
-tree = split(tree, f = tree[, c("geographicAreaM49",
-                                "timePointYearsSP", "type"), with = FALSE])
+data = split(data, f = data[, c("geographicAreaM49", "timePointYears"), with = FALSE])
+tree = split(tree, f = tree[, c("geographicAreaM49", "timePointYearsSP"), with = FALSE])
 tree = tree[names(data)]
+## Remove country and year from tree (as they're no longer relevant).  Failing
+## to do this will cause problems later when merging with data.
+lapply(tree, function(x) x[, c("geographicAreaM49", "timePointYearsSP") := NULL])
 elementGroup = read.csv(paste0(R_SWS_SHARE_PATH, "/browningj/elementCodes.csv"))
 parentNodes = getCommodityLevel(tree[[1]], parentColname = "measuredItemParentCPC",
                                 childColname = "measuredItemChildCPC")
 parentNodes = parentNodes[level == 0, node]
 standardizationVectorized = function(data, tree){
-    row = elementGroup$itemType == data[1, type]
-    params$productionCode = elementGroup[row, "production"]
-    params$importCode = elementGroup[row, "imports"]
-    params$exportCode = elementGroup[row, "exports"]
-    params$stockCode = elementGroup[row, "stockChange"]
-    params$foodCode = elementGroup[row, "food"]
-    params$feedCode = elementGroup[row, "feed"]
-    params$seedCode = elementGroup[row, "seed"]
-    params$wasteCode = elementGroup[row, "loss"]
-    params$industrialCode = elementGroup[row, "industrial"]
-    params$touristCode = elementGroup[row, "tourist"]
-    params$foodProcCode = elementGroup[row, "foodManufacturing"]
-    printCodes = sample(parentNodes, size = 1)
-    getChildren(commodityTree = tree, parentColname = params$parentVar,
-                childColname = params$childVar, topNodes = printCodes)
+    if(nrow(data) == 0){
+        warning("No rows in data, nothing to do")
+        return(data)
+    }
+    samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
+    if(length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
+    printCodes = sample(samplePool, size = 1)
+    if(!is.null(tree)){
+        printCodes = getChildren(commodityTree = tree,
+                                 parentColname = params$parentVar,
+                                 childColname = params$childVar,
+                                 topNodes = printCodes)
+    }
+    sink(paste0(R_SWS_SHARE_PATH, "/browningj/standardization/",
+                data$timePointYears[1], "_",
+                data$geographicAreaM49[1], "_sample_test.md"))
     out = try({
-        sink(paste0(R_SWS_SHARE_PATH, "/browningj/standardization/",
-                    data$timePointYears[1], "_", data$measuredItemSuaFbs[1], "_",
-                    data$geographicAreaM49[1], "_sample_test.md"))
         standardizationWrapper(data = data, tree = tree, standParams = params,
                                printCodes = printCodes)
-        sink()
     })
+    sink()
     if(is(out, "try-error")){
         return(NULL)
     } else {
         return(out)
     }
 }
+
+# ## Debugging
+# for(i in 1:length(data)){
+#     out = standardizationVectorized(data = data[[i]], tree = tree[[i]])
+# }
+# 
+# ## Testing single case:
+# year = "2012"
+# country = "1249"
+# code = paste(country, year, commodity, sep = ".")
+# data[[code]]
+# tree[[code]]
+
 standData = mapply(standardizationVectorized, data = data, tree = tree)
 
 paste0("Successfully built ", successCount, " models out of ",

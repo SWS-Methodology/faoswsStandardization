@@ -42,9 +42,21 @@ printSUATable = function(data, standParams, printCodes, printProcessing = TRUE,
     printDT[, Value := ifelse(is.na(Value), "-", sapply(Value, roundNum))]
     printDT[(updateFlag), Value := paste0("**", Value, "**")]
     printDT[, updateFlag := NULL]
-    printDT = dcast(data = printDT, as.formula(paste0(standParams$itemVar, "~",
-                                                      standParams$elementVar)),
-                            value.var = "Value", fill = NA)
+    if(max(printDT[, .N, by = c(standParams$itemVar,
+                                standParams$elementVar)]$N) > 1){
+        warning("More than one record for a unique combination of item/element.",
+                "Collapsing the data by pasting together values!")
+        aggFun = function(...){
+            paste(..., collapse = "-")
+        }
+        printDT = dcast(data = printDT, as.formula(paste0(standParams$itemVar, "~",
+                                                          standParams$elementVar)),
+                                value.var = "Value", fill = NA, fun.aggregate = aggFun)
+    } else {
+        printDT = dcast(data = printDT, as.formula(paste0(standParams$itemVar, "~",
+                                                          standParams$elementVar)),
+                                value.var = "Value", fill = NA)
+    }
     setnames(printDT, standParams$itemVar, "Item")
 
     oldNames = paste0("Value_measuredElement_", fbsElements)
