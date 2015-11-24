@@ -33,5 +33,8 @@ key = DatasetKey(domain = "trade", dataset = "total_trade_CPC", dimensions = lis
 tradeData = GetData(key)
 setnames(tradeData, "measuredElementTrade", "measuredElement")
 
-rbind(data[, .N, c("measuredItemCPC", "measuredElement")],
-      tradeData[, .N, c("measuredItemCPC", "measuredElement")])
+out = rbind(data[, .N, c("measuredItemCPC", "measuredElement")],
+            tradeData[, .N, c("measuredItemCPC", "measuredElement")])
+setnames(itemCodes, "code", "measuredItemCPC")
+out = merge(out, itemCodes[, c("measuredItemCPC", "description"), with = FALSE],
+            by = "measuredItemCPC")

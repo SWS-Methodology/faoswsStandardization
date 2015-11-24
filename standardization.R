@@ -55,7 +55,8 @@ data = GetData(key)
 # data2 = elementCodesToNames(data = data, standParams = params)
 # compare = merge(data2, data, by = "key")
 # head(compare[, c("measuredItemSuaFbs.x", "measuredElementSuaFbs.x", "measuredElementSuaFbs.y"), with = FALSE], 50)
-data = elementCodesToNames(data = data, standParams = params)
+data = elementCodesToNames(data = data, itemCol = "measuredItemSuaFbs",
+                           elementCol = "measuredElementSuaFbs")
 
 ## Update params for specific dataset
 params = defaultStandardizationParameters()

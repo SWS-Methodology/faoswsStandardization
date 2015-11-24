@@ -1,0 +1,11 @@
+## Data problems
+## 
+## "Seed" code 111: Should be 5525 for all commodities except eggs, where it's 
+## 5528.  But, some crops primary, crops non primary, and fruit use 5528.  And,
+## some eggs use 5525.
+## 
+## "Hides" use both element 5114 and 5519 for production.
+## 
+## Convert egg counts to weight (when weight is missing)
+## 
+## 

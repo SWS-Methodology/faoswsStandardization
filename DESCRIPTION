@@ -14,6 +14,25 @@ Imports:
     data.table (>= 1.9.2),
     reshape (>= 0.7.2),
     diagram (>= 1.6.3)
+swsDatasetDepends:
+    agriculture:agriculture,
+    trade:total_trade_CPC,
+    tourism:tourismprod,
+    suafbs:sua,
+    faostat_one:FS1_SUA,
+    faostat_one:aupus_share_fs,
+    faostat_one:input_from_proc_fs,
+    SWS_R_SHARE/browning/elementCodes.csv
+swsModuleDepends:
+    faoswsProduction,
+    tradeproc,
+    faoswsStock,
+    faoswsFood,
+    faoswsSeed,
+    faoswsSeed,
+    faoswsTourist,
+    faoswsLoss,
+    faoswsIndustrial
 ZipData: no
 VignetteBuilder: knitr
 Suggests: knitr, ggplot2
