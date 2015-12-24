@@ -46,12 +46,12 @@ printSUATable = function(data, standParams, printCodes, printProcessing = TRUE,
                                 standParams$elementVar)]$N) > 1){
         warning("More than one record for a unique combination of item/element.",
                 "Collapsing the data by pasting together values!")
-        aggFun = function(...){
-            paste(..., collapse = "-")
-        }
         printDT = dcast(data = printDT, as.formula(paste0(standParams$itemVar, "~",
                                                           standParams$elementVar)),
-                                value.var = "Value", fill = NA, fun.aggregate = aggFun)
+                                value.var = "Value", fill = NA, fun.aggregate = function(...){
+                                    paste(..., collapse = "-")
+                                    }
+                        )
     } else {
         printDT = dcast(data = printDT, as.formula(paste0(standParams$itemVar, "~",
                                                           standParams$elementVar)),
