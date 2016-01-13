@@ -5,6 +5,10 @@ library(data.table)
 library(igraph)
 library(faoswsBalancing)
 
+## HACK!  Won't need to do this once faoswsUtil is updated and exports this function.
+getChildren = faoswsUtil:::getChildren
+getCommodityLevel = faoswsUtil:::getCommodityLevel
+
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
@@ -21,13 +25,17 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
         ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "7b588793-8c9a-4732-b967-b941b396ce4d"
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "0297f8b1-62ed-4d6a-a07e-bd1bacc6e615"
+        token = "77dc91a0-9ec3-4f3d-80d7-4200a0ac87b6"
     )
 
     ## Source local scripts for this local test
     for(file in dir(apiDirectory, full.names = T))
         source(file)
+} else {
+    cat("Running on server, no need to call GetTestEnvironment...\n")
 }
+
+cat("Getting parameters/datasets...\n")
 
 startYear = as.numeric(swsContext.computationParams$startYear)
 endYear = as.numeric(swsContext.computationParams$endYear)
@@ -50,6 +58,9 @@ key = DatasetKey(domain = "suafbs", dataset = "sua", dimensions = list(
     measuredItemSuaFbs = Dimension(name = "measuredItemSuaFbs", keys = itemKeys),
     timePointYears = Dimension(name = "timePointYears", keys = yearVals)
 ))
+
+cat("Reading SUA data...\n")
+
 data = GetData(key)
 # data$key = 1:nrow(data)
 # data2 = elementCodesToNames(data = data, standParams = params)
@@ -66,8 +77,8 @@ params$elementVar = "measuredElementSuaFbs"
 params$childVar = "measuredItemChildCPC"
 params$parentVar = "measuredItemParentCPC"
 params$productionCode = "production"
-params$importCode = "import"
-params$exportCode = "export"
+params$importCode = "imports"
+params$exportCode = "exports"
 params$stockCode = "stockChange"
 params$foodCode = "food"
 params$feedCode = "feed"
@@ -76,6 +87,8 @@ params$wasteCode = "loss"
 params$industrialCode = "industrial"
 params$touristCode = "tourist"
 params$foodProcCode = "foodManufacturing"
+
+cat("Applying adjustments to commodity tree...\n")
 
 ## Update tree by setting some edges to "F", computing average extraction rates
 ## when missing, and bringing in extreme extraction rates
@@ -98,17 +111,11 @@ data = merge(data, itemMap, by = "measuredItemSuaFbs")
 setnames(itemMap, "measuredItemSuaFbs", "measuredItemParentCPC")
 tree = merge(tree, itemMap, by = "measuredItemParentCPC")
 
-## Split data based on the three factors we need to loop over
-data = split(data, f = data[, c("geographicAreaM49", "timePointYears"), with = FALSE])
-tree = split(tree, f = tree[, c("geographicAreaM49", "timePointYearsSP"), with = FALSE])
-tree = tree[names(data)]
-## Remove country and year from tree (as they're no longer relevant).  Failing
-## to do this will cause problems later when merging with data.
-lapply(tree, function(x) x[, c("geographicAreaM49", "timePointYearsSP") := NULL])
-elementGroup = read.csv(paste0(R_SWS_SHARE_PATH, "/browningj/elementCodes.csv"))
-parentNodes = getCommodityLevel(tree[[1]], parentColname = "measuredItemParentCPC",
-                                childColname = "measuredItemChildCPC")
-parentNodes = parentNodes[level == 0, node]
+## Remove missing elements
+data = data[!is.na(measuredElementSuaFbs), ]
+
+cat("Defining vectorized standardization function...\n")
+
 standardizationVectorized = function(data, tree){
     if(nrow(data) == 0){
         warning("No rows in data, nothing to do")
@@ -126,31 +133,63 @@ standardizationVectorized = function(data, tree){
     sink(paste0(R_SWS_SHARE_PATH, "/browningj/standardization/",
                 data$timePointYears[1], "_",
                 data$geographicAreaM49[1], "_sample_test.md"))
-    out = try({
-        standardizationWrapper(data = data, tree = tree, standParams = params,
-                               printCodes = printCodes)
-    })
+    out = try(standardizationWrapper(data = data, tree = tree,
+                                 standParams = params, printCodes = printCodes))
     sink()
-    if(is(out, "try-error")){
-        return(NULL)
-    } else {
-        return(out)
+    return(out)
+}
+
+## Split data based on the two factors we need to loop over
+setnames(tree, "timePointYearsSP", "timePointYears")
+uniqueLevels = data[, .N, by = c("geographicAreaM49", "timePointYears")]
+uniqueLevels[, N := NULL]
+elementGroup = read.csv(paste0(R_SWS_SHARE_PATH, "/browningj/elementCodes.csv"))
+
+parentNodes = getCommodityLevel(tree, parentColname = "measuredItemParentCPC",
+                                childColname = "measuredItemChildCPC")
+parentNodes = parentNodes[level == 0, node]
+
+cat("Beginning actual standardization process...\n")
+
+standData = list()
+for(i in 1:nrow(uniqueLevels)){
+    filter = uniqueLevels[i, ]
+    dataSubset = data[filter, , on = c("geographicAreaM49", "timePointYears")]
+    treeSubset = tree[filter, , on = c("geographicAreaM49", "timePointYears")]
+    # dataSubset[, c("geographicAreaM49", "timePointYears") := NULL]
+    treeSubset[, c("geographicAreaM49", "timePointYears") := NULL]
+    standData[[i]] = standardizationVectorized(data = dataSubset,
+                                               tree = treeSubset)
+    if(!is(standData[[i]], "try-error")){
+        standData[[i]] = standData[[i]][measuredItemSuaFbs %in% parentNodes, ]
     }
 }
 
-# ## Debugging
-# for(i in 1:length(data)){
-#     out = standardizationVectorized(data = data[[i]], tree = tree[[i]])
-# }
-# 
-# ## Testing single case:
-# year = "2012"
-# country = "1249"
-# code = paste(country, year, commodity, sep = ".")
-# data[[code]]
-# tree[[code]]
+cat("Combining standardized data...\n")
 
-standData = mapply(standardizationVectorized, data = data, tree = tree)
+filter = sapply(standData, function(x){is(x, "try-error")})
+errorMessages = sapply(standData[filter], function(x) attr(x, "condition")$message)
+cat("Error messages:", errorMessages)
+cat(is(standData), "\n")
+standData = do.call("rbind", standData[!filter])
+cat(is(standData), "\n")
+standData[, type := NULL] # Must remove for next function to work ok
+cat(is(standData), "\n")
+standData = elementNamesToCodes(data = standData,
+                                elementCol = "measuredElementSuaFbs",
+                                itemCol = "measuredItemSuaFbs")
+cat(is(standData), "\n")
+standData[, standardDeviation := NULL]
+cat(is(standData), "\n")
+## Assign flags: I for imputed (as we're estimating/standardizing) and s for
+## "sum" (aggregate)
+standData[, flagObservationStatus := "I"]
+standData[, flagMethod := "s"]
 
-paste0("Successfully built ", successCount, " models out of ",
-       failCount + successCount, " commodities.")
+cat("Attempting to save standardized data...\n")
+
+out = SaveData(domain = "suafbs", dataset = "fbs", data = standData)
+cat(out$inserted, " observations written and problems with ",
+    out$ignored + out$discarded, sep = "")
+paste0(out$inserted, " observations written and problems with ",
+       out$ignored + out$discarded)
