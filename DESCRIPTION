@@ -29,7 +29,6 @@ swsModuleDepends:
     faoswsStock,
     faoswsFood,
     faoswsSeed,
-    faoswsSeed,
     faoswsTourist,
     faoswsLoss,
     faoswsIndustrial
