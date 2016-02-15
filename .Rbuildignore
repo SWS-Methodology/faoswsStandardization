@@ -2,3 +2,5 @@
 ^documentation$
 .git*
 README.md
+^.*\.Rproj$
+^\.Rproj\.user$
