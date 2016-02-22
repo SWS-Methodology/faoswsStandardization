@@ -7,32 +7,45 @@ library(faoswsBalancing)
 
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
-DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 
-if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
-    cat("Not on server, so setting up environment...\n")
+if(CheckDebug()){
+    message("Not on server, so setting up environment...")
 
-    R_SWS_SHARE_PATH = "/media/hqlprsws1_qa/"
-    apiDirectory = "~/Documents/Github/faoswsStandardization/R/"
+  #Read .settings file in working directory. Example:
+  #   R_SWS_SHARE_PATH: /media/hqlprsws1_qa/
+  #   apiDirectory: ~/Documents/Github/faoswsStandardization/R/
+  #   QaCertDir: ~/certificates/QA
+  #   ProdCertDir: ~/certificates/production
+  
+  .settings <- read.dcf(".settings")
+  
+    R_SWS_SHARE_PATH = .settings[,"R_SWS_SHARE_PATH"]
+    apiDirectory = "./R"
     
     ## Get SWS Parameters
-    SetClientFiles(dir = "~/R certificate files/QA")
+    baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws"
+    token = "1bf05268-86ff-4bca-950f-b2656fb42523"
+    SetClientFiles(dir = .settings[,
+                                   switch(baseUrl,
+                                          "https://hqlqasws1.hq.un.fao.org:8181/sws" = "QaCertDir",
+                                          "https://hqlprswsas1.hq.un.fao.org:8181/sws" = "ProdCertDir"
+                                          )
+                                   ])
     GetTestEnvironment(
-        ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        ## token = "7b588793-8c9a-4732-b967-b941b396ce4d"
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "77e2f850-6980-418e-b12c-eef7cdef8d54"
+        baseUrl = baseUrl,
+        token = token
     )
 
     ## Source local scripts for this local test
     for(file in dir(apiDirectory, full.names = T))
         source(file)
-    source("~/Documents/Github/faoswsUtil/R/getNutritiveFactors.R")
 } else {
     cat("Running on server, no need to call GetTestEnvironment...\n")
 }
 
-cat("Getting parameters/datasets...\n")
+SWS_USER = regmatches(swsContext.username, regexpr("(?<=/)[[:alpha:]]+$", swsContext.username, perl=TRUE))
+
+message("Getting parameters/datasets...")
 
 startYear = as.numeric(swsContext.computationParams$startYear)
 endYear = as.numeric(swsContext.computationParams$endYear)
@@ -135,7 +148,7 @@ standardizationVectorized = function(data, tree, nutrientData){
                                  childColname = params$childVar,
                                  topNodes = printCodes)
     }
-    sink(paste0(R_SWS_SHARE_PATH, "/browningj/standardization/",
+    sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/",
                 data$timePointYears[1], "_",
                 data$geographicAreaM49[1], "_sample_test.md"))
     out = try(standardizationWrapper(data = data, tree = tree,
