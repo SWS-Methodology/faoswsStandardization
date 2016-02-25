@@ -44,20 +44,20 @@ yearVals = startYear:endYear
 
 ## Harvest from Agricultural Production
 cat("Pulling data from Agriculture Production")
-geoKeys = GetCodeList(domain = "agriculture", dataset = "agriculture",
+geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "geographicAreaM49")[type == "country", code]
 geoDim = Dimension(name = "geographicAreaM49", keys = geoKeys)
-eleKeys = GetCodeTree(domain = "agriculture", dataset = "agriculture",
+eleKeys = GetCodeTree(domain = "agriculture", dataset = "aproduction",
                       dimension = "measuredElement")
 eleKeys = strsplit(eleKeys[parent %in% c(oldProductionCode, oldFeedCode,
                                          oldSeedCode, oldLossCode), children],
                    split = ", ")
 eleDim = Dimension(name = "measuredElement", keys = do.call("c", eleKeys))
-itemKeys = GetCodeList(domain = "agriculture", dataset = "agriculture",
+itemKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "measuredItemCPC")[, code]
 itemDim = Dimension(name = "measuredItemCPC", keys = itemKeys)
 timeDim = Dimension(name = "timePointYears", keys = as.character(yearVals))
-agKey = DatasetKey(domain = "agriculture", dataset = "agriculture",
+agKey = DatasetKey(domain = "agriculture", dataset = "aproduction",
                    dimensions = list(
                        geographicAreaM49 = geoDim,
                        measuredElement = eleDim,

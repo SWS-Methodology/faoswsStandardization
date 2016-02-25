@@ -100,7 +100,7 @@ tree[, extractionRate := ifelse(is.na(extractionRate),
 tree[is.na(extractionRate), extractionRate := 1]
 
 
-itemMap = GetCodeList(domain = "agriculture", dataset = "agriculture", "measuredItemCPC")
+itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
 itemMap = itemMap[, c("code", "type"), with = FALSE]
 setnames(itemMap, "code", "measuredItemSuaFbs")
 data = merge(data, itemMap, by = "measuredItemSuaFbs")

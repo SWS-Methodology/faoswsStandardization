@@ -22,7 +22,7 @@ Imports:
 Suggests:
     knitr,
     ggplot2
-swsDatasetDepends: agriculture:agriculture,
+swsDatasetDepends: agriculture:aproduction,
     trade:total_trade_CPC,
     tourism:tourismprod,
     suafbs:sua,
