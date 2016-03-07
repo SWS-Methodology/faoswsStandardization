@@ -5,10 +5,6 @@ library(data.table)
 library(igraph)
 library(faoswsBalancing)
 
-## HACK!  Won't need to do this once faoswsUtil is updated and exports this function.
-getChildren = faoswsUtil:::getChildren
-getCommodityLevel = faoswsUtil:::getCommodityLevel
-
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
@@ -105,7 +101,7 @@ tree[, extractionRate := ifelse(is.na(extractionRate),
 tree[is.na(extractionRate), extractionRate := 1]
 
 
-itemMap = GetCodeList(domain = "agriculture", dataset = "agriculture", "measuredItemCPC")
+itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
 itemMap = itemMap[, c("code", "type"), with = FALSE]
 setnames(itemMap, "code", "measuredItemSuaFbs")
 data = merge(data, itemMap, by = "measuredItemSuaFbs")

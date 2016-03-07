@@ -20,7 +20,10 @@ Imports:
     data.table (>= 1.9.2),
     reshape (>= 0.7.2),
     diagram (>= 1.6.3)
-swsDatasetDepends: agriculture:agriculture,
+Suggests:
+    knitr,
+    ggplot2
+swsDatasetDepends: agriculture:aproduction,
     trade:total_trade_CPC,
     tourism:tourismprod,
     suafbs:sua,
@@ -33,13 +36,9 @@ swsModuleDepends: faoswsProduction,
     faoswsStock,
     faoswsFood,
     faoswsSeed,
-    faoswsSeed,
     faoswsTourist,
     faoswsLoss,
     faoswsIndustrial
 ZipData: no
 VignetteBuilder: knitr
-Suggests:
-    knitr,
-    ggplot2
 RoxygenNote: 5.0.1
