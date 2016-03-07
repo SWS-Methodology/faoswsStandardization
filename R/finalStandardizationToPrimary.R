@@ -95,7 +95,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
                                         standParams = localParams, elements = nutrient,
                                         sugarHack = sugarHack)]
             temp[, Value := get(nutrient)]
-            temp[, get(standParams$elementVar) := nutrient]
+            temp[, c(standParams$elementVar) := nutrient]
             temp[, c(nutrient) := NULL]
             temp
         })

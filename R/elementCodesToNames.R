@@ -15,10 +15,12 @@
 ##' @param standParams A list of parameters (see 
 ##'   faoswsStandardization::defaultStandardizationParameters).  If supplied, 
 ##'   elementCol and itemCol can be NULL.
+##' 
+##' @export
 ##'   
 ##' @return The passed data.table "data" but with an updated element column
 ##'   (with names instead of codes).
-##'   
+##' 
 
 elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
                                standParams = NULL){

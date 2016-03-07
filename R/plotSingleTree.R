@@ -25,6 +25,8 @@
 
 plotSingleTree = function(edges, parentColname, childColname,
                               extractionColname, dashInf = TRUE, ...){
+    if(!faosws::CheckDebug())
+        return(NULL)
     nodes = unique(c(edges[[parentColname]], edges[[childColname]]))
     
     ## Get the level for each node so we know which group to plot it in.
@@ -46,7 +48,7 @@ plotSingleTree = function(edges, parentColname, childColname,
     ## Create a matrix specifying curvature.  Default value should be
     curve = merge.data.frame(level, level, by = NULL)
     curve$curvature = ifelse(curve$level.y >= curve$level.x, .2, 0)
-    curve = reshape::cast(curve, node.x ~ node.y, value = "curvature")
+    curve = reshape2::dcast(curve, node.x ~ node.y, value.var = "curvature")
     rownames(curve) = curve$node.x
     curve$node.x = NULL
     

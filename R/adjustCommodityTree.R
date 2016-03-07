@@ -45,6 +45,8 @@
 ##' @return This function returns an object that is the same as the input
 ##' commodityTree except that extreme extraction rates have been adjusted.
 ##' 
+##' @export
+##' 
 
 adjustCommodityTree = function(commodityTree,
                                parentColname = "measuredItemParentFS",
@@ -60,19 +62,13 @@ adjustCommodityTree = function(commodityTree,
               %in% colnames(commodityTree))
     
     ## Estimate the mean and variance for each unique year/commodity pair
-    byKey = c(byKey, parentColname, childColname)
+    byKey = c(byKey, childColname)
     ## Overwrite the default huber function so it returns non robust mean/sd
     ## instead of errors when the MAD (Median Absolute Deviation) can't be
     ## estimated.
-    huber = function(y, ...){
-        values = try(MASS::huber(y, ...), silent = TRUE)
-        if(is(values, "try-error") | values[2] == 0){
-            return(list(mu = mean(y, na.rm = TRUE), s = sd(y, na.rm = TRUE)))
-        }
-        return(values)
-    }
     commodityTree[, c("meanRate", "sdRate") :=
-                       huber(y = get(extractionColname), k = 1.5), by = byKey]
+                       huber(y = get(extractionColname), k = nSigma),
+                  by = byKey]
     
     ## Now, update extreme values with the corresponding value on a normal
     ## curve (based on their quantiles).
@@ -85,9 +81,33 @@ adjustCommodityTree = function(commodityTree,
                                          sd = sdRate)]
     ## Update the extreme values, where "extreme" is defined based on a
     ## user-provided parameter.
-    commodityTree[normalScore > nSigma, extractionRate := pmax(0, normalValue)]
-    commodityTree[normalScore < -nSigma, extractionRate := pmax(0, normalValue)]
+    # commodityTree[normalScore > nSigma, extractionRate := pmax(0, normalValue)]
+    # commodityTree[normalScore < -nSigma, extractionRate := pmax(0, normalValue)]
+    commodityTree[normalScore > nSigma,
+                  extractionRate := pmax(0, meanRate + sdRate*nSigma)]
+    commodityTree[normalScore < -nSigma,
+                  extractionRate := pmax(0, meanRate - sdRate*nSigma)]
     commodityTree[, c("meanRate", "sdRate", "normalScore", "extractionQuantile",
                       "normalValue") := NULL]
     commodityTree
+}
+
+##' Wrapper for function from MASS
+##' 
+##' This function is designed to call MASS::huber with two exceptions: missing 
+##' values are removed and, if MASS::huber results in an error, the non-robust 
+##' mean/sd are returned.
+##' 
+##' @param y The vector of data.
+##' @param ... Additional arguments to pass to MASS::huber
+##'   
+##' @return A numeric vector of length two with the estimated mean and standard
+##'   deviation.
+##'   
+huber = function(y, ...){
+    values = try(MASS::huber(y, ...), silent = TRUE)
+    if(is(values, "try-error") | values[2] == 0){
+        return(list(mu = mean(y, na.rm = TRUE), s = sd(y, na.rm = TRUE)))
+    }
+    return(values)
 }

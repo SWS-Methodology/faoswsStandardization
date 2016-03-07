@@ -25,12 +25,13 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
         ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "7b588793-8c9a-4732-b967-b941b396ce4d"
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "77dc91a0-9ec3-4f3d-80d7-4200a0ac87b6"
+        token = "77e2f850-6980-418e-b12c-eef7cdef8d54"
     )
 
     ## Source local scripts for this local test
     for(file in dir(apiDirectory, full.names = T))
         source(file)
+    source("~/Documents/Github/faoswsUtil/R/getNutritiveFactors.R")
 } else {
     cat("Running on server, no need to call GetTestEnvironment...\n")
 }
@@ -114,9 +115,17 @@ tree = merge(tree, itemMap, by = "measuredItemParentCPC")
 ## Remove missing elements
 data = data[!is.na(measuredElementSuaFbs), ]
 
+cat("Loading nutrient data...\n")
+
+itemKeys = GetCodeList("agriculture", "aupus_ratio", "measuredItemCPC")[, code]
+nutrientData = getNutritiveFactors(measuredElement = c("1001", "1003", "1005"),
+                                   timePointYears = yearVals)
+setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
+         c("measuredItemSuaFbs", "timePointYears"))
+
 cat("Defining vectorized standardization function...\n")
 
-standardizationVectorized = function(data, tree){
+standardizationVectorized = function(data, tree, nutrientData){
     if(nrow(data) == 0){
         warning("No rows in data, nothing to do")
         return(data)
@@ -133,8 +142,27 @@ standardizationVectorized = function(data, tree){
     sink(paste0(R_SWS_SHARE_PATH, "/browningj/standardization/",
                 data$timePointYears[1], "_",
                 data$geographicAreaM49[1], "_sample_test.md"))
+    # data = data[measuredElementSuaFbs != "production" | measuredItemSuaFbs == "0111", ]
+    # toBind = data[1, ]
+    # toBind[, c("measuredItemSuaFbs", "measuredElementSuaFbs", "Value") :=
+    #            list("23110", "food", 2720000)]
+    # data = rbind(data, toBind)
+    # toBind[, c("measuredItemSuaFbs", "measuredElementSuaFbs", "Value") :=
+    #            list("0111", "imports", 230000)]
+    # data = rbind(data, toBind)
+    # toBind[, c("measuredItemSuaFbs", "measuredElementSuaFbs", "Value") :=
+    #            list("24310.01", "exports", 1800)]
+    # data = rbind(data, toBind)
+    # toBind[, c("measuredItemSuaFbs", "measuredElementSuaFbs", "Value") :=
+    #            list("23140.03", "food", 6500)]
+    # data = rbind(data, toBind)
+    # toBind[, c("measuredItemSuaFbs", "measuredElementSuaFbs", "Value") :=
+    #            list("23140.03", "imports", 10000)]
+    # data = rbind(data, toBind)
+    # sink("~/Desktop/standardization_example.md")
     out = try(standardizationWrapper(data = data, tree = tree,
-                                 standParams = params, printCodes = printCodes))
+                                 standParams = params, printCodes = printCodes,
+                                 nutrientData = nutrientData))
     sink()
     return(out)
 }
@@ -151,6 +179,12 @@ parentNodes = parentNodes[level == 0, node]
 
 cat("Beginning actual standardization process...\n")
 
+aggFun = function(x){
+    if(length(x) > 1)
+        stop("x should only be one value!")
+    return(sum(x))
+}
+
 standData = list()
 for(i in 1:nrow(uniqueLevels)){
     filter = uniqueLevels[i, ]
@@ -158,8 +192,16 @@ for(i in 1:nrow(uniqueLevels)){
     treeSubset = tree[filter, , on = c("geographicAreaM49", "timePointYears")]
     # dataSubset[, c("geographicAreaM49", "timePointYears") := NULL]
     treeSubset[, c("geographicAreaM49", "timePointYears") := NULL]
+    subNutrientData = nutrientData[filter, , on = c("geographicAreaM49",
+                                                    "timePointYears")]
+    subNutrientData = dcast(measuredItemSuaFbs ~ measuredElement,
+                            data = subNutrientData, value.var = "Value",
+                            fun.agg = aggFun)
+    setnames(subNutrientData, c("1001", "1003", "1005"),
+             c("Calories", "Proteins", "Fats"))
     standData[[i]] = standardizationVectorized(data = dataSubset,
-                                               tree = treeSubset)
+                                               tree = treeSubset,
+                                               nutrientData = subNutrientData)
     if(!is(standData[[i]], "try-error")){
         standData[[i]] = standData[[i]][measuredItemSuaFbs %in% parentNodes, ]
     }

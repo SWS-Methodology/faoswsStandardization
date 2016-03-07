@@ -46,7 +46,6 @@
 
 
 \begin{document}
-\SweaveOpts{concordance=TRUE}
 
 <<echo=FALSE>>=
 if (!exists("faoswsStandardization", .GlobalEnv)) library(faoswsStandardization)
@@ -68,12 +67,14 @@ library(knitr)
 library(ggplot2)
 library(gridExtra)
 library(faosws)
+library(faoswsUtil)
 library(data.table)
 opts_chunk$set(fig.path='figure/', fig.align='center', fig.show='hold',
                warning=FALSE, message=FALSE, error=FALSE, tidy=FALSE, 
                results='markup', eval=TRUE, echo=TRUE, cache=FALSE, dpi=200)
 options(replace.assign=TRUE,width=80)
 assign("depthtrigger", 10, data.table:::.global)
+SetClientFiles("~/R certificate files/QA/")
 GetTestEnvironment(
     baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
     token = "bed251c6-3ecd-48aa-8e23-74e10ad92577"
@@ -82,65 +83,136 @@ GetTestEnvironment(
 
 \section{Getting Commodity Trees}
 
+\subsection{Pulling data from the system}
+
 Historic commodity trees in FCL (FAO commodity list) codes are available in the system, but they are problematic in that extraction rates were adjustable by the analyst.  Thus, some extraction rates are much too extreme, and so we must work to move all historic extraction rates to meaningful values in our new trees.  Additionally, we must convert the FCL trees into CPC trees, as these codes are what we need for the other elemnts of the FBS.
 
-The first function of use in this package, then, is a function pulling historic commodity trees.  To further complicate matters, we have different commodity trees for each country and each year.
+The first function to use, then, is a function pulling historic commodity trees.  The \texttt{getCommodityTree} function fro \texttt{faoswsUtil} does this rather easily, requiring the user to simply put in countries/years of interest:
 
 <<>>=
-areas = GetCodeList(domain = "faostat_one", dataset = "aupus_share_fs",
-                    dimension = "geographicAreaFS")$code
-commodityTree = getOldCommodityTree(geographicAreaFS = areas,
-                                    timePointYears = as.character(2005:2011))
-commodityTree
+tree = getCommodityTree(timePointYears = c("2010", "2011", "2012"))
+tree
 @
 
-Now, we must convert this commodity tree into CPC codes instead of FCL codes:
+This function works by pulling the relevant data from the shares and ratios data.table (from the old system) and merging them together.
+
+\subsection{Correcting Extraction Rates}
+
+Historic extraction rates were often adjusted and tuned inappropriately, and the new approach should try to use the meaningful information available while fixing and correcting the errors.  A function to remove the extreme values exists in this standardization package, and it's called \texttt{adjustCommodityTree}:
 
 <<>>=
-fcl2cpc = GetTableData(schemaName = "ess", tableName = "fcl_2_cpc")
-newTree = mapCommodityTree(oldCommodityTree = commodityTree,
-                           commodityMap = fcl2cpc, oldColname = "fcl",
-                           newColname = "cpc",
-                           parentColname = "measuredItemParentFS",
-                           childColname = "measuredItemChildFS",
-                           extractionColname = "extractionRate",
-                           shareColname = "share",
-                           byKey = c("geographicAreaFS", "timePointYearsSP"))
-newTree
+adjustedTree = adjustCommodityTree(commodityTree = copy(tree), nSigma = 1.5,
+                                   parentColname = "measuredItemParentCPC",
+                                   childColname = "measuredItemChildCPC")
 @
 
-\section{Correcting Extraction Rates}
+Let's look at the extraction rates for tapioca of potatoes (CPC code 23230.01) and oil of olive residues (CPC code 21673):
 
-Let's look at the extraction rates for germ of maize:
+<<fig = TRUE, echo = FALSE>>=
+tapioca = "23230.01"
+toPlotOld = tree[measuredItemChildCPC == tapioca, ]
+toPlotOld[, treeType := "Original"]
+toPlotNew = adjustedTree[measuredItemChildCPC == tapioca, ]
+toPlotNew[, treeType := "New"]
+toPlot = rbind(toPlotOld, toPlotNew)
+ggplot(toPlot, aes(x = extractionRate)) +
+    geom_bar() + facet_grid(treeType ~ .) +
+    labs(title = "Tapioca of Potatoes")
+@
+
+<<fig = TRUE, echo = FALSE>>=
+oliveResidue = "21673"
+toPlotOld = tree[measuredItemChildCPC == oliveResidue, ]
+toPlotOld[, treeType := "Original"]
+toPlotNew = adjustedTree[measuredItemChildCPC == oliveResidue, ]
+toPlotNew[, treeType := "New"]
+toPlot = rbind(toPlotOld, toPlotNew)
+ggplot(toPlot, aes(x = extractionRate)) +
+    geom_bar() + facet_grid(treeType ~ .) +
+    labs(title = "Oil of Olive Residues")
+@
+
+\section{Collecting the data}
+
+Next, we'll grab a subset of the data.  Note that this data is being pulled from the SUA table in the suafbs domain.  This table must be filled by running the Import SUA module (which goes to the agriculture production, trade and tourist domains and pulls data into the SUA domain).  The below query shows how to extract all the SUA data:
+
+<<eval=FALSE>>=
+areaKeys = GetCodeList(domain = "suafbs", dataset = "sua", "geographicAreaM49")
+areaKeys = areaKeys[type == "country", code]
+elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua", "measuredElementSuaFbs")
+elemKeys = elemKeys[parent %in% c("51", "61", "71", "91", "101", "111", "121", "131"),
+                    paste0(children, collapse = ", ")]
+elemKeys = strsplit(elemKeys, ", ")[[1]]
+itemKeys = GetCodeList(domain = "suafbs", dataset = "sua", "measuredItemSuaFbs")
+itemKeys = itemKeys[, code]
+key = DatasetKey(domain = "suafbs", dataset = "sua", dimensions = list(
+    geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+    measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
+    measuredItemSuaFbs = Dimension(name = "measuredItemSuaFbs", keys = itemKeys),
+    timePointYears = Dimension(name = "timePointYears", keys = "2012")
+))
+data = GetData(key)
+@
+
+However, this data is not very useful for this vignette, as it is very large and also because it will change.  Thus, we will instead use data pulled from the working system at one point in time and saved in this package.  Here's what the data looks like:
+
+<<echo=FALSE, eval=FALSE>>=
+# Not shown in vignette, but this is how the saved dataset was generated.
+elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua", "measuredElementSuaFbs")
+elemKeys = elemKeys[parent %in% c("51", "61", "71", "91", "101", "111", "121", "131"),
+                    paste0(children, collapse = ", ")]
+elemKeys = strsplit(elemKeys, ", ")[[1]]
+
+# Get all commodities that are in the wheat tree
+itemKeys = "0111"
+allDescendants = getDescendants(
+    tree = unique(tree[, list(measuredItemParentCPC, measuredItemChildCPC)]),
+    parentColname = "measuredItemParentCPC",
+    childColname = "measuredItemChildCPC")
+wheatCodes = allDescendants[measuredItemParentCPC == "0111", 
+                            measuredItemChildCPC]
+wheatCodes = c("0111", wheatCodes)
+
+key = DatasetKey(domain = "suafbs", dataset = "sua", dimensions = list(
+    geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = "840"),
+    measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
+    measuredItemSuaFbs = Dimension(name = "measuredItemSuaFbs", keys = wheatCodes),
+    timePointYears = Dimension(name = "timePointYears", keys = "2011")
+))
+usaWheat = GetData(key)
+save(usaWheat, file = "~/Documents/Github/faoswsStandardization/usaWheat.RData")
+@
 
 <<>>=
-data("commodityTree")
-commodityTree
-qplot(commodityTree[measuredItemChildFS == "57", extractionRate])
+usaWheat
 @
+
+We can now begin with the standardization for this dataset.  The first step is to convert the element/variable codes to standardized names.  We do this because there are many different element/variable codes for one particular element/variable (for example, we can have production in tons, kgs, heads, etc.).  To simplify the code, we perform this conversion to a standardized value so that we don't have to iterate through all the various possible codes.
 
 <<>>=
-subset = commodityTree[measuredItemChildFS == "57", ]
-subset[, c("meanRate", "sdRate") :=
-            huber(extractionRate, k = 1.5), by = byKey]
-subset[, normalScore := (extractionRate - meanRate)/sdRate]
-subset[, extractionQuantile := (rank(normalScore) - .5)/.N, by = byKey]
-subset[, normalValue := qnorm(extractionQuantile, mean = meanRate,
-                                     sd = sdRate)]
-histTop = qplot(subset$extractionRate) + labs(x = "", y = "")
-histRight = qplot(subset$normalValue) + labs(x = "", y = "") +
-    coord_flip()
-scatter = ggplot(subset, aes(x = extractionRate, y = normalValue)) +
-    geom_point()
-empty = ggplot()+geom_point(aes(1,1), colour="white")+
-    theme(axis.ticks=element_blank(), 
-         panel.background=element_blank(), 
-         axis.text.x=element_blank(), axis.text.y=element_blank(),           
-         axis.title.x=element_blank(), axis.title.y=element_blank())
-grid.arrange(histTop, empty, scatter, histRight, ncol=2, nrow=2,
-             widths=c(4, 1), heights=c(1, 4))
+usaWheat = elementCodesToNames(data = usaWheat,
+    elementCol = "measuredElementSuaFbs", itemCol = "measuredItemSuaFbs")
+usaWheat
 @
 
-\section{Utilizing Trees for Standardization}
+The final dataset that we need is the nutrient data.  This data was historically contained in the Ratios table with country/year specific ratios, country specific ratios, and generic ratios.  To easily extract this data, simply call the \texttt{faoswsUtil::getNutritiveFactors} function.
+
+<<>>=
+nutrientData = getNutritiveFactors(measuredElement = c("1001", "1003", "1005"),
+                                   timePointYears = "2012")
+nutrientData
+@
+
+\section{Running the standardization}
+
+The main function performing the standardization is \texttt{standardizationWrapper}:
+
+<<>>=
+params = defaultStandardizationParameters()
+params$itemVar = "measuredItemSuaFbs"
+params$elementVar = "measuredElementSuaFbs"
+standardizationWrapper(data = usaWheat, tree = tree,
+                       standParams = params, nutrientData = nutrientData)
+@
 
 \end{document}
