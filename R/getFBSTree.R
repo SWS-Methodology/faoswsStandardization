@@ -4,7 +4,7 @@
 ##' 
 ##' @return A data.table object with the FBS tree.
 ##' 
-##' @import faoswsUtil fcl2cpc
+##' @importFrom faoswsUtil fcl2cpc
 ##' 
 ##' @export
 ##' 

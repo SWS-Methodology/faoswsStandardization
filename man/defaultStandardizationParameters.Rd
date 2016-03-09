@@ -10,7 +10,21 @@ defaultStandardizationParameters()
 A list with the standardization parameters.
 }
 \description{
-Provides an object which contains the standardization parameters.  This
-allows for easy passing into functions.
+Provides an object which contains the standardization parameters.  This 
+allows for easy passing into functions.  The meaning of most variables is 
+fairly clear, but a few obscure ones are described below:
+}
+\details{
+\itemize{
+
+\item target The column name of the commodity tree data.frame which contains
+directions on how to process the tree.  In particular, this column should be
+either "B" or "F" (for "backwards" or "forward" processing).  Almost 
+everything should be "backwards" standardized, except for some bizarre cases
+such as sugar.  For sugar cane/beets, the quantities should be
+"standardized" to raw sugar immediately, so the standardization proceedure
+handles these "F"/"B" cases differently.
+
+}
 }
 
