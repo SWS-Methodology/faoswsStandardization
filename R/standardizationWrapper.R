@@ -118,10 +118,13 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }
     # Checks for nutrientData
     if(!is.null(nutrientData)){
-        stopifnot(p$itemVar %in% colnames(nutrientData))
+        if(colnames(nutrientData)[1] != p$itemVar)
+            stop("First column of nutrient data must match standParams$itemVar!")
         stopifnot(ncol(nutrientData) > 1)
+        cat("Nutrients are assumed to be:", colnames(nutrientData)[-1])
         nutrientElements = colnames(nutrientData)[2:ncol(nutrientData)]
     } else {
+        cat("No nutrient information provided, hence no nutrients are computed.")
         nutrientElements = c()
     }
 
@@ -211,11 +214,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     plotTree = copy(tree)
     tree = merge(tree, mergeToTree, by = p$parentVar, all.x = TRUE)
     availability = calculateAvailability(tree, p)
+    tree[, availability := NULL]
     tree = collapseEdges(edges = tree, parentName = p$parentVar,
                          childName = p$childVar,
                          extractionName = p$extractVar,
                          keyCols = NULL)
-    tree[, availability := NULL]
     tree = merge(tree, availability,
                       by = c(p$childVar, p$parentVar))
     tree[, newShare := availability / sum(availability, na.rm = TRUE),
