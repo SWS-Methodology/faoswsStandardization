@@ -55,17 +55,6 @@ finalStandardizationToPrimary = function(data, tree, standParams,
          c(standParams$itemVar) := paste0("f???_", get(standParams$itemVar))]
     tree[get(standParams$childVar) %in% foodProcElements,
          c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    ## Originally I thought we needed to roll up the new elements into a new
-    ## commodity.  But, that's not the case; if we leave those edges off the
-    ## tree entirely, they'll standardize to themselves.
-#     addToTree = tree[!is.na(get(standParams$standParentVar)), ]
-#     addToTree[, c("groupID", "availability") := NULL]
-#     addToTree[, share := 1]
-#     addToTree[, c(standParams$parentVar) := get(standParams$standParentVar)]
-#     addToTree[, c(standParams$extractVar) := get(standParams$standExtractVar)]
-#     addToTree[, c(standParams$childVar) := paste0("new_", get(standParams$childVar))]
-#     addToTree = unique(addToTree)
-#     tree = rbindlist(list(tree, addToTree), fill = TRUE)
     
     keyCols = standParams$mergeKey[standParams$mergeKey != standParams$itemVar]
     if(!specificTree){
@@ -108,33 +97,6 @@ finalStandardizationToPrimary = function(data, tree, standParams,
                           with = FALSE],
                 by = c(standParams$mergeKey, standParams$elementVar),
                 suffixes = c("", ".old"), all.x = TRUE)
-    
-#     ## Standardizing food values is complicated.  The value reported under
-#     ## "food" for the primary commodity includes the quantity eaten as such plus
-#     ## the quantity of the primary commodity allocated to processing.  Thus, we
-#     ## must determine (a) how much of the primary commodity is eaten as such and
-#     ## (b) the standardized food values of just the processed products.
-#     ## 
-#     ## To determine (a), we compute the standardized production value and 
-#     ## subtract from it the food value of the primary commodity.
-#     ## 
-#     ## To determine (b), we compute the standardized food values of the 
-#     ## processed products.
-#     ## 
-#     ## Thus, standardized food is computed as:
-#     ## Food(primary) - (Production(standardized) - Production(primary)) +
-#     ## Food(standardized) - Food(primary) =
-#     ## Production(primary) - Production(standardized) + Food(standardized)
-#     correctFood = out[, .SD[element == standParams$productionCode, Value.old] -
-#                         .SD[element == standParams$productionCode, Value] +
-#                         .SD[element == standParams$foodCode, Value],
-#                       by = c(standParams$mergeKey)]
-#     setnames(correctFood, "V1", "Value")
-#     correctFood[, element := standParams$foodCode]
-#     out = merge(out, correctFood, suffixes = c("", ".new"),
-#                 by = c(standParams$mergeKey, "element"), all.x = TRUE)
-#     out[!is.na(Value.new), Value := Value.new]
-#     out[, Value.new := NULL]
     
     ## Production should never be standardized. Instead, take the primary value 
     ## directly.  But, the elements in the food processing tree won't have a

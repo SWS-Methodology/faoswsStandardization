@@ -19,6 +19,8 @@
 ##' a description of the required elements).
 ##' 
 ##' @return A data.table providing the processing level for each of the items.
+##' 
+##' @import igraph
 ##'
 ##' @export
 ##' 
@@ -28,15 +30,15 @@ findProcessingLevel = function(edgeData, from, to, plot = FALSE,
                                errorOnLoop = TRUE){
     e = edgeData[, c(from, to), with = FALSE]
     v = unique(unlist(edgeData[, c(from, to), with = FALSE]))
-    processingGraph = graph.data.frame(d = e, vertices = v, directed = TRUE)
+    processingGraph = igraph::graph.data.frame(d = e, vertices = v, directed = TRUE)
     if(plot == TRUE)
-            plot(processingGraph, vertex.size = 6, edge.arrow.size = 0.5)    
-    root = names(which(degree(processingGraph, mode = "in") == 0 &
-                           degree(processingGraph, mode = "out") > 0))
+        plot(processingGraph, vertex.size = 6, edge.arrow.size = 0.5)    
+    root = names(which(igraph::degree(processingGraph, mode = "in") == 0 &
+                           igraph::degree(processingGraph, mode = "out") > 0))
 
     processingLevel =
-        shortest.paths(processingGraph, v = V(processingGraph),
-                       to = V(processingGraph)[c(root)], mode = "in")
+        igraph::shortest.paths(processingGraph, v = igraph::V(processingGraph),
+                               to = igraph::V(processingGraph)[c(root)], mode = "in")
 
     ## Take the finite maximum level from processing level
     finalLevels = apply(processingLevel, 1,

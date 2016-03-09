@@ -221,6 +221,21 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                          keyCols = NULL)
     tree = merge(tree, availability,
                       by = c(p$childVar, p$parentVar))
+    ## The structure of the tree may cause certain edges to be duplicated (for 
+    ## example, if one product can be created via several different paths of a 
+    ## tree).  Remove those duplicated edges here.  Availability of the parent
+    ## should not increase.  All availability values within each group should be
+    ## the same, so taking the max shouldn't do anything/cause any problems. 
+    ## For shares, we may have different default shares to different processes. 
+    ## Without having a specific way of how to aggregate these shares, we add
+    ## them (which is somewhat reasonable).
+    tree = tree[, list(share = sum(share),
+                       availability = max(availability)),
+                by = c(p$childVar, p$parentVar, p$geoVar, p$yearVar,
+                       p$extractVar, p$targetVar)]
+    setnames(tree, "share", p$shareVar)
+    ## Calculate the share using proportions of availability, but default to the
+    ## old value if no "by-availability" shares are available.
     tree[, newShare := availability / sum(availability, na.rm = TRUE),
               by = c(p$childVar)]
     tree[, c(p$shareVar) :=

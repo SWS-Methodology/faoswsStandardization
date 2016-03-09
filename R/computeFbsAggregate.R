@@ -20,15 +20,24 @@
 ##' 
 
 computeFbsAggregate = function(data, fbsTree, standParams){
+    ## Data Quality Checks
+    stopifnot(standParams$itemVar %in% colnames(data))
+    stopifnot(standParams$itemVar %in% colnames(fbsTree))
+    stopifnot(paste0("fbsID", 1:4) %in% colnames(fbsTree))
+    
     data = merge(data, fbsTree, by = standParams$itemVar)
     out = list()
     out[[1]] = data[, list(Value = sum(Value)),
-                    by = c("element", standParams$yearVar, standParams$geoVar, "fbsID4")]
+                    by = c(standParams$elementVar, standParams$yearVar,
+                           standParams$geoVar, "fbsID4")]
     out[[2]] = data[, list(Value = sum(Value)),
-                    by = c("element", standParams$yearVar, standParams$geoVar, "fbsID3")]
+                    by = c(standParams$elementVar, standParams$yearVar,
+                           standParams$geoVar, "fbsID3")]
     out[[3]] = data[, list(Value = sum(Value)),
-                    by = c("element", standParams$yearVar, standParams$geoVar, "fbsID2")]
+                    by = c(standParams$elementVar, standParams$yearVar,
+                           standParams$geoVar, "fbsID2")]
     out[[4]] = data[, list(Value = sum(Value)),
-                    by = c("element", standParams$yearVar, standParams$geoVar, "fbsID1")]
+                    by = c(standParams$elementVar, standParams$yearVar,
+                           standParams$geoVar, "fbsID1")]
     return(out)
 }

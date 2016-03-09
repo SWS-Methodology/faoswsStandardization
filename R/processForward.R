@@ -43,12 +43,6 @@ processForward = function(data, tree, standParams){
     subTree = merge(subTree, level, by = standParams$parentVar)
     setnames(subTree, standParams$parentVar, standParams$itemVar)
     
-    ## Use the mode as the flag aggregation algorithm
-    Mode <- function(x) {
-        ux <- unique(x)
-        ux[which.max(tabulate(match(x, ux)))]
-    }
-    
     for(currentLevel in subTree[, sort(unique(level))]){
         dataToUpdate = merge(data, subTree[level == currentLevel, ],
                              by = standParams$itemVar, allow.cartesian = TRUE)

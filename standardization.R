@@ -138,24 +138,6 @@ standardizationVectorized = function(data, tree, nutrientData){
     sink(paste0(R_SWS_SHARE_PATH, "/browningj/standardization/",
                 data$timePointYears[1], "_",
                 data$geographicAreaM49[1], "_sample_test.md"))
-    # data = data[measuredElementSuaFbs != "production" | measuredItemSuaFbs == "0111", ]
-    # toBind = data[1, ]
-    # toBind[, c("measuredItemSuaFbs", "measuredElementSuaFbs", "Value") :=
-    #            list("23110", "food", 2720000)]
-    # data = rbind(data, toBind)
-    # toBind[, c("measuredItemSuaFbs", "measuredElementSuaFbs", "Value") :=
-    #            list("0111", "imports", 230000)]
-    # data = rbind(data, toBind)
-    # toBind[, c("measuredItemSuaFbs", "measuredElementSuaFbs", "Value") :=
-    #            list("24310.01", "exports", 1800)]
-    # data = rbind(data, toBind)
-    # toBind[, c("measuredItemSuaFbs", "measuredElementSuaFbs", "Value") :=
-    #            list("23140.03", "food", 6500)]
-    # data = rbind(data, toBind)
-    # toBind[, c("measuredItemSuaFbs", "measuredElementSuaFbs", "Value") :=
-    #            list("23140.03", "imports", 10000)]
-    # data = rbind(data, toBind)
-    # sink("~/Desktop/standardization_example.md")
     out = try(standardizationWrapper(data = data, tree = tree,
                                  standParams = params, printCodes = printCodes,
                                  nutrientData = nutrientData))
