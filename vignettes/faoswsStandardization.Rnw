@@ -113,7 +113,7 @@ adjustedTree = faoswsStandardization:::adjustCommodityTree(commodityTree = copy(
 
 Let's look at the extraction rates for tapioca of potatoes (CPC code 23230.01) and oil of olive residues (CPC code 21673):
 
-<<fig = TRUE, echo = FALSE>>=
+<<echo = FALSE>>=
 tapioca = "23230.01"
 toPlotOld = tree[measuredItemChildCPC == tapioca, ]
 toPlotOld[, treeType := "Original"]
@@ -125,7 +125,7 @@ ggplot(toPlot, aes(x = extractionRate)) +
     labs(title = "Tapioca of Potatoes")
 @
 
-<<fig = TRUE, echo = FALSE>>=
+<<echo = FALSE>>=
 oliveResidue = "21673"
 toPlotOld = tree[measuredItemChildCPC == oliveResidue, ]
 toPlotOld[, treeType := "Original"]
@@ -192,7 +192,7 @@ key = DatasetKey(domain = "suafbs", dataset = "sua", dimensions = list(
     timePointYears = Dimension(name = "timePointYears", keys = "2011")
 ))
 usaWheat = GetData(key)
-save(usaWheat, file = "~/Documents/Github/faoswsStandardization/usaWheat.RData")
+save(usaWheat, file = "../data/usaWheat.RData")
 @
 
 <<>>=
