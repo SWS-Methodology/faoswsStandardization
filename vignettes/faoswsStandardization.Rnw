@@ -482,9 +482,16 @@ data[, c("balancedValue", "nutrientElement", "foodAdjRatio") := NULL]
 
 The final step in the standardization process is to aggregate up to FBS level.  This standardization is simple: quantities, calories, fats, and proteins are simply added.
 
-<<>>=
+<<eval=FALSE, echo=FALSE>>=
+# The fbsTree object was created using the getFBSTree function, which isn't
+# useful for any user with a different directory structure than Josh :)
 fbsTree = getFBSTree()
 setnames(fbsTree, "measuredItemCPC", "measuredItemSuaFbs")
+save(fbsTree, file = "~/Documents/Github/faoswsStandardization/data/fbsTree.RData")
+@
+
+<<>>=
+fbsTree
 out = computeFbsAggregate(data = data, fbsTree = fbsTree,
                           standParams = p)
 
