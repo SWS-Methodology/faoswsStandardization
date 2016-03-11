@@ -11,6 +11,10 @@ mapCommodityTree(oldCommodityTree, commodityMap, oldColname, newColname,
   byKey = NULL)
 }
 \arguments{
+\item{oldCommodityTree}{A data.table containing the edge structure of the
+commodity tree (specified by parent/child columns) and the extraction
+rates and shares.  Typically, this is produced from getOldCommodityTree.}
+
 \item{commodityMap}{A data.table containing the mapping from the old
 commodity codes to the new commodity codes.  Currently, no other
 information from this table will be utilized.}
@@ -44,10 +48,6 @@ should be used in the by argument when averaging the final extraction
 rates.  The new parent and child item codes will always be included, but
 the user may want to include year, country, etc. if the passed commodity
 tree has those dimensions.}
-
-\item{commodityTree}{A data.table containing the edge structure of the
-commodity tree (specified by parent/child columns) and the extraction
-rates and shares.  Typically, this is produced from getOldCommodityTree.}
 }
 \value{
 A data.table of the new commodity tree.

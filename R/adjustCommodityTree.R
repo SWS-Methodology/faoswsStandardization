@@ -103,7 +103,9 @@ adjustCommodityTree = function(commodityTree,
 ##'   
 ##' @return A numeric vector of length two with the estimated mean and standard
 ##'   deviation.
-##'   
+##' 
+##' @importFrom MASS huber
+##' 
 huber = function(y, ...){
     values = try(MASS::huber(y, ...), silent = TRUE)
     if(is(values, "try-error") | values[2] == 0){

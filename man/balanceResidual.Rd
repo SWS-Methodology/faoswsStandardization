@@ -23,6 +23,11 @@ list specifies which elements should allocate such a difference to feed.}
 \item{indCommodities}{Same as feedCommodities, but for commodities where we 
 allocate the difference to industrial utilization.}
 
+\item{primaryCommodities}{Primary level commodities (such as wheat, oranges,
+sweet potatoes, etc.) should not be balanced at this step but rather by
+the balancing algorithm.  This argument allows the user to specify a
+character vector with these primary element codes.}
+
 \item{foodProcessCommodities}{Same as feedCommodities, but for commodities 
 where we allocate the difference to food processing.}
 
@@ -42,8 +47,8 @@ If supply < utilization, the imbalance is always assigned to production (as
 trade is generally assumed to be fixed and stock changes are usually 0 and 
 hence also fixed).
 
-If supply > utilization, we must choose where to allocate the imbalance. 
-The default variable is food, but for some commodities we could instead use
+If supply > utilization, we must choose where to allocate the imbalance. The
+default variable is food, but for some commodities we could instead use 
 feed, food processing, or industrial.
 }
 

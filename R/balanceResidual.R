@@ -7,8 +7,8 @@
 ##' trade is generally assumed to be fixed and stock changes are usually 0 and 
 ##' hence also fixed).
 ##' 
-##' If supply > utilization, we must choose where to allocate the imbalance. 
-##' The default variable is food, but for some commodities we could instead use
+##' If supply > utilization, we must choose where to allocate the imbalance. The
+##' default variable is food, but for some commodities we could instead use 
 ##' feed, food processing, or industrial.
 ##' 
 ##' @param data The data.table containing the full dataset for standardization.
@@ -16,6 +16,10 @@
 ##'   provide information about the columns of data and tree, specifying (for 
 ##'   example) which columns should be standardized, which columns represent 
 ##'   parents/children, etc.
+##' @param primaryCommodities Primary level commodities (such as wheat, oranges,
+##'   sweet potatoes, etc.) should not be balanced at this step but rather by
+##'   the balancing algorithm.  This argument allows the user to specify a
+##'   character vector with these primary element codes.
 ##' @param feedCommodities Sometimes excess supply will need to be allocated to 
 ##'   some processed product.  The default is to place it into food, but this 
 ##'   list specifies which elements should allocate such a difference to feed.

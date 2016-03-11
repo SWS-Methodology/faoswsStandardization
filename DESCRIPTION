@@ -1,7 +1,7 @@
 Package: faoswsStandardization
 Type: Package
 Title: Package to perform standardization of SUA (supply utilization account)
-    data to FBS level.
+    data to FBS level
 Version: 0.0.1
 Date: 2016-03-07
 Authors@R: c(person("Josh", "Browning", role = c("aut", "cre"), email = "joshua.browning@fao.org"))
@@ -18,8 +18,11 @@ Imports:
     faosws (>= 0.3.2),
     faoswsUtil (>= 0.2.0),
     data.table (>= 1.9.2),
-    reshape (>= 0.7.2),
-    diagram (>= 1.6.3)
+    diagram (>= 1.6.3),
+    faoswsBalancing (>= 0.0.1),
+    igraph (>= 0.7.1),
+    MASS (>= 7.3.35),
+    reshape2 (>= 1.4.1)
 Suggests:
     knitr,
     ggplot2

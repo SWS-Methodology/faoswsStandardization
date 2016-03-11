@@ -5,7 +5,7 @@
 ##' and children in the tree to their new elements.  This may create duplicated
 ##' edges, and in those cases the extraction rates and shares are averaged.
 ##' 
-##' @param commodityTree A data.table containing the edge structure of the
+##' @param oldCommodityTree A data.table containing the edge structure of the
 ##' commodity tree (specified by parent/child columns) and the extraction
 ##' rates and shares.  Typically, this is produced from getOldCommodityTree.
 ##' @param commodityMap A data.table containing the mapping from the old

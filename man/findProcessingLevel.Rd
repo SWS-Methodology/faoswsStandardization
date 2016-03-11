@@ -16,22 +16,26 @@ findProcessingLevel(edgeData, from, to, plot = FALSE,
 
 \item{plot}{Logical, indicates of the graph should be plotted.}
 
-\item{aupusParam}{A list of running parameters to be used in pulling the data.
-Typically, this is generated from getAupusParameter (see that function for
-a description of the required elements).}
+\item{aupusParam}{A list of running parameters to be used in pulling the
+data. Typically, this is generated from getAupusParameter (see that
+function for a description of the required elements).}
+
+\item{errorOnLoop}{Logical.  Should the function throw an error if a loop is
+detected in the edgeData?  If such a loop is detected, a plot is generated
+to aid the user in finding this loop.}
 }
 \value{
 A data.table providing the processing level for each of the items.
 }
 \description{
-The function finds the processing level of the item in relation
-to the rest of the commodity items.  The processing level is zero for all
-nodes which have no inputs (i.e. they can be processed in the first round).
-A node with inputs has it's processing level defined as 1 greater than the
-max processing level of all of it's input nodes.  Thus, nodes at level 0
-are processed first, as their processing doesn't depend on any other
-commodites.  Then, nodes at processing level 1 are processed because all
-their inputs (level 0 nodes) have been computed.  All nodes at a fixed
-processing level can thus be computed in one step.
+The function finds the processing level of the item in relation to the rest
+of the commodity items.  The processing level is zero for all nodes which
+have no inputs (i.e. they can be processed in the first round). A node with
+inputs has it's processing level defined as 1 greater than the max
+processing level of all of it's input nodes.  Thus, nodes at level 0 are
+processed first, as their processing doesn't depend on any other commodites.
+Then, nodes at processing level 1 are processed because all their inputs
+(level 0 nodes) have been computed.  All nodes at a fixed processing level
+can thus be computed in one step.
 }
 

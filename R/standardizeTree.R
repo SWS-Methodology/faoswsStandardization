@@ -27,12 +27,14 @@
 ##'   by this program to give the correction standardization of sugar?  This is 
 ##'   a hack and should be fixed, but for now it is generally necessary.
 ##'   
+##' @import data.table  
+##' 
 ##' @return A data.table with the commodities standardized to the highest level 
 ##'   in the tree.
 ##'   
 
 standardizeTree = function(data, tree, elements, standParams,
-                           additiveElements = c(), sugarHack = TRUE){
+                           sugarHack = TRUE){
 
     ## Assign parameters
     geoVar = standParams$geoVar
@@ -47,8 +49,7 @@ standardizeTree = function(data, tree, elements, standParams,
     ## Data Quality Checks
     stopifnot(is(data, "data.table"))
     stopifnot(is(tree, "data.table"))
-    stopifnot(c(geoVar, yearVar, itemVar, additiveElements,
-              paste0(elementPrefix, elements)) %in%
+    stopifnot(c(geoVar, yearVar, itemVar, paste0(elementPrefix, elements)) %in%
                   colnames(data))
     stopifnot(c(geoVar, yearVar, childVar, parentVar, extractVar, shareVar)
               %in% colnames(tree))
@@ -71,7 +72,7 @@ standardizeTree = function(data, tree, elements, standParams,
     elements = paste0(elementPrefix, elements)
     
     ## Restructure the data for easier standardization
-    standardizationData = data.table:::melt.data.table(
+    standardizationData = data.table::melt.data.table(
         data = data, measure.vars = elements,
         id.vars = c(geoVar, yearVar, itemVar),
         variable.name = "measuredElement", value.name = "Value")

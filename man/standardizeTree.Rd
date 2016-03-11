@@ -4,8 +4,7 @@
 \alias{standardizeTree}
 \title{Standardize Tree}
 \usage{
-standardizeTree(data, tree, elements, standParams, additiveElements = c(),
-  sugarHack = TRUE)
+standardizeTree(data, tree, elements, standParams, sugarHack = TRUE)
 }
 \arguments{
 \item{data}{A data.table object containing the data of interest.}

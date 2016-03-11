@@ -65,7 +65,9 @@
 ##' @return A data.table containing the final balanced and standardized SUA 
 ##'   data.  Additionally, this table will have new elements in it if 
 ##'   nutrientData was provided.
-##'   
+##' 
+##' @importFrom faoswsBalancing balancing
+##' 
 ##' @export
 ##' 
 
@@ -96,7 +98,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     if(!p$standParentVar %in% colnames(tree)){
         warning("p$standParentVar is not in the colnames of tree!  No ",
                 "commodities will be grafted onto a different tree!")
-        tree[, c(p$standParentVar) := NA]
+        tree[, c(p$standParentVar) := NA_character_]
     }
     if(!p$standExtractVar %in% colnames(tree)){
         warning("p$standExtractVar is not in the colnames of tree!  No ",
@@ -232,7 +234,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     tree = tree[, list(share = sum(share),
                        availability = max(availability)),
                 by = c(p$childVar, p$parentVar, p$geoVar, p$yearVar,
-                       p$extractVar, p$targetVar)]
+                       p$extractVar, p$targetVar, p$standParentVar)]
     setnames(tree, "share", p$shareVar)
     ## Calculate the share using proportions of availability, but default to the
     ## old value if no "by-availability" shares are available.
@@ -282,7 +284,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
             "of value!")
     data[, standardDeviation := Value * .1]
     data[!get(p$elementVar) %in% nutrientElements,
-         balancedValue := balancing(param1 = sapply(Value, na2zero),
+         balancedValue := faoswsBalancing::balancing(param1 = sapply(Value, na2zero),
               param2 = sapply(standardDeviation, na2zero),
               sign = ifelse(get(p$elementVar) %in% c(p$productionCode, p$importCode), 1, -1),
               lbounds = ifelse(get(p$elementVar) %in% c(p$stockCode, p$touristCode), -Inf, 0),
