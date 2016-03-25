@@ -38,6 +38,8 @@ balanceResidual = function(data, standParams, feedCommodities = c(),
                            indCommodities = c(), primaryCommodities = c(),
                            foodProcessCommodities = c(), imbalanceThreshold = 10){
     p = standParams
+    ## imbalance calculates, for each commodity, the residual of the FBS equation and
+    ## assigns this amount to each row for that commodity.
     data[, imbalance := sum(ifelse(is.na(Value), 0, Value) *
             ifelse(get(standParams$elementVar) == p$productionCode, 1,
             ifelse(get(standParams$elementVar) == p$importCode, 1,
@@ -60,6 +62,11 @@ balanceResidual = function(data, standParams, feedCommodities = c(),
     ## production is official, force a balance by adjusting food, feed, etc.
     data[(imbalance > 10 | officialProd)
          & (!get(standParams$itemVar) %in% primaryCommodities),
+         ## Remember, data is currently in long format.  This condition is ugly, but the idea is
+         ## that Value should be replaced with newValue if the particular row of interest
+         ## corresponds to the food variable and if the commodity should have it's residual
+         ## allocated to food.  Likewise, if the row corresponds to feed and if the commodity
+         ## should have it's residual allocated to feed, then Value is updated with newValue.
          Value := ifelse(
             (get(standParams$elementVar) == p$feedCode & get(p$itemVar) %in% feedCommodities) |
             (get(standParams$elementVar) == p$foodProcCode & get(p$itemVar) %in% foodProcessCommodities) |
