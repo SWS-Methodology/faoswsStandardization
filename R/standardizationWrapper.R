@@ -96,9 +96,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         tree = tree[!is.na(get(p$childVar)), ]
     }
     if(!p$standParentVar %in% colnames(tree)){
-        warning("p$standParentVar is not in the colnames of tree!  No ",
-                "commodities will be grafted onto a different tree!")
-        tree[, c(p$standParentVar) := NA_character_]
+        warning("p$standParentVar is not in the colnames of tree!  All ",
+                "commodities will be standardized to the parents that ",
+                "produced them!")
+        tree[, c(p$standParentVar) := NA]
     }
     if(!p$standExtractVar %in% colnames(tree)){
         warning("p$standExtractVar is not in the colnames of tree!  No ",
