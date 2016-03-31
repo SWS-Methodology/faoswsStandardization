@@ -136,7 +136,7 @@ cat("Defining vectorized standardization function...\n")
 
 standardizationVectorized = function(data, tree, nutrientData){
     if(nrow(data) == 0){
-        warning("No rows in data, nothing to do")
+        message("No rows in data, nothing to do")
         return(data)
     }
     samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
@@ -148,6 +148,7 @@ standardizationVectorized = function(data, tree, nutrientData){
                                  childColname = params$childVar,
                                  topNodes = printCodes)
     }
+    dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE)
     sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/",
                 data$timePointYears[1], "_",
                 data$geographicAreaM49[1], "_sample_test.md"))
