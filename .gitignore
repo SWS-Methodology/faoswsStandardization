@@ -1,5 +1,5 @@
 # Specific to this repo
-settings_*
+.settings
 *.csv
 sandbox/*.png
 sandbox/*.zip
