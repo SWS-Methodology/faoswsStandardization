@@ -1,5 +1,9 @@
 # Specific to this repo
-.settings
+
+#ignore settings file
+/settings_*
+# but not the example
+!/settings_*.example
 *.csv
 sandbox/*.png
 sandbox/*.zip
