@@ -24,7 +24,7 @@ if(CheckDebug()){
     
     ## Get SWS Parameters
     baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws"
-    token = "1bf05268-86ff-4bca-950f-b2656fb42523"
+    token = "77dc91a0-9ec3-4f3d-80d7-4200a0ac87b6"
     SetClientFiles(dir = .settings[,
                                    switch(baseUrl,
                                           "https://hqlqasws1.hq.un.fao.org:8181/sws" = "QaCertDir",
