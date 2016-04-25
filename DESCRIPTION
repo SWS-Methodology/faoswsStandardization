@@ -14,7 +14,7 @@ Description: The package implements standardization of SUA data according to
     cleaning up commodity trees with extreme/unreasonable extraction rates).
 License: GPL (>= 3)
 LazyData: yes
-Imports:
+Imports: 
     faosws (>= 0.3.2),
     faoswsUtil (>= 0.2.0),
     data.table (>= 1.9.2),
@@ -23,9 +23,10 @@ Imports:
     igraph (>= 0.7.1),
     MASS (>= 7.3.35),
     reshape2 (>= 1.4.1)
-Suggests:
+Suggests: 
     knitr,
-    ggplot2
+    ggplot2,
+    testthat
 swsDatasetDepends: agriculture:aproduction,
     trade:total_trade_CPC,
     tourism:tourismprod,

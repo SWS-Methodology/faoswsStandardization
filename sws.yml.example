@@ -1,0 +1,14 @@
+current: qa
+all:
+  standardizationpath: /browningj/standardization
+qa:
+  certdir: ~/certificates/QA
+  server: https://hqlqasws1.hq.un.fao.org:8181/sws
+  share: R:/
+  token: 
+production:
+  certdir: ~/certificates/production
+  server: https://hqlprswsas1.hq.un.fao.org:8181/sws
+  share: S:/
+  token: 
+

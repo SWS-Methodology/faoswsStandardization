@@ -1,4 +1,7 @@
 # Specific to this repo
+
+#ignore settings file
+sws.yml
 *.csv
 sandbox/*.png
 sandbox/*.zip
