@@ -142,36 +142,36 @@ setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
 message("Defining vectorized standardization function...")
 
 standardizationVectorized = function(data, tree, nutrientData){
-    if(nrow(data) == 0){
-        message("No rows in data, nothing to do")
-        return(data)
-    }
-    samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
-    if(length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
-    printCodes = sample(samplePool, size = 1)
-    if(!is.null(tree)){
-        printCodes = getChildren(commodityTree = tree,
-                                 parentColname = params$parentVar,
-                                 childColname = params$childVar,
-                                 topNodes = printCodes)
-    }
-    dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE)
-    sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/",
-                data$timePointYears[1], "_",
-                data$geographicAreaM49[1], "_sample_test.md"))
-    # Prevent sink staying open if function is terminated prematurely (such as
-    # in debugging of functions in standardizationWrapper)
-    sinkOpen <- TRUE
-    if(exists(sinkOpen) && sinkOpen){
-      on.exit(sink())
-    }
-    out = try(standardizationWrapper(data = data, tree = tree,
-                                 standParams = params, printCodes = printCodes,
-                                 nutrientData = nutrientData))
-    sink()
-    sinkOpen <- FALSE
-    
-    return(out)
+  
+  # record if output is being sunk and at what level
+  sinkNumber <- sink.number()
+  # Prevent sink staying open if function is terminated prematurely (such as
+  # in debugging of functions in standardizationWrapper)
+  on.exit(while(sink.number() > sinkNumber) sink())
+  
+  if(nrow(data) == 0){
+    message("No rows in data, nothing to do")
+    return(data)
+  }
+  samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
+  if(length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
+  printCodes = sample(samplePool, size = 1)
+  if(!is.null(tree)){
+    printCodes = getChildren(commodityTree = tree,
+                             parentColname = params$parentVar,
+                             childColname = params$childVar,
+                             topNodes = printCodes)
+  }
+  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE)
+  
+  sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/",
+              data$timePointYears[1], "_",
+              data$geographicAreaM49[1], "_sample_test.md"))
+
+  out = try(standardizationWrapper(data = data, tree = tree,
+                                   standParams = params, printCodes = printCodes,
+                                   nutrientData = nutrientData))
+  return(out)
 }
 
 ## Split data based on the two factors we need to loop over
