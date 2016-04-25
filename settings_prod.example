@@ -1,4 +1,0 @@
-URL: https://hqlprswsas1.hq.un.fao.org:8181/sws
-CertDir: path/to/production/certificates
-R_SWS_SHARE_PATH: path/to/share
-standardizationPath: /<username>/standardization/

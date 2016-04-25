@@ -9,42 +9,33 @@ library(faoswsBalancing)
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 
 if(CheckDebug()){
-    message("Not on server, so setting up environment...")
-
-  #Read .settings file in working directory. Example:
-  #   R_SWS_SHARE_PATH: /media/hqlprsws1_qa/
-  #   apiDirectory: ~/Documents/Github/faoswsStandardization/R/
-  #   QaCertDir: ~/certificates/QA
-  #   ProdCertDir: ~/certificates/production
+  library(faoswsModules)
+  message("Not on server, so setting up environment...")
   
-  .settings <- read.dcf(".settings")
+  # Read settings_<server> file in working directory. See 
+  # settings_<server>.example for more information
+  PARAMS <- ReadSettings("sws.yml")
   
-    R_SWS_SHARE_PATH = .settings[,"R_SWS_SHARE_PATH"]
-    apiDirectory = "./R"
-    
-    ## Get SWS Parameters
-    baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws"
-    token = "77dc91a0-9ec3-4f3d-80d7-4200a0ac87b6"
-    SetClientFiles(dir = .settings[,
-                                   switch(baseUrl,
-                                          "https://hqlqasws1.hq.un.fao.org:8181/sws" = "QaCertDir",
-                                          "https://hqlprswsas1.hq.un.fao.org:8181/sws" = "ProdCertDir"
-                                          )
-                                   ])
-    GetTestEnvironment(
-        baseUrl = baseUrl,
-        token = token
-    )
-
-    ## Source local scripts for this local test
-    for(file in dir(apiDirectory, full.names = T))
-        source(file)
+  R_SWS_SHARE_PATH = PARAMS["share"]
+  apiDirectory = "./R"
+  
+  ## Get SWS Parameters
+  SetClientFiles(dir = PARAMS["certdir"])
+  GetTestEnvironment(
+    baseUrl = PARAMS["server"],
+    token = PARAMS["token"]
+  )
+  
+  ## Source local scripts for this local test
+  for(file in dir(apiDirectory, full.names = T))
+    source(file)
 } else {
-    message("Running on server, no need to call GetTestEnvironment...")
+  message("Running on server, no need to call GetTestEnvironment...")
   
 }
 
-SWS_USER = regmatches(swsContext.username, regexpr("(?<=/)[[:alpha:]]+$", swsContext.username, perl=TRUE))
+#User name is what's after the slash
+SWS_USER = regmatches(swsContext.username, regexpr("(?<=/).+$", swsContext.username, perl=TRUE))
 
 message("Getting parameters/datasets...")
 
