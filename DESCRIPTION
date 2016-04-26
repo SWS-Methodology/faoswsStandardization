@@ -12,7 +12,7 @@ Description: The package implements standardization of SUA data according to
     processed products into primary equivalents. This package provides all of
     the necessary logic for this standardization as well as some tools (such as
     cleaning up commodity trees with extreme/unreasonable extraction rates).
-License: GPL (>= 3)
+License: FAO
 LazyData: yes
 Imports: 
     faosws (>= 0.3.2),
