@@ -36,15 +36,49 @@ if(CheckDebug()){
 
 #User name is what's after the slash
 SWS_USER = regmatches(swsContext.username, regexpr("(?<=/).+$", swsContext.username, perl=TRUE))
+#SWS_USER = "browningj"
 
 message("Getting parameters/datasets...")
 
+# start and end year for standardization come from user parameters
 startYear = as.numeric(swsContext.computationParams$startYear)
 endYear = as.numeric(swsContext.computationParams$endYear)
 stopifnot(startYear <= endYear)
+
 yearVals = as.character(startYear:endYear)
 
+# Get commodity tree with child shares of parent
 tree = getCommodityTree(timePointYears = yearVals)
+
+###
+
+## Graph of all commodities
+
+# graphdata <- tree[, .(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, extractionRate, share)]
+# graphdata <- graphdata[, .(extractionRate = mean(extractionRate, na.rm = TRUE),
+#                  share = mean(share, na.rm = TRUE)),
+#           by = .(measuredItemParentCPC, measuredItemChildCPC)]
+# codetable <- GetCodeList("agriculture", "aproduction", "measuredItemCPC", 
+#             union(graphdata[, measuredItemParentCPC], graphdata[, measuredItemChildCPC]))[,.(code, description)]
+# 
+# graphdata <- merge(graphdata, codetable, by.x="measuredItemParentCPC", by.y="code")
+# graphdata[, measuredItemParentCPC := NULL]
+# setnames(graphdata, "description", "measuredItemParentCPC")
+# 
+# graphdata <- merge(graphdata, codetable, by.x="measuredItemChildCPC", by.y="code")
+# graphdata[, measuredItemChildCPC := NULL]
+# setnames(graphdata, "description", "measuredItemChildCPC")
+# 
+# setcolorder(graphdata, c("measuredItemParentCPC", "measuredItemChildCPC", "extractionRate", "share"))
+# 
+# g <- graph_from_data_frame(graphdata)
+# 
+# pdf(width=20, height=20, file="biggraph.pdf")
+# plot(g, vertex.size = .8, vertex.label.cex = 0.1, vertex.label.color = "indianred", 
+#      edge.arrow.size = 0.05, edge.width=.1, edge.curved = TRUE)
+# dev.off()
+
+###
 
 areaKeys = GetCodeList(domain = "suafbs", dataset = "sua", "geographicAreaM49")
 areaKeys = areaKeys[type == "country", code]
