@@ -8,7 +8,7 @@ library(faoswsBalancing)
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 
-if(CheckDebug()){
+if (CheckDebug()) {
   library(faoswsModules)
   message("Not on server, so setting up environment...")
   
@@ -28,7 +28,7 @@ if(CheckDebug()){
   )
   
   ## Source local scripts for this local test
-  for(file in dir(apiDirectory, full.names = T))
+  for (file in dir(apiDirectory, full.names = T))
     source(file)
 } else {
   message("Running on server, no need to call GetTestEnvironment...")
@@ -36,7 +36,8 @@ if(CheckDebug()){
 }
 
 #User name is what's after the slash
-SWS_USER = regmatches(swsContext.username, regexpr("(?<=/).+$", swsContext.username, perl=TRUE))
+SWS_USER = regmatches(swsContext.username, 
+                      regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
 #SWS_USER = "browningj"
 
 message("Getting parameters/datasets...")
@@ -148,8 +149,17 @@ message("Applying adjustments to commodity tree...")
 
 ## Update tree by setting some edges to "F", computing average extraction rates
 ## when missing, and bringing in extreme extraction rates
-tree[, target := ifelse(measuredItemParentCPC %in% c("23511.01", "23512",
-                                                     "01499.06", "01921.01"),
+FPCommodities <- c("23511.01", "23512",
+                   "01499.06", "01921.01")
+
+# These commodities are forwards processed instead of backwards processed:
+#        code             description type
+# 1: 23511.01 Cane sugar, centrifugal CRNP
+# 2:    23512              Beet sugar CRNP
+# 3: 01499.06      Kapokseed in shell CRNP
+# 4: 01921.01   Seed cotton, unginned CRPR  
+
+tree[, target := ifelse(measuredItemParentCPC %in% FPCommodities,
                         "F", "B")]
 tree = adjustCommodityTree(tree, parentColname = "measuredItemParentCPC",
                            childColname = "measuredItemChildCPC", nSigma = 2)
@@ -186,16 +196,16 @@ standardizationVectorized = function(data, tree, nutrientData){
   sinkNumber <- sink.number()
   # Prevent sink staying open if function is terminated prematurely (such as
   # in debugging of functions in standardizationWrapper)
-  on.exit(while(sink.number() > sinkNumber) sink())
+  on.exit(while (sink.number() > sinkNumber) sink())
   
-  if(nrow(data) == 0){
+  if (nrow(data) == 0) {
     message("No rows in data, nothing to do")
     return(data)
   }
   samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
-  if(length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
+  if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
   printCodes = sample(samplePool, size = 1)
-  if(!is.null(tree)){
+  if (!is.null(tree)) {
     printCodes = getChildren(commodityTree = tree,
                              parentColname = params$parentVar,
                              childColname = params$childVar,
@@ -225,15 +235,15 @@ parentNodes = parentNodes[level == 0, node]
 
 message("Beginning actual standardization process...")
 
-aggFun = function(x){
-    if(length(x) > 1)
+aggFun = function(x) {
+    if (length(x) > 1)
         stop("x should only be one value!")
     return(sum(x))
 }
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-for(i in 1:nrow(uniqueLevels)){
+for (i in seq_len(nrow(uniqueLevels))) {
     filter = uniqueLevels[i, ]
     dataSubset = data[filter, , on = c("geographicAreaM49", "timePointYears")]
     treeSubset = tree[filter, , on = c("geographicAreaM49", "timePointYears")]
@@ -249,7 +259,7 @@ for(i in 1:nrow(uniqueLevels)){
     standData[[i]] = standardizationVectorized(data = dataSubset,
                                                tree = treeSubset,
                                                nutrientData = subNutrientData)
-    if(!is(standData[[i]], "try-error")){
+    if (!is(standData[[i]], "try-error")) {
         standData[[i]] = standData[[i]][measuredItemSuaFbs %in% parentNodes, ]
     }
 }

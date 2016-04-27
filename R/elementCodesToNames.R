@@ -57,14 +57,21 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
                 paste(failures, collapse = ", "))
     }
     
+    # Issue #13 - no data for these
+    # These items are missing in the above:
+    #        code                         description
+    # 1: 01219.90 Other leafy or stem vegetables n.e.
+    # 2: 23130.01   Groats, meal and pellets of Wheat
+    # 3:     2351              Raw cane or beet sugar
+    
     ## Map element codes to names
-    warning("This map should eventually be updated as an adhoc table!")
+    warning("This map should eventually be updated as an adhoc table! Issue #12")
     itemCodeKey = fread(paste0(R_SWS_SHARE_PATH,"/browningj/elementCodes.csv"))
     itemCodeKey[, c("description", "factor") := NULL]
     ## Assign different names to repeated records (caused by things like
     ## biological meat).
     itemCodeKey = itemCodeKey[order(itemType, production), ]
-    itemCodeKey[, suffix := paste0("_", 1:.N), by = "itemType"]
+    itemCodeKey[, suffix := paste0("_", seq_len(.N)), by = "itemType"]
     itemCodeKey[suffix == "_1", suffix := ""]
     itemCodeKey = melt(data = itemCodeKey, id.vars = c("itemType", "suffix"))
     itemCodeKey = itemCodeKey[!is.na(value), ]
