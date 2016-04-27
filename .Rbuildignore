@@ -1,7 +1,10 @@
-^sandbox
-^modules
+^sandbox$
+^modules$
 ^documentation$
-.git*
+\.git$
 README.md
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^sws\.yml
+^[^/].*\.pdf$
+#^[^/].*\.RData$
