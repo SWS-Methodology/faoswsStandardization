@@ -12,18 +12,19 @@ if(CheckDebug()){
   library(faoswsModules)
   message("Not on server, so setting up environment...")
   
-  # Read settings_<server> file in working directory. See 
-  # settings_<server>.example for more information
+  # Read settings file sws.yml in working directory. See 
+  # sws.yml.example for more information
   PARAMS <- ReadSettings("sws.yml")
+  message("Connecting to server: ", PARAMS[["current"]])
   
-  R_SWS_SHARE_PATH = PARAMS["share"]
+  R_SWS_SHARE_PATH = PARAMS[["share"]]
   apiDirectory = "./R"
   
   ## Get SWS Parameters
-  SetClientFiles(dir = PARAMS["certdir"])
+  SetClientFiles(dir = PARAMS[["certdir"]])
   GetTestEnvironment(
-    baseUrl = PARAMS["server"],
-    token = PARAMS["token"]
+    baseUrl = PARAMS[["server"]],
+    token = PARAMS[["token"]]
   )
   
   ## Source local scripts for this local test
