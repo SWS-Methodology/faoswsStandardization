@@ -111,6 +111,10 @@ key = DatasetKey(domain = "suafbs", dataset = "sua", dimensions = list(
 
 message("Reading SUA data...")
 
+# This gets the values for all countries, all elements which are children of the
+# element classes listed above, all CPCs in suafbs and all years between those
+# specified by the user.
+
 data = GetData(key)
 # data$key = 1:nrow(data)
 # data2 = elementCodesToNames(data = data, standParams = params)
