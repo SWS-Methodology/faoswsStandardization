@@ -2,13 +2,17 @@ current: qa
 all:
   standardizationpath: /browningj/standardization
 qa:
-  certdir: ~/certificates/QA
+  certdir: path/to/qa/certs
   server: https://hqlqasws1.hq.un.fao.org:8181/sws
-  share: R:/
-  token: 
+  share: path/to/qa/share/on/your/machine/
+  token: 77dc91a0-9ec3-4f3d-80d7-4200a0ac87b6
 production:
-  certdir: ~/certificates/production
+  certdir: path/to/prod/certs
   server: https://hqlprswsas1.hq.un.fao.org:8181/sws
-  share: S:/
+  share: path/to/prod/share/on/your/machine/
   token: 
-
+vignette:
+  certdir: path/to/qa/certs
+  server: https://hqlqasws1.hq.un.fao.org:8181/sws
+  share: path/to/qa/share/on/your/machine/
+  token: bed251c6-3ecd-48aa-8e23-74e10ad92577

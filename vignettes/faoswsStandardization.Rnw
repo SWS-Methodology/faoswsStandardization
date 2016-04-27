@@ -67,17 +67,20 @@ library(knitr)
 library(ggplot2)
 library(faosws)
 library(faoswsUtil)
+library(faoswsModules)
 library(data.table)
 opts_chunk$set(fig.path='figure/', fig.align='center', fig.show='hold',
                warning=FALSE, message=FALSE, error=FALSE, tidy=FALSE, 
                results='markup', eval=TRUE, echo=TRUE, cache=FALSE, dpi=200)
 options(replace.assign=TRUE,width=80)
 assign("depthtrigger", 10, data.table:::.global)
-SetClientFiles("~/R certificate files/QA/")
+PARAMS <- ReadSettings("../sws.yml", "vignette")
+SetClientFiles(PARAMS[["certdir"]])
 GetTestEnvironment(
-    baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-    token = "bed251c6-3ecd-48aa-8e23-74e10ad92577"
+    baseUrl = PARAMS[["server"]],
+    token = PARAMS[["token"]]
 )
+R_SWS_SHARE_PATH <- PARAMS[["share"]]
 @ 
 
 \section{Getting Commodity Trees}
@@ -198,7 +201,6 @@ We can now begin with the standardization for this dataset.  The first step is t
 
 <<>>=
 ## DELETE R_SWS_SHARE_PATH WHEN WE HAVE DATA.TABLE IN elementCodesToNames
-R_SWS_SHARE_PATH = "/media/hqlprsws2_prod/"
 usaWheat = elementCodesToNames(data = usaWheat,
     elementCol = "measuredElementSuaFbs", itemCol = "measuredItemSuaFbs")
 usaWheat
