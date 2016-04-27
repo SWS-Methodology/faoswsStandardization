@@ -27,7 +27,8 @@ Suggests:
     knitr,
     ggplot2,
     testthat
-swsDatasetDepends: agriculture:aproduction,
+swsDatasetDepends: 
+    agriculture:aproduction,
     trade:total_trade_CPC,
     tourism:tourismprod,
     suafbs:sua,
@@ -35,7 +36,8 @@ swsDatasetDepends: agriculture:aproduction,
     faostat_one:aupus_share_fs,
     faostat_one:input_from_proc_fs,
     SWS_R_SHARE/browning/elementCodes.csv
-swsModuleDepends: faoswsProduction,
+swsModuleDepends: 
+    faoswsProduction,
     tradeproc,
     faoswsStock,
     faoswsFood,
