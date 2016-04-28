@@ -42,6 +42,18 @@ balanceResidual = function(data, standParams, feedCommodities = c(),
     ## imbalance calculates, for each commodity, the residual of the FBS equation and
     ## assigns this amount to each row for that commodity.
     
+    knownCodes <- unlist(p[c("productionCode", "importCode", "exportCode", "stockCode", 
+                             "foodCode", "foodProcCode", "feedCode", "wasteCode", 
+                             "seedCode", "industrialCode", "touristCode", "residualCode")])
+    
+    ##!! NOTE: It's unclear here why NAs are showing up here and if they should
+    ## be allowable.
+    unknownCodes <- setdiff(na.omit(unique(data[, get(standParams$elementVar)])), knownCodes)
+    
+    if(length(unknownCodes) > 0){
+      stop(sprintf("Unknown code(s): %s", paste(unknownCodes, collapse = ", ")))
+    }
+    
     stopifnot(imbalanceThreshold > 0)
     
     data[, imbalance := sum(ifelse(is.na(Value), 0, Value) *
@@ -57,7 +69,7 @@ balanceResidual = function(data, standParams, feedCommodities = c(),
             ifelse(get(standParams$elementVar) == p$industrialCode, -1,
             ifelse(get(standParams$elementVar) == p$touristCode, -1,
             ifelse(get(standParams$elementVar) == p$residualCode, -1, 
-                   stop(paste0(get(standParams$elementVar),  " is unknown."))))))))))))))),
+                   NA))))))))))))),
          by = c(standParams$mergeKey)]
     data[, newValue := ifelse(is.na(Value), 0, Value) + imbalance]
     data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
