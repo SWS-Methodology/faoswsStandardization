@@ -25,7 +25,7 @@ R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 
 if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
-    cat("Not on server, so setting up environment...\n")
+    message("Not on server, so setting up environment...")
 
     ## Get SWS Parameters
     SetClientFiles(dir = "~/R certificate files/QA")
@@ -43,7 +43,7 @@ stopifnot(startYear <= endYear)
 yearVals = startYear:endYear
 
 ## Harvest from Agricultural Production
-cat("Pulling data from Agriculture Production")
+message("Pulling data from Agriculture Production")
 geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "geographicAreaM49")[type == "country", code]
 geoDim = Dimension(name = "geographicAreaM49", keys = geoKeys)
@@ -69,7 +69,7 @@ setnames(agData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
 ## Harvest from Trade
-cat("Pulling data from Trade")
+message("Pulling data from Trade")
 eleTradeDim = Dimension(name = "measuredElementTrade",
                         keys = c(importCode, exportCode))
 tradeKey = DatasetKey(domain = "trade", dataset = "total_trade_CPC",
@@ -85,7 +85,7 @@ setnames(tradeData, c("measuredElementTrade", "measuredItemCPC", "flagTrade"),
 tradeData[, flagMethod := NA]
 
 ## Harvest from Tourist
-cat("Pulling data from Tourist")
+message("Pulling data from Tourist")
 eleTourDim = Dimension(name = "tourismElement",
                         keys = touristCode)
 itemDim@keys = "0111"
@@ -101,7 +101,7 @@ tourData = GetData(tourKey)
 setnames(tourData, c("tourismElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
-cat("Merging data files together and saving")
+message("Merging data files together and saving")
 out = do.call("rbind", list(agData, tradeData, tourData))
 
 stats = SaveData(domain = "suafbs", dataset = "sua", data = out)
