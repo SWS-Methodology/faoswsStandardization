@@ -37,7 +37,7 @@ swsDatasetDepends:
     SWS_R_SHARE/browning/elementCodes.csv
 swsModuleDepends: 
     faoswsProduction,
-    tradeproc,
+    faoswsTrade,
     faoswsStock,
     faoswsFood,
     faoswsSeed,
