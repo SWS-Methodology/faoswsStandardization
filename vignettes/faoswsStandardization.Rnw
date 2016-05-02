@@ -418,6 +418,7 @@ However, there are also a few special scenarios that occur here that are not, ma
 One additional note: currently, we don't have the proper structure specifying how commodities should be standardized.  Generally this is straightforward, as commodities are standardized to the products which created them, but some special cases exist (such as alcohols, generic juices, etc.).  There is an issue to resolve this on the github repository, but the code can function with this data.  We just need to specify what this parent is.
 
 <<>>=
+tree[, standParentID := as.character(standParentID)]
 tree[measuredItemChildCPC == "24320", standParentID := "Alcohol"]
 data = faoswsStandardization:::finalStandardizationToPrimary(
     data = data, tree = tree, standParams = params, sugarHack = FALSE,
