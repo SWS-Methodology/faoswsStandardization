@@ -31,7 +31,7 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
     
     ## Data quality checks
     stopifnot(is(out, "data.table"))
-    if((is.null(elementCol) | is.null(itemCol)) & is.null(standParams)){
+    if((is.null(elementCol) || is.null(itemCol)) && is.null(standParams)){
         stop("Must supply either standParams or both itemCol and elementCol!")
     }
     if(!is.null(standParams)){
@@ -68,11 +68,15 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
     warning("This map should eventually be updated as an adhoc table! Issue #12")
     itemCodeKey = fread(paste0(R_SWS_SHARE_PATH,"/browningj/elementCodes.csv"))
     itemCodeKey[, c("description", "factor") := NULL]
-    ## Assign different names to repeated records (caused by things like
-    ## biological meat).
+    ## Cheap duct-taped on method for removing all the indigenous and biological
+    ## cattle
     itemCodeKey = itemCodeKey[order(itemType, production), ]
     itemCodeKey[, suffix := paste0("_", seq_len(.N)), by = "itemType"]
     itemCodeKey[suffix == "_1", suffix := ""]
+    warning("All indigenous and biological cattle and poultry have been
+    removed. This is a bad thing and it would be best to find a way to replace
+    them. I recommend looking at issue #17")
+    itemCodeKey = itemCodeKey[suffix == "", ]
     itemCodeKey = melt(data = itemCodeKey, id.vars = c("itemType", "suffix"))
     itemCodeKey = itemCodeKey[!is.na(value), ]
     ## Verify we don't have duplicated codes
