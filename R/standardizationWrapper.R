@@ -124,7 +124,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         if(colnames(nutrientData)[1] != p$itemVar)
             stop("First column of nutrient data must match standParams$itemVar!")
         stopifnot(ncol(nutrientData) > 1)
-        cat("Nutrients are assumed to be:", colnames(nutrientData)[-1])
+        message("Nutrients are assumed to be:", paste(colnames(nutrientData)[-1], collapse = ", "))
         nutrientElements = colnames(nutrientData)[2:ncol(nutrientData)]
     } else {
         cat("No nutrient information provided, hence no nutrients are computed.")
@@ -234,8 +234,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## them (which is somewhat reasonable).
     tree = tree[, list(share = sum(share),
                        availability = max(availability)),
-                by = c(p$childVar, p$parentVar, p$geoVar, p$yearVar,
-                       p$extractVar, p$targetVar, p$standParentVar)]
+                by = c(p$childVar, p$parentVar, p$extractVar, 
+                       p$targetVar, p$standParentVar)]
     setnames(tree, "share", p$shareVar)
     ## Calculate the share using proportions of availability, but default to the
     ## old value if no "by-availability" shares are available.
