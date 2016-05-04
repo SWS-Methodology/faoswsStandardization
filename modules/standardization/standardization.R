@@ -184,10 +184,10 @@ message("Loading nutrient data...")
 itemKeys = GetCodeList("agriculture", "aupus_ratio", "measuredItemCPC")[, code]
 
 # Nutrients are:
-# 1000 Calories
+# 1001 Calories
 # 1003 Proteins
 # 1005 Fats
-nutrientCodes = c("1000", "1003", "1005")
+nutrientCodes = c("1001", "1003", "1005")
 
 nutrientData = getNutritiveFactors(measuredElement = nutrientCodes,
                                    timePointYears = yearVals)
