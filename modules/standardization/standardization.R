@@ -4,6 +4,7 @@ library(faoswsUtil)
 library(data.table)
 library(igraph)
 library(faoswsBalancing)
+library(faoswsStandardization)
 
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
@@ -28,8 +29,8 @@ if (CheckDebug()) {
   )
   
   ## Source local scripts for this local test
-  for (file in dir(apiDirectory, full.names = T))
-    source(file)
+  # for (file in dir(apiDirectory, full.names = T))
+  #   source(file)
 } else {
   message("Running on server, no need to call GetTestEnvironment...")
   
@@ -116,14 +117,8 @@ message("Reading SUA data...")
 # element classes listed above, all CPCs in suafbs and all years between those
 # specified by the user.
 
-data = GetData(key)
-# data$key = 1:nrow(data)
-# data2 = elementCodesToNames(data = data, standParams = params)
-# compare = merge(data2, data, by = "key")
-# head(compare[, c("measuredItemSuaFbs.x", "measuredElementSuaFbs.x", "measuredElementSuaFbs.y"), with = FALSE], 50)
-
 #!! 3 warnings about things that need to be changed !!#
-data = elementCodesToNames(data = data, itemCol = "measuredItemSuaFbs",
+data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemSuaFbs",
                            elementCol = "measuredElementSuaFbs")
 
 ## Update params for specific dataset
@@ -163,10 +158,14 @@ tree[, target := ifelse(measuredItemParentCPC %in% FPCommodities,
                         "F", "B")]
 tree = adjustCommodityTree(tree, parentColname = "measuredItemParentCPC",
                            childColname = "measuredItemChildCPC", nSigma = 2)
+
+# If there's no extraction rate, use the mean extraction rate for that parent
+# child combinations
 tree[, extractionRate := ifelse(is.na(extractionRate),
                                 mean(extractionRate, na.rm = TRUE),
                                 extractionRate),
      by = c("measuredItemParentCPC", "measuredItemChildCPC")]
+# If there's still no extraction rate, use an extraction rate of 1
 tree[is.na(extractionRate), extractionRate := 1]
 
 
@@ -183,7 +182,14 @@ data = data[!is.na(measuredElementSuaFbs), ]
 message("Loading nutrient data...")
 
 itemKeys = GetCodeList("agriculture", "aupus_ratio", "measuredItemCPC")[, code]
-nutrientData = getNutritiveFactors(measuredElement = c("1001", "1003", "1005"),
+
+# Nutrients are:
+# 1000 Calories
+# 1003 Proteins
+# 1005 Fats
+nutrientCodes = c("1000", "1003", "1005")
+
+nutrientData = getNutritiveFactors(measuredElement = nutrientCodes,
                                    timePointYears = yearVals)
 setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
          c("measuredItemSuaFbs", "timePointYears"))
