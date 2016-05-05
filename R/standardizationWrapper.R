@@ -82,7 +82,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     stopifnot(c(p$geoVar, p$yearVar, p$itemVar,
                 p$elementVar, "Value") %in% colnames(data))
     if(!"standardDeviation" %in% colnames(data))
-        data[, standardDeviation := NA]
+        data[, standardDeviation := NA_real_]
     data[, c(p$geoVar) := as.character(get(p$geoVar))]
     data[, c(p$yearVar) := as.character(get(p$yearVar))]
     data[, c(p$itemVar) := as.character(get(p$itemVar))]
