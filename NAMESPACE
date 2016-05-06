@@ -3,6 +3,7 @@
 export(adjustCommodityTree)
 export(defaultStandardizationParameters)
 export(elementCodesToNames)
+export(elementNamesToCodes)
 export(findProcessingLevel)
 export(getFBSTree)
 export(getOldCommodityTree)

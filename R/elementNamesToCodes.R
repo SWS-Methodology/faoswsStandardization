@@ -19,6 +19,7 @@
 ##' @return The passed data.table "data" but with an updated element column 
 ##'   (with codes instead of names).
 ##'   
+##' @export
 
 elementNamesToCodes = function(data, elementCol = NULL, itemCol = NULL,
                                standParams = NULL){
