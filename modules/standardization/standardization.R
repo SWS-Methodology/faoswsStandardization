@@ -223,9 +223,9 @@ standardizationVectorized = function(data, tree, nutrientData){
               data$timePointYears[1], "_",
               data$geographicAreaM49[1], "_sample_test.md"))
 
-  out = try(standardizationWrapper(data = data, tree = tree,
+  out = standardizationWrapper(data = data, tree = tree,
                                    standParams = params, printCodes = printCodes,
-                                   nutrientData = nutrientData))
+                                   nutrientData = nutrientData)
   return(out)
 }
 
