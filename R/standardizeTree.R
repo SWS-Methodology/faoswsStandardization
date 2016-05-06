@@ -112,6 +112,18 @@ standardizeTree = function(data, tree, elements, standParams,
     ## derived from the production of wheat already).  We standardize everything
     ## backwards, and then edges marked as forwards (i.e. target == "F") get
     ## standardized down.
+
+    # Extraction rates of zero will cause us to divide by zero, so we must
+    # remove them
+    extract0 <- standardizationData[abs(get(extractVar)) < .Machine$double.eps ^ .5]
+    if(nrow(extract0) > 0){
+      # Check for tricky floating point issues, but checking if equal to 0
+      warning(sprintf("Extraction rates of 0 present in commodity codes: {%s} in country {%s}.
+                      Ignoring all extraction rates of 0 in backwards standardization",
+              paste0(unique(extract0[, get(parentVar)]), collapse = ", "), unique(extract0[, get(geoVar)])))
+      standardizationData[abs(get(extractVar)) < .Machine$double.eps^.5, Value := NA]
+    }
+      
     output = standardizationData[, list(
         Value = sum(Value/get(extractVar)*get(shareVar), na.rm = TRUE)),
         by = c(yearVar, geoVar,
