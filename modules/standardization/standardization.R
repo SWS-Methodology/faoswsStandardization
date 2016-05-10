@@ -208,20 +208,25 @@ standardizationVectorized = function(data, tree, nutrientData){
     message("No rows in data, nothing to do")
     return(data)
   }
-  samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
-  if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
-  printCodes = sample(samplePool, size = 1)
-  if (!is.null(tree)) {
-    printCodes = getChildren(commodityTree = tree,
-                             parentColname = params$parentVar,
-                             childColname = params$childVar,
-                             topNodes = printCodes)
-  }
+  
+  # If printCodes is length 0, neither the .md files nor plots are created
+  # If it has a non-zero value, those are the codes which will have file outputs
+  printCodes = character()
+  # samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
+  # if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
+  # printCodes = sample(samplePool, size = 1)
+  # if (!is.null(tree)) {
+  #   printCodes = getChildren(commodityTree = tree,
+  #                            parentColname = params$parentVar,
+  #                            childColname = params$childVar,
+  #                            topNodes = printCodes)
+  # }
   dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE)
   
   sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/",
               data$timePointYears[1], "_",
-              data$geographicAreaM49[1], "_sample_test.md"))
+              data$geographicAreaM49[1], "_sample_test.md"),
+       split = TRUE)
 
   out = standardizationWrapper(data = data, tree = tree,
                                    standParams = params, printCodes = printCodes,
