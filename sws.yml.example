@@ -5,7 +5,7 @@ qa:
   certdir: path/to/qa/certs
   server: https://hqlqasws1.hq.un.fao.org:8181/sws
   share: path/to/qa/share/on/your/machine/
-  token: 77dc91a0-9ec3-4f3d-80d7-4200a0ac87b6
+  token: 2ed46f61-fc93-4a27-a791-d196119f36f7
 production:
   certdir: path/to/prod/certs
   server: https://hqlprswsas1.hq.un.fao.org:8181/sws
@@ -15,4 +15,4 @@ vignette:
   certdir: path/to/qa/certs
   server: https://hqlqasws1.hq.un.fao.org:8181/sws
   share: path/to/qa/share/on/your/machine/
-  token: bed251c6-3ecd-48aa-8e23-74e10ad92577
+  token: 5864798b-e785-46b5-9419-4b9443b50232
