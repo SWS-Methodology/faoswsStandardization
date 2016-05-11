@@ -270,9 +270,9 @@ for (i in seq_len(nrow(uniqueLevels))) {
     standData[[i]] = standardizationVectorized(data = dataSubset,
                                                tree = treeSubset,
                                                nutrientData = subNutrientData)
-    if (!is(standData[[i]], "try-error")) {
-        standData[[i]] = standData[[i]][measuredItemSuaFbs %in% parentNodes, ]
-    }
+  
+    standData[[i]] = standData[[i]][measuredItemSuaFbs %in% parentNodes, ]
+  
 }
 
 message("Combining standardized data...")
