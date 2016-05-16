@@ -277,20 +277,12 @@ for (i in seq_len(nrow(uniqueLevels))) {
 
 message("Combining standardized data...")
 
-filter = sapply(standData, function(x){is(x, "try-error")})
-errorMessages = sapply(standData[filter], function(x) attr(x, "condition")$message)
-cat("Error messages:", errorMessages)
-cat(is(standData), "\n")
-standData = do.call("rbind", standData[!filter])
-cat(is(standData), "\n")
-standData[, type := NULL] # Must remove for next function to work ok
-cat(is(standData), "\n")
+
+standData = rbindlist(standData)
 standData = elementNamesToCodes(data = standData,
                                 elementCol = "measuredElementSuaFbs",
                                 itemCol = "measuredItemSuaFbs")
-cat(is(standData), "\n")
 standData[, standardDeviation := NULL]
-cat(is(standData), "\n")
 ## Assign flags: I for imputed (as we're estimating/standardizing) and s for
 ## "sum" (aggregate)
 standData[, flagObservationStatus := "I"]

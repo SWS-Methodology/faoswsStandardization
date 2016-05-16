@@ -330,8 +330,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         # If no FBS tree, just return SUA-level results
         return(data)
     } else {
-        out = computeFbsAggregate(data = data, fbsTree = fbsTree,
-                                  standParams = p)
+      out = computeFbsAggregate(data = data, fbsTree = fbsTree,
+                                standParams = p)
+      if(length(printCodes) > 0){
         printCodeTable = fbsTree[get(p$itemVar) %in% printCodes, ]
         p$mergeKey[p$mergeKey == p$itemVar] = "fbsID4"
         p$itemVar = "fbsID4"
@@ -357,6 +358,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         print(printSUATable(data = out[[4]], standParams = p,
                             printCodes = printCodeTable[, fbsID1],
                             printProcessing = TRUE))
-        return(out)
+      }
+      return(out)
     }
 }
