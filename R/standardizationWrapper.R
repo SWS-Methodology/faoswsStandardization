@@ -112,7 +112,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     stopifnot(tree[!is.na(get(p$standParentVar)), get(p$standParentVar)] != "")
     # Checks for fbsTree
     if(!is.null(fbsTree)){
-        stopifnot(c(p$itemVar, p$extractVar, "fbsID1",
+        stopifnot(c(p$itemVar, "fbsID1",
                     "fbsID2", "fbsID3", "fbsID4") %in% colnames(fbsTree))
     }
     if(any(is.na(tree[, get(p$parentVar)]))){

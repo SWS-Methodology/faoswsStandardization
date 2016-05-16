@@ -44,7 +44,7 @@ elementNamesToCodes = function(data, elementCol = NULL, itemCol = NULL,
     }
     
     ## Get the mapping from item code to item type.
-    elementMap = GetCodeList("agriculture", "aproduction", "measuredItemCPC")
+    elementMap = GetCodeList("suafbs", "fbs", "measuredItemSuaFbs")
     setnames(elementMap, "code", itemCol)
     elementMap = elementMap[, c(itemCol, "type"), with = FALSE]
     out = merge(out, elementMap, by = itemCol, all.x = TRUE)

@@ -491,7 +491,8 @@ The final step in the standardization process is to aggregate up to FBS level.  
 # useful for any user with a different directory structure than Josh :)
 fbsTree = getFBSTree()
 setnames(fbsTree, "measuredItemCPC", "measuredItemSuaFbs")
-save(fbsTree, file = "~/Documents/Github/faoswsStandardization/data/fbsTree.RData")
+fbsTree[,(grep("^fbsID", names(fbsTree))):=lapply(.SD, as.character), .SDcols = grep("^fbsID", names(fbsTree), value=TRUE)]
+save(fbsTree, file = "../data/fbsTree.RData")
 @
 
 <<>>=

@@ -228,7 +228,7 @@ standardizationVectorized = function(data, tree, nutrientData){
               data$geographicAreaM49[1], "_sample_test.md"),
        split = TRUE)
 
-  out = standardizationWrapper(data = data, tree = tree,
+  out = standardizationWrapper(data = data, tree = tree, fbsTree = faoswsStandardization::fbsTree, 
                                    standParams = params, printCodes = printCodes,
                                    nutrientData = nutrientData)
   return(out)
@@ -270,8 +270,9 @@ for (i in seq_len(nrow(uniqueLevels))) {
     standData[[i]] = standardizationVectorized(data = dataSubset,
                                                tree = treeSubset,
                                                nutrientData = subNutrientData)
-  
-    standData[[i]] = standData[[i]][measuredItemSuaFbs %in% parentNodes, ]
+    standData[[i]] <- rbindlist(standData[[i]])
+    names(standData[[i]])[grep("^fbsID", names(standData[[i]]))] <- params$itemVar
+    standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))] 
   
 }
 
