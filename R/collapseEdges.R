@@ -30,7 +30,7 @@ collapseEdges = function(edges, parentName = "parentID",
     stopifnot(is(edges, "data.table"))
     stopifnot(c(parentName, childName, extractionName) %in% colnames(edges))
     if(max(edges[[extractionName]][edges[[extractionName]] < Inf]) > 100)
-        stop("Extration rates larger than 100 indicate they are probably ",
+        stop("Extraction rates larger than 100 indicate they are probably ",
              "expressed in different units than on [0,1].  This will cause ",
              "huge problems when multiplying, and should be fixed.")
     ## Test for loops
