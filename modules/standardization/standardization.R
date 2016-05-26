@@ -15,7 +15,7 @@ if (CheckDebug()) {
   
   # Read settings file sws.yml in working directory. See 
   # sws.yml.example for more information
-  PARAMS <- ReadSettings("sws.yml")
+  PARAMS <- ReadSettings("modules/standardization/sws.yml")
   message("Connecting to server: ", PARAMS[["current"]])
   
   R_SWS_SHARE_PATH = PARAMS[["share"]]
