@@ -74,7 +74,7 @@ opts_chunk$set(fig.path='figure/', fig.align='center', fig.show='hold',
                results='markup', eval=TRUE, echo=TRUE, cache=FALSE, dpi=200)
 options(replace.assign=TRUE,width=80)
 assign("depthtrigger", 10, data.table:::.global)
-PARAMS <- ReadSettings("../sws.yml", "vignette")
+PARAMS <- ReadSettings("../modules/standardization/sws.yml", "vignette")
 SetClientFiles(PARAMS[["certdir"]])
 GetTestEnvironment(
     baseUrl = PARAMS[["server"]],
