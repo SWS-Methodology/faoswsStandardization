@@ -165,6 +165,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     primaryEl = c(primaryEl, nonTreeEl)
     foodProcEl = unique(tree[get(p$targetVar) == "F",
                              get(p$parentVar)])
+    #! This object is never used and I don't yet know why it's here
     officialProd = data[get(p$elementVar) == p$productionCode & Value > 0,
                         get(p$itemVar)]
     ## Elements with official production shouldn't have their production 

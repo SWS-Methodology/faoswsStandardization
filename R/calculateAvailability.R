@@ -49,21 +49,28 @@ calculateAvailability = function(tree, standParams){
              availability := availability * get(standParams$extractVar)]
         
     ## The initial availabilities should be reported for parents
+    ## Parent child combinations should only have one output, but we get
+    ## the mean just in case
     output = origTree[processingLevel == 0,
                       list(availability = mean(availability)),
                       by = c(standParams$parentVar, standParams$childVar)]
     
     editedTree = copy(origTree)
     ## Stop if we have a very flat tree:
-    if(max(level$processingLevel) > 1){
-        for(i in 1:(max(level$processingLevel)-1)){
+    if (max(level$processingLevel) > 1) {
+        for (i in 1:(max(level$processingLevel) - 1)) {
             ## Roll down availability
             copyTree = copy(origTree)
+            # Rename parent as child and child as 'newChild'
             setnames(copyTree, c(standParams$parentVar, standParams$childVar),
                      c(standParams$childVar, "newChild"))
+            # Extraction rate comes from copyTree, so deleted here
             editedTree[, c("extractionRate", "processingLevel") := NULL]
+            # Merge original tree to get child availabilities
             editedTree = merge(editedTree, copyTree, by = standParams$childVar,
                            suffixes = c("", ".child"), allow.cartesian = TRUE)
+            # Sum parent availability with child availability multiplied by
+            # extraction rate
             editedTree[, availability := mean(
                 (sapply(availability, na2zero) + sapply(availability.child, na2zero)) *
                     get(standParams$extractVar)),

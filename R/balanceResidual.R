@@ -72,6 +72,8 @@ balanceResidual = function(data, standParams, feedCommodities = c(),
                    NA))))))))))))),
          by = c(standParams$mergeKey)]
     data[, newValue := ifelse(is.na(Value), 0, Value) + imbalance]
+    # I'm a little confused about why flags aren't used here, but it looks like 
+    # items where there's a positive values are marked as official
     data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
                                    !is.na(Value) & Value > 0),
          by = c(standParams$itemVar)]

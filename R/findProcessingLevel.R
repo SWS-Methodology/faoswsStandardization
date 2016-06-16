@@ -50,7 +50,7 @@ findProcessingLevel = function(edgeData, from, to, plot = FALSE,
     finalLevels.dt = data.table(names(finalLevels), finalLevels)
     setnames(finalLevels.dt, c(aupusParam$itemVar, "processingLevel"))
     
-    if(errorOnLoop & finalLevels.dt[, min(processingLevel) == -Inf]){
+    if(errorOnLoop && finalLevels.dt[, min(processingLevel) == -Inf]){
         loopNodes = finalLevels.dt[processingLevel == -Inf,
                                    get(aupusParam$itemVar)]
         graph = graph.data.frame(edges[get(from) %in% loopNodes |
