@@ -24,16 +24,20 @@ touristCode = "100"
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 
-if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
+if(CheckDebug()){
     message("Not on server, so setting up environment...")
 
+    library(faoswsModules)
+    SETT <- ReadSettings("modules/pullDataToSUA/sws.yml")
+    
+    R_SWS_SHARE_PATH <- SETT[["share"]]  
     ## Get SWS Parameters
-    SetClientFiles(dir = "~/R certificate files/QA")
+    SetClientFiles(dir = SETT[["certdir"]])
     GetTestEnvironment(
         ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "7b588793-8c9a-4732-b967-b941b396ce4d"
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "07b4651d-a306-47e1-ac7d-38c0f561b6cd"
+        baseUrl = SETT[["server"]],
+        token = SETT[["token"]]
     )
 }
 

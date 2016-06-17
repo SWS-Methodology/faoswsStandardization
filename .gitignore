@@ -13,3 +13,4 @@ sandbox/*.zip
 .Rproj.user
 .Rhistory
 .RData
+modules/pullDataToSUA/sws.yml
