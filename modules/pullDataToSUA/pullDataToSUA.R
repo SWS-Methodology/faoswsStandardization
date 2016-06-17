@@ -12,13 +12,16 @@ library(faosws)
 library(data.table)
 
 oldProductionCode = "51"
-importCode = "5600"
-exportCode = "5900"
+importCode = "5610"
+exportCode = "5910"
 oldFeedCode = "101"
 oldSeedCode = "111"
-oldLossCode = "121"
-industrialCode = "???"
-touristCode = "100"
+#oldLossCode = "121"
+lossCode = "5016"
+industrialCode = "5165"
+touristCode = "5164"
+warning("Stocks is change in stocks, not absolute! This needs to be changed")
+stocksCode = "5071"
 
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
@@ -53,10 +56,14 @@ geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
 geoDim = Dimension(name = "geographicAreaM49", keys = geoKeys)
 eleKeys = GetCodeTree(domain = "agriculture", dataset = "aproduction",
                       dimension = "measuredElement")
+## Get all children of old codes
 eleKeys = strsplit(eleKeys[parent %in% c(oldProductionCode, oldFeedCode,
-                                         oldSeedCode, oldLossCode), children],
+                                         oldSeedCode), children],
                    split = ", ")
-eleDim = Dimension(name = "measuredElement", keys = do.call("c", eleKeys))
+## Combine with single codes
+eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys), 
+                                                      industrialCode, touristCode, lossCode, stocksCode))
+           
 itemKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "measuredItemCPC")[, code]
 itemDim = Dimension(name = "measuredItemCPC", keys = itemKeys)
@@ -76,7 +83,7 @@ setnames(agData, c("measuredElement", "measuredItemCPC"),
 message("Pulling data from Trade")
 eleTradeDim = Dimension(name = "measuredElementTrade",
                         keys = c(importCode, exportCode))
-tradeKey = DatasetKey(domain = "trade", dataset = "total_trade_CPC",
+tradeKey = DatasetKey(domain = "trade", dataset = "total_trade_cpc_m49",
                       dimensions = list(
                        geographicAreaM49 = geoDim,
                        measuredElementTrade = eleTradeDim,
@@ -84,29 +91,12 @@ tradeKey = DatasetKey(domain = "trade", dataset = "total_trade_CPC",
                        timePointYears = timeDim)
 )
 tradeData = GetData(tradeKey)
-setnames(tradeData, c("measuredElementTrade", "measuredItemCPC", "flagTrade"),
-         c("measuredElementSuaFbs", "measuredItemSuaFbs", "flagObservationStatus"))
+setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
+         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 tradeData[, flagMethod := NA]
 
-## Harvest from Tourist
-message("Pulling data from Tourist")
-eleTourDim = Dimension(name = "tourismElement",
-                        keys = touristCode)
-itemDim@keys = "0111"
-geoDim@keys = geoDim@keys[1]
-tourKey = DatasetKey(domain = "tourism", dataset = "tourismprod",
-                      dimensions = list(
-                       geographicAreaM49 = geoDim,
-                       tourismElement = eleTourDim,
-                       measuredItemCPC = itemDim,
-                       timePointYears = timeDim)
-)
-tourData = GetData(tourKey)
-setnames(tourData, c("tourismElement", "measuredItemCPC"),
-         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
-
 message("Merging data files together and saving")
-out = do.call("rbind", list(agData, tradeData, tourData))
+out = do.call("rbind", list(agData, tradeData))
 
 stats = SaveData(domain = "suafbs", dataset = "sua", data = out)
 
