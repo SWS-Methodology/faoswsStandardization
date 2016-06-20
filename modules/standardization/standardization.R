@@ -140,6 +140,7 @@ params$industrialCode = "industrial"
 params$touristCode = "tourist"
 params$foodProcCode = "foodManufacturing"
 
+# Convert units for tourist and industrial
 message("Applying adjustments to commodity tree...")
 
 ## Update tree by setting some edges to "F", computing average extraction rates
@@ -265,7 +266,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
     subNutrientData = dcast(measuredItemSuaFbs ~ measuredElement,
                             data = subNutrientData, value.var = "Value",
                             fun.agg = aggFun)
-    setnames(subNutrientData, c("1001", "1003", "1005"),
+    setnames(subNutrientData, nutrientCodes,
              c("Calories", "Proteins", "Fats"))
     standData[[i]] = standardizationVectorized(data = dataSubset,
                                                tree = treeSubset,
