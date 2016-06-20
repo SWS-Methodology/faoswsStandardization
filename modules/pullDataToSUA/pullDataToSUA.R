@@ -19,13 +19,14 @@ oldSeedCode = "111"
 #oldLossCode = "121"
 lossCode = "5016"
 industrialCode = "5165"
-touristCode = "5164"
+touristCode = "100"
+suaTouristCode = "5164"
+touristConversionFactor = -1/1000
 warning("Stocks is change in stocks, not absolute! This needs to be changed")
 stocksCode = "5071"
 
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
-DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 
 if(CheckDebug()){
     message("Not on server, so setting up environment...")
@@ -62,7 +63,7 @@ eleKeys = strsplit(eleKeys[parent %in% c(oldProductionCode, oldFeedCode,
                    split = ", ")
 ## Combine with single codes
 eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys), 
-                                                      industrialCode, touristCode, lossCode, stocksCode))
+                                                      industrialCode, lossCode, stocksCode))
            
 itemKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "measuredItemCPC")[, code]
@@ -77,6 +78,23 @@ agKey = DatasetKey(domain = "agriculture", dataset = "aproduction",
 )
 agData = GetData(agKey)
 setnames(agData, c("measuredElement", "measuredItemCPC"),
+         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+
+## Harvest from Tourist
+message("Pulling data from Tourist")
+eleTourDim = Dimension(name = "tourismElement",
+                       keys = touristCode)
+tourKey = DatasetKey(domain = "tourism", dataset = "tourismprod",
+                     dimensions = list(
+                       geographicAreaM49 = geoDim,
+                       tourismElement = eleTourDim,
+                       measuredItemCPC = itemDim,
+                       timePointYears = timeDim)
+)
+tourData = GetData(tourKey)
+tourData[, `:=`(tourismElement = suaTouristCode,
+                Value = Value * touristConversionFactor)]
+setnames(tourData, c("tourismElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
 ## Harvest from Trade
@@ -96,7 +114,9 @@ setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
 tradeData[, flagMethod := NA]
 
 message("Merging data files together and saving")
-out = do.call("rbind", list(agData, tradeData))
+out = do.call("rbind", list(agData, tradeData, tourData))
+
+out <- out[!is.na(Value),]
 
 stats = SaveData(domain = "suafbs", dataset = "sua", data = out)
 
