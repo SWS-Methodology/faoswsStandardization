@@ -101,7 +101,12 @@ fs_elements <- c("51", "61", "71", "91", "101", "111", "121", "131")
 
 elemKeys = elemKeys[parent %in% fs_elements,
                     paste0(children, collapse = ", ")]
-elemKeys = strsplit(elemKeys, ", ")[[1]]
+
+# code                  description
+# 1: 5164 Tourist consumption [1000 t]
+# 2: 5165     Industrial uses [1000 t]
+
+elemKeys = c(strsplit(elemKeys, ", ")[[1]], "5164", "5165")
 itemKeys = GetCodeList(domain = "suafbs", dataset = "sua", "measuredItemSuaFbs")
 itemKeys = itemKeys[, code]
 key = DatasetKey(domain = "suafbs", dataset = "sua", dimensions = list(
@@ -281,14 +286,38 @@ message("Combining standardized data...")
 
 
 standData = rbindlist(standData)
-standData = elementNamesToCodes(data = standData,
-                                elementCol = "measuredElementSuaFbs",
-                                itemCol = "measuredItemSuaFbs")
+
+warning("The below is a rough hack to convert codes back. In truth, I'm almost
+certain that the units are not the same. A unit conversion needs to happen at
+the beginning and at this step.")
+
+fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+                                                         "foodManufacturing", "imports", "loss", "production", 
+                                                         "seed", "stockChange", "residual"),
+                                 code=c("261", "281", "271", "5910", "5520", "5141",
+                                        "5023", "5610", "5015", "5510",
+                                        "5525", "5071", "5166"))
+standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode), 
+  `:=`(measuredElementSuaFbs = "other", 
+       Value = sum(Value, na.rm=TRUE)), 
+  by=c(params$mergeKey)]
+
+standData = merge(standData, fbs_sua_conversion, by = "measuredElementSuaFbs")
+standData[,`:=`(measuredElementSuaFbs = NULL)]
+setnames(standData, "code", "measuredElementSuaFbs")
+
 standData[, standardDeviation := NULL]
+
 ## Assign flags: I for imputed (as we're estimating/standardizing) and s for
 ## "sum" (aggregate)
 standData[, flagObservationStatus := "I"]
 standData[, flagMethod := "s"]
+
+setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears", 
+                         "Value", "flagObservationStatus", "flagMethod"))
+
+# Remove NA Values
+standData <- standData[!is.na(Value),]
 
 message("Attempting to save standardized data...")
 
