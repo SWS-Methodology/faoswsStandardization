@@ -12,6 +12,7 @@ library(faosws)
 library(data.table)
 
 oldProductionCode = "51"
+foodCode = "5141"
 importCode = "5610"
 exportCode = "5910"
 oldFeedCode = "101"
@@ -63,7 +64,7 @@ eleKeys = strsplit(eleKeys[parent %in% c(oldProductionCode, oldFeedCode,
                    split = ", ")
 ## Combine with single codes
 eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys), 
-                                                      industrialCode, lossCode, stocksCode))
+                                                      foodCode, industrialCode, lossCode, stocksCode))
            
 itemKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "measuredItemCPC")[, code]

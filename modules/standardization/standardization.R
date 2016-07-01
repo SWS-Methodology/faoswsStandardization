@@ -103,10 +103,14 @@ elemKeys = elemKeys[parent %in% fs_elements,
                     paste0(children, collapse = ", ")]
 
 # code                  description
-# 1: 5164 Tourist consumption [1000 t]
-# 2: 5165     Industrial uses [1000 t]
+# 1: 5141                     Food [t]
+# 2: 5164 Tourist consumption [1000 t]
+# 3: 5165     Industrial uses [1000 t]
 
-elemKeys = c(strsplit(elemKeys, ", ")[[1]], "5164", "5165")
+
+sws_elements <- c("5141", "5164", "5165")
+
+elemKeys = c(strsplit(elemKeys, ", ")[[1]], sws_elements)
 itemKeys = GetCodeList(domain = "suafbs", dataset = "sua", "measuredItemSuaFbs")
 itemKeys = itemKeys[, code]
 key = DatasetKey(domain = "suafbs", dataset = "sua", dimensions = list(
