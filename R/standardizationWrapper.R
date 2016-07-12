@@ -174,8 +174,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## balanceResidual()
     balanceResidual(data, p,
                     primaryCommodities = primaryEl,
-                    foodProcessCommodities = foodProcEl
+                    foodProcessCommodities = foodProcEl,
+                    feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code],
+                    indCommodities = ReadDatatable("sua_balance_commodities")[element == "industrial", code]
                     )
+    
     if(length(printCodes) > 0){
         cat("\nSUA table after balancing processed elements:")
         data = markUpdated(new = data, old = old, standParams = p)
