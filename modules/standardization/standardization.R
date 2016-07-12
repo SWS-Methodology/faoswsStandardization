@@ -6,6 +6,10 @@ library(igraph)
 library(faoswsBalancing)
 library(faoswsStandardization)
 
+if(packageVersion("faoswsStandardization") < package_version('0.1.0')){
+  stop("faoswsStandardization is out of date")
+}
+
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 
@@ -326,7 +330,7 @@ standData <- standData[!is.na(Value),]
 message("Attempting to save standardized data...")
 
 out = SaveData(domain = "suafbs", dataset = "fbs", data = standData)
-cat(out$inserted, " observations written and problems with ",
-    out$ignored + out$discarded, sep = "")
-paste0(out$inserted, " observations written and problems with ",
-       out$ignored + out$discarded)
+cat(out$inserted + out$ignored, " observations written and problems with ",
+    out$discarded, sep = "")
+paste0(out$inserted + out$ignored, " observations written and problems with ",
+       out$discarded)
