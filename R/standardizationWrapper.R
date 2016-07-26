@@ -190,6 +190,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## STEP 2.1 Compute calories
     if(!is.null(nutrientData)){
         data = merge(data, nutrientData, by = p$itemVar, all.x = TRUE)
+        data[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0, 
+             c("Calories", "Proteins", "Fats") := 
+               0]
         ## Convert nutrient values into total nutrient info using food
         ## allocation.
         sapply(nutrientElements, function(nutrient){
