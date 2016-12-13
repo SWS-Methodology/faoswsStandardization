@@ -73,7 +73,8 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     localParams$elementPrefix = ""
     out = data[, standardizeTree(data = .SD, tree = standTree,
                                  standParams = localParams, elements = "Value",
-                                 sugarHack = sugarHack),
+                                 sugarHack = sugarHack,
+                                 zeroWeight= faoswsStandardization::zeroWeight),
                by = c(standParams$elementVar)]
     if(length(additiveElements) > 0){
         additiveTree = copy(standTree)
@@ -82,7 +83,8 @@ finalStandardizationToPrimary = function(data, tree, standParams,
             temp = data[get(standParams$elementVar) == standParams$foodCode,
                         standardizeTree(data = .SD, tree = additiveTree,
                                         standParams = localParams, elements = nutrient,
-                                        sugarHack = sugarHack)]
+                                        sugarHack = sugarHack,
+                                        )]
             temp[, Value := get(nutrient)]
             temp[, c(standParams$elementVar) := nutrient]
             temp[, c(nutrient) := NULL]

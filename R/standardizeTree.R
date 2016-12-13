@@ -26,6 +26,9 @@
 ##' @param sugarHack Logical.  Indicates if the commodity tree should be edited 
 ##'   by this program to give the correction standardization of sugar?  This is 
 ##'   a hack and should be fixed, but for now it is generally necessary.
+##' @param zeroWeight Vector. Vector containg the items that must have a zero weights
+##' because they represent co-byproducts. (see the example wheat, wheat flour, wheat germ..)  
+##'   
 ##'   
 ##' @import data.table  
 ##' 
@@ -33,7 +36,7 @@
 ##'   in the tree.
 ##'   
 
-standardizeTree = function(data, tree, elements, standParams,
+standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
                            sugarHack = TRUE){
 
     ## Assign parameters
@@ -69,6 +72,10 @@ standardizeTree = function(data, tree, elements, standParams,
     }
     stopifnot(all(tree[, standDev] >= 0))
     
+    
+    
+    
+    
     elements = paste0(elementPrefix, elements)
     
     ## Restructure the data for easier standardization
@@ -97,6 +104,12 @@ standardizeTree = function(data, tree, elements, standParams,
                             list(as.character(get(childVar)),
                                  as.character(get(yearVar)),
                                  as.character(get(geoVar)))]
+    
+    ## To deal with joint byproducts
+
+     
+    
+    
     standardizationData = merge(standardizationData, tree,
                                 by = c(yearVar, geoVar, childVar),
                                 all.x = TRUE, allow.cartesian = TRUE)
@@ -106,6 +119,11 @@ standardizeTree = function(data, tree, elements, standParams,
     standardizationData[is.na(get(parentVar)),
                         c(parentVar, extractVar, shareVar) :=
                             list(get(childVar), 1, 1)]
+    
+    
+    standardizationData[,weight:=1]
+    standardizationData[measuredItemChildCPC %in% zeroWeight , weight:=0]
+    
     ## Standardizing backwards is easy: we just take the value, divide by the 
     ## extraction rate, and multiply by the shares.  However, we don't 
     ## standardize the production element (because production of flour is 
@@ -125,7 +143,7 @@ standardizeTree = function(data, tree, elements, standParams,
     }
       
     output = standardizationData[, list(
-        Value = sum(Value/get(extractVar)*get(shareVar), na.rm = TRUE)),
+        Value = sum((Value*weight)/get(extractVar)*get(shareVar), na.rm = TRUE)),
         by = c(yearVar, geoVar,
                "measuredElement", parentVar)]
     
