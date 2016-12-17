@@ -23,6 +23,7 @@
 
 finalStandardizationToPrimary = function(data, tree, standParams,
                                          sugarHack = TRUE, specificTree = TRUE,
+                                         cut=c(),
                                          additiveElements = c()){
     
     ## Note: food processing amounts should be set to zero for almost all
@@ -32,6 +33,9 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ## optimize) balanced FBS.  Thus, the food processing for grafted
     ## commodities should be rolled up into the parents as "Food Processing" or
     ## "Food Manufacturing".
+
+    tree[get(standParams$childVar) %in%  cut, standParams$standParentVar:="TRUE" ]
+  
     foodProcElements = tree[!is.na(get(standParams$standParentVar)),
                             unique(get(standParams$childVar))]
     data[get(standParams$elementVar) == standParams$foodProcCode &
@@ -39,7 +43,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ## Assign production of these commodities to their food processing element
     ## so that we can roll that up.
     toMerge = data[get(standParams$itemVar) %in% foodProcElements &
-                       get(standParams$elementVar) == "5510", ]
+                       get(standParams$elementVar) == "production", ]
     toMerge[, c(standParams$elementVar) := standParams$foodProcCode]
     toMerge = toMerge[, c(standParams$mergeKey, standParams$elementVar, "Value"), with = FALSE]
     data = merge(data, toMerge, by = c(standParams$mergeKey, standParams$elementVar), all.x = TRUE,
