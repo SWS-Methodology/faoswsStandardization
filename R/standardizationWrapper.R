@@ -266,11 +266,22 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                            box.cex = 1)
         }
     }
+    
+    
+    cutElement=c("2351"     ,"23210.03" ,"23210.04" ,"23210.05" ,"23210.06" ,"01499.07" ,"2161"     ,"2162"     ,"21631.01" ,"21641.01" ,"21641.02" ,"2168",   
+                 "21691.14" ,"2165"     ,"2166"     ,"21691.07" ,"2167"     ,"21673"    ,"21691.01" ,"21691.02" ,"21631.02" ,"21691.03" ,"21691.04" ,"21691.05",
+                 "21691.08" ,"21691.09" ,"21691.10" ,"21691.11" ,"21691.12" ,"21691.13" ,"21691.90" ,"23620"    ,"21433"    ,"21433.01" ,"24212.02" ,"24310.01",
+                 "24230.01" ,"24230.02" ,"24230.03" ,"24310.02" ,"24310.03" ,"24310.04" ,"2413"     ,"21111.01" ,"21112"    ,"21115"    ,"21116"    ,"21113.01",
+                 "21121"    ,"21122"    ,"21123"    ,"21124"    ,"21114"    ,"21117.01" ,"21117.02" ,"21118.01" ,"21118.02" ,"21118.03" ,"21119.01" ,"21170.01",
+                 "21151"    ,"21152"    ,"21153"    ,"21155"    ,"21156"    ,"21159.01" ,"21159.02" ,"21160.01" ,"21160.02" ,"21160.03" ,"21160.04" ,"21170.93",
+                 "21511.01" ,"21511.02" ,"21511.03" ,"21512"    ,"21512.01" ,"21513"    ,"21514"    ,"21515"    ,"21519.02" ,"21519.03" ,"22241.01" ,"22241.02",
+                 "22242.01" ,"22242.02" ,"22249.01" ,"22249.02" ,"22120")
 
     ## STEP 4: Standardize commodities to balancing level
     data = finalStandardizationToPrimary(data = data, tree = tree,
                                          standParams = p, sugarHack = FALSE,
                                          specificTree = FALSE,
+                                         cut=cutElement,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
         cat("\nSUA table after standardization:")
@@ -286,15 +297,46 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data = data[get(p$elementVar) %in% c(p$productionCode, p$importCode, p$exportCode,
                                p$stockCode, p$foodCode, p$feedCode, p$seedCode,
                                p$touristCode, p$industrialCode, p$wasteCode,
-                               nutrientElements, p$foodProcCode), ]
+                               nutrientElements, p$foodProcCode,p$residualCode), ]
     data[, nutrientElement := get(p$elementVar) %in% nutrientElements]
     warning("Not sure how to compute standard deviations!  Currently just 10% ",
             "of value!")
-    data[, standardDeviation := Value * .1]
+    
+##    data[,standardDeviation:=NA_real_]
+    
+   data[, standardDeviation := Value * .1]
+    
+   ##Production
+   data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .02]
+   ##Import
+   data[get(p$elementVar)==p$importCode, standardDeviation := Value * .02]
+   ##Export
+   data[get(p$elementVar)==p$exportCode, standardDeviation := Value * .02]
+   ##Stock
+   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .4]
+   ##Food
+   data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .4]
+   ##Feed
+   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .4]
+   ##Seed
+   data[get(p$elementVar)==p$seedCode, standardDeviation := Value * .4]
+   ##Tourist
+   data[get(p$elementVar)==p$touristCode, standardDeviation := Value * .4]
+   ##Industrial
+   data[get(p$elementVar)==p$industrialCode, standardDeviation := Value * .4]
+   ##Waste
+   data[get(p$elementVar)==p$wasteCode, standardDeviation := Value * .4]
+    
+    
+
+
+    
     data[!get(p$elementVar) %in% nutrientElements,
          balancedValue := faoswsBalancing::balancing(param1 = sapply(Value, na2zero),
               param2 = sapply(standardDeviation, na2zero),
-              sign = ifelse(get(p$elementVar) %in% c(p$productionCode, p$importCode), 1, -1),
+              sign = ifelse(get(p$elementVar) %in% c(p$residualCode),0,
+                            ifelse(get(p$elementVar) %in% c(p$productionCode, p$importCode), 1, -1)),
+              
               lbounds = ifelse(get(p$elementVar) %in% c(p$stockCode, p$touristCode), -Inf, 0),
               optimize = "constrOptim", constrTol = 1e-6),
          by = c(p$itemVar)]
