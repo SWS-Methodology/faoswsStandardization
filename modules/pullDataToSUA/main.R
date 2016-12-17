@@ -135,22 +135,6 @@ setnames(tourData, c("tourismElement", "measuredItemCPC"),
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## Harvest from Trade: old FAOSTAT data
 message("Pulling data from Trade")
 
@@ -167,9 +151,9 @@ tradeKey = DatasetKey(
   domain = "faostat_one", dataset = "FS1_SUA",
   dimensions = list(
     #user input except curacao,  saint martin and former germany
-    Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
-    Dimension(name = "measuredItemFS", keys = tradeItems),
-    Dimension(name = "measuredElementFS",
+    geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
+    measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
+    measuredElementFS=Dimension(name = "measuredElementFS",
               keys = c( "61", "91")),
     timePointYears = timeDim ),
   sessionId =  slot(swsContext.datasets[[1]], "sessionId")
