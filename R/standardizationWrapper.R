@@ -195,8 +195,13 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                0]
         ## Convert nutrient values into total nutrient info using food
         ## allocation.
+        
+        ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
+        ## of the nutreient componets is 1/100g
+        
+        
         sapply(nutrientElements, function(nutrient){
-            data[, c(nutrient) := get(nutrient) * Value[get(p$elementVar) == p$foodCode],
+            data[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
                  by = c(p$itemVar)]
         })
     }
@@ -267,8 +272,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         }
     }
     
+
     
-    cutElement=c("2351"     ,"23210.03" ,"23210.04" ,"23210.05" ,"23210.06" ,"01499.07" ,"2161"     ,"2162"     ,"21631.01" ,"21641.01" ,"21641.02" ,"2168",   
+    
+    cutElements=c("2351"     ,"23210.03" ,"23210.04" ,"23210.05" ,"23210.06" ,"01499.07" ,"2161"     ,"2162"     ,"21631.01" ,"21641.01" ,"21641.02" ,"2168",   
                  "21691.14" ,"2165"     ,"2166"     ,"21691.07" ,"2167"     ,"21673"    ,"21691.01" ,"21691.02" ,"21631.02" ,"21691.03" ,"21691.04" ,"21691.05",
                  "21691.08" ,"21691.09" ,"21691.10" ,"21691.11" ,"21691.12" ,"21691.13" ,"21691.90" ,"23620"    ,"21433"    ,"21433.01" ,"24212.02" ,"24310.01",
                  "24230.01" ,"24230.02" ,"24230.03" ,"24310.02" ,"24310.03" ,"24310.04" ,"2413"     ,"21111.01" ,"21112"    ,"21115"    ,"21116"    ,"21113.01",
@@ -276,12 +283,25 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                  "21151"    ,"21152"    ,"21153"    ,"21155"    ,"21156"    ,"21159.01" ,"21159.02" ,"21160.01" ,"21160.02" ,"21160.03" ,"21160.04" ,"21170.93",
                  "21511.01" ,"21511.02" ,"21511.03" ,"21512"    ,"21512.01" ,"21513"    ,"21514"    ,"21515"    ,"21519.02" ,"21519.03" ,"22241.01" ,"22241.02",
                  "22242.01" ,"22242.02" ,"22249.01" ,"22249.02" ,"22120")
-
+## Cristina        
+##   cutItems=c("23511.02" ,"23210.03" ,"23210.04" ,"23210.05" ,"23210.06","01499.07" ,
+##         "2161","2162","21631.01" ,"21641.01" ,"21641.02","2168","21691.14" ,
+##         "2165","2166","21691.07" ,"2167","21673" ,"21691.01" ,"21691.02" ,"21631.02" ,
+##         "21691.03","21691.04", "21691.05", "21691.08" ,"21691.01","21691.11" ,"21691.12" ,
+##         "21691.13" ,"21691.09"  ,"24212.02" ,"24310.01" ,"24230.01" ,"24230.02",
+##         "24230.03" ,"24310.02" ,"24310.03" ,"24310.04" ,"2413","21111.01",
+##         "21112","21115","21116","21113.01" ,"21121","21122","21123","21124","21114",
+##         "21117.01" ,"21117.02","21118.01" ,"21118.02" ,"21118.03" ,"21119.01" ,"21170.01",
+##         "21151" ,   "21152", "21153","21155","21156","21159.01" ,"21159.02" ,"21160.02" ,
+##         "21160.03" ,"21160.04" ,"21170.93" ,"21511.01","21511.03" ,"21512","21513",
+##         "21514","21515", "21519.02", "21519.03", "23993.01")
+    
+   
     ## STEP 4: Standardize commodities to balancing level
     data = finalStandardizationToPrimary(data = data, tree = tree,
                                          standParams = p, sugarHack = FALSE,
                                          specificTree = FALSE,
-                                         cut=cutElement,
+                                         cut=cutElements,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
         cat("\nSUA table after standardization:")
@@ -301,8 +321,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data[, nutrientElement := get(p$elementVar) %in% nutrientElements]
     warning("Not sure how to compute standard deviations!  Currently just 10% ",
             "of value!")
-    
-##    data[,standardDeviation:=NA_real_]
+
     
    data[, standardDeviation := Value * .1]
     
@@ -313,19 +332,19 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
    ##Export
    data[get(p$elementVar)==p$exportCode, standardDeviation := Value * .02]
    ##Stock
-   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .4]
+   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
    ##Food
    data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .4]
    ##Feed
-   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .4]
+   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
    ##Seed
-   data[get(p$elementVar)==p$seedCode, standardDeviation := Value * .4]
+   data[get(p$elementVar)==p$seedCode, standardDeviation := Value * .25]
    ##Tourist
-   data[get(p$elementVar)==p$touristCode, standardDeviation := Value * .4]
+   data[get(p$elementVar)==p$touristCode, standardDeviation := Value * .25]
    ##Industrial
-   data[get(p$elementVar)==p$industrialCode, standardDeviation := Value * .4]
+   data[get(p$elementVar)==p$industrialCode, standardDeviation := Value * .25]
    ##Waste
-   data[get(p$elementVar)==p$wasteCode, standardDeviation := Value * .4]
+   data[get(p$elementVar)==p$wasteCode, standardDeviation := Value * .25]
     
     
 

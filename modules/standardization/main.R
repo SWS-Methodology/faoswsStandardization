@@ -52,7 +52,10 @@ startYear = as.numeric(swsContext.computationParams$startYear)
 endYear = as.numeric(swsContext.computationParams$endYear)
 stopifnot(startYear <= endYear)
 
-yearVals = as.character(startYear:endYear)
+##yearVals = as.character(startYear:endYear)
+
+yearVals=c("2010","2011")
+
 
 # Get commodity tree with child shares of parent
 tree = getCommodityTree(timePointYears = yearVals)
@@ -89,6 +92,9 @@ tree = getCommodityTree(timePointYears = yearVals)
 
 areaKeys = GetCodeList(domain = "suafbs", dataset = "sua", "geographicAreaM49")
 areaKeys = areaKeys[type == "country", code]
+areaKeys=c("480","508")
+
+
 elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua", "measuredElementSuaFbs")
 
 #    code              description
@@ -99,7 +105,7 @@ elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua", "measuredElementSuaFb
 # 5:  101     Use For Animals (Qt)
 # 6:  111     Use For Same Product
 # 7:  121                   Losses
-# 8:  131 Reemployment Same Sector
+# 8:  131 Reemployment Same Sector  (remove it)
 
 fs_elements <- c("51", "61", "71", "91", "101", "111", "121", "131")
 
@@ -117,6 +123,9 @@ sws_elements <- c("5141", "5164", "5165")
 elemKeys = c(strsplit(elemKeys, ", ")[[1]], sws_elements)
 itemKeys = GetCodeList(domain = "suafbs", dataset = "sua", "measuredItemSuaFbs")
 itemKeys = itemKeys[, code]
+
+
+
 key = DatasetKey(domain = "suafbs", dataset = "sua", dimensions = list(
     geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
     measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
@@ -152,6 +161,7 @@ params$wasteCode = "loss"
 params$industrialCode = "industrial"
 params$touristCode = "tourist"
 params$foodProcCode = "foodManufacturing"
+params$residualCode = "residual"
 
 # Convert units for tourist and industrial
 message("Applying adjustments to commodity tree...")
@@ -225,24 +235,32 @@ standardizationVectorized = function(data, tree, nutrientData){
   
   # If printCodes is length 0, neither the .md files nor plots are created
   # If it has a non-zero value, those are the codes which will have file outputs
+  
   printCodes = character()
-  # samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
-  # if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
-  # printCodes = sample(samplePool, size = 1)
-  # if (!is.null(tree)) {
-  #   printCodes = getChildren(commodityTree = tree,
-  #                            parentColname = params$parentVar,
-  #                            childColname = params$childVar,
-  #                            topNodes = printCodes)
-  # }
-  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE)
+  
+  ## printCodes=c("0111")
+  ## samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
+  ## if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
+  ## printCodes = sample(samplePool, size = 1)
+  ## if (!is.null(tree)) {
+  ## printCodes = getChildren(commodityTree = tree,
+  ##                          parentColname = params$parentVar,
+  ##                          childColname = params$childVar,
+  ##                          topNodes = printCodes)
+  ## }
+  
+  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
+            )
+  
+  
+  ##,recursive = TRUE
   
   sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/",
               data$timePointYears[1], "_",
               data$geographicAreaM49[1], "_sample_test.md"),
        split = TRUE)
 
-  out = standardizationWrapper(data = data, tree = tree, fbsTree = faoswsStandardization::fbsTree, 
+  out = standardizationWrapper(data = data, tree = tree, fbsTree = faoswsStandardization::newFbsTree, 
                                    standParams = params, printCodes = printCodes,
                                    nutrientData = nutrientData)
   return(out)
@@ -254,8 +272,10 @@ uniqueLevels = data[, .N, by = c("geographicAreaM49", "timePointYears")]
 uniqueLevels[, N := NULL]
 elementGroup = read.csv(paste0(R_SWS_SHARE_PATH, "/browningj/elementCodes.csv"))
 
+
 parentNodes = getCommodityLevel(tree, parentColname = "measuredItemParentCPC",
                                 childColname = "measuredItemChildCPC")
+
 parentNodes = parentNodes[level == 0, node]
 
 message("Beginning actual standardization process...")
@@ -267,6 +287,8 @@ aggFun = function(x) {
 }
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
+
+uniqueLevels=uniqueLevels[geographicAreaM49!="728",]
 
 for (i in seq_len(nrow(uniqueLevels))) {
     filter = uniqueLevels[i, ]
@@ -284,6 +306,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
     standData[[i]] = standardizationVectorized(data = dataSubset,
                                                tree = treeSubset,
                                                nutrientData = subNutrientData)
+    
     standData[[i]] <- rbindlist(standData[[i]])
     names(standData[[i]])[grep("^fbsID", names(standData[[i]]))] <- params$itemVar
     standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))] 
@@ -301,14 +324,14 @@ the beginning and at this step.")
 
 fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
                                                          "foodManufacturing", "imports", "loss", "production", 
-                                                         "seed", "stockChange", "residual"),
-                                 code=c("261", "281", "271", "5910", "5520", "5141",
+                                                         "seed", "stockChange", "residual","industrial", "tourist"),
+                                 code=c("261", "281", "271", "5910", "5520", "5141", 
                                         "5023", "5610", "5015", "5510",
-                                        "5525", "5071", "5166"))
-standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode), 
-  `:=`(measuredElementSuaFbs = "other", 
-       Value = sum(Value, na.rm=TRUE)), 
-  by=c(params$mergeKey)]
+                                        "5525", "5071", "5166","5165", "5164"))
+##standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode), 
+##  `:=`(measuredElementSuaFbs = "other", 
+##       Value = sum(Value, na.rm=TRUE)), 
+##  by=c(params$mergeKey)]
 
 standData = merge(standData, fbs_sua_conversion, by = "measuredElementSuaFbs")
 standData[,`:=`(measuredElementSuaFbs = NULL)]
