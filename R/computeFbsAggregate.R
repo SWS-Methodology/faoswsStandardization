@@ -27,16 +27,16 @@ computeFbsAggregate = function(data, fbsTree, standParams){
     
     data = merge(data, fbsTree, by = standParams$itemVar)
     out = list()
-    out[[1]] = data[, list(Value = sum(Value)),
+    out[[1]] = data[, list(Value = sum(Value, na.rm = TRUE)),
                     by = c(standParams$elementVar, standParams$yearVar,
                            standParams$geoVar, "fbsID4")]
-    out[[2]] = data[, list(Value = sum(Value)),
+    out[[2]] = data[, list(Value = sum(Value, na.rm = TRUE)),
                     by = c(standParams$elementVar, standParams$yearVar,
                            standParams$geoVar, "fbsID3")]
-    out[[3]] = data[, list(Value = sum(Value)),
+    out[[3]] = data[, list(Value = sum(Value, na.rm = TRUE)),
                     by = c(standParams$elementVar, standParams$yearVar,
                            standParams$geoVar, "fbsID2")]
-    out[[4]] = data[, list(Value = sum(Value)),
+    out[[4]] = data[, list(Value = sum(Value, na.rm = TRUE)),
                     by = c(standParams$elementVar, standParams$yearVar,
                            standParams$geoVar, "fbsID1")]
     return(out)
