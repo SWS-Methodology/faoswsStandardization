@@ -79,7 +79,7 @@ balanceResidual = function(data, standParams, feedCommodities = c(),
          by = c(standParams$itemVar)]
     ## Supply > Utilization: assign difference to food, feed, etc.  Or, if 
     ## production is official, force a balance by adjusting food, feed, etc.
-    data[(imbalance > imbalanceThreshold | officialProd)
+    data[(imbalance > imbalanceThreshold & officialProd)
          & (!get(standParams$itemVar) %in% primaryCommodities),
          ## Remember, data is currently in long format.  This condition is ugly, but the idea is
          ## that Value should be replaced with newValue if the particular row of interest
