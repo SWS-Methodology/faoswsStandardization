@@ -75,6 +75,35 @@ finalStandardizationToPrimary = function(data, tree, standParams,
                               extractionName = standParams$extractVar)
     localParams = standParams
     localParams$elementPrefix = ""
+    
+    
+    ##Francesca: I want to breack the relationship between the original parant and 
+    ##discendents of the cut items
+    cut=list()
+    for(i in seq_len(length(cutElements)))
+    { 
+      
+      
+      cut[[i]]=data.table(getChildren( commodityTree = tree,
+                                       parentColname =standParams$parentVar,
+                                       childColname = standParams$childVar,
+                                       topNodes =cutElements[i] ))
+      
+      
+      
+      
+    }
+    
+    
+    cutDiscendets= rbindlist(cut)
+    
+    
+    standTree1=standTree[!standParams$childVar %in% cutDiscendets,]
+  
+    standTree2=standTree[standParams$childVar %in% cutDiscendets & standParams$parentVar %in% cutElements,]
+    
+    standTree=rbind(standTree1, standTree2)
+    
     out = data[, standardizeTree(data = .SD, tree = standTree,
                                  standParams = localParams, elements = "Value",
                                  sugarHack = sugarHack,
@@ -87,7 +116,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
             temp = data[get(standParams$elementVar) == standParams$foodCode,
                         standardizeTree(data = .SD, tree = additiveTree,
                                         standParams = localParams, elements = nutrient,
-                                        sugarHack = sugarHack,
+                                        sugarHack = sugarHack
                                         )]
             temp[, Value := get(nutrient)]
             temp[, c(standParams$elementVar) := nutrient]
