@@ -42,7 +42,7 @@
 ##'   child, extraction rate, share, and target (target specifying if an element
 ##'   is processed forward or not).  Names of these columns should be provided
 ##'   in standParams.
-##' @param fbsTreeFra2 This "tree" should just have three columns: 
+##' @param fbsTree This "tree" should just have three columns: 
 ##'   standParams$parentID, standParams$childID, and standParams$extractVar 
 ##'   (which if missing will just be assigned all values of 1).  This tree 
 ##'   specifies how SUA commodities get combined to form the FBS aggregates.  If

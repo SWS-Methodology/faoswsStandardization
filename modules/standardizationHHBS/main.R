@@ -5,6 +5,7 @@ library(data.table)
 library(igraph)
 library(faoswsBalancing)
 library(faoswsStandardization)
+library(dplyr)
 
 if(packageVersion("faoswsStandardization") < package_version('0.1.0')){
   stop("faoswsStandardization is out of date")
