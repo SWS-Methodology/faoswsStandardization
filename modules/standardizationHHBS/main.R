@@ -280,10 +280,12 @@ setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measured
 # Remove NA Values
 standData <- standData[!is.na(Value),]
 
-message("Attempting to save standardized data...")
 
-out = SaveData(domain = "suafbs", dataset = "fbs", data = standData)
-cat(out$inserted + out$ignored, " observations written and problems with ",
-    out$discarded, sep = "")
-paste0(out$inserted + out$ignored, " observations written and problems with ",
-       out$discarded)
+
+write.csv(nameData("suafbs","sua",standData),paste("C:/Users/muschitiello/Documents/Validation_HHBS/Afghanistan/output/",Sys.Date(),"out.csv",sep=""),row.names = FALSE)
+
+# out = SaveData(domain = "suafbs", dataset = "fbs", data = standData)
+# cat(out$inserted + out$ignored, " observations written and problems with ",
+#     out$discarded, sep = "")
+# paste0(out$inserted + out$ignored, " observations written and problems with ",
+#        out$discarded)

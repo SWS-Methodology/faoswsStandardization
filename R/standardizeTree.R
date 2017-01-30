@@ -26,6 +26,9 @@
 ##' @param sugarHack Logical.  Indicates if the commodity tree should be edited 
 ##'   by this program to give the correction standardization of sugar?  This is 
 ##'   a hack and should be fixed, but for now it is generally necessary.
+##' @param zeroWeight Vector. Vector containg the items that must have a zero weights
+##' because they represent co-byproducts. (see the example wheat, wheat flour, wheat germ..)  
+##'   
 ##'   
 ##' @import data.table  
 ##' 
@@ -33,7 +36,7 @@
 ##'   in the tree.
 ##'   
 
-standardizeTree = function(data, tree, elements, standParams,
+standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
                            sugarHack = TRUE){
 
     ## Assign parameters
@@ -69,6 +72,10 @@ standardizeTree = function(data, tree, elements, standParams,
     }
     stopifnot(all(tree[, standDev] >= 0))
     
+    
+    
+    
+    
     elements = paste0(elementPrefix, elements)
     
     ## Restructure the data for easier standardization
@@ -97,6 +104,12 @@ standardizeTree = function(data, tree, elements, standParams,
                             list(as.character(get(childVar)),
                                  as.character(get(yearVar)),
                                  as.character(get(geoVar)))]
+    
+    ## To deal with joint byproducts
+
+     
+    
+    
     standardizationData = merge(standardizationData, tree,
                                 by = c(yearVar, geoVar, childVar),
                                 all.x = TRUE, allow.cartesian = TRUE)
@@ -106,6 +119,32 @@ standardizeTree = function(data, tree, elements, standParams,
     standardizationData[is.na(get(parentVar)),
                         c(parentVar, extractVar, shareVar) :=
                             list(get(childVar), 1, 1)]
+    
+    
+    standardizationData[,weight:=1]
+    zeroWeightChildren=list()
+    for(i in seq_len(length(zeroWeight)))
+    { 
+      
+      
+      zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
+                                       parentColname =standParams$parentVar,
+                                       childColname = standParams$childVar,
+                                       topNodes =zeroWeight[i] ))
+      
+      
+      
+      
+    }
+    
+    
+    zeroWeightDescendants= rbindlist(zeroWeightChildren)
+    
+    
+    
+    
+    standardizationData[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
+    
     ## Standardizing backwards is easy: we just take the value, divide by the 
     ## extraction rate, and multiply by the shares.  However, we don't 
     ## standardize the production element (because production of flour is 
@@ -125,38 +164,68 @@ standardizeTree = function(data, tree, elements, standParams,
     }
       
     output = standardizationData[, list(
-        Value = sum(Value/get(extractVar)*get(shareVar), na.rm = TRUE)),
+        Value = sum( Value  *    weight   /get(extractVar)*get(shareVar), na.rm = TRUE)),
         by = c(yearVar, geoVar,
                "measuredElement", parentVar)]
     
     forwardEdges = tree[target == "F", ]
-    if(sugarHack){
-        ## Hacking sugar tree!
-        warning("HACK!  Manually editing the sugar tree (the only forward process) ",
-                "because it's difficult to understand how to properly code it!")
-        ## We don't want the 156 to 158 edge as this is an intermediate step.  And
-        ## shares should all be 1, as we're moving forward now.
-        forwardEdges = forwardEdges[childID == 162, ]
-        forwardEdges[, share := 1]
-        outputForward = merge(output, forwardEdges,
-                              by = c(parentVar, yearVar, geoVar))
-        update = outputForward[, list(Value = sum(Value*get(extractVar)*get(shareVar), na.rm = TRUE)),
-                               by = c(yearVar, geoVar,
-                                      "measuredElement", childVar)]
-        outputForwardProd = outputForward
-        outputForwardProd[, childID := parentID]
-        outputForwardProd = outputForwardProd[, list(get(yearVar),
-                                                     get(geoVar),
-                                                     measuredElement,
-                                                     get(childVar), Value)]
-        outputForwardProd = unique(outputForwardProd)
-        update = rbindlist(list(update, outputForwardProd))
-        setnames(update, childVar, parentVar)
-        ## Remove the old rows that got corrected in the update
-        output = output[!output$parentID %in% forwardEdges$parentID, ]
-        ## Bind back in the corrected rows
-        output = rbind(output, update)
-    }
+    # if(sugarHack){
+    #     ## Hacking sugar tree!
+    #     warning("HACK!  Manually editing the sugar tree (the only forward process) ",
+    #             "because it's difficult to understand how to properly code it!")
+    #     ## We don't want the 156 to 158 edge as this is an intermediate step.  And
+    #     ## shares should all be 1, as we're moving forward now.
+    #     forwardEdges = forwardEdges[childID %in% c("23511.01"), ]
+    #     forwardEdges[, share := 1]
+    #     outputForward = merge(output, forwardEdges,
+    #                           by = c(parentVar, yearVar, geoVar))
+    #     update = outputForward[, list(Value = sum(Value*get(extractVar)*get(shareVar), na.rm = TRUE)),
+    #                            by = c(yearVar, geoVar,
+    #                                   "measuredElement", childVar)]
+    #     outputForwardProd = outputForward
+    #     outputForwardProd[, childID := parentID]
+    #     outputForwardProd = outputForwardProd[, list(get(yearVar),
+    #                                                  get(geoVar),
+    #                                                  measuredElement,
+    #                                                  get(childVar), Value)]
+    #     outputForwardProd = unique(outputForwardProd)
+    #     update = rbindlist(list(update, outputForwardProd))
+    #     setnames(update, childVar, parentVar)
+    #     ## Remove the old rows that got corrected in the update
+    #     output = output[!output$parentID %in% forwardEdges$parentID, ]
+    #     ## Bind back in the corrected rows
+    #     output = rbind(output, update)
+    # }
+    
+    
+    
+##   if(sugarHack){
+##     ## Hacking sugar tree!
+##     warning("HACK!  Manually editing the sugar tree (the only forward process) ",
+##             "because it's difficult to understand how to properly code it!")
+##     ## We don't want the 156 to 158 edge as this is an intermediate step.  And
+##     ## shares should all be 1, as we're moving forward now.
+##     forwardEdges = forwardEdges[childID %in% c("23512"), ]
+##     forwardEdges[, share := 1]
+##     outputForward = merge(output, forwardEdges,
+##                           by = c(parentVar, yearVar, geoVar))
+##     update = outputForward[, list(Value = sum(Value*get(extractVar)*get(shareVar), na.rm = TRUE)),
+##                            by = c(yearVar, geoVar,
+##                                   "measuredElement", childVar)]
+##     outputForwardProd = outputForward
+##     outputForwardProd[, childID := parentID]
+##     outputForwardProd = outputForwardProd[, list(get(yearVar),
+##                                                  get(geoVar),
+##                                                  measuredElement,
+##                                                  get(childVar), Value)]
+##     outputForwardProd = unique(outputForwardProd)
+##     update = rbindlist(list(update, outputForwardProd))
+##     setnames(update, childVar, parentVar)
+##     ## Remove the old rows that got corrected in the update
+##     output = output[!output$parentID %in% forwardEdges$parentID, ]
+##     ## Bind back in the corrected rows
+##     output = rbind(output, update)
+##   }    
 
     ## Reshape to put back into the same shape as the passed data
     setnames(output, parentVar, itemVar)

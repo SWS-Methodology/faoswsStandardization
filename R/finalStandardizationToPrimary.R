@@ -23,6 +23,7 @@
 
 finalStandardizationToPrimary = function(data, tree, standParams,
                                          sugarHack = TRUE, specificTree = TRUE,
+                                         cut=c(),
                                          additiveElements = c()){
     
     ## Note: food processing amounts should be set to zero for almost all
@@ -32,6 +33,9 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ## optimize) balanced FBS.  Thus, the food processing for grafted
     ## commodities should be rolled up into the parents as "Food Processing" or
     ## "Food Manufacturing".
+
+    tree[get(standParams$childVar) %in%  cut, standParams$standParentVar:="TRUE" ]
+  
     foodProcElements = tree[!is.na(get(standParams$standParentVar)),
                             unique(get(standParams$childVar))]
     data[get(standParams$elementVar) == standParams$foodProcCode &
@@ -39,7 +43,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ## Assign production of these commodities to their food processing element
     ## so that we can roll that up.
     toMerge = data[get(standParams$itemVar) %in% foodProcElements &
-                       get(standParams$elementVar) == "5510", ]
+                       get(standParams$elementVar) == "production", ]
     toMerge[, c(standParams$elementVar) := standParams$foodProcCode]
     toMerge = toMerge[, c(standParams$mergeKey, standParams$elementVar, "Value"), with = FALSE]
     data = merge(data, toMerge, by = c(standParams$mergeKey, standParams$elementVar), all.x = TRUE,
@@ -71,9 +75,39 @@ finalStandardizationToPrimary = function(data, tree, standParams,
                               extractionName = standParams$extractVar)
     localParams = standParams
     localParams$elementPrefix = ""
+    
+    
+    ##Francesca: I want to breack the relationship between the original parant and 
+    ##discendents of the cut items
+    cut=list()
+    for(i in seq_len(length(cut)))
+    { 
+      
+      
+      cut[[i]]=data.table(getChildren( commodityTree = tree,
+                                       parentColname =standParams$parentVar,
+                                       childColname = standParams$childVar,
+                                       topNodes =cut[i] ))
+      
+      
+      
+      
+    }
+    
+    
+    cutDiscendets= rbindlist(cut)
+    
+    
+    standTree1=standTree[!standParams$childVar %in% cutDiscendets,]
+  
+    standTree2=standTree[standParams$childVar %in% cutDiscendets & standParams$parentVar %in% cut,]
+    
+    standTree=rbind(standTree1, standTree2)
+    
     out = data[, standardizeTree(data = .SD, tree = standTree,
                                  standParams = localParams, elements = "Value",
-                                 sugarHack = sugarHack),
+                                 sugarHack = sugarHack,
+                                 zeroWeight= faoswsStandardization::zeroWeight),
                by = c(standParams$elementVar)]
     if(length(additiveElements) > 0){
         additiveTree = copy(standTree)
@@ -82,7 +116,8 @@ finalStandardizationToPrimary = function(data, tree, standParams,
             temp = data[get(standParams$elementVar) == standParams$foodCode,
                         standardizeTree(data = .SD, tree = additiveTree,
                                         standParams = localParams, elements = nutrient,
-                                        sugarHack = sugarHack)]
+                                        sugarHack = sugarHack
+                                        )]
             temp[, Value := get(nutrient)]
             temp[, c(standParams$elementVar) := nutrient]
             temp[, c(nutrient) := NULL]

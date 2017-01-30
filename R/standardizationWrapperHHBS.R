@@ -277,7 +277,7 @@ standardizationWrapperHHBS = function(data, tree, fbsTree = NULL, standParams,
     data = finalStandardizationToPrimary(data = data, tree = tree,
                                          standParams = p, sugarHack = FALSE,
                                          specificTree = FALSE,
-                                         cut=faoswsStandardization::cutItems,
+                                         cut=cutItems,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
         cat("\nSUA table after standardization:")
@@ -357,7 +357,7 @@ standardizationWrapperHHBS = function(data, tree, fbsTree = NULL, standParams,
 
     ## STEP 6: Update calories of processed products proportionally based on
     ## updated food element values.
-    data[(nutrientElement), Value := Value * foodAdjRatio]
+    # data[(nutrientElement), Value := Value * foodAdjRatio]
     if(length(printCodes) > 0){
         cat("\nSUA table with updated nutrient values:")
         data = markUpdated(new = data, old = old, standParams = p)
