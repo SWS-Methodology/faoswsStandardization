@@ -51,7 +51,7 @@ SWS_USER = regmatches(swsContext.username,
 message("Getting parameters/datasets...")
 
 
-dataAfg <- read.csv("C:/Users/muschitiello/Documents/Validation_HHBS/Afghanistan/dataAfg.csv")
+dataAfg <- read.csv("C:/Users/muschitiello/Documents/Validation_HHBS/Afghanistan/input_data/dataAfg.csv")
 dataAfg <- data.table(dataAfg)
 data <- dataAfg %>%
   mutate(measuredElementSuaFbs="food") %>%
@@ -59,9 +59,12 @@ data <- dataAfg %>%
   mutate(geographicAreaM49="4") %>%
   rename(measuredItemSuaFbs=cpc_code) %>%
   rename(Value=hs_tot_tons) %>%
-  select(c(measuredElementSuaFbs,measuredItemSuaFbs,geographicAreaM49,timePointYears,Value))
+  select(c(measuredElementSuaFbs,measuredItemSuaFbs,geographicAreaM49,timePointYears,Value)) %>%
+  mutate(measuredItemSuaFbs=as.character(measuredItemSuaFbs))
 data <- data.table(data)
 data = data[!is.na(measuredElementSuaFbs), ]
+
+
 
 # Get commodity tree with child shares of parent fpr all countries
 yearVals=c("2008")
@@ -167,7 +170,7 @@ standardizationVectorized = function(data, tree, nutrientData){
   
   printCodes = character()
   
-  ## printCodes=c("0111")
+  # printCodes=c("0111")
   ## samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
   ## if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
   ## printCodes = sample(samplePool, size = 1)
@@ -271,18 +274,18 @@ standData[, standardDeviation := NULL]
 
 ## Assign flags: I for imputed (as we're estimating/standardizing) and s for
 ## "sum" (aggregate)
-standData[, flagObservationStatus := "I"]
-standData[, flagMethod := "s"]
+# standData[, flagObservationStatus := "I"]
+# standData[, flagMethod := "s"]
 
 setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears", 
-                         "Value", "flagObservationStatus", "flagMethod"))
+                         "Value"))
 
 # Remove NA Values
 standData <- standData[!is.na(Value),]
+standData <- standData[measuredElementSuaFbs%in%c("261","271","281","5141"),]
 
 
-
-write.csv(nameData("suafbs","sua",standData),paste("C:/Users/muschitiello/Documents/Validation_HHBS/Afghanistan/output/",Sys.Date(),"out.csv",sep=""),row.names = FALSE)
+write.csv(nameData("suafbs","sua",standData,except = "timePointYears"),paste("C:/Users/muschitiello/Documents/Validation_HHBS/Afghanistan/output/",Sys.Date(),"out.csv",sep=""),row.names = FALSE)
 
 # out = SaveData(domain = "suafbs", dataset = "fbs", data = standData)
 # cat(out$inserted + out$ignored, " observations written and problems with ",

@@ -50,53 +50,53 @@ balanceResidualHHBS = function(data, standParams, feedCommodities = c(),
     ## be allowable.
     unknownCodes <- setdiff(na.omit(unique(data[, get(standParams$elementVar)])), knownCodes)
     
-    # if(length(unknownCodes) > 0){
-      # stop(sprintf("Unknown code(s): %s", paste(unknownCodes, collapse = ", ")))
-    # }
-    
-    # stopifnot(imbalanceThreshold > 0)
-    
-    # data[, imbalance := sum(ifelse(is.na(Value), 0, Value) *
-    #         ifelse(get(standParams$elementVar) == p$productionCode, 1,
-    #         ifelse(get(standParams$elementVar) == p$importCode, 1,
-    #         ifelse(get(standParams$elementVar) == p$exportCode, -1,
-    #         ifelse(get(standParams$elementVar) == p$stockCode, -1,
-    #         ifelse(get(standParams$elementVar) == p$foodCode, -1,
-    #         ifelse(get(standParams$elementVar) == p$foodProcCode, 0,
-    #         ifelse(get(standParams$elementVar) == p$feedCode, -1,
-    #         ifelse(get(standParams$elementVar) == p$wasteCode, -1,
-    #         ifelse(get(standParams$elementVar) == p$seedCode, -1,
-    #         ifelse(get(standParams$elementVar) == p$industrialCode, -1,
-    #         ifelse(get(standParams$elementVar) == p$touristCode, -1,
-    #         ifelse(get(standParams$elementVar) == p$residualCode, -1, 
-    #                NA))))))))))))),
-    #      by = c(standParams$mergeKey)]
-    # data[, newValue := Value]
-    # # I'm a little confused about why flags aren't used here, but it looks like 
-    # # items where there's a positive values are marked as official
-    # data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
-    #                                !is.na(Value) & Value > 0),
-    #      by = c(standParams$itemVar)]
-    # ## Supply > Utilization: assign difference to food, feed, etc.  Or, if 
-    # ## production is official, force a balance by adjusting food, feed, etc.
-    # data[(imbalance > imbalanceThreshold & officialProd)
-    #      & (!get(standParams$itemVar) %in% primaryCommodities),
-    # # Remember, data is currently in long format.  This condition is ugly, but the idea is
-    # # that Value should be replaced with newValue if the particular row of interest
-    # # corresponds to the food variable and if the commodity should have it's residual
-    # # allocated to food.  Likewise, if the row corresponds to feed and if the commodity
-    # # should have it's residual allocated to feed, then Value is updated with newValue.
-    # Value := ifelse(
-    #    (get(standParams$elementVar) == p$feedCode & get(p$itemVar) %in% feedCommodities) |
-    #    (get(standParams$elementVar) == p$foodProcCode & get(p$itemVar) %in% foodProcessCommodities) |
-    #    (get(standParams$elementVar) == p$industrialCode & get(p$itemVar) %in% indCommodities) |
-    #    (get(standParams$elementVar) == p$foodCode & !(get(p$itemVar) %in%
-    #                    c(indCommodities, feedCommodities,
-    #                      foodProcessCommodities))),
-    #    newValue, Value)]
-    # Supply < Utilization
-    # data[imbalance < -imbalanceThreshold & !officialProd &
-    #          (!get(standParams$itemVar) %in% primaryCommodities) &
-    #          get(standParams$elementVar) == p$productionCode, Value := -newValue]
-    # data[, c("imbalance", "newValue") := NULL]
+    if(length(unknownCodes) > 0){
+      stop(sprintf("Unknown code(s): %s", paste(unknownCodes, collapse = ", ")))
+    }
+
+    stopifnot(imbalanceThreshold > 0)
+
+    data[, imbalance := sum(ifelse(is.na(Value), 0, Value) *
+            ifelse(get(standParams$elementVar) == p$productionCode, 1,
+            ifelse(get(standParams$elementVar) == p$importCode, 1,
+            ifelse(get(standParams$elementVar) == p$exportCode, -1,
+            ifelse(get(standParams$elementVar) == p$stockCode, -1,
+            ifelse(get(standParams$elementVar) == p$foodCode, -1,
+            ifelse(get(standParams$elementVar) == p$foodProcCode, 0,
+            ifelse(get(standParams$elementVar) == p$feedCode, -1,
+            ifelse(get(standParams$elementVar) == p$wasteCode, -1,
+            ifelse(get(standParams$elementVar) == p$seedCode, -1,
+            ifelse(get(standParams$elementVar) == p$industrialCode, -1,
+            ifelse(get(standParams$elementVar) == p$touristCode, -1,
+            ifelse(get(standParams$elementVar) == p$residualCode, -1,
+                   NA))))))))))))),
+         by = c(standParams$mergeKey)]
+    data[, newValue := Value]
+    # I'm a little confused about why flags aren't used here, but it looks like
+    # items where there's a positive values are marked as official
+    data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
+                                   !is.na(Value) & Value > 0),
+         by = c(standParams$itemVar)]
+    ## Supply > Utilization: assign difference to food, feed, etc.  Or, if
+    ## production is official, force a balance by adjusting food, feed, etc.
+    data[(imbalance > imbalanceThreshold & officialProd)
+         & (!get(standParams$itemVar) %in% primaryCommodities),
+    # Remember, data is currently in long format.  This condition is ugly, but the idea is
+    # that Value should be replaced with newValue if the particular row of interest
+    # corresponds to the food variable and if the commodity should have it's residual
+    # allocated to food.  Likewise, if the row corresponds to feed and if the commodity
+    # should have it's residual allocated to feed, then Value is updated with newValue.
+    Value := ifelse(
+       (get(standParams$elementVar) == p$feedCode & get(p$itemVar) %in% feedCommodities) |
+       (get(standParams$elementVar) == p$foodProcCode & get(p$itemVar) %in% foodProcessCommodities) |
+       (get(standParams$elementVar) == p$industrialCode & get(p$itemVar) %in% indCommodities) |
+       (get(standParams$elementVar) == p$foodCode & !(get(p$itemVar) %in%
+                       c(indCommodities, feedCommodities,
+                         foodProcessCommodities))),
+       newValue, Value)]
+    Supply < Utilization
+    data[imbalance < -imbalanceThreshold & !officialProd &
+             (!get(standParams$itemVar) %in% primaryCommodities) &
+             get(standParams$elementVar) == p$productionCode, Value := -newValue]
+    data[, c("imbalance", "newValue") := NULL]
 }
