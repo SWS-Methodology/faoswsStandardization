@@ -71,7 +71,7 @@
 ##' @export
 ##' 
 
-standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
+standardizationWrapperHHBS = function(data, tree, fbsTree = NULL, standParams,
                                   nutrientData = NULL, printCodes = c()){
     
     ## Reassign standParams to p for brevity
@@ -172,7 +172,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## updated.  Instead, the food value should be updated, and this is what 
     ## will happen if that element is not specified to any of the groupings in
     ## balanceResidual()
-    balanceResidual(data, p,
+    balanceResidualHHBS(data, p,
                     primaryCommodities = primaryEl,
                     foodProcessCommodities = foodProcEl,
                     feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code],
@@ -277,7 +277,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data = finalStandardizationToPrimary(data = data, tree = tree,
                                          standParams = p, sugarHack = FALSE,
                                          specificTree = FALSE,
-                                         cut=faoswsStandardization::cutItems,
+                                         cut=cutItems,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
         cat("\nSUA table after standardization:")

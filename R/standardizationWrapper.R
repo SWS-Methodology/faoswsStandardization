@@ -195,8 +195,13 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                0]
         ## Convert nutrient values into total nutrient info using food
         ## allocation.
+        
+        ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
+        ## of the nutreient componets is 1/100g
+        
+        
         sapply(nutrientElements, function(nutrient){
-            data[, c(nutrient) := get(nutrient) * Value[get(p$elementVar) == p$foodCode],
+            data[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
                  by = c(p$itemVar)]
         })
     }
@@ -266,11 +271,13 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                            box.cex = 1)
         }
     }
+    
 
     ## STEP 4: Standardize commodities to balancing level
     data = finalStandardizationToPrimary(data = data, tree = tree,
                                          standParams = p, sugarHack = FALSE,
                                          specificTree = FALSE,
+                                         cut=faoswsStandardization::cutItems,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
         cat("\nSUA table after standardization:")
@@ -286,19 +293,49 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data = data[get(p$elementVar) %in% c(p$productionCode, p$importCode, p$exportCode,
                                p$stockCode, p$foodCode, p$feedCode, p$seedCode,
                                p$touristCode, p$industrialCode, p$wasteCode,
-                               nutrientElements, p$foodProcCode), ]
+                               nutrientElements, p$foodProcCode,p$residualCode), ]
     data[, nutrientElement := get(p$elementVar) %in% nutrientElements]
     warning("Not sure how to compute standard deviations!  Currently just 10% ",
             "of value!")
-    data[, standardDeviation := Value * .1]
+
+    
+   data[, standardDeviation := Value * .1]
+    
+   ##Production
+   data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .02]
+   ##Import
+   data[get(p$elementVar)==p$importCode, standardDeviation := Value * .02]
+   ##Export
+   data[get(p$elementVar)==p$exportCode, standardDeviation := Value * .02]
+   ##Stock
+   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
+   ##Food
+   data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .4]
+   ##Feed
+   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
+   ##Seed
+   data[get(p$elementVar)==p$seedCode, standardDeviation := Value * .25]
+   ##Tourist
+   data[get(p$elementVar)==p$touristCode, standardDeviation := Value * .25]
+   ##Industrial
+   data[get(p$elementVar)==p$industrialCode, standardDeviation := Value * .25]
+   ##Waste
+   data[get(p$elementVar)==p$wasteCode, standardDeviation := Value * .25]
+    
+    
+
+
+    
     data[!get(p$elementVar) %in% nutrientElements,
          balancedValue := faoswsBalancing::balancing(param1 = sapply(Value, na2zero),
               param2 = sapply(standardDeviation, na2zero),
-              sign = ifelse(get(p$elementVar) %in% c(p$productionCode, p$importCode), 1, -1),
+              sign = ifelse(get(p$elementVar) %in% c(p$residualCode),0,
+                            ifelse(get(p$elementVar) %in% c(p$productionCode, p$importCode), 1, -1)),
+
               lbounds = ifelse(get(p$elementVar) %in% c(p$stockCode, p$touristCode), -Inf, 0),
               optimize = "constrOptim", constrTol = 1e-6),
          by = c(p$itemVar)]
-    ## To adjust calories later, compute the ratio for how much food has been 
+    ## To adjust calories later, compute the ratio for how much food has been
     ## adjusted by.  This looks like a "mean", but really we're just using the
     ## mean to select the one non-NA element.
     data[, foodAdjRatio := mean(ifelse(get(p$elementVar) == p$foodCode,
@@ -320,7 +357,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
 
     ## STEP 6: Update calories of processed products proportionally based on
     ## updated food element values.
-    data[(nutrientElement), Value := Value * foodAdjRatio]
+    # data[(nutrientElement), Value := Value * foodAdjRatio]
     if(length(printCodes) > 0){
         cat("\nSUA table with updated nutrient values:")
         data = markUpdated(new = data, old = old, standParams = p)
@@ -337,7 +374,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         # If no FBS tree, just return SUA-level results
         return(data)
     } else {
-      out = computeFbsAggregate(data = data, fbsTree = fbsTree,
+      out = computeFbsAggregate(data = data, fbsTree = fbsTreeFra2,
                                 standParams = p)
       if(length(printCodes) > 0){
         printCodeTable = fbsTree[get(p$itemVar) %in% printCodes, ]
