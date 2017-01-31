@@ -34,7 +34,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ## commodities should be rolled up into the parents as "Food Processing" or
     ## "Food Manufacturing".
 
-    tree[get(standParams$childVar) %in%  cut, standParams$standParentVar:="TRUE" ]
+    tree[grepl("f???_",get(standParams$childVar)), standParams$standParentVar:="TRUE" ]
   
     foodProcElements = tree[!is.na(get(standParams$standParentVar)),
                             unique(get(standParams$childVar))]
@@ -57,8 +57,8 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ## get new_ prefixes.
     data[get(standParams$itemVar) %in% foodProcElements & get(standParams$elementVar) == standParams$foodProcCode,
          c(standParams$itemVar) := paste0("f???_", get(standParams$itemVar))]
-    tree[get(standParams$childVar) %in% foodProcElements,
-         c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+   ## tree[get(standParams$childVar) %in% foodProcElements,
+   ##      c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
     
     keyCols = standParams$mergeKey[standParams$mergeKey != standParams$itemVar]
     if(!specificTree){
@@ -80,14 +80,14 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ##Francesca: I want to breack the relationship between the original parant and 
     ##discendents of the cut items
     cut=list()
-    for(i in seq_len(length(cutElements)))
+    for(i in seq_len(length(cut)))
     { 
       
       
       cut[[i]]=data.table(getChildren( commodityTree = tree,
                                        parentColname =standParams$parentVar,
                                        childColname = standParams$childVar,
-                                       topNodes =cutElements[i] ))
+                                       topNodes =cut[i] ))
       
       
       
@@ -100,14 +100,14 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     
     standTree1=standTree[!standParams$childVar %in% cutDiscendets,]
   
-    standTree2=standTree[standParams$childVar %in% cutDiscendets & standParams$parentVar %in% cutElements,]
+    standTree2=standTree[standParams$childVar %in% cutDiscendets & standParams$parentVar %in% cut,]
     
     standTree=rbind(standTree1, standTree2)
     
     out = data[, standardizeTree(data = .SD, tree = standTree,
                                  standParams = localParams, elements = "Value",
                                  sugarHack = sugarHack,
-                                 zeroWeight= faoswsStandardization::zeroWeight),
+                                 zeroWeight= zeroWeightVector),
                by = c(standParams$elementVar)]
     if(length(additiveElements) > 0){
         additiveTree = copy(standTree)

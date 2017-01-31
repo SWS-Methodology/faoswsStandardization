@@ -52,13 +52,25 @@ startYear = as.numeric(swsContext.computationParams$startYear)
 endYear = as.numeric(swsContext.computationParams$endYear)
 stopifnot(startYear <= endYear)
 
-##yearVals = as.character(startYear:endYear)
+yearVals = as.character(startYear:endYear)
+
+
 
 yearVals=c("2010","2011")
 
 
 # Get commodity tree with child shares of parent
 tree = getCommodityTree(timePointYears = yearVals)
+
+
+meat=c("21111.01","21112","21113.01","21114","21115","21116","21117.01","21117.02","21118.01","21118.02","21118.03","21119.01","21121","21122","21123","21124","21170.01")
+
+animals= unique(tree[measuredItemChildCPC %in% meat, measuredItemParentCPC])
+
+tree=tree[!measuredItemParentCPC %in% animals,]
+tree=tree[measuredItemParentCPC!="01520",]
+
+
 
 ###
 
@@ -92,7 +104,7 @@ tree = getCommodityTree(timePointYears = yearVals)
 
 areaKeys = GetCodeList(domain = "suafbs", dataset = "sua", "geographicAreaM49")
 areaKeys = areaKeys[type == "country", code]
-areaKeys=c("480","508")
+
 
 
 elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua", "measuredElementSuaFbs")
@@ -236,22 +248,22 @@ standardizationVectorized = function(data, tree, nutrientData){
   # If printCodes is length 0, neither the .md files nor plots are created
   # If it has a non-zero value, those are the codes which will have file outputs
   
-  printCodes = character()
+ printCodes = character()
   
-  ## printCodes=c("0111")
-  ## samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
-  ## if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
-  ## printCodes = sample(samplePool, size = 1)
-  ## if (!is.null(tree)) {
-  ## printCodes = getChildren(commodityTree = tree,
-  ##                          parentColname = params$parentVar,
-  ##                          childColname = params$childVar,
-  ##                          topNodes = printCodes)
-  ## }
-  
-  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
-            )
-  
+##  printCodes=c("21113.01")
+## ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
+## ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
+## ##printCodes = sample(samplePool, size = 1)
+##  if (!is.null(tree)) {
+##  printCodes = getChildren(commodityTree = tree,
+##                           parentColname = params$parentVar,
+##                           childColname = params$childVar,
+##                           topNodes = printCodes)
+##  }
+##
+## dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
+##           )
+ 
   
   ##,recursive = TRUE
   
@@ -260,7 +272,7 @@ standardizationVectorized = function(data, tree, nutrientData){
               data$geographicAreaM49[1], "_sample_test.md"),
        split = TRUE)
 
-  out = standardizationWrapper(data = data, tree = tree, fbsTree = faoswsStandardization::newFbsTree, 
+  out = standardizationWrapper(data = data, tree = tree, fbsTree = fbsTreeFra2, 
                                    standParams = params, printCodes = printCodes,
                                    nutrientData = nutrientData)
   return(out)
@@ -288,7 +300,10 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-uniqueLevels=uniqueLevels[geographicAreaM49!="728",]
+uniqueLevels=uniqueLevels[geographicAreaM49!="728" & timePointYears %in% c("2010","2011"),]
+fbsTreeFra2[fbsID4=="2532",measuredItemSuaFbs:="01520.01"]
+
+
 
 for (i in seq_len(nrow(uniqueLevels))) {
     filter = uniqueLevels[i, ]

@@ -139,7 +139,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         old = copy(data)
         print(printSUATable(data = data, standParams = p, printCodes = printCodes))
     }
-
+    
+    
+  
+    
     ## STEP 1: Process forward.
     data = processForward(data = data, tree = tree,
                           standParams = p)$data
@@ -204,6 +207,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
             data[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
                  by = c(p$itemVar)]
         })
+        
+
+        
     }
     
     ## STEP 3: Compute availability and hence shares
@@ -230,6 +236,13 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     tree = merge(tree, mergeToTree, by = p$parentVar, all.x = TRUE)
     availability = calculateAvailability(tree, p)
     tree[, availability := NULL]
+    
+    
+  
+    tree[get(standParams$childVar) %in% cutItems,
+           c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+    
+    
     tree = collapseEdges(edges = tree, parentName = p$parentVar,
                          childName = p$childVar,
                          extractionName = p$extractVar,
@@ -259,7 +272,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     if(length(printCodes) > 0){
         cat("\nAvailability of parents/children:\n\n")
         print(knitr::kable(tree[get(p$childVar) %in% printCodes,
-                   c(p$childVar, p$parentVar, p$extractVar, "availability"),
+                   c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
                    with = FALSE]))
         plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
                                 get(p$childVar) %in% printCodes, ]
@@ -274,34 +287,12 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
 
     
-    
-    cutElements=c("2351"     ,"23210.03" ,"23210.04" ,"23210.05" ,"23210.06" ,"01499.07" ,"2161"     ,"2162"     ,"21631.01" ,"21641.01" ,"21641.02" ,"2168",   
-                 "21691.14" ,"2165"     ,"2166"     ,"21691.07" ,"2167"     ,"21673"    ,"21691.01" ,"21691.02" ,"21631.02" ,"21691.03" ,"21691.04" ,"21691.05",
-                 "21691.08" ,"21691.09" ,"21691.10" ,"21691.11" ,"21691.12" ,"21691.13" ,"21691.90" ,"23620"    ,"21433"    ,"21433.01" ,"24212.02" ,"24310.01",
-                 "24230.01" ,"24230.02" ,"24230.03" ,"24310.02" ,"24310.03" ,"24310.04" ,"2413"     ,"21111.01" ,"21112"    ,"21115"    ,"21116"    ,"21113.01",
-                 "21121"    ,"21122"    ,"21123"    ,"21124"    ,"21114"    ,"21117.01" ,"21117.02" ,"21118.01" ,"21118.02" ,"21118.03" ,"21119.01" ,"21170.01",
-                 "21151"    ,"21152"    ,"21153"    ,"21155"    ,"21156"    ,"21159.01" ,"21159.02" ,"21160.01" ,"21160.02" ,"21160.03" ,"21160.04" ,"21170.93",
-                 "21511.01" ,"21511.02" ,"21511.03" ,"21512"    ,"21512.01" ,"21513"    ,"21514"    ,"21515"    ,"21519.02" ,"21519.03" ,"22241.01" ,"22241.02",
-                 "22242.01" ,"22242.02" ,"22249.01" ,"22249.02" ,"22120")
-## Cristina        
-##   cutItems=c("23511.02" ,"23210.03" ,"23210.04" ,"23210.05" ,"23210.06","01499.07" ,
-##         "2161","2162","21631.01" ,"21641.01" ,"21641.02","2168","21691.14" ,
-##         "2165","2166","21691.07" ,"2167","21673" ,"21691.01" ,"21691.02" ,"21631.02" ,
-##         "21691.03","21691.04", "21691.05", "21691.08" ,"21691.01","21691.11" ,"21691.12" ,
-##         "21691.13" ,"21691.09"  ,"24212.02" ,"24310.01" ,"24230.01" ,"24230.02",
-##         "24230.03" ,"24310.02" ,"24310.03" ,"24310.04" ,"2413","21111.01",
-##         "21112","21115","21116","21113.01" ,"21121","21122","21123","21124","21114",
-##         "21117.01" ,"21117.02","21118.01" ,"21118.02" ,"21118.03" ,"21119.01" ,"21170.01",
-##         "21151" ,   "21152", "21153","21155","21156","21159.01" ,"21159.02" ,"21160.02" ,
-##         "21160.03" ,"21160.04" ,"21170.93" ,"21511.01","21511.03" ,"21512","21513",
-##         "21514","21515", "21519.02", "21519.03", "23993.01")
-    
    
     ## STEP 4: Standardize commodities to balancing level
     data = finalStandardizationToPrimary(data = data, tree = tree,
                                          standParams = p, sugarHack = FALSE,
                                          specificTree = FALSE,
-                                         cut=cutElements,
+                                         cut=cutItems,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
         cat("\nSUA table after standardization:")
@@ -313,120 +304,120 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                             printProcessing = TRUE))
     }
     
-    ## STEP 5: Balance at the balancing level.
-    data = data[get(p$elementVar) %in% c(p$productionCode, p$importCode, p$exportCode,
-                               p$stockCode, p$foodCode, p$feedCode, p$seedCode,
-                               p$touristCode, p$industrialCode, p$wasteCode,
-                               nutrientElements, p$foodProcCode,p$residualCode), ]
-    data[, nutrientElement := get(p$elementVar) %in% nutrientElements]
-    warning("Not sure how to compute standard deviations!  Currently just 10% ",
-            "of value!")
-
+   ## STEP 5: Balance at the balancing level.
+   data = data[get(p$elementVar) %in% c(p$productionCode, p$importCode, p$exportCode,
+                              p$stockCode, p$foodCode, p$feedCode, p$seedCode,
+                              p$touristCode, p$industrialCode, p$wasteCode,
+                              nutrientElements, p$foodProcCode,p$residualCode), ]
+   data[, nutrientElement := get(p$elementVar) %in% nutrientElements]
+   warning("Not sure how to compute standard deviations!  Currently just 10% ",
+           "of value!")
+   
+  data[, standardDeviation := Value * .1]
+   
+  ##Production
+  data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .02]
+  ##Import
+  data[get(p$elementVar)==p$importCode, standardDeviation := Value * .02]
+  ##Export
+  data[get(p$elementVar)==p$exportCode, standardDeviation := Value * .02]
+  ##Stock
+  data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
+  ##Food
+  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .4]
+  ##Feed
+  data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
+  ##Seed
+  data[get(p$elementVar)==p$seedCode, standardDeviation := Value * .25]
+  ##Tourist
+  data[get(p$elementVar)==p$touristCode, standardDeviation := Value * .25]
+  ##Industrial
+  data[get(p$elementVar)==p$industrialCode, standardDeviation := Value * .25]
+  ##Waste
+  data[get(p$elementVar)==p$wasteCode, standardDeviation := Value * .25]
+  ##Food processing
+  data[get(p$elementVar)==p$foodProcCode, standardDeviation := Value * .25]
+   
+   
+   
+   data[!get(p$elementVar) %in% nutrientElements,
+        balancedValue := faoswsBalancing::balancing(param1 = sapply(Value, na2zero),
+             param2 = sapply(standardDeviation, na2zero),
+             sign = ifelse(get(p$elementVar) %in% c(p$residualCode),0,
+                           ifelse(get(p$elementVar) %in% c(p$productionCode, p$importCode), 1, -1)),
+             
+             lbounds = ifelse(get(p$elementVar) %in% c(p$stockCode, p$touristCode), -Inf, 0),
+             optimize = "constrOptim", constrTol = 1e-6),
+        by = c(p$itemVar)]
+   ## To adjust calories later, compute the ratio for how much food has been 
+   ## adjusted by.  This looks like a "mean", but really we're just using the
+   ## mean to select the one non-NA element.
+   data[, foodAdjRatio := mean(ifelse(get(p$elementVar) == p$foodCode,
+                                      balancedValue / Value, NA),
+                               na.rm = TRUE),
+        by = c(p$itemVar)]
+   ## The balancedValue will be given for all non-nutrient elements.  Update
+   ## all these elements with their balanced values.
+   data[!(nutrientElement), Value := balancedValue]
+   if(length(printCodes) > 0){
+       cat("\nSUA table after balancing:")
+       data = markUpdated(new = data, old = old, standParams = p)
+       old = copy(data)
+       print(printSUATable(data = data, standParams = p, printCodes = printCodes,
+                           printProcessing = TRUE,
+                           nutrientElements = nutrientElements))
+       data[, updateFlag := NULL]
+   }
+   ## STEP 6: Update calories of processed products proportionally based on
+   ## updated food element values.
+   data[(nutrientElement), Value := Value * foodAdjRatio]
+   if(length(printCodes) > 0){
+       cat("\nSUA table with updated nutrient values:")
+       data = markUpdated(new = data, old = old, standParams = p)
+       old = copy(data)
+       print(printSUATable(data = data, standParams = p, printCodes = printCodes,
+                           printProcessing = TRUE,
+                           nutrientElements = nutrientElements))
+       data[, updateFlag := NULL]
+   }
+   data[, c("balancedValue", "nutrientElement", "foodAdjRatio") := NULL]
+   
+   ## STEP 7: Aggregate to FBS Level
+   if(is.null(fbsTree)){
+       # If no FBS tree, just return SUA-level results
+       return(data)
+   } else {
+     out = computeFbsAggregate(data = data, fbsTree = fbsTree,
+                               standParams = p)
+     if(length(printCodes) > 0){
+       printCodeTable = fbsTree[get(p$itemVar) %in% printCodes, ]
+       p$mergeKey[p$mergeKey == p$itemVar] = "fbsID4"
+       p$itemVar = "fbsID4"
+       cat("\nFBS Table at first level of aggregation:\n")
+       print(printSUATable(data = out[[1]], standParams = p,
+                           printCodes = printCodeTable[, fbsID4],
+                           printProcessing = TRUE))
+       p$mergeKey[p$mergeKey == p$itemVar] = "fbsID3"
+       p$itemVar = "fbsID3"
+       cat("\nFBS Table at second level of aggregation:\n")
+       print(printSUATable(data = out[[2]], standParams = p,
+                           printCodes = printCodeTable[, fbsID3],
+                           printProcessing = TRUE))
+       p$mergeKey[p$mergeKey == p$itemVar] = "fbsID2"
+       p$itemVar = "fbsID2"
+       cat("\nFBS Table at third level of aggregation:\n")
+       print(printSUATable(data = out[[3]], standParams = p,
+                           printCodes = printCodeTable[, fbsID2],
+                           printProcessing = TRUE))
+       p$mergeKey[p$mergeKey == p$itemVar] = "fbsID1"
+       p$itemVar = "fbsID1"
+       cat("\nFBS Table at final level of aggregation:\n")
+       print(printSUATable(data = out[[4]], standParams = p,
+                           printCodes = printCodeTable[, fbsID1],
+                           printProcessing = TRUE))
+     }
+     return(out)
+   }
     
-   data[, standardDeviation := Value * .1]
-    
-   ##Production
-   data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .02]
-   ##Import
-   data[get(p$elementVar)==p$importCode, standardDeviation := Value * .02]
-   ##Export
-   data[get(p$elementVar)==p$exportCode, standardDeviation := Value * .02]
-   ##Stock
-   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
-   ##Food
-   data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .4]
-   ##Feed
-   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
-   ##Seed
-   data[get(p$elementVar)==p$seedCode, standardDeviation := Value * .25]
-   ##Tourist
-   data[get(p$elementVar)==p$touristCode, standardDeviation := Value * .25]
-   ##Industrial
-   data[get(p$elementVar)==p$industrialCode, standardDeviation := Value * .25]
-   ##Waste
-   data[get(p$elementVar)==p$wasteCode, standardDeviation := Value * .25]
-    
-    
-
-
-    
-    data[!get(p$elementVar) %in% nutrientElements,
-         balancedValue := faoswsBalancing::balancing(param1 = sapply(Value, na2zero),
-              param2 = sapply(standardDeviation, na2zero),
-              sign = ifelse(get(p$elementVar) %in% c(p$residualCode),0,
-                            ifelse(get(p$elementVar) %in% c(p$productionCode, p$importCode), 1, -1)),
-              
-              lbounds = ifelse(get(p$elementVar) %in% c(p$stockCode, p$touristCode), -Inf, 0),
-              optimize = "constrOptim", constrTol = 1e-6),
-         by = c(p$itemVar)]
-    ## To adjust calories later, compute the ratio for how much food has been 
-    ## adjusted by.  This looks like a "mean", but really we're just using the
-    ## mean to select the one non-NA element.
-    data[, foodAdjRatio := mean(ifelse(get(p$elementVar) == p$foodCode,
-                                       balancedValue / Value, NA),
-                                na.rm = TRUE),
-         by = c(p$itemVar)]
-    ## The balancedValue will be given for all non-nutrient elements.  Update
-    ## all these elements with their balanced values.
-    data[!(nutrientElement), Value := balancedValue]
-    if(length(printCodes) > 0){
-        cat("\nSUA table after balancing:")
-        data = markUpdated(new = data, old = old, standParams = p)
-        old = copy(data)
-        print(printSUATable(data = data, standParams = p, printCodes = printCodes,
-                            printProcessing = TRUE,
-                            nutrientElements = nutrientElements))
-        data[, updateFlag := NULL]
-    }
-
-    ## STEP 6: Update calories of processed products proportionally based on
-    ## updated food element values.
-    data[(nutrientElement), Value := Value * foodAdjRatio]
-    if(length(printCodes) > 0){
-        cat("\nSUA table with updated nutrient values:")
-        data = markUpdated(new = data, old = old, standParams = p)
-        old = copy(data)
-        print(printSUATable(data = data, standParams = p, printCodes = printCodes,
-                            printProcessing = TRUE,
-                            nutrientElements = nutrientElements))
-        data[, updateFlag := NULL]
-    }
-    data[, c("balancedValue", "nutrientElement", "foodAdjRatio") := NULL]
-    
-    ## STEP 7: Aggregate to FBS Level
-    if(is.null(fbsTree)){
-        # If no FBS tree, just return SUA-level results
-        return(data)
-    } else {
-      out = computeFbsAggregate(data = data, fbsTree = fbsTree,
-                                standParams = p)
-      if(length(printCodes) > 0){
-        printCodeTable = fbsTree[get(p$itemVar) %in% printCodes, ]
-        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID4"
-        p$itemVar = "fbsID4"
-        cat("\nFBS Table at first level of aggregation:\n")
-        print(printSUATable(data = out[[1]], standParams = p,
-                            printCodes = printCodeTable[, fbsID4],
-                            printProcessing = TRUE))
-        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID3"
-        p$itemVar = "fbsID3"
-        cat("\nFBS Table at second level of aggregation:\n")
-        print(printSUATable(data = out[[2]], standParams = p,
-                            printCodes = printCodeTable[, fbsID3],
-                            printProcessing = TRUE))
-        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID2"
-        p$itemVar = "fbsID2"
-        cat("\nFBS Table at third level of aggregation:\n")
-        print(printSUATable(data = out[[3]], standParams = p,
-                            printCodes = printCodeTable[, fbsID2],
-                            printProcessing = TRUE))
-        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID1"
-        p$itemVar = "fbsID1"
-        cat("\nFBS Table at final level of aggregation:\n")
-        print(printSUATable(data = out[[4]], standParams = p,
-                            printCodes = printCodeTable[, fbsID1],
-                            printProcessing = TRUE))
-      }
-      return(out)
-    }
+   
 }
