@@ -71,7 +71,7 @@
 ##' @export
 ##' 
 
-standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
+standardizationWrapperHHBS = function(data, tree, fbsTree = NULL, standParams,
                                   nutrientData = NULL, printCodes = c()){
     
     ## Reassign standParams to p for brevity
@@ -90,22 +90,22 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     stopifnot(c(p$childVar, p$parentVar, p$extractVar,
                 p$targetVar, p$shareVar) %in% colnames(tree))
     if(nrow(data[, .N, by = c(p$geoVar, p$yearVar)]) > 1)
-        stop("standardizationWrapper works with one country/year at a time only!")
+      stop("standardizationWrapper works with one country/year at a time only!")
     if(any(is.na(tree[, get(p$childVar)]))){
-        warning("tree has some NA children.  Those edges have been deleted.")
-        tree = tree[!is.na(get(p$childVar)), ]
+      warning("tree has some NA children.  Those edges have been deleted.")
+      tree = tree[!is.na(get(p$childVar)), ]
     }
     if(!p$standParentVar %in% colnames(tree)){
-        warning("p$standParentVar is not in the colnames of tree!  All ",
-                "commodities will be standardized to the parents that ",
-                "produced them!")
-        tree[, c(p$standParentVar) := NA]
+      warning("p$standParentVar is not in the colnames of tree!  All ",
+              "commodities will be standardized to the parents that ",
+              "produced them!")
+      tree[, c(p$standParentVar) := NA]
     }
     if(!p$standExtractVar %in% colnames(tree)){
-        warning("p$standExtractVar is not in the colnames of tree!  No ",
-                "new extraction rates will be used!")
-        tree[!is.na(get(p$standParentVar)),
-             c(p$standExtractVar) := get(p$extractVar)]
+      warning("p$standExtractVar is not in the colnames of tree!  No ",
+              "new extraction rates will be used!")
+      tree[!is.na(get(p$standParentVar)),
+           c(p$standExtractVar) := get(p$extractVar)]
     }
     stopifnot(!is.na(tree[, get(p$extractVar)]))
     ## Check that all standParentVar are NA or a value, never ""
@@ -172,7 +172,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## updated.  Instead, the food value should be updated, and this is what 
     ## will happen if that element is not specified to any of the groupings in
     ## balanceResidual()
-    balanceResidual(data, p,
+    balanceResidualHHBS(data, p,
                     primaryCommodities = primaryEl,
                     foodProcessCommodities = foodProcEl,
                     feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code],
@@ -290,39 +290,39 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }
     
     ## STEP 5: Balance at the balancing level.
-    data = data[get(p$elementVar) %in% c(p$productionCode, p$importCode, p$exportCode,
-                               p$stockCode, p$foodCode, p$feedCode, p$seedCode,
-                               p$touristCode, p$industrialCode, p$wasteCode,
-                               nutrientElements, p$foodProcCode,p$residualCode), ]
-    data[, nutrientElement := get(p$elementVar) %in% nutrientElements]
-    warning("Not sure how to compute standard deviations!  Currently just 10% ",
-            "of value!")
-
-    
-   data[, standardDeviation := Value * .1]
-    
-   ##Production
-   data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .02]
-   ##Import
-   data[get(p$elementVar)==p$importCode, standardDeviation := Value * .02]
-   ##Export
-   data[get(p$elementVar)==p$exportCode, standardDeviation := Value * .02]
-   ##Stock
-   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
-   ##Food
-   data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .4]
-   ##Feed
-   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
-   ##Seed
-   data[get(p$elementVar)==p$seedCode, standardDeviation := Value * .25]
-   ##Tourist
-   data[get(p$elementVar)==p$touristCode, standardDeviation := Value * .25]
-   ##Industrial
-   data[get(p$elementVar)==p$industrialCode, standardDeviation := Value * .25]
-   ##Waste
-   data[get(p$elementVar)==p$wasteCode, standardDeviation := Value * .25]
-    
-    
+   #  data = data[get(p$elementVar) %in% c(p$productionCode, p$importCode, p$exportCode,
+   #                             p$stockCode, p$foodCode, p$feedCode, p$seedCode,
+   #                             p$touristCode, p$industrialCode, p$wasteCode,
+   #                             nutrientElements, p$foodProcCode,p$residualCode), ]
+   #  data[, nutrientElement := get(p$elementVar) %in% nutrientElements]
+   #  warning("Not sure how to compute standard deviations!  Currently just 10% ",
+   #          "of value!")
+   # 
+   #  
+   # data[, standardDeviation := Value * .1]
+   #  
+   # ##Production
+   # data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .02]
+   # ##Import
+   # data[get(p$elementVar)==p$importCode, standardDeviation := Value * .02]
+   # ##Export
+   # data[get(p$elementVar)==p$exportCode, standardDeviation := Value * .02]
+   # ##Stock
+   # data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
+   # ##Food
+   # data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .4]
+   # ##Feed
+   # data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
+   # ##Seed
+   # data[get(p$elementVar)==p$seedCode, standardDeviation := Value * .25]
+   # ##Tourist
+   # data[get(p$elementVar)==p$touristCode, standardDeviation := Value * .25]
+   # ##Industrial
+   # data[get(p$elementVar)==p$industrialCode, standardDeviation := Value * .25]
+   # ##Waste
+   # data[get(p$elementVar)==p$wasteCode, standardDeviation := Value * .25]
+   #  
+   #  
 
 
     

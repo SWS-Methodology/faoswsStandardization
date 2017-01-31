@@ -85,7 +85,7 @@ tree[, extractionRate := ifelse(is.na(extractionRate),
      by = c("measuredItemParentCPC", "measuredItemChildCPC")]
 tree[is.na(extractionRate), extractionRate := 1]
 
-tree <- tree[geographicAreaM49=="4",]
+# tree <- tree[geographicAreaM49=="4",]
 
 itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
 itemMap = itemMap[, c("code", "type"), with = FALSE]

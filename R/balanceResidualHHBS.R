@@ -71,7 +71,7 @@ balanceResidualHHBS = function(data, standParams, feedCommodities = c(),
             ifelse(get(standParams$elementVar) == p$residualCode, -1,
                    NA))))))))))))),
          by = c(standParams$mergeKey)]
-    data[, newValue := Value]
+    data[, Value := Value]
     # I'm a little confused about why flags aren't used here, but it looks like
     # items where there's a positive values are marked as official
     data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
@@ -86,17 +86,10 @@ balanceResidualHHBS = function(data, standParams, feedCommodities = c(),
     # corresponds to the food variable and if the commodity should have it's residual
     # allocated to food.  Likewise, if the row corresponds to feed and if the commodity
     # should have it's residual allocated to feed, then Value is updated with newValue.
-    Value := ifelse(
-       (get(standParams$elementVar) == p$feedCode & get(p$itemVar) %in% feedCommodities) |
-       (get(standParams$elementVar) == p$foodProcCode & get(p$itemVar) %in% foodProcessCommodities) |
-       (get(standParams$elementVar) == p$industrialCode & get(p$itemVar) %in% indCommodities) |
-       (get(standParams$elementVar) == p$foodCode & !(get(p$itemVar) %in%
-                       c(indCommodities, feedCommodities,
-                         foodProcessCommodities))),
-       newValue, Value)]
-    Supply < Utilization
+    Value := Value,]
+    # Supply < Utilization
     data[imbalance < -imbalanceThreshold & !officialProd &
              (!get(standParams$itemVar) %in% primaryCommodities) &
-             get(standParams$elementVar) == p$productionCode, Value := -newValue]
+             get(standParams$elementVar) == p$productionCode, Value := Value]
     data[, c("imbalance", "newValue") := NULL]
 }
