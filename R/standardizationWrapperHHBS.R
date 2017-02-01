@@ -230,6 +230,12 @@ standardizationWrapperHHBS = function(data, tree, fbsTree = NULL, standParams,
     tree = merge(tree, mergeToTree, by = p$parentVar, all.x = TRUE)
     availability = calculateAvailability(tree, p)
     tree[, availability := NULL]
+    
+    
+    tree[get(standParams$childVar) %in% cutItems,
+         c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+    
+    
     tree = collapseEdges(edges = tree, parentName = p$parentVar,
                          childName = p$childVar,
                          extractionName = p$extractVar,
@@ -271,13 +277,14 @@ standardizationWrapperHHBS = function(data, tree, fbsTree = NULL, standParams,
                            box.cex = 1)
         }
     }
-    
+  
+# cutItems <- cutItems!="21113.01"
 
     ## STEP 4: Standardize commodities to balancing level
     data = finalStandardizationToPrimary(data = data, tree = tree,
                                          standParams = p, sugarHack = FALSE,
                                          specificTree = FALSE,
-                                         cut=faoswsStandardization::cutItems,
+                                         cut=cutItems,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
         cat("\nSUA table after standardization:")

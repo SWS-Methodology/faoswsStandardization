@@ -50,22 +50,6 @@ SWS_USER = regmatches(swsContext.username,
 
 message("Getting parameters/datasets...")
 
-
-dataAfg <- read.csv("C:/Users/muschitiello/Documents/Validation_HHBS/Afghanistan/input_data/dataAfg.csv")
-dataAfg <- data.table(dataAfg)
-data <- dataAfg %>%
-  mutate(measuredElementSuaFbs="food") %>%
-  mutate(timePointYears="2008") %>%
-  mutate(geographicAreaM49="4") %>%
-  rename(measuredItemSuaFbs=cpc_code) %>%
-  rename(Value=hs_tot_tons) %>%
-  select(c(measuredElementSuaFbs,measuredItemSuaFbs,geographicAreaM49,timePointYears,Value)) %>%
-  mutate(measuredItemSuaFbs=as.character(measuredItemSuaFbs))
-data <- data.table(data)
-data = data[!is.na(measuredElementSuaFbs), ]
-
-
-
 # Get commodity tree with child shares of parent fpr all countries
 yearVals=c("2008")
 tree = getCommodityTree(timePointYears = yearVals)
@@ -84,50 +68,19 @@ tree=tree[!measuredItemParentCPC %in% animals,]
 tree=tree[measuredItemParentCPC!="01520",]
 
 
-FPCommodities <- c("23511.01", "23512",
-                   "01499.06", "01921.01")
-tree[, target := ifelse(measuredItemParentCPC %in% FPCommodities,
-                        "F", "B")]
+dataAfg <- read.csv("C:/Users/muschitiello/Documents/Validation_HHBS/Afghanistan/input_data/dataAfg.csv")
+dataAfg <- data.table(dataAfg)
+data <- dataAfg %>%
+  mutate(measuredElementSuaFbs="food") %>%
+  mutate(timePointYears="2008") %>%
+  mutate(geographicAreaM49="4") %>%
+  rename(measuredItemSuaFbs=cpc_code) %>%
+  rename(Value=hs_tot_tons) %>%
+  select(c(measuredElementSuaFbs,measuredItemSuaFbs,geographicAreaM49,timePointYears,Value)) %>%
+  mutate(measuredItemSuaFbs=as.character(measuredItemSuaFbs))
+data <- data.table(data)
 
-# Convert units for tourist and industrial
-message("Applying adjustments to commodity tree...")
-
-tree = adjustCommodityTree(tree, parentColname = "measuredItemParentCPC",
-                           childColname = "measuredItemChildCPC", nSigma = 2)
-tree[, extractionRate := ifelse(is.na(extractionRate),
-                                mean(extractionRate, na.rm = TRUE),
-                                extractionRate),
-     by = c("measuredItemParentCPC", "measuredItemChildCPC")]
-tree[is.na(extractionRate), extractionRate := 1]
-
-# tree <- tree[geographicAreaM49=="4",]
-
-itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
-itemMap = itemMap[, c("code", "type"), with = FALSE]
-setnames(itemMap, "code", "measuredItemSuaFbs")
-data = merge(data, itemMap, by = "measuredItemSuaFbs")
-setnames(itemMap, "measuredItemSuaFbs", "measuredItemParentCPC")
-tree = merge(tree, itemMap, by = "measuredItemParentCPC")
-
-
-# Check Afghanistan Commodity trees
-# 
-# yearVals=c("1992","1993","1994","1995", "1996", "1997", "2000","2001","2002","2003","2007","2008")
-# tree = getCommodityTree("4",timePointYears = yearVals)
-
-
-# # Name country and parent and children
-# 
-# treeNamed <- tree
-# setnames(treeNamed,"measuredItemParentCPC","measuredItemSuaFbs")
-# treeNamed <- nameData("suafbs","sua",treeNamed)
-# setnames(treeNamed,c("measuredItemSuaFbs","measuredItemSuaFbs_description","measuredItemChildCPC"),c("measuredItemParentCPC","measuredItemParentCPC_description","measuredItemSuaFbs"))
-# treeNamed <- nameData("suafbs","sua",treeNamed,except = "geographicAreaM49")
-# setnames(treeNamed,c("measuredItemSuaFbs","measuredItemSuaFbs_description"),c("measuredItemChildCPC","measuredItemChildCPC_description"))
-# 
-# # Tree Afghanistan
-# 
-# treeNamed <- treeNamed[geographicAreaM49=="4",]
+# data <- data[measuredItemSuaFbs=="21181",]
 
 ## Update params for specific dataset
 params = defaultStandardizationParameters()
@@ -147,12 +100,51 @@ params$wasteCode = "loss"
 params$industrialCode = "industrial"
 params$touristCode = "tourist"
 params$foodProcCode = "foodManufacturing"
-params$residualCode = "residual"
 
+# Convert units for tourist and industrial
+message("Applying adjustments to commodity tree...")
+
+## Update tree by setting some edges to "F", computing average extraction rates
+## when missing, and bringing in extreme extraction rates
+FPCommodities <- c("23511.01", "23512",
+                   "01499.06", "01921.01")
+
+# These commodities are forwards processed instead of backwards processed:
+#        code             description type
+# 1: 23511.01 Cane sugar, centrifugal CRNP
+# 2:    23512              Beet sugar CRNP
+# 3: 01499.06      Kapokseed in shell CRNP
+# 4: 01921.01   Seed cotton, unginned CRPR  
+
+tree[, target := ifelse(measuredItemParentCPC %in% FPCommodities,
+                        "F", "B")]
+tree = adjustCommodityTree(tree, parentColname = "measuredItemParentCPC",
+                           childColname = "measuredItemChildCPC", nSigma = 2)
+
+# If there's no extraction rate, use the mean extraction rate for that parent
+# child combinations
+tree[, extractionRate := ifelse(is.na(extractionRate),
+                                mean(extractionRate, na.rm = TRUE),
+                                extractionRate),
+     by = c("measuredItemParentCPC", "measuredItemChildCPC")]
+# If there's still no extraction rate, use an extraction rate of 1
+tree[is.na(extractionRate), extractionRate := 1]
+
+
+itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
+itemMap = itemMap[, c("code", "type"), with = FALSE]
+setnames(itemMap, "code", "measuredItemSuaFbs")
+data = merge(data, itemMap, by = "measuredItemSuaFbs")
+setnames(itemMap, "measuredItemSuaFbs", "measuredItemParentCPC")
+tree = merge(tree, itemMap, by = "measuredItemParentCPC")
+
+## Remove missing elements
+data = data[!is.na(measuredElementSuaFbs), ]
 
 message("Loading nutrient data...")
 
 itemKeys = GetCodeList("agriculture", "aupus_ratio", "measuredItemCPC")[, code]
+
 
 # Nutrients are:
 # 1001 Calories
