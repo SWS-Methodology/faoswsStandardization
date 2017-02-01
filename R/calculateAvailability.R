@@ -1,3 +1,4 @@
+
 ##' Aggregate Availability
 ##' 
 ##' In order to determine shares for standardization, we have to calculate 
@@ -35,61 +36,61 @@
 ##'   
 
 calculateAvailability = function(tree, standParams){
-    
-    ## Since we'll be editing the tree, make a copy so we don't overwrite
-    ## things.
-    origTree = copy(tree[, c(standParams$parentVar, standParams$childVar,
-                               standParams$extractVar, "availability"),
-                           with = FALSE])
-    level = findProcessingLevel(origTree, from = standParams$parentVar,
-                        to = standParams$childVar, aupusParam = standParams)
-    setnames(level, standParams$itemVar, standParams$parentVar)
-    origTree = merge(origTree, level)
-    origTree[processingLevel == 0,
-             availability := availability * get(standParams$extractVar)]
-        
-    ## The initial availabilities should be reported for parents
-    ## Parent child combinations should only have one output, but we get
-    ## the mean just in case
-    output = origTree[processingLevel == 0,
-                      list(availability = mean(availability)),
-                      by = c(standParams$parentVar, standParams$childVar)]
-    
-    editedTree = copy(origTree)
-    ## Stop if we have a very flat tree:
-    if (max(level$processingLevel) > 1) {
-        for (i in 1:(max(level$processingLevel) - 1)) {
-            ## Roll down availability
-            copyTree = copy(origTree)
-            # Rename parent as child and child as 'newChild'
-            setnames(copyTree, c(standParams$parentVar, standParams$childVar),
-                     c(standParams$childVar, "newChild"))
-            # Extraction rate comes from copyTree, so deleted here
-            editedTree[, c("extractionRate", "processingLevel") := NULL]
-            # Merge original tree to get child availabilities
-            editedTree = merge(editedTree, copyTree, by = standParams$childVar,
-                           suffixes = c("", ".child"), allow.cartesian = TRUE)
-            # Sum parent availability with child availability multiplied by
-            # extraction rate
-            editedTree[, availability := mean(
-                (sapply(availability, na2zero) + sapply(availability.child, na2zero)) *
-                    get(standParams$extractVar)),
-                by = c(standParams$parentVar, "newChild")]
-            editedTree[, c(standParams$childVar) := newChild]
-            editedTree[, c("newChild", "availability.child") := NULL]
-            
-            output = rbind(output,
-                editedTree[processingLevel == i, c(standParams$parentVar,
-                                                   standParams$childVar,
-                                                   "availability"), with = FALSE])
-        }
+  
+  ## Since we'll be editing the tree, make a copy so we don't overwrite
+  ## things.
+  origTree = copy(tree[, c(standParams$parentVar, standParams$childVar,
+                           standParams$extractVar, "availability"),
+                       with = FALSE])
+  level = findProcessingLevel(origTree, from = standParams$parentVar,
+                              to = standParams$childVar, aupusParam = standParams)
+  setnames(level, standParams$itemVar, standParams$parentVar)
+  origTree = merge(origTree, level)
+  origTree[processingLevel == 0,
+           availability := availability * get(standParams$extractVar)]
+  
+  ## The initial availabilities should be reported for parents
+  ## Parent child combinations should only have one output, but we get
+  ## the mean just in case
+  output = origTree[processingLevel == 0,
+                    list(availability = mean(availability)),
+                    by = c(standParams$parentVar, standParams$childVar)]
+  
+  editedTree = copy(origTree)
+  ## Stop if we have a very flat tree:
+  if (max(level$processingLevel) > 1) {
+    for (i in 1:(max(level$processingLevel) - 1)) {
+      ## Roll down availability
+      copyTree = copy(origTree)
+      # Rename parent as child and child as 'newChild'
+      setnames(copyTree, c(standParams$parentVar, standParams$childVar),
+               c(standParams$childVar, "newChild"))
+      # Extraction rate comes from copyTree, so deleted here
+      editedTree[, c("extractionRate", "processingLevel") := NULL]
+      # Merge original tree to get child availabilities
+      editedTree = merge(editedTree, copyTree, by = standParams$childVar,
+                         suffixes = c("", ".child"), allow.cartesian = TRUE)
+      # Sum parent availability with child availability multiplied by
+      # extraction rate
+      editedTree[, availability := mean(
+        (sapply(availability, na2zero) + sapply(availability.child, na2zero)) *
+          get(standParams$extractVar)),
+        by = c(standParams$parentVar, "newChild")]
+      editedTree[, c(standParams$childVar) := newChild]
+      editedTree[, c("newChild", "availability.child") := NULL]
+      
+      output = rbind(output,
+                     editedTree[processingLevel == i, c(standParams$parentVar,
+                                                        standParams$childVar,
+                                                        "availability"), with = FALSE])
     }
-    ## Because we extract edges at each level, we could possibly still get
-    ## multiple edges (i.e. A is a parent of B and C, but C is also a parent of
-    ## B).  It's a weird case, but it exists and we need to handle it.  So, just
-    ## average the availabilities in those cases.
-    output = output[, list(availability = mean(availability)),
-                    by = c(standParams$childVar, standParams$parentVar)]
-    output[availability < 0, availability := 0]
-    return(output)
+  }
+  ## Because we extract edges at each level, we could possibly still get
+  ## multiple edges (i.e. A is a parent of B and C, but C is also a parent of
+  ## B).  It's a weird case, but it exists and we need to handle it.  So, just
+  ## average the availabilities in those cases.
+  output = output[, list(availability = mean(availability)),
+                  by = c(standParams$childVar, standParams$parentVar)]
+  output[availability < 0, availability := 0]
+  return(output)
 }
