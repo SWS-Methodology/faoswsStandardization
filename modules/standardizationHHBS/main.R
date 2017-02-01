@@ -69,6 +69,21 @@ data = data[!is.na(measuredElementSuaFbs), ]
 # Get commodity tree with child shares of parent fpr all countries
 yearVals=c("2008")
 tree = getCommodityTree(timePointYears = yearVals)
+
+# meat:
+meat_tot <- c("21118.01", "21139", "21111.01", "21112", 
+              "21113.01", "21114", "21115", "21116", "21117.01", 
+              "21117.02", "21118.02", "21118.03", "21119.01", "21121", 
+              "21122", " 21123", "21124", "21125", "21131", "21132", "21133", 
+              "21134", "21135", "21136", "21137", "21137", "21138", "21138", 
+              "21138", "21141", "21142", "21143", "21144", "21145", "21170.01")
+
+animals= unique(tree[measuredItemChildCPC %in% meat_tot, measuredItemParentCPC])
+
+tree=tree[!measuredItemParentCPC %in% animals,]
+tree=tree[measuredItemParentCPC!="01520",]
+
+
 FPCommodities <- c("23511.01", "23512",
                    "01499.06", "01921.01")
 tree[, target := ifelse(measuredItemParentCPC %in% FPCommodities,
@@ -192,7 +207,7 @@ standardizationVectorized = function(data, tree, nutrientData){
               data$geographicAreaM49[1], "_sample_test.md"),
        split = TRUE)
 
-  out = standardizationWrapperHHBS(data = data, tree = tree, fbsTree = fbsTreeFra2, 
+  out = standardizationWrapperHHBS(data = data, tree = tree, fbsTree = fbsTreeCri3, 
                                    standParams = params, printCodes = printCodes,
                                    nutrientData = nutrientData)
   return(out)

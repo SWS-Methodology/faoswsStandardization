@@ -374,7 +374,7 @@ standardizationWrapperHHBS = function(data, tree, fbsTree = NULL, standParams,
         # If no FBS tree, just return SUA-level results
         return(data)
     } else {
-      out = computeFbsAggregate(data = data, fbsTree = fbsTreeFra2,
+      out = computeFbsAggregate(data = data, fbsTree = fbsTreeCri3,
                                 standParams = p)
       if(length(printCodes) > 0){
         printCodeTable = fbsTree[get(p$itemVar) %in% printCodes, ]
