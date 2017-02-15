@@ -34,15 +34,15 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ## commodities should be rolled up into the parents as "Food Processing" or
     ## "Food Manufacturing".
 
-    tree[grepl("f???_",get(standParams$childVar)), standParams$standParentVar:="TRUE" ]
+    tree[grepl("^f\\?\\?\\?_",get(standParams$childVar)), standParams$standParentVar:="TRUE" ]
   
     foodProcElements = tree[!is.na(get(standParams$standParentVar)),
                             unique(get(standParams$childVar))]
     data[get(standParams$elementVar) == standParams$foodProcCode &
-             !get(standParams$itemVar) %in% foodProcElements, Value := 0]
+             !get(standParams$itemVar) %in% cut, Value := 0]
     ## Assign production of these commodities to their food processing element
     ## so that we can roll that up.
-    toMerge = data[get(standParams$itemVar) %in% foodProcElements &
+    toMerge = data[get(standParams$itemVar) %in% cut &
                        get(standParams$elementVar) == "production", ]
     toMerge[, c(standParams$elementVar) := standParams$foodProcCode]
     toMerge = toMerge[, c(standParams$mergeKey, standParams$elementVar, "Value"), with = FALSE]
@@ -55,10 +55,10 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     ## processing.  Thus, we must keep both parents in the tree and use new 
     ## codes to identify the two cases.  The nodes rolling into new parentIDs
     ## get new_ prefixes.
-    data[get(standParams$itemVar) %in% foodProcElements & get(standParams$elementVar) == standParams$foodProcCode,
+    data[get(standParams$itemVar) %in% cut & get(standParams$elementVar) == standParams$foodProcCode,
          c(standParams$itemVar) := paste0("f???_", get(standParams$itemVar))]
    ## tree[get(standParams$childVar) %in% foodProcElements,
-   ##      c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+   ##     c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
     
     keyCols = standParams$mergeKey[standParams$mergeKey != standParams$itemVar]
     if(!specificTree){
@@ -77,32 +77,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     localParams$elementPrefix = ""
     
     
-    ##Francesca: I want to breack the relationship between the original parant and 
-    ##discendents of the cut items
-    cut=list()
-    for(i in seq_len(length(cut)))
-    { 
-      
-      
-      cut[[i]]=data.table(getChildren( commodityTree = tree,
-                                       parentColname =standParams$parentVar,
-                                       childColname = standParams$childVar,
-                                       topNodes =cut[i] ))
-      
-      
-      
-      
-    }
-    
-    
-    cutDiscendets= rbindlist(cut)
-    
-    
-    standTree1=standTree[!standParams$childVar %in% cutDiscendets,]
-  
-    standTree2=standTree[standParams$childVar %in% cutDiscendets & standParams$parentVar %in% cut,]
-    
-    standTree=rbind(standTree1, standTree2)
+   
     
     out = data[, standardizeTree(data = .SD, tree = standTree,
                                  standParams = localParams, elements = "Value",
@@ -140,7 +115,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
                            unique(get(standParams$parentVar))]
     foodProcParents = c()
     out[get(standParams$elementVar) %in% c(standParams$productionCode) &
-            !get(standParams$itemVar) %in% foodProcParents,
+            !get(standParams$itemVar) %in% foodProcParents ,
         Value := Value.old]
     warning("The standardization approach may not work for production in ",
             "the case of grafted trees IF those grafted trees have more than ",
