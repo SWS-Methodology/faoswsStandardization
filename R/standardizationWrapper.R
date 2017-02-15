@@ -156,77 +156,41 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         print(printSUATable(data = data, standParams = p, printCodes = printCodes))
     }
     
-    ## STEP 2: Balance some products by specifying which element should get the 
-    ## residual.  Don't balance the "balancing level" (usually primary level) by
-    ## passing NA.
-    level = findProcessingLevel(tree, from = p$parentVar,
-                                to = p$childVar, aupusParam = p)
-    primaryEl = level[processingLevel == 0, get(p$itemVar)]
-    ## Add in elements not in the tree, as they are essentially parents
-    nonTreeEl = data[[p$itemVar]]
-    nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
-    primaryEl = c(primaryEl, nonTreeEl)
-    foodProcEl = unique(tree[get(p$targetVar) == "F",
-                             get(p$parentVar)])
-    #! This object is never used and I don't yet know why it's here
-    officialProd = data[get(p$elementVar) == p$productionCode & Value > 0,
-                        get(p$itemVar)]
-    ## Elements with official production shouldn't have their production 
-    ## updated.  Instead, the food value should be updated, and this is what 
-    ## will happen if that element is not specified to any of the groupings in
-    ## balanceResidual()
-    balanceResidual(data, p,
-                    primaryCommodities = primaryEl,
-                    foodProcessCommodities = foodProcEl,
-                    feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code],
-                    indCommodities = ReadDatatable("sua_balance_commodities")[element == "industrial", code]
-                    )
     
-    if(length(printCodes) > 0){
-        cat("\nSUA table after balancing processed elements:")
-        data = markUpdated(new = data, old = old, standParams = p)
-        old = copy(data)
-        print(printSUATable(data = data, standParams = p,
-                            printCodes = printCodes))
-    }
-    
-    ## STEP 2.1 Compute calories
-    if(!is.null(nutrientData)){
-        data = merge(data, nutrientData, by = p$itemVar, all.x = TRUE)
-        data[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0, 
-             c("Calories", "Proteins", "Fats") := 
-               0]
-        ## Convert nutrient values into total nutrient info using food
-        ## allocation.
-        
-        ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
-        ## of the nutreient componets is 1/100g
-        
-        
-        sapply(nutrientElements, function(nutrient){
-            data[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
-                 by = c(p$itemVar)]
-        })
-        
 
-        
-    }
     
-    ## STEP 3: Compute availability and hence shares
+   ## STEP 3: Compute availability and hence shares
+       ##   data[, availability := sum(ifelse(is.na(Value), 0, Value) *
+       ##                     ifelse(get(p$elementVar) == p$productionCode, 1,
+       ##                     ifelse(get(p$elementVar) == p$importCode, 1,
+       ##                     ifelse(get(p$elementVar) == p$exportCode, -1,
+       ##                     ifelse(get(p$elementVar) == p$stockCode, -1,
+       ##                     ifelse(get(p$elementVar) == p$foodCode, -1,
+       ##                     ifelse(get(p$elementVar) == p$foodProcCode, 0,
+       ##                     ifelse(get(p$elementVar) == p$feedCode, -1,
+       ##                     ifelse(get(p$elementVar) == p$wasteCode, -1,
+       ##                     ifelse(get(p$elementVar) == p$seedCode, -1,
+       ##                     ifelse(get(p$elementVar) == p$industrialCode, -1,
+       ##                     ifelse(get(p$elementVar) == p$touristCode, -1,
+       ##                     ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
+       ##  by = c(p$mergeKey)]
+    
+    
+    
+    
+
+   
+    
     data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                            ifelse(get(p$elementVar) == p$productionCode, 1,
-                            ifelse(get(p$elementVar) == p$importCode, 1,
-                            ifelse(get(p$elementVar) == p$exportCode, -1,
-                            ifelse(get(p$elementVar) == p$stockCode, -1,
-                            ifelse(get(p$elementVar) == p$foodCode, -1,
-                            ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                            ifelse(get(p$elementVar) == p$feedCode, -1,
-                            ifelse(get(p$elementVar) == p$wasteCode, -1,
-                            ifelse(get(p$elementVar) == p$seedCode, -1,
-                            ifelse(get(p$elementVar) == p$industrialCode, -1,
-                            ifelse(get(p$elementVar) == p$touristCode, -1,
-                            ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
+                                 ifelse(get(p$elementVar) == p$productionCode, 1,
+                                 ifelse(get(p$elementVar) == p$importCode, 1,
+                                 ifelse(get(p$elementVar) == p$exportCode, -1,
+                                 ifelse(get(p$elementVar) == p$seedCode, -1,0))))),
          by = c(p$mergeKey)]
+    
+    
+    
+    
     # There's only one availability value per group, but we need an aggregation
     # function so we use mean.
     mergeToTree = data[, list(availability = mean(availability)),
@@ -237,11 +201,13 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     availability = calculateAvailability(tree, p)
     tree[, availability := NULL]
     
+    tree[get(standParams$childVar) %in% cutItemsTestFra,
+       c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+  
+    availability[get(standParams$childVar) %in% cutItemsTestFra,
+         c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
     
   
-    tree[get(standParams$childVar) %in% cutItems,
-           c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    
     
     tree = collapseEdges(edges = tree, parentName = p$parentVar,
                          childName = p$childVar,
@@ -285,6 +251,78 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         }
     }
     
+    
+    
+    
+    
+    
+    ##try to inverte step 2 with step 3
+    
+    ## STEP 2: Balance some products by specifying which element should get the 
+    ## residual.  Don't balance the "balancing level" (usually primary level) by
+    ## passing NA.
+    level = findProcessingLevel(tree, from = p$parentVar,
+                                to = p$childVar, aupusParam = p)
+    primaryEl = level[processingLevel == 0, get(p$itemVar)]
+    ## Add in elements not in the tree, as they are essentially parents
+    nonTreeEl = data[[p$itemVar]]
+    nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
+    primaryEl = c(primaryEl, nonTreeEl)
+    foodProcEl = unique(tree[get(p$targetVar) == "F",
+                             get(p$parentVar)])
+    #! This object is never used and I don't yet know why it's here
+    officialProd = data[get(p$elementVar) == p$productionCode & Value > 0,
+                        get(p$itemVar)]
+    ## Elements with official production shouldn't have their production 
+    ## updated.  Instead, the food value should be updated, and this is what 
+    ## will happen if that element is not specified to any of the groupings in
+    ## balanceResidual()
+    balanceResidual(data, p,
+                    primaryCommodities = primaryEl,
+                    foodProcessCommodities = foodProcEl,
+                    feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code],
+                    indCommodities = ReadDatatable("sua_balance_commodities")[element == "industrial", code],
+                    cut=cutItemsTestFra
+    )
+    
+    if(length(printCodes) > 0){
+      cat("\nSUA table after balancing processed elements:")
+      data = markUpdated(new = data, old = old, standParams = p)
+      old = copy(data)
+      print(printSUATable(data = data, standParams = p,
+                          printCodes = printCodes))
+    }
+    
+    ## STEP 2.1 Compute calories
+    if(!is.null(nutrientData)){
+      data = merge(data, nutrientData, by = p$itemVar, all.x = TRUE)
+      data[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0, 
+           c("Calories", "Proteins", "Fats") := 
+             0]
+      ## Convert nutrient values into total nutrient info using food
+      ## allocation.
+      
+      ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
+      ## of the nutreient componets is 1/100g
+      
+      
+      sapply(nutrientElements, function(nutrient){
+        data[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
+             by = c(p$itemVar)]
+      })
+      
+      
+      
+    }
+
+    ## fra
+    
+    
+    
+    
+    
+    
+    
 
     
    
@@ -292,7 +330,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data = finalStandardizationToPrimary(data = data, tree = tree,
                                          standParams = p, sugarHack = FALSE,
                                          specificTree = FALSE,
-                                         cut=cutItems,
+                                         cut=cutItemsTestFra,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
         cat("\nSUA table after standardization:")
@@ -324,7 +362,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ##Stock
   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
   ##Food
-  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .4]
+  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .10]
   ##Feed
   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
   ##Seed
