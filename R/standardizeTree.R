@@ -162,13 +162,17 @@ standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
               paste0(unique(extract0[, get(parentVar)]), collapse = ", "), unique(extract0[, get(geoVar)])))
       standardizationData[abs(get(extractVar)) < .Machine$double.eps^.5, Value := NA]
     }
-      
-    output = standardizationData[, list(
-        Value = sum( Value  *    weight   /get(extractVar)*get(shareVar), na.rm = TRUE)),
-        by = c(yearVar, geoVar,
-               "measuredElement", parentVar)]
     
-    forwardEdges = tree[target == "F", ]
+    
+    
+    
+   
+   output = standardizationData[, list(
+       Value = sum( Value  *    weight   /get(extractVar)*get(shareVar), na.rm = TRUE)),
+       by = c(yearVar, geoVar,
+              "measuredElement", parentVar)]
+   
+   forwardEdges = tree[target == "F", ]
     
 ##  if(sugarHack){
 ##      ## Hacking sugar tree!
