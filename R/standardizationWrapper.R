@@ -251,6 +251,40 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         }
     }
     
+    ##STEP to filter out from the TOT availability of each commodity the portion that must be alloated to the FOOD processing.
+    
+    
+    tree[, availability:=NULL]
+    
+    
+    
+    
+    tree[,weight:=1]
+    zeroWeightChildren=list()
+    for(i in seq_len(length(zeroWeightVector)))
+    { 
+      
+      
+      zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
+                                                      parentColname =p$parentVar,
+                                                      childColname = p$childVar,
+                                                      topNodes =zeroWeightVector[i] ))
+      
+      
+    }
+    
+    zeroWeightDescendants= rbindlist(zeroWeightChildren)
+    
+    tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
+    
+    
+    
+    
+    foodProc(data=data, params=p, tree=tree)
+    
+    
+    
+    
     
     
     
