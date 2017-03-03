@@ -1,3 +1,4 @@
+
 ##' Full Standardization Process
 ##' 
 ##' This function implements the new standardization process.  The algorithm is 
@@ -207,7 +208,76 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     availability[get(standParams$childVar) %in% cutItemsTestFra,
          c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
     
+
+    
+    
+    
+    
+    
+    
+    ##STEP to filter out from the TOT availability of each commodity the portion that must be allocated to the FOOD processing.
   
+    
+    
+    
+    #share 
+    
+    tree = merge(tree, availability,
+                 by = c(p$childVar, p$parentVar))
+    tree = tree[, list(share = sum(share),
+                       availability = max(availability)),
+                by = c(p$childVar, p$parentVar, p$extractVar, 
+                       p$targetVar, p$standParentVar)]
+    setnames(tree, "share", p$shareVar)
+    ## Calculate the share using proportions of availability, but default to the
+    ## old value if no "by-availability" shares are available.
+    tree[, newShare := availability / sum(availability, na.rm = TRUE),
+         by = c(p$childVar)]
+    tree[, c(p$shareVar) :=
+           ifelse(is.na(newShare), get(p$shareVar), newShare)]
+    tree[, newShare := NULL]
+
+    
+    # weight
+    
+    tree[,weight:=1]
+    zeroWeightChildren=list()
+    for(i in seq_len(length(zeroWeightVector)))
+    { 
+      
+      
+      zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
+                                                      parentColname =p$parentVar,
+                                                      childColname = p$childVar,
+                                                      topNodes =zeroWeightVector[i] ))
+      
+      
+    }
+    
+    zeroWeightDescendants= rbindlist(zeroWeightChildren)
+    
+    tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
+    
+    
+    
+    
+    # standardization of the production to obtain foodProc
+    foodProc=filterOutFoodProc(data=data, params=p, tree=tree)
+    
+    data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
+    
+    
+    tree[, availability:=NULL]
+    
+    
+    
+    
+    
+    
+    
+    
+    
+      
     
     tree = collapseEdges(edges = tree, parentName = p$parentVar,
                          childName = p$childVar,
@@ -251,38 +321,12 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         }
     }
     
-    ##STEP to filter out from the TOT availability of each commodity the portion that must be alloated to the FOOD processing.
-    
-    
-    tree[, availability:=NULL]
     
     
     
     
-    tree[,weight:=1]
-    zeroWeightChildren=list()
-    for(i in seq_len(length(zeroWeightVector)))
-    { 
-      
-      
-      zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
-                                                      parentColname =p$parentVar,
-                                                      childColname = p$childVar,
-                                                      topNodes =zeroWeightVector[i] ))
-      
-      
-    }
     
-    zeroWeightDescendants= rbindlist(zeroWeightChildren)
-    
-    tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
-    
-    
-    
-    
-    foodProc(data=data, params=p, tree=tree)
-    
-    
+
     
     
     
@@ -327,6 +371,30 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                           printCodes = printCodes))
     }
     
+    
+  ##  message("Attempting to save standardized data...")
+  ##  
+  ##  
+  ##  setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+  ##  
+  ##  
+  ##  fbs_sua_conversion <- data.table(measuredItemFbsSua=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+  ##                                                           "foodManufacturing", "imports", "loss", "production", 
+  ##                                                           "seed", "stockChange", "residual","industrial", "tourist"),
+  ##                                   code=c("261", "281", "271", "5910", "5520", "5141", 
+  ##                                          "5023", "5610", "5015", "5510",
+  ##                                          "5525", "5071", "5166","5165", "5164"))
+  ## 
+  ##  standData = merge(data, fbs_sua_conversion, by = "measuredItemFbsSua")
+  ##  standData[,`:=`(measuredItemFbsSua = NULL)]
+  ##  setnames(standData, "code", "measuredItemFbsSua")
+  ##  
+  ##  
+  ##  SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
+  ##  
+  ##  
+  ##  setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    
     ## STEP 2.1 Compute calories
     if(!is.null(nutrientData)){
       data = merge(data, nutrientData, by = p$itemVar, all.x = TRUE)
@@ -349,8 +417,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       
     }
 
-    ## fra
-    
+
     
     
     
@@ -488,8 +555,19 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                            printCodes = printCodeTable[, fbsID1],
                            printProcessing = TRUE))
      }
+     
+     
      return(out)
    }
-    
+   
+   
+  ##for (i in 1:seq_len(length(out))) {
+  ##  
+  ##
+  ##  out[[i]]= computeSupplyComponents(data=out[[i]], standParams=p,loop=i)
+  ##
+  ##}
+  ##
+  ##return(out)
    
 }
