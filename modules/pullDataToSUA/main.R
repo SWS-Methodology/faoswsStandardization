@@ -91,6 +91,29 @@ setnames(agData, c("measuredElement", "measuredItemCPC"),
 
 
 
+## Harvest from Food Domain
+message("Pulling data from Food")
+eleFoodKey=Dimension(name = "measuredElement",
+                     keys = foodCode)
+foodKey = DatasetKey(domain = "food", dataset = "fooddata",
+                     dimensions = list(
+                       geographicAreaM49 = geoDim,
+                       measuredElement = eleFoodKey,
+                       measuredItemCPC = itemDim,
+                       timePointYears = timeDim)
+)
+foodData = GetData(foodKey)
+setnames(foodData, c("measuredElement", "measuredItemCPC"),
+         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+
+
+
+
+
+
+
+
+
 ## Harvest from Tourist
 message("Pulling data from Tourist")
 eleTourDim = Dimension(name = "tourismElement",
@@ -136,51 +159,104 @@ setnames(tourData, c("tourismElement", "measuredItemCPC"),
 
 
 ## Harvest from Trade: old FAOSTAT data
-message("Pulling data from Trade")
+##message("Pulling data from Trade")
+##
+####eleTradeDim = Dimension(name = "measuredElementTrade",
+####                        keys = c(importCode, exportCode))
+##
+##tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")))
+##
+##geoKeysTrade=m492fs(geoKeys)
+##
+##geokeysTrade=geoKeysTrade[!is.na(geoKeysTrade)]
+##
+##tradeKey = DatasetKey(
+##  domain = "faostat_one", dataset = "FS1_SUA_UPD",
+##  dimensions = list(
+##    #user input except curacao,  saint martin and former germany
+##    geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
+##    measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
+##    measuredElementFS=Dimension(name = "measuredElementFS",
+##              keys = c( "61", "91")),
+##    timePointYears = timeDim ),
+##  sessionId =  slot(swsContext.datasets[[1]], "sessionId")
+##)
+##
+##
+##tradeData = GetData(tradeKey)
+##
+##
+##tradeData[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
+##                 measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
+##                                          version = "latest"))]
+##
+##
+##setnames(tradeData, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
+##         c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
+##
+##tradeData[, flagMethod := "-"]
+##
+##tradeData[flagObservationStatus %in% c("P", "*", "F"), flagObservationStatus := "T"]
 
-##eleTradeDim = Dimension(name = "measuredElementTrade",
-##                        keys = c(importCode, exportCode))
-
-tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")))
-
-geoKeysTrade=m492fs(geoKeys)
-
-geokeysTrade=geoKeysTrade[!is.na(geoKeysTrade)]
-
-tradeKey = DatasetKey(
-  domain = "faostat_one", dataset = "FS1_SUA",
-  dimensions = list(
-    #user input except curacao,  saint martin and former germany
-    geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
-    measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
-    measuredElementFS=Dimension(name = "measuredElementFS",
-              keys = c( "61", "91")),
-    timePointYears = timeDim ),
-  sessionId =  slot(swsContext.datasets[[1]], "sessionId")
-)
 
 
-tradeData = GetData(tradeKey)
+
+##out[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
+##out[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
 
 
-tradeData[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
-                 measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
-                                          version = "latest"))]
 
 
-setnames(tradeData, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
-         c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
 
-tradeData[, flagMethod := NA]
+
+
+
+GetCodeList2 <- function(dimension = NA) {
+  GetCodeList(domain='trade', dataset='total_trade_cpc_m49', dimension = dimension)
+}
+
+
+Vars <- list(reporters = 'geographicAreaM49',
+             items     = 'measuredItemCPC',
+             elements  = 'measuredElementTrade',
+             years     = 'timePointYears')
+
+Keys <- list(reporters = GetCodeList2(dimension = Vars[['reporters']])[type=='country', code],
+             items     = GetCodeList2(dimension = Vars[['items']])[, code],
+             # Quantity [#], Quantity [head], Quantity [1000 head], Quantity [t], Value [1000 $]
+             elements  = c('5607', '5608', '5609', '5610', '5907', '5908', '5909', '5910'),
+             years     = as.character(2000:2013))
+
+key <- DatasetKey(domain = 'trade',
+                  dataset = 'total_trade_cpc_m49',
+                  dimensions = list(
+                    Dimension(name = Vars[['reporters']], keys = Keys[['reporters']]),
+                    Dimension(name = Vars[['items']],     keys = Keys[['items']]),
+                    Dimension(name = Vars[['elements']],  keys = Keys[['elements']]),
+                    Dimension(name = Vars[['years']],     keys = Keys[['years']])))
+
+
+tradeData <- GetData(key = key)
+
+setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
+         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+
+
+
+
+
+
 
 
 
 
 message("Merging data files together and saving")
-out = do.call("rbind", list(agData, tradeData, tourData))
+out = do.call("rbind", list(agData,foodData, tradeData, tourData))
 
-out[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
-out[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
+
+
+
+
 
 out <- out[!is.na(Value),]
 
