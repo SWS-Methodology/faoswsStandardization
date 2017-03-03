@@ -56,15 +56,14 @@ yearVals = as.character(startYear:endYear)
 
 
 
-yearVals=c("2010","2011")
-
 
 # Get commodity tree with child shares of parent
 tree = getCommodityTree(timePointYears = yearVals)
 
 
-meat=c("21111.01","21112","21113.01","21114","21115","21116","21117.01","21117.02","21118.01","21118.02","21118.03","21119.01","21121","21122","21123","21124","21170.01")
-
+meat=c("21118.01","21139","21111.01" ,"21112","21113.01","21114","21115","21116","21117.01","21117.02","21118.02","21118.03","21119.01","21121","21122",
+       "21123","21124","21125","21131","21132","21133","21134","21135","21136","21137","21137","21138","21138","21138","21141",
+       "21142","21143","21144","21145","21170.01")
 animals= unique(tree[measuredItemChildCPC %in% meat, measuredItemParentCPC])
 
 tree=tree[!measuredItemParentCPC %in% animals,]
@@ -96,7 +95,7 @@ tree=tree[measuredItemParentCPC!="01520",]
 # g <- graph_from_data_frame(graphdata)
 # 
 # pdf(width=20, height=20, file="biggraph.pdf")
-# plot(g, vertex.size = .8, vertex.label.cex = 0.1, vertex.label.color = "indianred", 
+# plot(g, vertex.size = .8, vertex.label.cex = 3, vertex.label.color = "indianred", 
 #      edge.arrow.size = 0.05, edge.width=.1, edge.curved = TRUE)
 # dev.off()
 
@@ -152,8 +151,20 @@ message("Reading SUA data...")
 # specified by the user.
 
 #!! 3 warnings about things that need to be changed !!#
-data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemSuaFbs",
-                           elementCol = "measuredElementSuaFbs")
+##data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemSuaFbs",
+##                           elementCol = "measuredElementSuaFbs")
+
+
+load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/data/zeroWeightVector.RData")
+load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/data/fbsTreeFra2.RData")
+
+load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/data/cutItemsTestFra.RData")
+load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/dataTradeChri.RData")
+
+
+animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildCPC])
+cutItemsTestFra=cutItems[!cutItemsTestFra %in% animalChildren]
+
 
 ## Update params for specific dataset
 params = defaultStandardizationParameters()
@@ -250,19 +261,19 @@ standardizationVectorized = function(data, tree, nutrientData){
   
  printCodes = character()
   
-##  printCodes=c("21113.01")
-## ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
-## ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
-## ##printCodes = sample(samplePool, size = 1)
-##  if (!is.null(tree)) {
-##  printCodes = getChildren(commodityTree = tree,
-##                           parentColname = params$parentVar,
-##                           childColname = params$childVar,
-##                           topNodes = printCodes)
-##  }
-##
-## dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
-##           )
+##   printCodes=c("02211")
+##  ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
+##  ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
+##  ##printCodes = sample(samplePool, size = 1)
+##   if (!is.null(tree)) {
+##   printCodes = getChildren(commodityTree = tree,
+##                            parentColname = params$parentVar,
+##                            childColname = params$childVar,
+##                            topNodes = printCodes)
+##   }
+## 
+##  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
+##            )
  
   
   ##,recursive = TRUE
@@ -300,11 +311,12 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-uniqueLevels=uniqueLevels[geographicAreaM49!="728" & timePointYears %in% c("2010","2011"),]
-fbsTreeFra2[fbsID4=="2532",measuredItemSuaFbs:="01520.01"]
+uniqueLevels=uniqueLevels[geographicAreaM49!="728",]
 
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("792","826","788","554","528","56","512","270","36","352","398","348", "678") & timePointYears %in% c("2009","2010","2011","2012"),]
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("12","72","854","1248","231","233","268","356","360") ,]
 
-
+##uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("554") & timePointYears %in% c("2009","2010","2011","2012"),]
 for (i in seq_len(nrow(uniqueLevels))) {
     filter = uniqueLevels[i, ]
     dataSubset = data[filter, , on = c("geographicAreaM49", "timePointYears")]
