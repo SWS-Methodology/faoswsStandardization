@@ -56,31 +56,33 @@ balanceResidual = function(data, standParams, feedCommodities = c(),
     
     stopifnot(imbalanceThreshold > 0)
     
+   data[, imbalance := sum(ifelse(is.na(Value), 0, Value) *
+           ifelse(get(standParams$elementVar) == p$productionCode, 1,
+           ifelse(get(standParams$elementVar) == p$importCode, 1,
+           ifelse(get(standParams$elementVar) == p$exportCode, -1,
+           ifelse(get(standParams$elementVar) == p$stockCode, -1,
+           ifelse(get(standParams$elementVar) == p$foodCode, -1,
+           ifelse(get(standParams$elementVar) == p$foodProcCode, 0,
+           ifelse(get(standParams$elementVar) == p$feedCode, -1,
+           ifelse(get(standParams$elementVar) == p$wasteCode, -1,
+           ifelse(get(standParams$elementVar) == p$seedCode, -1,
+           ifelse(get(standParams$elementVar) == p$industrialCode, -1,
+           ifelse(get(standParams$elementVar) == p$touristCode, -1,
+           ifelse(get(standParams$elementVar) == p$residualCode, -1, 
+                  NA))))))))))))),
+        by = c(standParams$mergeKey)]
+    
    ##data[, imbalance := sum(ifelse(is.na(Value), 0, Value) *
-   ##        ifelse(get(standParams$elementVar) == p$productionCode, 1,
-   ##        ifelse(get(standParams$elementVar) == p$importCode, 1,
-   ##        ifelse(get(standParams$elementVar) == p$exportCode, -1,
-   ##        ifelse(get(standParams$elementVar) == p$stockCode, -1,
-   ##        ifelse(get(standParams$elementVar) == p$foodCode, -1,
-   ##        ifelse(get(standParams$elementVar) == p$foodProcCode, 0,
-   ##        ifelse(get(standParams$elementVar) == p$feedCode, -1,
-   ##        ifelse(get(standParams$elementVar) == p$wasteCode, -1,
-   ##        ifelse(get(standParams$elementVar) == p$seedCode, -1,
-   ##        ifelse(get(standParams$elementVar) == p$industrialCode, -1,
-   ##        ifelse(get(standParams$elementVar) == p$touristCode, -1,
-   ##        ifelse(get(standParams$elementVar) == p$residualCode, -1, 
-   ##               NA))))))))))))),
-   ##     by = c(standParams$mergeKey)]
+   ##                           ifelse(get(p$elementVar) == p$productionCode, 1,
+   ##                           ifelse(get(p$elementVar) == p$importCode, 1,
+   ##                           ifelse(get(p$elementVar) == p$exportCode, -1,
+   ##                           ifelse(get(p$elementVar) == p$seedCode, -1,0))))),
+   ##      by = c(p$mergeKey)]
     
-    data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                               ifelse(get(p$elementVar) == p$productionCode, 1,
-                               ifelse(get(p$elementVar) == p$importCode, 1,
-                               ifelse(get(p$elementVar) == p$exportCode, -1,
-                               ifelse(get(p$elementVar) == p$seedCode, -1,0))))),
-          by = c(p$mergeKey)]
+    ##data[!is.na(foodProc) & imbalance>0, imbalance:=imbalance-foodProc]
     
     
-    data[availability>0, availability:=availability-foodProcElement]
+    data[imbalance>0, imbalance:=imbalance-foodProcElement]
     
     
     data[, newValue := ifelse(is.na(Value), 0, Value) + imbalance]
