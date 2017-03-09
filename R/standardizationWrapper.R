@@ -132,8 +132,15 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         nutrientElements = c()
     }
 
+    
+    
+    
     ## STEP 0.1: Add missing element codes for commodities that are in the data
     ## (so that we can print it).  Then, print the table!
+    ## Note that this function has been repeted juast after the processForward
+    ## because missingElements have to be created for those children which were not in 
+    ## dataset previuosly
+    
     data = addMissingElements(data, p)
     if(length(printCodes) > 0){
         cat("Initial SUA table:")
@@ -147,6 +154,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## STEP 1: Process forward.
     data = processForward(data = data, tree = tree,
                           standParams = p)$data
+    
+    ## As already anticipated, missing elements are added after the processForward
+    data = addMissingElements(data, p)
+    
     ## Delete nodes processed forward
     forwardParents = tree[get(p$targetVar) == "F", unique(get(p$parentVar))]
     tree = tree[!get(p$parentVar) %in% forwardParents, ]
@@ -216,53 +227,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     
     ##STEP to filter out from the TOT availability of each commodity the portion that must be allocated to the FOOD processing.
-  
-    
-    
-    
-    #share 
-    
-    tree = merge(tree, availability,
-                 by = c(p$childVar, p$parentVar))
-    tree = tree[, list(share = sum(share),
-                       availability = max(availability)),
-                by = c(p$childVar, p$parentVar, p$extractVar, 
-                       p$targetVar, p$standParentVar)]
-    setnames(tree, "share", p$shareVar)
-    ## Calculate the share using proportions of availability, but default to the
-    ## old value if no "by-availability" shares are available.
-    tree[, newShare := availability / sum(availability, na.rm = TRUE),
-         by = c(p$childVar)]
-    tree[, c(p$shareVar) :=
-           ifelse(is.na(newShare), get(p$shareVar), newShare)]
-    tree[, newShare := NULL]
 
-    
-    # weight
-    
-    tree[,weight:=1]
-    zeroWeightChildren=list()
-    for(i in seq_len(length(zeroWeightVector)))
-    { 
-      
-      
-      zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
-                                                      parentColname =p$parentVar,
-                                                      childColname = p$childVar,
-                                                      topNodes =zeroWeightVector[i] ))
-      
-      
-    }
-    
-    zeroWeightDescendants= rbindlist(zeroWeightChildren)
-    
-    tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
-    
-    
-    
-    
     # standardization of the production to obtain foodProc
-    foodProc=filterOutFoodProc(data=data, params=p, tree=tree)
+    foodProc=filterOutFoodProc(data=data, params=p, tree=tree, availability=availability,zeroWeight=zeroWeightVector)
     
     data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
     
@@ -345,7 +312,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## Add in elements not in the tree, as they are essentially parents
     nonTreeEl = data[[p$itemVar]]
     nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
-    primaryEl = c(primaryEl, nonTreeEl)
+    ##primaryEl = c(primaryEl, nonTreeEl)
     foodProcEl = unique(tree[get(p$targetVar) == "F",
                              get(p$parentVar)])
     #! This object is never used and I don't yet know why it's here
@@ -356,6 +323,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## will happen if that element is not specified to any of the groupings in
     ## balanceResidual()
     balanceResidual(data, p,
+                    tree=tree,
                     primaryCommodities = primaryEl,
                     foodProcessCommodities = foodProcEl,
                     feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code],
@@ -372,28 +340,32 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }
     
     
-  ##  message("Attempting to save standardized data...")
-  ##  
-  ##  
-  ##  setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
-  ##  
-  ##  
-  ##  fbs_sua_conversion <- data.table(measuredItemFbsSua=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-  ##                                                           "foodManufacturing", "imports", "loss", "production", 
-  ##                                                           "seed", "stockChange", "residual","industrial", "tourist"),
-  ##                                   code=c("261", "281", "271", "5910", "5520", "5141", 
-  ##                                          "5023", "5610", "5015", "5510",
-  ##                                          "5525", "5071", "5166","5165", "5164"))
-  ## 
-  ##  standData = merge(data, fbs_sua_conversion, by = "measuredItemFbsSua")
-  ##  standData[,`:=`(measuredItemFbsSua = NULL)]
-  ##  setnames(standData, "code", "measuredItemFbsSua")
-  ##  
-  ##  
-  ##  SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
-  ##  
-  ##  
-  ##  setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    ##message("Attempting to save standardized data...")
+    ##
+    ##
+    ##setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+    ##
+    ##
+    ##fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+    ##                                                         "foodManufacturing", "imports", "loss", "production", 
+    ##                                                         "seed", "stockChange", "residual","industrial", "tourist"),
+    ##                                 code=c("261", "281", "271", "5910", "5520", "5141", 
+    ##                                        "5023", "5610", "5015", "5510",
+    ##                                        "5525", "5071", "5166","5165", "5164"))
+   ##
+    ##standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    ##standData[,`:=`(measuredElementSuaFbs = NULL)]
+    ##setnames(standData, "code", "measuredElementSuaFbs")
+    ##
+    ##
+    ##
+    ##standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+    ##                         Value, flagObservationStatus, flagMethod)]
+    ##standData <- standData[!is.na(Value),]
+    ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
+    ##
+    ##
+    ##setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
     
     ## STEP 2.1 Compute calories
     if(!is.null(nutrientData)){
@@ -557,17 +529,19 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
      }
      
      
-     return(out)
-   }
+   ##  return(out)
+      }
+
    
+ outOut=list()  
    
-  ##for (i in 1:seq_len(length(out))) {
-  ##  
-  ##
-  ##  out[[i]]= computeSupplyComponents(data=out[[i]], standParams=p,loop=i)
-  ##
-  ##}
-  ##
-  ##return(out)
+ for (i in seq_len(length(out))) {
+   
+ 
+   outOut[[i]]= computeSupplyComponents(data=out[[i]], standParams=p,loop=i)
+ 
+ }
+ 
+ return(outOut)
    
 }

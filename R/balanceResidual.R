@@ -34,7 +34,7 @@
 ##'   is updated.
 ##'   
 
-balanceResidual = function(data, standParams, feedCommodities = c(),
+balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
                            indCommodities = c(), primaryCommodities = c(),
                            foodProcessCommodities = c(), imbalanceThreshold = 10,cut=c()){
     p = standParams
@@ -82,7 +82,7 @@ balanceResidual = function(data, standParams, feedCommodities = c(),
     ##data[!is.na(foodProc) & imbalance>0, imbalance:=imbalance-foodProc]
     
     
-    data[imbalance>0, imbalance:=imbalance-foodProcElement]
+    data[imbalance>0 & !is.na(foodProcElement), imbalance:=imbalance-foodProcElement]
     
     
     data[, newValue := ifelse(is.na(Value), 0, Value) + imbalance]
@@ -93,16 +93,44 @@ balanceResidual = function(data, standParams, feedCommodities = c(),
          by = c(standParams$itemVar)]
 
     
-    ##data[, officialFood := any(get(standParams$elementVar) == standParams$foodCode &
-    ##                             !is.na(Value) & Value > 0),
-    ##    by = c(standParams$itemVar)]
+    data[, officialFood := any(get(standParams$elementVar) == standParams$foodCode &
+                                 !is.na(Value) & Value > 0),
+        by = c(standParams$itemVar)]
     
-    
+   TobeBalancedCommodity=list()
+   primaryCommoditiesChildren=list()
+   for(i in seq_len(length(unique(primaryCommodities))) )
+   { 
+     
+     
+     primaryCommoditiesChildren[[i]]=(getChildren( commodityTree = tree,
+                                                     parentColname =params$parentVar,
+                                                     childColname = params$childVar,
+                                                     topNodes =primaryCommodities[i] ))
+     
+     primaryCommoditiesChildren[[i]]=primaryCommoditiesChildren[[i]][primaryCommoditiesChildren[[i]]!=primaryCommodities[i]]
+     if(nrow(data[standParams$itemVar %in% primaryCommoditiesChildren[[i]] , ])==0 |
+        sum(data[standParams$itemVar %in% primaryCommoditiesChildren[[i]] , Value], na.rm = TRUE)==0 )
+        {
+       
+       TobeBalancedCommodity[[i]]= data.table(primaryCommodities[i])
+       
+     }
+     
+     TobeBalancedCommodity[[i]]=data.table(NA)
+   }
+   
+   TobeBalanced= rbindlist(TobeBalancedCommodity)
+   TobeBalanced=TobeBalanced[!is.na(TobeBalanced[,V1])]
+   
+   
+   NotTobeBalanced=primaryCommodities[!primaryCommodities %in% TobeBalanced[,V1]]
+   
     
     ## Supply > Utilization: assign difference to food, feed, etc.  Or, if 
     ## production is official, force a balance by adjusting food, feed, etc.
     data[(imbalance > imbalanceThreshold & officialProd )
-         & (!get(standParams$itemVar) %in% primaryCommodities) ,
+         & (!get(standParams$itemVar) %in% NotTobeBalanced) ,
          ## Remember, data is currently in long format.  This condition is ugly, but the idea is
          ## that Value should be replaced with newValue if the particular row of interest
          ## corresponds to the food variable and if the commodity should have it's residual
@@ -117,14 +145,14 @@ balanceResidual = function(data, standParams, feedCommodities = c(),
                               foodProcessCommodities))),
             newValue, Value)]
     
-    data[(imbalance > imbalanceThreshold & officialProd )
-         & (!get(standParams$itemVar) %in% primaryCommodities) ,
-         ## Remember, data is currently in long format.  This condition is ugly, but the idea is
-         ## that Value should be replaced with newValue if the particular row of interest
-         ## corresponds to the food variable and if the commodity should have it's residual
-         ## allocated to food.  Likewise, if the row corresponds to feed and if the commodity
-         ## should have it's residual allocated to feed, then Value is updated with newValue.
-         Value := ifelse(get(standParams$elementVar) == p$foodProcCode,newValue, Value)]
+  ##  data[(imbalance > imbalanceThreshold & officialProd )
+  ##       & (!get(standParams$itemVar) %in% primaryCommodities) ,
+  ##       ## Remember, data is currently in long format.  This condition is ugly, but the idea is
+  ##       ## that Value should be replaced with newValue if the particular row of interest
+  ##       ## corresponds to the food variable and if the commodity should have it's residual
+  ##       ## allocated to food.  Likewise, if the row corresponds to feed and if the commodity
+  ##       ## should have it's residual allocated to feed, then Value is updated with newValue.
+  ##       Value := ifelse(get(standParams$elementVar) == p$foodProcCode,newValue, Value)]
     
     
     

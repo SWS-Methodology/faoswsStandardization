@@ -351,10 +351,11 @@ the beginning and at this step.")
 
 fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
                                                          "foodManufacturing", "imports", "loss", "production", 
-                                                         "seed", "stockChange", "residual","industrial", "tourist"),
+                                                         "seed", "stockChange", "residual","industrial", "tourist",
+                                                         "DES_calories","DES_proteins","DES_fats"),
                                  code=c("261", "281", "271", "5910", "5520", "5141", 
                                         "5023", "5610", "5015", "5510",
-                                        "5525", "5071", "5166","5165", "5164"))
+                                        "5525", "5071", "5166","5165", "5164","664","674","684"))
 ##standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode), 
 ##  `:=`(measuredElementSuaFbs = "other", 
 ##       Value = sum(Value, na.rm=TRUE)), 
@@ -384,3 +385,4 @@ cat(out$inserted + out$ignored, " observations written and problems with ",
     out$discarded, sep = "")
 paste0(out$inserted + out$ignored, " observations written and problems with ",
        out$discarded)
+

@@ -26,8 +26,67 @@
 ##' 
 
 
-filterOutFoodProc=function(data=data, params=p, tree=tree)
+filterOutFoodProc=function(data=data, params=p, tree=tree, availability=availability,zeroWeight= zeroWeightVector)
+  
+  
+  
 {
+  
+  tree = merge(tree, availability,
+               by = c(params$childVar, params$parentVar))
+  tree = tree[, list(share = sum(share),
+                     availability = max(availability)),
+              by = c(params$childVar, params$parentVar, params$extractVar, 
+                     params$targetVar, params$standParentVar)]
+  setnames(tree, "share", params$shareVar)
+  ## Calculate the share using proportions of availability, but default to the
+  ## old value if no "by-availability" shares are available.
+  tree[, newShare := availability / sum(availability, na.rm = TRUE),
+       by = c(params$childVar)]
+  tree[, c(params$shareVar) :=
+         ifelse(is.na(newShare), get(params$shareVar), newShare)]
+  tree[, newShare := NULL]
+  
+  
+  # weight
+  
+  tree[,weight:=1]
+  zeroWeightChildren=list()
+  for(i in seq_len(length(zeroWeight)))
+  { 
+    
+    
+    zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
+                                                    parentColname =params$parentVar,
+                                                    childColname = params$childVar,
+                                                    topNodes =zeroWeight[i] ))
+    
+    
+  }
+  
+  zeroWeightDescendants= rbindlist(zeroWeightChildren)
+  
+  tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+
+
+
+
+
+
   
     data[, availability := sum(ifelse(is.na(Value), 0, Value) *
                       ifelse(get(params$elementVar) == params$productionCode, 1,
