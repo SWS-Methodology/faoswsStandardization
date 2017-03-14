@@ -70,6 +70,24 @@ tree=tree[!measuredItemParentCPC %in% animals,]
 tree=tree[measuredItemParentCPC!="01520",]
 
 
+# Cristina Correction sugar Tree
+
+tree = tree[!measuredItemParentCPC=="23670.01"] # All ER = NA (rows=3878)
+tree = tree[!measuredItemParentCPC=="2351"] # All ER = NA 0.9200 0.9300 0.9650 0.9600 0.9350 0.9430 0.9346 (rows=3878)
+tree = tree[!measuredItemParentCPC=="23511"] # All ER = NA (rows=3878)
+tree = tree[!(measuredItemChildCPC=="2413"& measuredItemParentCPC %in% c("23520","23511.01","39160","24110"))] # NA 0.7 (rows=3878)
+tree = tree[!(measuredItemChildCPC=="24110"& measuredItemParentCPC=="39160")] # NA 0.45 0.25 (rows=3878)
+tree = tree[!(measuredItemChildCPC=="24490" & measuredItemParentCPC=="23511.01")] # NA 5 (rows=3878)
+tree = tree[!(measuredItemChildCPC=="2351" & measuredItemParentCPC=="23512")] # All ER = NA (rows=3878)
+tree = tree[!measuredItemChildCPC=="23511"] # NA 0.1 (rows=3878)
+tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="23511.01", measuredItemChildCPC:="2351f"]
+tree[measuredItemParentCPC=="01801" & measuredItemChildCPC=="23512", measuredItemChildCPC:="2351f"]
+tree[measuredItemParentCPC=="23511.01", measuredItemParentCPC:="2351f"]
+tree[measuredItemParentCPC=="23512", measuredItemParentCPC:="2351f"]
+##tree[measuredItemChildCPC=="2351f"& measuredItemParentCPC %in% c("23511.01","23512"),measuredItemChildCPC:="23520"]
+###
+
+
 
 ###
 
@@ -158,13 +176,32 @@ message("Reading SUA data...")
 load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/data/zeroWeightVector.RData")
 load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/data/fbsTreeFra2.RData")
 
+##Cristina
+##fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2542","23511.01","2901","2903","2909")))
+##fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeCri3),c("2542","23512","2901","2903","2909")))
+##fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351f","2351")]
+##fbsTreeFra2 <- fbsTreeCri3
+###
+
+
+
 load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/data/cutItemsTestFra.RData")
+
+
+
 load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/dataTradeChri.RData")
 
+# Cristina 
+data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
 
 animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildCPC])
 cutItemsTestFra=cutItems[!cutItemsTestFra %in% animalChildren]
 
+##Cristina
+cutItemsTestFra = cutItemsTestFra[which(cutItemsTestFra!="23511.01")]
+##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
+cutItemsTestFra = c(cutItemsTestFra, "2351f")
+##
 
 ## Update params for specific dataset
 params = defaultStandardizationParameters()
@@ -191,8 +228,12 @@ message("Applying adjustments to commodity tree...")
 
 ## Update tree by setting some edges to "F", computing average extraction rates
 ## when missing, and bringing in extreme extraction rates
-FPCommodities <- c("23511.01", "23512",
-                   "01499.06", "01921.01")
+# FPCommodities <- c("23511.01", "23512","01499.06", "01921.01")
+
+##Cristina
+FPCommodities <- c( "01499.06", "01921.01")
+##
+
 
 # These commodities are forwards processed instead of backwards processed:
 #        code             description type
@@ -261,19 +302,19 @@ standardizationVectorized = function(data, tree, nutrientData){
   
  printCodes = character()
   
-##   printCodes=c("02211")
-##  ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
-##  ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
-##  ##printCodes = sample(samplePool, size = 1)
-##   if (!is.null(tree)) {
-##   printCodes = getChildren(commodityTree = tree,
-##                            parentColname = params$parentVar,
-##                            childColname = params$childVar,
-##                            topNodes = printCodes)
-##   }
-## 
-##  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
-##            )
+   printCodes=c("01801", "01802")
+  ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
+  ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
+  ##printCodes = sample(samplePool, size = 1)
+   if (!is.null(tree)) {
+   printCodes = getChildren(commodityTree = tree,
+                            parentColname = params$parentVar,
+                            childColname = params$childVar,
+                            topNodes = printCodes)
+   }
+ 
+  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
+            )
  
   
   ##,recursive = TRUE
@@ -310,6 +351,10 @@ aggFun = function(x) {
 }
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
+
+
+
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36", "104", "262","124"),]
 
 uniqueLevels=uniqueLevels[geographicAreaM49!="728",]
 

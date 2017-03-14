@@ -172,20 +172,20 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
 
     
    ## STEP 3: Compute availability and hence shares
-       ##   data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-       ##                     ifelse(get(p$elementVar) == p$productionCode, 1,
-       ##                     ifelse(get(p$elementVar) == p$importCode, 1,
-       ##                     ifelse(get(p$elementVar) == p$exportCode, -1,
-       ##                     ifelse(get(p$elementVar) == p$stockCode, -1,
-       ##                     ifelse(get(p$elementVar) == p$foodCode, -1,
-       ##                     ifelse(get(p$elementVar) == p$foodProcCode, 0,
-       ##                     ifelse(get(p$elementVar) == p$feedCode, -1,
-       ##                     ifelse(get(p$elementVar) == p$wasteCode, -1,
-       ##                     ifelse(get(p$elementVar) == p$seedCode, -1,
-       ##                     ifelse(get(p$elementVar) == p$industrialCode, -1,
-       ##                     ifelse(get(p$elementVar) == p$touristCode, -1,
-       ##                     ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
-       ##  by = c(p$mergeKey)]
+   ##       data[, availability := sum(ifelse(is.na(Value), 0, Value) *
+   ##                         ifelse(get(p$elementVar) == p$productionCode, 1,
+   ##                         ifelse(get(p$elementVar) == p$importCode, 1,
+   ##                         ifelse(get(p$elementVar) == p$exportCode, -1,
+   ##                         ifelse(get(p$elementVar) == p$stockCode, -1,
+   ##                         ifelse(get(p$elementVar) == p$foodCode, -1,
+   ##                         ifelse(get(p$elementVar) == p$foodProcCode, 0,
+   ##                         ifelse(get(p$elementVar) == p$feedCode, -1,
+   ##                         ifelse(get(p$elementVar) == p$wasteCode, -1,
+   ##                         ifelse(get(p$elementVar) == p$seedCode, -1,
+   ##                         ifelse(get(p$elementVar) == p$industrialCode, -1,
+   ##                         ifelse(get(p$elementVar) == p$touristCode, -1,
+   ##                         ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
+   ##      by = c(p$mergeKey)]
     
     
     
@@ -212,6 +212,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     tree = merge(tree, mergeToTree, by = p$parentVar, all.x = TRUE)
     availability = calculateAvailability(tree, p)
     tree[, availability := NULL]
+    
+    
+    
+    ## The trees that have not to be standardized back are cut changing their codes 
+    ## in the child column (both in tree and in availability)
     
     tree[get(standParams$childVar) %in% cutItemsTestFra,
        c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
