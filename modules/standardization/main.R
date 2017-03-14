@@ -194,6 +194,10 @@ load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/dataTrade
 # Cristina 
 data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
 
+data=data[, list(Value = sum(Value, na.rm = TRUE)),
+     by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears")]
+
+
 animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildCPC])
 cutItemsTestFra=cutItems[!cutItemsTestFra %in% animalChildren]
 
