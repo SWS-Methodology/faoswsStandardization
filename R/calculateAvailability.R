@@ -92,7 +92,7 @@ calculateAvailability = function(tree, standParams){
                     by = c(standParams$childVar, standParams$parentVar)]
  
     
-    outputNegativeAvail=output[availability < 0, .(get(standParams$parentVar),get(standParams$childVar))]
+    outputNegativeAvail=output[availability <= 0 | is.na(availability) , .(get(standParams$parentVar),get(standParams$childVar))]
     setnames(outputNegativeAvail, c("V1", "V2"), c(standParams$parentVar,standParams$childVar))
     if(nrow(outputNegativeAvail)>0){
     freqChild= data.table(table(outputNegativeAvail[, get(standParams$childVar)]))
@@ -101,7 +101,7 @@ calculateAvailability = function(tree, standParams){
     outputNegativeAvail[, availability:=1/freq]
     outputNegativeAvail[,freq:=NULL]
     
-    output=output[availability >= 0, ]
+    output=output[availability >0 & !is.na(availability), ]
     output=rbind(output,outputNegativeAvail)
     }
     return(output)
