@@ -43,7 +43,7 @@ if (CheckDebug()) {
 #User name is what's after the slash
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
-#SWS_USER = "browningj"
+SWS_USER = "muschitiello"
 
 message("Getting parameters/datasets...")
 
@@ -84,6 +84,8 @@ tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="23511.01", measured
 tree[measuredItemParentCPC=="01801" & measuredItemChildCPC=="23512", measuredItemChildCPC:="2351f"]
 tree[measuredItemParentCPC=="23511.01", measuredItemParentCPC:="2351f"]
 tree[measuredItemParentCPC=="23512", measuredItemParentCPC:="2351f"]
+tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),]
+
 ##tree[measuredItemChildCPC=="2351f"& measuredItemParentCPC %in% c("23511.01","23512"),measuredItemChildCPC:="23520"]
 ###
 
@@ -173,8 +175,8 @@ message("Reading SUA data...")
 ##                           elementCol = "measuredElementSuaFbs")
 
 
-load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/data/zeroWeightVector.RData")
-load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/data/fbsTreeFra2.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/zeroWeightVector.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeFra2.RData")
 
 ##Cristina
 ##fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2542","23511.01","2901","2903","2909")))
@@ -182,14 +184,15 @@ load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/data/fbsT
 ##fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351f","2351")]
 ##fbsTreeFra2 <- fbsTreeCri3
 ###
+# alcohol
+fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2659","24110","2901","2903","2924")))
+fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351")]
+fbsTreeFra2 <- fbsTreeCri3
+fbsTreeFra2[fbsID4=="2542",measuredItemSuaFbs:="23520"]
 
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/cutItemsTestFra.RData")
 
-
-load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/data/cutItemsTestFra.RData")
-
-
-
-load("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/dataTradeChri.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
 
 # Cristina 
 data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
@@ -202,9 +205,8 @@ animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildC
 cutItemsTestFra=cutItems[!cutItemsTestFra %in% animalChildren]
 
 ##Cristina
-cutItemsTestFra = cutItemsTestFra[which(cutItemsTestFra!="23511.01")]
-##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
-cutItemsTestFra = c(cutItemsTestFra, "2351f")
+cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540","2351f")))]##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
+cutItemsTestFra = c(cutItemsTestFra, "23520", "24110")
 ##
 
 ## Update params for specific dataset
@@ -306,22 +308,22 @@ standardizationVectorized = function(data, tree, nutrientData){
   
  printCodes = character()
   
-   printCodes=c("01801", "01802")
-  ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
-  ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
-  ##printCodes = sample(samplePool, size = 1)
-   if (!is.null(tree)) {
-   printCodes = getChildren(commodityTree = tree,
-                            parentColname = params$parentVar,
-                            childColname = params$childVar,
-                            topNodes = printCodes)
-   }
- 
+  # printCodes=c("01801", "01802")
+  # ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
+  # ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
+  # ##printCodes = sample(samplePool, size = 1)
+  #  if (!is.null(tree)) {
+  #  printCodes = getChildren(commodityTree = tree,
+  #                           parentColname = params$parentVar,
+  #                           childColname = params$childVar,
+  #                           topNodes = printCodes)
+  # #  }
+
   dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
             )
- 
-  
-  ##,recursive = TRUE
+
+
+  # ,recursive = TRUE
   
   sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/",
               data$timePointYears[1], "_",
@@ -357,13 +359,14 @@ aggFun = function(x) {
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
 
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36", "392", "262","124"),]
 
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36", "104", "262","124"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36", "392", "262","124"),]
 
 uniqueLevels=uniqueLevels[geographicAreaM49!="728",]
-
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("792","826","788","554","528","56","512","270","36","352","398","348", "678") & timePointYears %in% c("2009","2010","2011","2012"),]
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("12","72","854","1248","231","233","268","356","360") ,]
+# 
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("792","826","788","554","528","56","512","270","36","352","398","348", "678") & timePointYears %in% c("2009","2010","2011","2012"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("12","72","854","1248","231","233","268","356","360") ,]
 
 ##uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("554") & timePointYears %in% c("2009","2010","2011","2012"),]
 for (i in seq_len(nrow(uniqueLevels))) {
