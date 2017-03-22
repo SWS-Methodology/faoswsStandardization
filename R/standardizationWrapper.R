@@ -277,32 +277,21 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     tree[, c(p$shareVar) :=
                   ifelse(is.na(newShare), get(p$shareVar), newShare)]
     tree[, newShare := NULL]
-    if(length(printCodes) > 0){
-        cat("\nAvailability of parents/children:\n\n")
-        print(knitr::kable(tree[get(p$childVar) %in% printCodes,
-                   c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
-                   with = FALSE]))
-        plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-                                get(p$childVar) %in% printCodes, ]
-        if(nrow(plotTree) > 0){
-            plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-                           childColname = p$childVar,
-                           extractionColname = p$extractVar, box.size = .06,
-                           box.type = "circle", cex.txt = 1, box.prop = .5,
-                           box.cex = 1)
-        }
-    }
-    
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
+    # if(length(printCodes) > 0){
+    #     cat("\nAvailability of parents/children:\n\n")
+    #     print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+    #                c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
+    #                with = FALSE]))
+    #     plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+    #                             get(p$childVar) %in% printCodes, ]
+    #     if(nrow(plotTree) > 0){
+    #         plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+    #                        childColname = p$childVar,
+    #                        extractionColname = p$extractVar, box.size = .06,
+    #                        box.type = "circle", cex.txt = 1, box.prop = .5,
+    #                        box.cex = 1)
+    #     }
+    # }
     
     
     
@@ -327,12 +316,26 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## updated.  Instead, the food value should be updated, and this is what 
     ## will happen if that element is not specified to any of the groupings in
     ## balanceResidual()
+    
+    
+    ## Cristina
+    
+    feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code]
+    feedCommodities = c(feedCommodities,"39120.15", "39130.04", "23319.01","23319.02", "23319.04")
+  
+    indCommodities = ReadDatatable("sua_balance_commodities")[element == "industrial", code]
+    # save(indFromNoFood,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/indfromNoFood.RData")
+    # indFromNoFood = load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/indfromNoFood.RData") 
+    # indCommodities = c(indCommodities,indFromNoFood)
+    # 
+
+    
     balanceResidual(data, p,
                     tree=tree,
                     primaryCommodities = primaryEl,
                     foodProcessCommodities = foodProcEl,
-                    feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code],
-                    indCommodities = ReadDatatable("sua_balance_commodities")[element == "industrial", code],
+                    feedCommodities = feedCommodities,
+                    indCommodities = indCommodities,
                     cut=cutItemsTestFra
     )
     
