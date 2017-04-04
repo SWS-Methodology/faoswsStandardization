@@ -318,26 +318,41 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## balanceResidual()
     
     
-    ## Cristina
+    ## Cristina new crude Balancing
     
-    feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code]
-    feedCommodities = c(feedCommodities,"39120.15", "39130.04", "23319.01","23319.02", "23319.04")
-  
-    indCommodities = ReadDatatable("sua_balance_commodities")[element == "industrial", code]
+    
+    # feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code]
+    # feedCommodities = c(feedCommodities,"39120.15", "39130.04", "23319.01","23319.02", "23319.04")
+    # indCommodities = ReadDatatable("sua_balance_commodities")[element == "industrial", code]
     # save(indFromNoFood,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/indfromNoFood.RData")
     # indFromNoFood = load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/indfromNoFood.RData") 
     # indCommodities = c(indCommodities,indFromNoFood)
     # 
 
-    
+        i=unique(data[,get(p$mergeKey[1])])
+        feedCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$feedCode,get(p$itemVar)] 
+        indCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$industrialCode,get(p$itemVar)] 
+        foodProcessCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$foodProcCode,get(p$itemVar)] 
+        stockCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$stockCode,get(p$itemVar)] 
+        seedCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$seedCode,get(p$itemVar)] 
+        lossCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$wasteCode,get(p$itemVar)] 
+        foodCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$foodCode,get(p$itemVar)]
+                                       
+
     balanceResidual(data, p,
                     tree=tree,
                     primaryCommodities = primaryEl,
-                    foodProcessCommodities = foodProcEl,
+                    foodProcessCommodities = foodProcessCommodities,
                     feedCommodities = feedCommodities,
                     indCommodities = indCommodities,
-                    cut=cutItemsTestFra
-    )
+                    stockCommodities = stockCommodities,
+                    seedCommodities = seedCommodities,
+                    lossCommodities = lossCommodities,
+                    foodCommodities = foodCommodities,
+                    cut=cutItemsTestFra)
+
+    
+    
     
     if(length(printCodes) > 0){
       cat("\nSUA table after balancing processed elements:")
@@ -346,34 +361,39 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       print(printSUATable(data = data, standParams = p,
                           printCodes = printCodes))
     }
+
+    ##    ### first intermediate SAVE
+    ##    message("Attempting to save balanced SUA data...")
+    ##    setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+    ##    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+    ##                                                             "foodManufacturing", "imports", "loss", "production", 
+    ##                                                             "seed", "stockChange", "residual","industrial", "tourist"),
+    ##                                     code=c("261", "281", "271", "5910", "5520", "5141", 
+    ##                                            "5023", "5610", "5015", "5510",
+    ##                                            "5525", "5071", "5166","5165", "5164"))
+    ##   
+    ##    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    ##    standData[,`:=`(measuredElementSuaFbs = NULL)]
+    ##    setnames(standData, "code", "measuredElementSuaFbs")
+    ## 
+    ##    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+    ##                             Value)]
+    ##    standData <- standData[!is.na(Value),]
+    ##    
+    ##    standData[, flagObservationStatus := "I"]
+    ##    standData[, flagMethod := "s"]
+    ##    SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
+    ##
+    ##    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    ##    ###
     
     
-    ##message("Attempting to save standardized data...")
-    ##
-    ##
-    ##setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
-    ##
-    ##
-    ##fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-    ##                                                         "foodManufacturing", "imports", "loss", "production", 
-    ##                                                         "seed", "stockChange", "residual","industrial", "tourist"),
-    ##                                 code=c("261", "281", "271", "5910", "5520", "5141", 
-    ##                                        "5023", "5610", "5015", "5510",
-    ##                                        "5525", "5071", "5166","5165", "5164"))
-   ##
-    ##standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
-    ##standData[,`:=`(measuredElementSuaFbs = NULL)]
-    ##setnames(standData, "code", "measuredElementSuaFbs")
-    ##
-    ##
-    ##
-    ##standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
-    ##                         Value, flagObservationStatus, flagMethod)]
-    ##standData <- standData[!is.na(Value),]
-    ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
-    ##
-    ##
-    ##setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    
+    
+    
+    
+        
+    
     
     ## STEP 2.1 Compute calories
     if(!is.null(nutrientData)){
@@ -422,6 +442,36 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                             nutrientElements = nutrientElements,
                             printProcessing = TRUE))
     }
+  
+  
+    ### Second intermediate Save  
+    ##  message("Attempting to save unbalanced FBS data...")
+    ##  setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+    ##
+    ##    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+    ##                                                             "foodManufacturing", "imports", "loss", "production", 
+    ##                                                             "seed", "stockChange", "residual","industrial", "tourist"),
+    ##                                     code=c("261", "281", "271", "5910", "5520", "5141", 
+    ##                                            "5023", "5610", "5015", "5510",
+    ##                                            "5525", "5071", "5166","5165", "5164"))
+    ##    
+    ##    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    ##    standData[,`:=`(measuredElementSuaFbs = NULL)]
+    ##    setnames(standData, "code", "measuredElementSuaFbs")
+    ##  
+    ##    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+    ##                           Value)]
+    ##    standData <- standData[!is.na(Value),]
+    ##    
+    ##    standData[, flagObservationStatus := "I"]
+    ##    standData[, flagMethod := "s"]
+    ##    
+    ##    SaveData(domain = "suafbs", dataset = "fbs_standardized", data = standData)
+    ##    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    ####
+    
+    
+    
     
    ## STEP 5: Balance at the balancing level.
    data = data[get(p$elementVar) %in% c(p$productionCode, p$importCode, p$exportCode,
@@ -491,20 +541,20 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
    ## updated food element values.
    data[(nutrientElement), Value := Value * foodAdjRatio]
    if(length(printCodes) > 0){
-       cat("\nSUA table with updated nutrient values:")
-       data = markUpdated(new = data, old = old, standParams = p)
-       old = copy(data)
-       print(printSUATable(data = data, standParams = p, printCodes = printCodes,
-                           printProcessing = TRUE,
-                           nutrientElements = nutrientElements))
-       data[, updateFlag := NULL]
+     cat("\nSUA table with updated nutrient values:")
+     data = markUpdated(new = data, old = old, standParams = p)
+     old = copy(data)
+     print(printSUATable(data = data, standParams = p, printCodes = printCodes,
+                         printProcessing = TRUE,
+                         nutrientElements = nutrientElements))
+     data[, updateFlag := NULL]
    }
    data[, c("balancedValue", "nutrientElement", "foodAdjRatio") := NULL]
    
    ## STEP 7: Aggregate to FBS Level
    if(is.null(fbsTree)){
-       # If no FBS tree, just return SUA-level results
-       return(data)
+     # If no FBS tree, just return SUA-level results
+     return(data)
    } else {
      out = computeFbsAggregate(data = data, fbsTree = fbsTree,
                                standParams = p)
@@ -537,19 +587,19 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
      }
      
      
-   ##  return(out)
-      }
-
+     ##  return(out)
+   }
    
- outOut=list()  
    
- for (i in seq_len(length(out))) {
+   outOut=list()  
    
- 
-   outOut[[i]]= computeSupplyComponents(data=out[[i]], standParams=p,loop=i)
- 
- }
- 
- return(outOut)
+   for (i in seq_len(length(out))) {
+     
+     
+     outOut[[i]]= computeSupplyComponents(data=out[[i]], standParams=p,loop=i)
+     
+   }
+   
+   return(outOut)
    
 }

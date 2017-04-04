@@ -35,7 +35,8 @@
 ##'   
 
 balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
-                           indCommodities = c(), primaryCommodities = c(),
+                           indCommodities = c(), primaryCommodities = c(), stockCommodities = c(),
+                           seedCommodities = c(), lossCommodities = c(),foodCommodities = c(),
                            foodProcessCommodities = c(), imbalanceThreshold = 10,cut=c()){
     p = standParams
     
@@ -140,10 +141,14 @@ balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
             (get(standParams$elementVar) == p$feedCode & get(p$itemVar) %in% feedCommodities) |
             (get(standParams$elementVar) == p$foodProcCode & get(p$itemVar) %in% foodProcessCommodities) |
             (get(standParams$elementVar) == p$industrialCode & get(p$itemVar) %in% indCommodities) |
-            (get(standParams$elementVar) == p$foodCode & !(get(p$itemVar) %in%
-                            c(indCommodities, feedCommodities,
-                              foodProcessCommodities))),
-            newValue, Value)]
+              (get(standParams$elementVar) == p$stockCode & get(p$itemVar) %in% stockCommodities) |
+              (get(standParams$elementVar) == p$wasteCode & get(p$itemVar) %in% lossCommodities) |
+              (get(standParams$elementVar) == p$seedCode & get(p$itemVar) %in% seedCommodities) |
+            # (get(standParams$elementVar) == p$foodCode & !(get(p$itemVar) %in%
+            #                 c(indCommodities, feedCommodities,
+            #                   foodProcessCommodities,stockCommodities,seedCommodities,lossCommodities))),
+              (get(standParams$elementVar) == p$foodCode & get(p$itemVar) %in% foodCommodities),
+              newValue, Value)]
     
   ##  data[(imbalance > imbalanceThreshold & officialProd )
   ##       & (!get(standParams$itemVar) %in% primaryCommodities) ,
@@ -164,4 +169,5 @@ balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
              get(standParams$elementVar) == p$productionCode ,
              Value := -newValue]
     data[, c("imbalance", "newValue") := NULL]
+    return(data)
 }

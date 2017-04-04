@@ -43,7 +43,7 @@ if (CheckDebug()) {
 #User name is what's after the slash
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
-SWS_USER = "muschitiello"
+# SWS_USER = "muschitiello"
 
 message("Getting parameters/datasets...")
 
@@ -120,7 +120,6 @@ tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),
 # dev.off()
 
 ###
-
 areaKeys = GetCodeList(domain = "suafbs", dataset = "sua", "geographicAreaM49")
 areaKeys = areaKeys[type == "country", code]
 
@@ -152,16 +151,16 @@ elemKeys = elemKeys[parent %in% fs_elements,
 sws_elements <- c("5141", "5164", "5165")
 
 elemKeys = c(strsplit(elemKeys, ", ")[[1]], sws_elements)
-itemKeys = GetCodeList(domain = "suafbs", dataset = "sua", "measuredItemSuaFbs")
+itemKeys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", "measuredItemFbsSua")
 itemKeys = itemKeys[, code]
 
 
 
-key = DatasetKey(domain = "suafbs", dataset = "sua", dimensions = list(
-    geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
-    measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
-    measuredItemSuaFbs = Dimension(name = "measuredItemSuaFbs", keys = itemKeys),
-    timePointYears = Dimension(name = "timePointYears", keys = yearVals)
+key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = list(
+  geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+  measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
+  measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
+  timePointYears = Dimension(name = "timePointYears", keys = yearVals)
 ))
 
 message("Reading SUA data...")
@@ -171,20 +170,32 @@ message("Reading SUA data...")
 # specified by the user.
 
 #!! 3 warnings about things that need to be changed !!#
-##data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemSuaFbs",
+## data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
 ##                           elementCol = "measuredElementSuaFbs")
+## setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
-
+# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/zeroWeightVector.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeFra2.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/crudeBalEl.RData")
 
-##Cristina
-##fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2542","23511.01","2901","2903","2909")))
-##fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeCri3),c("2542","23512","2901","2903","2909")))
-##fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351f","2351")]
-##fbsTreeFra2 <- fbsTreeCri3
-###
-# alcohol
+
+
+## Cristina: correcting for Serbia and Montenegro:
+
+# 1. The data for Servia and Montenegro (fal=186, m49=891) exist even after 2006 but with the same value as for the 2005.
+# then I removed the data after 2005.
+# NB There is not 186 (m49891 in the CrudeBalEl the I duplicated the value of Serbia fal=272 m49=688)
+
+
+# 2. There are data for Montenegro and Serbia (separated) even before 2006
+
+
+
+
+
+## Cristina
 fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2659","24110","2901","2903","2924")))
 fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351")]
 fbsTreeFra2 <- fbsTreeCri3
@@ -192,7 +203,7 @@ fbsTreeFra2[fbsID4=="2542",measuredItemSuaFbs:="23520"]
 
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/cutItemsTestFra.RData")
 
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
 
 # Cristina 
 data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
@@ -358,12 +369,11 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36", "392", "262","124"),]
 
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36", "392", "262","124"),]
 
-uniqueLevels=uniqueLevels[geographicAreaM49!="728",]
+uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 # 
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("792","826","788","554","528","56","512","270","36","352","398","348", "678") & timePointYears %in% c("2009","2010","2011","2012"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("12","72","854","1248","231","233","268","356","360") ,]
@@ -393,21 +403,23 @@ for (i in seq_len(nrow(uniqueLevels))) {
 }
 
 message("Combining standardized data...")
+save(standData,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/standDatabatch11.RData")
 
 
 standData = rbindlist(standData)
 
 warning("The below is a rough hack to convert codes back. In truth, I'm almost
-certain that the units are not the same. A unit conversion needs to happen at
-the beginning and at this step.")
+        certain that the units are not the same. A unit conversion needs to happen at
+        the beginning and at this step.")
 
 fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
                                                          "foodManufacturing", "imports", "loss", "production", 
                                                          "seed", "stockChange", "residual","industrial", "tourist",
-                                                         "DES_calories","DES_proteins","DES_fats"),
+                                                         "DES_calories","DES_proteins","DES_fats", "population"),
                                  code=c("261", "281", "271", "5910", "5520", "5141", 
                                         "5023", "5610", "5015", "5510",
-                                        "5525", "5071", "5166","5165", "5164","664","674","684"))
+                                        "5525", "5071", "5166","5165", "5164","664","674","684","5215"))
+
 ##standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode), 
 ##  `:=`(measuredElementSuaFbs = "other", 
 ##       Value = sum(Value, na.rm=TRUE)), 
@@ -432,9 +444,10 @@ standData <- standData[!is.na(Value),]
 
 message("Attempting to save standardized data...")
 
-out = SaveData(domain = "suafbs", dataset = "fbs", data = standData)
+
+setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
+out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData)
 cat(out$inserted + out$ignored, " observations written and problems with ",
     out$discarded, sep = "")
 paste0(out$inserted + out$ignored, " observations written and problems with ",
        out$discarded)
-
