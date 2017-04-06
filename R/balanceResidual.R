@@ -25,6 +25,10 @@
 ##'   list specifies which elements should allocate such a difference to feed.
 ##' @param indCommodities Same as feedCommodities, but for commodities where we 
 ##'   allocate the difference to industrial utilization.
+##' @param foodCommodities if we use the foodCommodities from the Crude Balancing matrix old faostat.
+##' @param seedCommodities .
+##' @param stockCommodities .
+##' @param lossCommodities . 
 ##' @param foodProcessCommodities Same as feedCommodities, but for commodities 
 ##'   where we allocate the difference to food processing.
 ##' @param imbalanceThreshold The size that the imbalance must be in order for 
@@ -36,7 +40,7 @@
 
 balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
                            indCommodities = c(), primaryCommodities = c(), stockCommodities = c(),
-                           seedCommodities = c(), lossCommodities = c(),foodCommodities = c(),
+                           seedCommodities = c(), lossCommodities = c(),foodCommodities =c(),
                            foodProcessCommodities = c(), imbalanceThreshold = 10,cut=c()){
     p = standParams
     
@@ -145,9 +149,9 @@ balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
               (get(standParams$elementVar) == p$wasteCode & get(p$itemVar) %in% lossCommodities) |
               (get(standParams$elementVar) == p$seedCode & get(p$itemVar) %in% seedCommodities) |
             # (get(standParams$elementVar) == p$foodCode & !(get(p$itemVar) %in%
-            #                 c(indCommodities, feedCommodities,
+            #                 c(indCo mmodities, feedCommodities,
             #                   foodProcessCommodities,stockCommodities,seedCommodities,lossCommodities))),
-              (get(standParams$elementVar) == p$foodCode & get(p$itemVar) %in% foodCommodities),
+               (get(standParams$elementVar) == p$foodCode & get(p$itemVar) %in% foodCommodities),
               newValue, Value)]
     
   ##  data[(imbalance > imbalanceThreshold & officialProd )
@@ -169,5 +173,4 @@ balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
              get(standParams$elementVar) == p$productionCode ,
              Value := -newValue]
     data[, c("imbalance", "newValue") := NULL]
-    return(data)
 }
