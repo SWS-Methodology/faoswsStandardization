@@ -66,6 +66,7 @@
 ##'   from the old system, converted in new element.   
 ##' @param printCodes A list of the item codes which should be printed at each 
 ##'   step to show the progress of the algorithm.
+##' @param debugFile folder for saving the intermediate files
 ##' @return A data.table containing the final balanced and standardized SUA 
 ##'   data.  Additionally, this table will have new elements in it if 
 ##'   nutrientData was provided.
@@ -75,7 +76,8 @@
 ##' 
 
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
-                                  nutrientData = NULL, crudeBalEl = NULL, printCodes = c()){
+                                  nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
+                                  debugFile= NULL){
     
     ## Reassign standParams to p for brevity
     p = standParams
@@ -350,31 +352,40 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                           printCodes = printCodes))
     }
 
-    ##    ### first intermediate SAVE
-    ##    message("Attempting to save balanced SUA data...")
-    ##    setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
-    ##    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-    ##                                                             "foodManufacturing", "imports", "loss", "production", 
-    ##                                                             "seed", "stockChange", "residual","industrial", "tourist"),
-    ##                                     code=c("261", "281", "271", "5910", "5520", "5141", 
-    ##                                            "5023", "5610", "5015", "5510",
-    ##                                            "5525", "5071", "5166","5165", "5164"))
-    ##   
-    ##    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
-    ##    standData[,`:=`(measuredElementSuaFbs = NULL)]
-    ##    setnames(standData, "code", "measuredElementSuaFbs")
-    ## 
-    ##    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
-    ##                             Value)]
-    ##    standData <- standData[!is.na(Value),]
-    ##    
-    ##    standData[, flagObservationStatus := "I"]
-    ##    standData[, flagMethod := "s"]
-    ##    SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
-    ##
-    ##    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-    ##    ###
+    ### first intermediate SAVE 
+    message("Attempting to save balanced SUA data...")
+    setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+                                                             "foodManufacturing", "imports", "loss", "production", 
+                                                             "seed", "stockChange", "residual","industrial", "tourist"),
+                                     code=c("261", "281", "271", "5910", "5520", "5141", 
+                                            "5023", "5610", "5015", "5510",
+                                            "5525", "5071", "5166","5165", "5164"))
     
+    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    standData[,`:=`(measuredElementSuaFbs = NULL)]
+    setnames(standData, "code", "measuredElementSuaFbs")
+    
+    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+                           Value)]
+    standData <- standData[!is.na(Value),]
+    
+    standData[, flagObservationStatus := "I"]
+    standData[, flagMethod := "s"]
+    
+    ##ptm <- proc.time()
+    ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
+    ##message((proc.time() - ptm)[3])
+    
+    if(!is.null(debugFile)){
+      
+      saveFBSItermediateStep(directory="C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/debugFile",
+                             fileName="AfterCrudeBalancing",
+                             data=standData)
+    }
+    
+    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    ###    
     
     
     
@@ -433,29 +444,38 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   
     ### Second intermediate Save  
-    ##  message("Attempting to save unbalanced FBS data...")
-    ##  setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+    ## message("Attempting to save unbalanced FBS data...")
+    setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
     ##
-    ##    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-    ##                                                             "foodManufacturing", "imports", "loss", "production", 
-    ##                                                             "seed", "stockChange", "residual","industrial", "tourist"),
-    ##                                     code=c("261", "281", "271", "5910", "5520", "5141", 
-    ##                                            "5023", "5610", "5015", "5510",
-    ##                                            "5525", "5071", "5166","5165", "5164"))
-    ##    
-    ##    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
-    ##    standData[,`:=`(measuredElementSuaFbs = NULL)]
-    ##    setnames(standData, "code", "measuredElementSuaFbs")
-    ##  
-    ##    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
-    ##                           Value)]
-    ##    standData <- standData[!is.na(Value),]
-    ##    
-    ##    standData[, flagObservationStatus := "I"]
-    ##    standData[, flagMethod := "s"]
-    ##    
-    ##    SaveData(domain = "suafbs", dataset = "fbs_standardized", data = standData)
-    ##    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+                                                             "foodManufacturing", "imports", "loss", "production", 
+                                                             "seed", "stockChange", "residual","industrial", "tourist"),
+                                     code=c("261", "281", "271", "5910", "5520", "5141", 
+                                            "5023", "5610", "5015", "5510",
+                                            "5525", "5071", "5166","5165", "5164"))
+    
+    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    standData[,`:=`(measuredElementSuaFbs = NULL)]
+    setnames(standData, "code", "measuredElementSuaFbs")
+    
+    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+                           Value)]
+    standData <- standData[!is.na(Value),]
+    
+    standData[, flagObservationStatus := "I"]
+    standData[, flagMethod := "s"]
+    ##ptm <- proc.time()
+    ##SaveData(domain = "suafbs", dataset = "fbs_standardized", data = standData)
+    ##message((proc.time() - ptm)[3])
+    
+    if(!is.null(debugFile)){
+      
+      saveFBSItermediateStep(directory="C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/debugFile",
+                             fileName="AfterStandardization",
+                             data=standData)
+    }
+    
+    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
     ####
     
     

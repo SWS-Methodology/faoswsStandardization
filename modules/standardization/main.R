@@ -239,6 +239,8 @@ params$industrialCode = "industrial"
 params$touristCode = "tourist"
 params$foodProcCode = "foodManufacturing"
 params$residualCode = "residual"
+params$createIntermetiateFile= "TRUE"
+
 
 # Convert units for tourist and industrial
 message("Applying adjustments to commodity tree...")
@@ -343,7 +345,8 @@ standardizationVectorized = function(data, tree, nutrientData){
 
   out = standardizationWrapper(data = data, tree = tree, fbsTree = fbsTreeFra2, 
                                    standParams = params, printCodes = printCodes,
-                                   nutrientData = nutrientData,crudeBalEl = crudeBalEl)
+                                   nutrientData = nutrientData,crudeBalEl = crudeBalEl,
+                               debugFile= params$createIntermetiateFile)
   return(out)
 }
 
@@ -373,6 +376,15 @@ uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","891"),]
 # uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 
 
+if(params$createIntermetiateFile){
+  
+  if(file.exists("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/debugFile/AfterStandardization.csv")){
+    file.remove("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/debugFile/AfterStandardization.csv")
+  }
+  if(file.exists("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/debugFile/AfterCrudeBalancing.csv")){
+    file.remove("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/debugFile/AfterCrudeBalancing.csv")
+  }
+}
 
 
 for (i in seq_len(nrow(uniqueLevels))) {
