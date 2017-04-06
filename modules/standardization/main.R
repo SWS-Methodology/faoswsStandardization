@@ -343,7 +343,7 @@ standardizationVectorized = function(data, tree, nutrientData){
 
   out = standardizationWrapper(data = data, tree = tree, fbsTree = fbsTreeFra2, 
                                    standParams = params, printCodes = printCodes,
-                                   nutrientData = nutrientData)
+                                   nutrientData = nutrientData,crudeBalEl = crudeBalEl)
   return(out)
 }
 
@@ -369,16 +369,12 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36", "392", "262","124"),]
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","891"),]
+# uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36", "392", "262","124"),]
 
-uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
-# 
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("792","826","788","554","528","56","512","270","36","352","398","348", "678") & timePointYears %in% c("2009","2010","2011","2012"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("12","72","854","1248","231","233","268","356","360") ,]
 
-##uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("554") & timePointYears %in% c("2009","2010","2011","2012"),]
+
 for (i in seq_len(nrow(uniqueLevels))) {
     filter = uniqueLevels[i, ]
     dataSubset = data[filter, , on = c("geographicAreaM49", "timePointYears")]

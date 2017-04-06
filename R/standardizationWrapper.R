@@ -60,20 +60,22 @@
 ##'   proteins, and fats columns there should be numeric values representing 
 ##'   multipliers to convert kilograms of the item into calories/proteins/fats. 
 ##'   If NULL, nothing is done with nutrients.
+##' @param crudeBalEl A data.table containing one column with the item codes 
+##'   (and this column's name must match standParams$itemVar) and additional 
+##'   columns representing, for each commodity the corresponding balancing element
+##'   from the old system, converted in new element.   
 ##' @param printCodes A list of the item codes which should be printed at each 
 ##'   step to show the progress of the algorithm.
-##'   
 ##' @return A data.table containing the final balanced and standardized SUA 
 ##'   data.  Additionally, this table will have new elements in it if 
 ##'   nutrientData was provided.
-##' 
 ##' @importFrom faoswsBalancing balancing
 ##' 
 ##' @export
 ##' 
 
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
-                                  nutrientData = NULL, printCodes = c()){
+                                  nutrientData = NULL, crudeBalEl = NULL, printCodes = c()){
     
     ## Reassign standParams to p for brevity
     p = standParams
@@ -319,26 +321,15 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     
     ## Cristina new crude Balancing
-    
-    
-    # feedCommodities = ReadDatatable("sua_balance_commodities")[element == "feed", code]
-    # feedCommodities = c(feedCommodities,"39120.15", "39130.04", "23319.01","23319.02", "23319.04")
-    # indCommodities = ReadDatatable("sua_balance_commodities")[element == "industrial", code]
-    # save(indFromNoFood,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/indfromNoFood.RData")
-    # indFromNoFood = load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/indfromNoFood.RData") 
-    # indCommodities = c(indCommodities,indFromNoFood)
-    # 
-
-        i=unique(data[,get(p$mergeKey[1])])
-        feedCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$feedCode,get(p$itemVar)] 
-        indCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$industrialCode,get(p$itemVar)] 
-        foodProcessCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$foodProcCode,get(p$itemVar)] 
-        stockCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$stockCode,get(p$itemVar)] 
-        seedCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$seedCode,get(p$itemVar)] 
-        lossCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$wasteCode,get(p$itemVar)] 
-        foodCommodities = crudeBalEl[get(p$geoVar)==i&get(p$elementVar)==p$foodCode,get(p$itemVar)]
-                                       
-
+    crudeBalEl = crudeBalEl[geographicAreaM49==unique(data[,geographicAreaM49])]
+    feedCommodities = crudeBalEl[get(p$elementVar)==p$feedCode,get(p$itemVar)]
+    indCommodities = crudeBalEl[get(p$elementVar)==p$industrialCode,get(p$itemVar)]
+    foodProcessCommodities = crudeBalEl[get(p$elementVar)==p$foodProcCode,get(p$itemVar)]
+    stockCommodities = crudeBalEl[get(p$elementVar)==p$stockCode,get(p$itemVar)]
+    seedCommodities = crudeBalEl[get(p$elementVar)==p$seedCode,get(p$itemVar)]
+    lossCommodities = crudeBalEl[get(p$elementVar)==p$wasteCode,get(p$itemVar)]
+    foodCommodities = data[get(p$elementVar) == p$foodCode & !(get(p$itemVar) %in% c(indCommodities, feedCommodities,foodProcessCommodities,stockCommodities,seedCommodities,lossCommodities)),get(p$itemVar)]
+        
     balanceResidual(data, p,
                     tree=tree,
                     primaryCommodities = primaryEl,
@@ -351,9 +342,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                     foodCommodities = foodCommodities,
                     cut=cutItemsTestFra)
 
-    
-    
-    
     if(length(printCodes) > 0){
       cat("\nSUA table after balancing processed elements:")
       data = markUpdated(new = data, old = old, standParams = p)

@@ -145,14 +145,12 @@ balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
             (get(standParams$elementVar) == p$feedCode & get(p$itemVar) %in% feedCommodities) |
             (get(standParams$elementVar) == p$foodProcCode & get(p$itemVar) %in% foodProcessCommodities) |
             (get(standParams$elementVar) == p$industrialCode & get(p$itemVar) %in% indCommodities) |
-              (get(standParams$elementVar) == p$stockCode & get(p$itemVar) %in% stockCommodities) |
-              (get(standParams$elementVar) == p$wasteCode & get(p$itemVar) %in% lossCommodities) |
-              (get(standParams$elementVar) == p$seedCode & get(p$itemVar) %in% seedCommodities) |
-            # (get(standParams$elementVar) == p$foodCode & !(get(p$itemVar) %in%
-            #                 c(indCo mmodities, feedCommodities,
-            #                   foodProcessCommodities,stockCommodities,seedCommodities,lossCommodities))),
-               (get(standParams$elementVar) == p$foodCode & get(p$itemVar) %in% foodCommodities),
-              newValue, Value)]
+            (get(standParams$elementVar) == p$stockCode & get(p$itemVar) %in% stockCommodities) |
+            (get(standParams$elementVar) == p$wasteCode & get(p$itemVar) %in% lossCommodities) |
+            (get(standParams$elementVar) == p$seedCode & get(p$itemVar) %in% seedCommodities) |
+            #food have been defined outside the Balance Residual function (Cristina)
+            (get(standParams$elementVar) == p$foodCode & get(p$itemVar) %in% foodCommodities),
+            newValue, Value)]
     
   ##  data[(imbalance > imbalanceThreshold & officialProd )
   ##       & (!get(standParams$itemVar) %in% primaryCommodities) ,
