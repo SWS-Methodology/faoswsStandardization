@@ -75,15 +75,17 @@ tree=tree[measuredItemParentCPC!="01520",]
 tree = tree[!measuredItemParentCPC=="23670.01"] # All ER = NA (rows=3878)
 tree = tree[!measuredItemParentCPC=="2351"] # All ER = NA 0.9200 0.9300 0.9650 0.9600 0.9350 0.9430 0.9346 (rows=3878)
 tree = tree[!measuredItemParentCPC=="23511"] # All ER = NA (rows=3878)
-tree = tree[!(measuredItemChildCPC=="2413"& measuredItemParentCPC %in% c("23520","23511.01","39160","24110"))] # NA 0.7 (rows=3878)
+# tree = tree[!(measuredItemChildCPC=="2413"& measuredItemParentCPC %in% c("23520","23511.01","39160","24110"))] # NA 0.7 (rows=3878)
+# rispristinato un collegamento
+tree = tree[!(measuredItemChildCPC=="2413"& measuredItemParentCPC %in% c("23511.01","39160","24110"))] # NA 0.7 (rows=3878)
 tree = tree[!(measuredItemChildCPC=="24110"& measuredItemParentCPC=="39160")] # NA 0.45 0.25 (rows=3878)
 tree = tree[!(measuredItemChildCPC=="24490" & measuredItemParentCPC=="23511.01")] # NA 5 (rows=3878)
 tree = tree[!(measuredItemChildCPC=="2351" & measuredItemParentCPC=="23512")] # All ER = NA (rows=3878)
 tree = tree[!measuredItemChildCPC=="23511"] # NA 0.1 (rows=3878)
-tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="23511.01", measuredItemChildCPC:="2351f"]
-tree[measuredItemParentCPC=="01801" & measuredItemChildCPC=="23512", measuredItemChildCPC:="2351f"]
-tree[measuredItemParentCPC=="23511.01", measuredItemParentCPC:="2351f"]
-tree[measuredItemParentCPC=="23512", measuredItemParentCPC:="2351f"]
+# tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="23511.01", measuredItemChildCPC:="2351f"]
+# tree[measuredItemParentCPC=="01801" & measuredItemChildCPC=="23512", measuredItemChildCPC:="2351f"]
+# tree[measuredItemParentCPC=="23511.01", measuredItemParentCPC:="2351f"]
+# tree[measuredItemParentCPC=="23512", measuredItemParentCPC:="2351f"]
 tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),]
 
 ##tree[measuredItemChildCPC=="2351f"& measuredItemParentCPC %in% c("23511.01","23512"),measuredItemChildCPC:="23520"]
@@ -195,11 +197,14 @@ load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFi
 
 
 
-## Cristina
+## Cristina Sugar 
 fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2659","24110","2901","2903","2924")))
+fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeCri3),c("2541","23511.02","2901","2903","2909")))
+fbsTreeCri3[measuredItemSuaFbs=="2351f",measuredItemSuaFbs:="23511.01"]
+fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeCri3),c("2542","23512","2901","2903","2909")))
 fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351")]
 fbsTreeFra2 <- fbsTreeCri3
-fbsTreeFra2[fbsID4=="2542",measuredItemSuaFbs:="23520"]
+# fbsTreeFra2[fbsID4=="2542",measuredItemSuaFbs:="23520"]
 
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/cutItemsTestFra.RData")
 
@@ -216,8 +221,10 @@ animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildC
 cutItemsTestFra=cutItems[!cutItemsTestFra %in% animalChildren]
 
 ##Cristina
-cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540","2351f")))]##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
-cutItemsTestFra = c(cutItemsTestFra, "23520", "24110")
+# cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540")))]##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
+cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("2351f","23540")))]##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
+cutItemsTestFra = c(cutItemsTestFra,"24110","23511.02")
+# cutItemsTestFra = c(cutItemsTestFra, "23520", "24110")
 ##
 
 ## Update params for specific dataset
@@ -372,17 +379,18 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","891"),]
-# uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","891"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("56","40","60","258","372","380"),]
+uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 
 
 if(params$createIntermetiateFile){
   
-  if(file.exists("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/debugFile/AfterStandardization.csv")){
-    file.remove("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/debugFile/AfterStandardization.csv")
+  if(file.exists("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterStandardization.csv")){
+    file.remove("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterStandardization.csv")
   }
-  if(file.exists("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/debugFile/AfterCrudeBalancing.csv")){
-    file.remove("C:/Users/Rosa/Favorites/Github/sws_project/faoswsStandardization/debugFile/AfterCrudeBalancing.csv")
+  if(file.exists("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing.csv")){
+    file.remove("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing.csv")
   }
 }
 
@@ -411,10 +419,81 @@ for (i in seq_len(nrow(uniqueLevels))) {
 }
 
 message("Combining standardized data...")
-save(standData,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/standDatabatch11.RData")
-
-
 standData = rbindlist(standData)
+save(standData,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch13.RData")
+
+
+#################################################################
+######################## CRISTINA plots ########################
+library(stringr)
+library(dplyr)
+library(MASS) 
+library(lattice)
+library(reshape2)
+library(RcppRoll)
+
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fishCountryDES.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFunctions_Standardization/plotCOMPARE_DES/completeBatchPlots.RData")
+
+
+batchnumber = 12
+batchnumber2Compare = 11
+folder = "Batch12_CrudeBal_corrected"
+
+completeBatchPlots(batchnumber,batchnumber2Compare,folder)
+
+#################################################################
+
+
+
+###################################
+### FIRST INTERMEDIATE SAVE
+
+ptm <- proc.time()
+AfterCB = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing.csv",
+                     header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
+                                                      "timePointYears","Value","flagObservationStatus","flagMethod"),
+                     colClasses = c("character","character","character","character","numeric","character","character"))
+AfterCB = data.table(AfterCB)
+
+SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
+message((proc.time() - ptm)[3])
+
+#sample saving on The T-Drive
+# countries45 <- c("356", "156", "586", "231", "50", "360", "834", "608", "566", "408", "704", "800",
+#                  "404", "4", "368", "450", "104", "894", "508", "887", "332", "484", "716", "764",
+#                  "144", "148", "170", "646", "854", "454", "24", "762", "384", "320", "604",
+#                  "140", "120", "524", "116", "324", "562", "218", "68", "686", "178")
+# 
+# write.csv(AfterCB[geographicAreaM49 %in% countries45],"C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/Batch12_CrudeBal_corrected/Intermediate_steps_savings_batch12/AfterCrudeBalancing.csv",row.names=FALSE)
+
+#
+
+
+###################################
+### SECOND INTERMEDIATE SAVE
+
+ptm <- proc.time()
+AfterSt = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterStandardization.csv",
+                     header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
+                                                      "timePointYears","Value","flagObservationStatus","flagMethod"),
+                     colClasses = c("character","character","character","character","numeric","character","character"))
+AfterSt = data.table(AfterSt)
+
+
+SaveData(domain = "suafbs", dataset = "fbs_standardized", data = AfterSt, waitTimeout = 20000)
+message((proc.time() - ptm)[3])
+
+# sample saving on The T-Drive
+
+# write.csv(AfterSt[geographicAreaM49 %in% countries45],"C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/Batch12_CrudeBal_corrected/Intermediate_steps_savings_batch12/AfterStandardization.csv",row.names=FALSE)
+
+###################################
+
+
+
+###################################
+### FINAL SAVE
 
 warning("The below is a rough hack to convert codes back. In truth, I'm almost
         certain that the units are not the same. A unit conversion needs to happen at
@@ -459,3 +538,6 @@ cat(out$inserted + out$ignored, " observations written and problems with ",
     out$discarded, sep = "")
 paste0(out$inserted + out$ignored, " observations written and problems with ",
        out$discarded)
+
+
+
