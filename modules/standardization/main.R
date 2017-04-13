@@ -6,6 +6,13 @@ library(igraph)
 library(faoswsBalancing)
 library(faoswsStandardization)
 
+library(stringr)
+library(dplyr)
+library(MASS) 
+library(lattice)
+library(reshape2)
+library(RcppRoll)
+
 if(packageVersion("faoswsStandardization") < package_version('0.1.0')){
   stop("faoswsStandardization is out of date")
 }
@@ -182,8 +189,8 @@ message("Reading SUA data...")
 # setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/zeroWeightVector.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeFra2.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/crudeBalEl.RData")
@@ -434,32 +441,6 @@ standData = rbindlist(standData)
 save(standData,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch14.RData")
 
 
-#################################################################
-######################## CRISTINA plots ########################
-library(stringr)
-library(dplyr)
-library(MASS) 
-library(lattice)
-library(reshape2)
-library(RcppRoll)
-
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fishCountryDES.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFunctions_Standardization/plotCOMPARE_DES/completeBatchPlots.RData")
-
-
-batchnumber = 14
-batchnumber2Compare = 13
-folder = "Batch14_Sugar3"
-dir.create(paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/",folder), showWarnings = FALSE,recursive=TRUE)
-
-
-ptm <- proc.time()
-completeBatchPlots(standData,batchnumber,batchnumber2Compare,folder=folder)
-message((proc.time() - ptm)[3])
-
-#################################################################
-
-
 
 ###################################
 ### FIRST INTERMEDIATE SAVE
@@ -505,6 +486,27 @@ message((proc.time() - ptm)[3])
 
 ###################################
 
+
+
+#################################################################
+######################## CRISTINA plots ########################
+
+
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fishCountryDES.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFunctions_Standardization/plotCOMPARE_DES/completeBatchPlots.RData")
+
+
+batchnumber = 14
+batchnumber2Compare = 13
+folder = "Batch14_Sugar3"
+dir.create(paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/",folder), showWarnings = FALSE,recursive=TRUE)
+
+
+ptm <- proc.time()
+completeBatchPlots(standData,batchnumber,batchnumber2Compare,folder=folder)
+message((proc.time() - ptm)[3])
+
+#################################################################
 
 
 ###################################
