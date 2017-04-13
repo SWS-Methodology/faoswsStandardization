@@ -440,10 +440,30 @@ message("Combining standardized data...")
 standData = rbindlist(standData)
 save(standData,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch14.RData")
 
+#################################################################
+######################## CRISTINA plots ########################
+
+
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fishCountryDES.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFunctions_Standardization/plotCOMPARE_DES/completeBatchPlots.RData")
+
+
+batchnumber = 13
+# batchnumber2Compare = 13
+# folder = "Batch14_Sugar3"
+# dir.create(paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/",folder), showWarnings = FALSE,recursive=TRUE)
+# 
+# 
+# ptm <- proc.time()
+# completeBatchPlots(standData,batchnumber,batchnumber2Compare,folder=folder)
+# message((proc.time() - ptm)[3])
+
+#################################################################
 
 
 ###################################
 ### FIRST INTERMEDIATE SAVE
+
 
 ptm <- proc.time()
 AfterCB = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing.csv",
@@ -452,6 +472,7 @@ AfterCB = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardizati
                      colClasses = c("character","character","character","character","numeric","character","character"))
 AfterCB = data.table(AfterCB)
 
+save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
 SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
@@ -475,6 +496,7 @@ AfterSt = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardizati
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
                      colClasses = c("character","character","character","character","numeric","character","character"))
 AfterSt = data.table(AfterSt)
+save(AfterSt,file=paste0("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterStandardization_batch",batchnumber,".RData"))
 
 
 SaveData(domain = "suafbs", dataset = "fbs_standardized", data = AfterSt, waitTimeout = 20000)
@@ -488,25 +510,6 @@ message((proc.time() - ptm)[3])
 
 
 
-#################################################################
-######################## CRISTINA plots ########################
-
-
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fishCountryDES.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFunctions_Standardization/plotCOMPARE_DES/completeBatchPlots.RData")
-
-
-batchnumber = 14
-batchnumber2Compare = 13
-folder = "Batch14_Sugar3"
-dir.create(paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/",folder), showWarnings = FALSE,recursive=TRUE)
-
-
-ptm <- proc.time()
-completeBatchPlots(standData,batchnumber,batchnumber2Compare,folder=folder)
-message((proc.time() - ptm)[3])
-
-#################################################################
 
 
 ###################################
