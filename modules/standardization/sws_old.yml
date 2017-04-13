@@ -1,0 +1,18 @@
+current: qa
+all:
+  standardizationpath: /browningj/standardization
+qa:
+  certdir: C:/Users/muschitiello/Documents/certificates/qa
+  server: https://hqlqasws1.hq.un.fao.org:8181/sws
+  share: S:/
+  token: 8cfc5005-5715-4a78-8e8e-cce9a9de739a
+production:
+  certdir: path/to/prod/certs
+  server: https://hqlprswsas1.hq.un.fao.org:8181/sws
+  share: S:/
+  token: 
+vignette:
+  certdir: C:/Users/muschitiello/Documents/certificates/qa
+  server: https://hqlqasws1.hq.un.fao.org:8181/sws
+  share: S:/
+  token: 8cfc5005-5715-4a78-8e8e-cce9a9de739a

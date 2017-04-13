@@ -70,26 +70,31 @@ tree=tree[!measuredItemParentCPC %in% animals,]
 tree=tree[measuredItemParentCPC!="01520",]
 
 
+
+
 # Cristina Correction sugar Tree
 
 tree = tree[!measuredItemParentCPC=="23670.01"] # All ER = NA (rows=3878)
 tree = tree[!measuredItemParentCPC=="2351"] # All ER = NA 0.9200 0.9300 0.9650 0.9600 0.9350 0.9430 0.9346 (rows=3878)
 tree = tree[!measuredItemParentCPC=="23511"] # All ER = NA (rows=3878)
-# tree = tree[!(measuredItemChildCPC=="2413"& measuredItemParentCPC %in% c("23520","23511.01","39160","24110"))] # NA 0.7 (rows=3878)
-# rispristinato un collegamento
-tree = tree[!(measuredItemChildCPC=="2413"& measuredItemParentCPC %in% c("23511.01","39160","24110"))] # NA 0.7 (rows=3878)
+tree = tree[!(measuredItemChildCPC=="2413"& measuredItemParentCPC %in% c("23520","23511.01","39160","24110"))] # NA 0.7 (rows=3878)
 tree = tree[!(measuredItemChildCPC=="24110"& measuredItemParentCPC=="39160")] # NA 0.45 0.25 (rows=3878)
 tree = tree[!(measuredItemChildCPC=="24490" & measuredItemParentCPC=="23511.01")] # NA 5 (rows=3878)
 tree = tree[!(measuredItemChildCPC=="2351" & measuredItemParentCPC=="23512")] # All ER = NA (rows=3878)
 tree = tree[!measuredItemChildCPC=="23511"] # NA 0.1 (rows=3878)
-# tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="23511.01", measuredItemChildCPC:="2351f"]
-# tree[measuredItemParentCPC=="01801" & measuredItemChildCPC=="23512", measuredItemChildCPC:="2351f"]
-# tree[measuredItemParentCPC=="23511.01", measuredItemParentCPC:="2351f"]
-# tree[measuredItemParentCPC=="23512", measuredItemParentCPC:="2351f"]
+tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="23511.01", measuredItemChildCPC:="2351f"]
+tree[measuredItemParentCPC=="01801" & measuredItemChildCPC=="23512", measuredItemChildCPC:="2351f"]
+tree[measuredItemParentCPC=="23511.01", measuredItemParentCPC:="2351f"]
+tree[measuredItemParentCPC=="23512", measuredItemParentCPC:="2351f"]
 tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),]
 
 ##tree[measuredItemChildCPC=="2351f"& measuredItemParentCPC %in% c("23511.01","23512"),measuredItemChildCPC:="23520"]
 ###
+
+
+# Cristina Correction wheat Tree
+
+# tree = tree[!(measuredItemChildCPC=="23140.03" & measuredItemParentCPC=="23110")]
 
 
 
@@ -173,7 +178,7 @@ message("Reading SUA data...")
 
 #!! 3 warnings about things that need to be changed !!#
 # data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-                          elementCol = "measuredElementSuaFbs")
+                          # elementCol = "measuredElementSuaFbs")
 # setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
@@ -212,20 +217,19 @@ load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFi
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
 
 # Cristina 
-data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
+# data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
 
-data=data[, list(Value = sum(Value, na.rm = TRUE)),
-     by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears")]
+# data=data[, list(Value = sum(Value, na.rm = TRUE)),
+     # by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears")]
 
 
 animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildCPC])
 cutItemsTestFra=cutItems[!cutItemsTestFra %in% animalChildren]
 
+
 ##Cristina
-# cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540")))]##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
-cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("2351f","23540")))]##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
-cutItemsTestFra = c(cutItemsTestFra,"24110","23511.02")
-# cutItemsTestFra = c(cutItemsTestFra, "23520", "24110")
+cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540","2351f")))]##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
+cutItemsTestFra = c(cutItemsTestFra, "23520", "24110")
 ##
 
 ## Update params for specific dataset
