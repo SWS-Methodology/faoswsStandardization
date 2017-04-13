@@ -472,7 +472,7 @@ AfterCB = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardizati
                      colClasses = c("character","character","character","character","numeric","character","character"))
 AfterCB = data.table(AfterCB)
 
-save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
+save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
 SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
@@ -496,8 +496,7 @@ AfterSt = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardizati
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
                      colClasses = c("character","character","character","character","numeric","character","character"))
 AfterSt = data.table(AfterSt)
-save(AfterSt,file=paste0("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterStandardization_batch",batchnumber,".RData"))
-
+save(AfterSt,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterStandardization_batch",batchnumber,".RData"))
 
 SaveData(domain = "suafbs", dataset = "fbs_standardized", data = AfterSt, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
