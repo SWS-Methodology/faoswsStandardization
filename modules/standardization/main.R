@@ -172,12 +172,13 @@ message("Reading SUA data...")
 # specified by the user.
 
 #!! 3 warnings about things that need to be changed !!#
-## data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-##                           elementCol = "measuredElementSuaFbs")
-## setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+# data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
+                          elementCol = "measuredElementSuaFbs")
+# setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
-# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
+# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/zeroWeightVector.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeFra2.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/crudeBalEl.RData")
@@ -394,7 +395,7 @@ if(params$createIntermetiateFile){
   }
 }
 
-
+ptm <- proc.time()
 for (i in seq_len(nrow(uniqueLevels))) {
     filter = uniqueLevels[i, ]
     dataSubset = data[filter, , on = c("geographicAreaM49", "timePointYears")]
@@ -417,10 +418,11 @@ for (i in seq_len(nrow(uniqueLevels))) {
     standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))] 
   
 }
+message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
 standData = rbindlist(standData)
-save(standData,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch13.RData")
+save(standData,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch14.RData")
 
 
 #################################################################
@@ -436,11 +438,15 @@ load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFi
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFunctions_Standardization/plotCOMPARE_DES/completeBatchPlots.RData")
 
 
-batchnumber = 12
-batchnumber2Compare = 11
-folder = "Batch12_CrudeBal_corrected"
+batchnumber = 14
+batchnumber2Compare = 13
+folder = "Batch14_Sugar3"
+dir.create(paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/",folder), showWarnings = FALSE,recursive=TRUE)
 
-completeBatchPlots(batchnumber,batchnumber2Compare,folder)
+
+ptm <- proc.time()
+completeBatchPlots(standData,batchnumber,batchnumber2Compare,folder=folder)
+message((proc.time() - ptm)[3])
 
 #################################################################
 
@@ -533,11 +539,14 @@ message("Attempting to save standardized data...")
 
 
 setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
+
+ptm <- proc.time()
 out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData)
 cat(out$inserted + out$ignored, " observations written and problems with ",
     out$discarded, sep = "")
 paste0(out$inserted + out$ignored, " observations written and problems with ",
        out$discarded)
+message((proc.time() - ptm)[3])
 
 
 
