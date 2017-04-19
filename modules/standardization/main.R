@@ -212,12 +212,9 @@ load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFi
 
 ## Cristina Sugar 
 fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2659","24110","2901","2903","2924")))
-fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeCri3),c("2541","23511.02","2901","2903","2909")))
-# fbsTreeCri3[measuredItemSuaFbs=="2351f",measuredItemSuaFbs:="23511.01"]
-# fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeCri3),c("2542","23512","2901","2903","2909")))
 fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351")]
 fbsTreeFra2 <- fbsTreeCri3
-# fbsTreeFra2[fbsID4=="2542",measuredItemSuaFbs:="23520"]
+fbsTreeFra2[fbsID4=="2542",measuredItemSuaFbs:="23520"]
 
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/cutItemsTestFra.RData")
 
@@ -235,11 +232,11 @@ cutItemsTestFra=cutItems[!cutItemsTestFra %in% animalChildren]
 
 
 ##Cristina
-# cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540","2351f")))]
+cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540","2351f")))]
 ##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
 # cutItemsTestFra = c(cutItemsTestFra, "23520", "24110")
-cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540")))]
-cutItemsTestFra = c(cutItemsTestFra,"24110","23511.02")
+# cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540")))]
+cutItemsTestFra = c(cutItemsTestFra,"24110","23520","23511.02")
 
 
 ##
