@@ -213,6 +213,7 @@ load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFi
 ## Cristina Sugar 
 fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2659","24110","2901","2903","2924")))
 fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351")]
+fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeCri3),c("2541","23511.02","2901","2903","2909")))
 fbsTreeFra2 <- fbsTreeCri3
 fbsTreeFra2[fbsID4=="2542",measuredItemSuaFbs:="23520"]
 
@@ -221,10 +222,10 @@ load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFi
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
 
 # Cristina 
-# data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
+data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
 
-# data=data[, list(Value = sum(Value, na.rm = TRUE)),
-     # by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears")]
+data=data[, list(Value = sum(Value, na.rm = TRUE)),
+     by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears")]
 
 
 animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildCPC])
