@@ -394,6 +394,7 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","891"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("56","40","60","258","372","380"),]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
@@ -436,7 +437,9 @@ message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
 standData = rbindlist(standData)
-save(standData,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch14.RData")
+
+batchnumber = 14
+save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
 ######################## CRISTINA plots ########################
@@ -445,13 +448,11 @@ save(standData,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCri
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fishCountryDES.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFunctions_Standardization/plotCOMPARE_DES/completeBatchPlots.RData")
 
-
-batchnumber = 13
-# batchnumber2Compare = 13
-# folder = "Batch14_Sugar3"
+# batchnumber2Compare = 12
+# folder = "Batch13_Sugar2"
 # dir.create(paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/",folder), showWarnings = FALSE,recursive=TRUE)
-# 
-# 
+
+
 # ptm <- proc.time()
 # completeBatchPlots(standData,batchnumber,batchnumber2Compare,folder=folder)
 # message((proc.time() - ptm)[3])
