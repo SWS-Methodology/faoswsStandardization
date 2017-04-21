@@ -446,10 +446,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     #### CRISTINA delete the FoodMAnufacturin rows for the cut items 
     # because these have the code with the prefix f???_ 
     # this generates problems when doing the saving back of the ssecond step.
-    
-    
     data=data[!grepl("f???_",measuredItemSuaFbs)]
   
+        
     ### Second intermediate Save  
     ## message("Attempting to save unbalanced FBS data...")
     setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")

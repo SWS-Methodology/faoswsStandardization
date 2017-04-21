@@ -192,7 +192,6 @@ message("Reading SUA data...")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/zeroWeightVector.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeFra2.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/crudeBalEl.RData")
 
 
@@ -211,11 +210,19 @@ load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFi
 
 
 ## Cristina Sugar 
-fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2659","24110","2901","2903","2924")))
-fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351")]
-fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeCri3),c("2541","23511.02","2901","2903","2909")))
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeFra2.RData")
+# fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2659","24110","2901","2903","2924")))
+# fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351")]
+# fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeCri3),c("2541","23511.02","2901","2903","2909")))
+# fbsTreeFra2 <- fbsTreeCri3
+# fbsTreeFra2[fbsID4=="2542",measuredItemSuaFbs:="23520"]
+# save(fbsTreeFra2,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeCri3.RData")
+
+
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeCri3.RData")
 fbsTreeFra2 <- fbsTreeCri3
-fbsTreeFra2[fbsID4=="2542",measuredItemSuaFbs:="23520"]
+
+
 
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/cutItemsTestFra.RData")
 
@@ -394,7 +401,7 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","891"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("56","40","60","258","372","380"),]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
@@ -438,15 +445,15 @@ message((proc.time() - ptm)[3])
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
-batchnumber = 14
-save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
+batchnumber = 13
+# save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
 ######################## CRISTINA plots ########################
 
 
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fishCountryDES.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFunctions_Standardization/plotCOMPARE_DES/completeBatchPlots.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fishCountryDES.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFunctions_Standardization/plotCOMPARE_DES/completeBatchPlots.RData")
 
 # batchnumber2Compare = 12
 # folder = "Batch13_Sugar2"
