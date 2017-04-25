@@ -5,6 +5,7 @@ library(data.table)
 library(igraph)
 library(faoswsBalancing)
 library(faoswsStandardization)
+library(faoswsFlag)
 
 library(stringr)
 library(dplyr)
@@ -39,7 +40,7 @@ if (CheckDebug()) {
     token = PARAMS[["token"]]
   )
   
-  ## Source local scripts for this local test
+  ## Source local scripts for this local tes
   # for (file in dir(apiDirectory, full.names = T))
   #   source(file)
 } else {
@@ -95,7 +96,15 @@ tree[measuredItemParentCPC=="23511.01", measuredItemParentCPC:="2351f"]
 tree[measuredItemParentCPC=="23512", measuredItemParentCPC:="2351f"]
 tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),]
 
-##tree[measuredItemChildCPC=="2351f"& measuredItemParentCPC %in% c("23511.01","23512"),measuredItemChildCPC:="23520"]
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# CRISTINA To be lately activated for ANOTHER SUGAR CORRECTION
+# tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="2351f", extractionRate:=0.11]
+# tree[measuredItemParentCPC=="01801" & measuredItemChildCPC=="2351f", extractionRate:=0.14]
+# tree[measuredItemParentCPC=="2351f"&is.na(extractionRate),extractionRate:=0.935]
+# tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="2351f", extractionRate:=0.1]
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#tree[measuredItemChildCPC=="2351f"& measuredItemParentCPC %in% c("23511.01","23512"),measuredItemChildCPC:="23520"]
 ###
 
 
@@ -189,20 +198,17 @@ message("Reading SUA data...")
 # setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/zeroWeightVector.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/crudeBalEl.RData")
 
 
 
 ## Cristina: correcting for Serbia and Montenegro:
-
 # 1. The data for Servia and Montenegro (fal=186, m49=891) exist even after 2006 but with the same value as for the 2005.
 # then I removed the data after 2005.
 # NB There is not 186 (m49891 in the CrudeBalEl the I duplicated the value of Serbia fal=272 m49=688)
-
-
 # 2. There are data for Montenegro and Serbia (separated) even before 2006
 
 
@@ -228,11 +234,14 @@ load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFi
 
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
 
-# Cristina 
+# Cristina SUGAR
 data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
 
 data=data[, list(Value = sum(Value, na.rm = TRUE)),
-     by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears")]
+     by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
+data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
+  data.table
+data=data[,c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected")]
 
 
 animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildCPC])
@@ -269,7 +278,7 @@ params$touristCode = "tourist"
 params$foodProcCode = "foodManufacturing"
 params$residualCode = "residual"
 params$createIntermetiateFile= "TRUE"
-
+params$protected = "Protected"
 
 # Convert units for tourist and industrial
 message("Applying adjustments to commodity tree...")
@@ -401,7 +410,9 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("554"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","170","604","616"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276")&timePointYears=="2013",]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","891"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("56","40","60","258","372","380"),]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
@@ -445,8 +456,8 @@ message((proc.time() - ptm)[3])
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
-batchnumber = 13
-# save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
+batchnumber = 14
+save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
 ######################## CRISTINA plots ########################
@@ -560,7 +571,7 @@ message("Attempting to save standardized data...")
 setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
 
 ptm <- proc.time()
-out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData)
+out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData, waitTimeout = 20000)
 cat(out$inserted + out$ignored, " observations written and problems with ",
     out$discarded, sep = "")
 paste0(out$inserted + out$ignored, " observations written and problems with ",

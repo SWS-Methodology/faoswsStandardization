@@ -48,6 +48,7 @@ standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
     parentVar = standParams$parentVar
     extractVar = standParams$extractVar
     shareVar = standParams$shareVar
+    protected = standParams$protected
     
     ## Data Quality Checks
     stopifnot(is(data, "data.table"))
@@ -81,7 +82,7 @@ standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
     ## Restructure the data for easier standardization
     standardizationData = data.table::melt.data.table(
         data = data, measure.vars = elements,
-        id.vars = c(geoVar, yearVar, itemVar),
+        id.vars = c(geoVar, yearVar, itemVar,protected),
         variable.name = "measuredElement", value.name = "Value")
     standardizationData[, measuredElement :=
                             gsub(elementPrefix, "", measuredElement)]
@@ -103,7 +104,10 @@ standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
     standardizationData[, c(childVar, yearVar, geoVar) :=
                             list(as.character(get(childVar)),
                                  as.character(get(yearVar)),
-                                 as.character(get(geoVar)))]
+                                 as.character(get(geoVar)),
+                                 
+# Cristina Cereals exclusion in case of protected data
+                                 as.character(get(protected)))]
     
     ## To deal with joint byproducts
 
@@ -116,9 +120,15 @@ standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
     
     ##' If an element is not a child in the tree, then "standardize" it to
     ##' itself with a rate of 1 and a share of 1.
+    
+    # Cristina Cereals exclusion in case of protected data
+    standardizationData[get(childVar)=="0111"&get(protected)=="TRUE",
+                        c(parentVar, extractVar, shareVar) :=
+                            list("p0111", 1, 1)]
+    
     standardizationData[is.na(get(parentVar)),
                         c(parentVar, extractVar, shareVar) :=
-                            list(get(childVar), 1, 1)]
+                          list(get(childVar), 1, 1)]
     
     
     standardizationData[,weight:=1]
