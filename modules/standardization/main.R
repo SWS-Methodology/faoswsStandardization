@@ -199,7 +199,8 @@ message("Reading SUA data...")
 
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/zeroWeightVector.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/crudeBalEl.RData")
 
@@ -226,8 +227,6 @@ load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFi
 
 
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeCri3.RData")
-fbsTreeFra2 <- fbsTreeCri3
-
 
 
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/cutItemsTestFra.RData")
@@ -420,8 +419,8 @@ uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 
 if(params$createIntermetiateFile){
   
-  if(file.exists("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterStandardization.csv")){
-    file.remove("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterStandardization.csv")
+  if(file.exists("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/StandardizedPrimaryEquivalent.csv")){
+    file.remove("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/StandardizedPrimaryEquivalent.csv")
   }
   if(file.exists("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing.csv")){
     file.remove("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing.csv")
@@ -456,7 +455,7 @@ message((proc.time() - ptm)[3])
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
-batchnumber = 14
+batchnumber = 15
 save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
@@ -508,19 +507,19 @@ message((proc.time() - ptm)[3])
 ### SECOND INTERMEDIATE SAVE
 
 ptm <- proc.time()
-AfterSt = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterStandardization.csv",
+StandPrEq = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/StandardizedPrimaryEquivalent.csv",
                      header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
                      colClasses = c("character","character","character","character","numeric","character","character"))
-AfterSt = data.table(AfterSt)
-save(AfterSt,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterStandardization_batch",batchnumber,".RData"))
+StandPrEq = data.table(StandPrEq)
+save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
 
 SaveData(domain = "suafbs", dataset = "fbs_standardized", data = AfterSt, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
 # sample saving on The T-Drive
 
-# write.csv(AfterSt[geographicAreaM49 %in% countries45],"C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/Batch12_CrudeBal_corrected/Intermediate_steps_savings_batch12/AfterStandardization.csv",row.names=FALSE)
+# write.csv(AfterSt[geographicAreaM49 %in% countries45],"C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/Batch12_CrudeBal_corrected/Intermediate_steps_savings_batch12/StandardizedPrimaryEquivalent.csv",row.names=FALSE)
 
 ###################################
 

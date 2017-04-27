@@ -468,6 +468,14 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                            Value)]
     standData <- standData[!is.na(Value),]
     
+    
+    # Cristina Merge with FbsTree for saving only the PrimaryEquivalent CPC codes
+    # standData=merge(standData,fbsTreeFra2,by.x="measuredItemFbsSua",by.y="measuredItemSuaFbs")
+    #
+    
+    
+    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+                           Value)]
     standData[, flagObservationStatus := "I"]
     standData[, flagMethod := "s"]
     ##ptm <- proc.time()
@@ -477,7 +485,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     if(!is.null(debugFile)){
       
       saveFBSItermediateStep(directory="C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile",
-                             fileName="AfterStandardization",
+                             fileName="StandardizedPrimaryEquivalent",
                              data=standData)
     }
     
