@@ -193,14 +193,14 @@ message("Reading SUA data...")
 # specified by the user.
 
 #!! 3 warnings about things that need to be changed !!#
-# data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-                          # elementCol = "measuredElementSuaFbs")
-# setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
+                          elementCol = "measuredElementSuaFbs")
+setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/zeroWeightVector.RData")
 load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/crudeBalEl.RData")
 
@@ -455,7 +455,7 @@ message((proc.time() - ptm)[3])
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
-batchnumber = 15
+batchnumber = 16
 save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
