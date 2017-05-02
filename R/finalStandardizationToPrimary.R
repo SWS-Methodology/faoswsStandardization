@@ -113,7 +113,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
     out = data[, standardizeTree(data = .SD, tree = standTree,
                                  standParams = localParams, elements = "Value",
                                  sugarHack = sugarHack,
-                                 zeroWeight= zeroWeightVector),
+                                 zeroWeight= zeroWeight),
                by = c(standParams$elementVar)]
     
     

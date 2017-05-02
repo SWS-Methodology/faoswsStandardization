@@ -89,7 +89,7 @@ computeSupplyComponents= function(data, standParams, loop){
   nutrients=nutrients[,c("geographicAreaM49","timePointYears","measuredElementSuaFbs",paste0("fbsID", 4-loop+1),"Value"), with=FALSE]
   
   out = rbind(data,nutrients)
-  
+  out = unique(out)
 
   
   return(out)

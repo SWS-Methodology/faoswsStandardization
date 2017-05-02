@@ -222,10 +222,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## The trees that have not to be standardized back are cut changing their codes 
     ## in the child column (both in tree and in availability)
     
-    tree[get(standParams$childVar) %in% cutItemsTestFra,
+    tree[get(standParams$childVar) %in% cutItems,
        c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
   
-    availability[get(standParams$childVar) %in% cutItemsTestFra,
+    availability[get(standParams$childVar) %in% cutItems,
          c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
     
 
@@ -238,7 +238,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ##STEP to filter out from the TOT availability of each commodity the portion that must be allocated to the FOOD processing.
 
     # standardization of the production to obtain foodProc
-    foodProc=filterOutFoodProc(data=data, params=p, tree=tree, availability=availability,zeroWeight=zeroWeightVector)
+    foodProc=filterOutFoodProc(data=data, params=p, tree=tree, availability=availability,zeroWeight=zeroWeight)
     
     data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
     
@@ -322,7 +322,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## balanceResidual()
     
     
-    ## Cristina new crude Balancing
+    ### Cristina new crude Balancing
     crudeBalEl = crudeBalEl[geographicAreaM49==unique(data[,geographicAreaM49])]
     feedCommodities = crudeBalEl[get(p$elementVar)==p$feedCode,get(p$itemVar)]
     indCommodities = crudeBalEl[get(p$elementVar)==p$industrialCode,get(p$itemVar)]
@@ -342,8 +342,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                     seedCommodities = seedCommodities,
                     lossCommodities = lossCommodities,
                     foodCommodities = foodCommodities,
-                    cut=cutItemsTestFra)
-
+                    cut=cutItems)
+    ###
+    
+    
+    
     if(length(printCodes) > 0){
       cat("\nSUA table after balancing processed elements:")
       data = markUpdated(new = data, old = old, standParams = p)
@@ -379,7 +382,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     if(!is.null(debugFile)){
       
-      saveFBSItermediateStep(directory="C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile",
+      saveFBSItermediateStep(directory="debugFile",
                              fileName="AfterCrudeBalancing",
                              data=standData)
     }
@@ -430,7 +433,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data = finalStandardizationToPrimary(data = data, tree = tree,
                                          standParams = p, sugarHack = FALSE,
                                          specificTree = FALSE,
-                                         cut=cutItemsTestFra,
+                                         cut=cutItems,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
         cat("\nSUA table after standardization:")
@@ -469,9 +472,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     standData <- standData[!is.na(Value),]
     
     
-    # Cristina Merge with FbsTree for saving only the PrimaryEquivalent CPC codes
-    # standData=merge(standData,fbsTreeFra2,by.x="measuredItemFbsSua",by.y="measuredItemSuaFbs")
-    #
+    ### Cristina Merge with FbsTree for saving only the PrimaryEquivalent CPC codes
+    standData=merge(standData,fbsTree,by.x="measuredItemFbsSua",by.y="measuredItemSuaFbs")
+    ###
     
     
     standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
@@ -484,7 +487,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     if(!is.null(debugFile)){
       
-      saveFBSItermediateStep(directory="C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile",
+      saveFBSItermediateStep(directory="debugFile",
                              fileName="StandardizedPrimaryEquivalent",
                              data=standData)
     }

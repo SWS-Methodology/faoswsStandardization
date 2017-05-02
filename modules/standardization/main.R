@@ -69,19 +69,16 @@ yearVals = as.character(startYear:endYear)
 tree = getCommodityTree(timePointYears = yearVals)
 
 
+### Francesca meat correction
 meat=c("21118.01","21139","21111.01" ,"21112","21113.01","21114","21115","21116","21117.01","21117.02","21118.02","21118.03","21119.01","21121","21122",
        "21123","21124","21125","21131","21132","21133","21134","21135","21136","21137","21137","21138","21138","21138","21141",
        "21142","21143","21144","21145","21170.01")
 animals= unique(tree[measuredItemChildCPC %in% meat, measuredItemParentCPC])
-
 tree=tree[!measuredItemParentCPC %in% animals,]
 tree=tree[measuredItemParentCPC!="01520",]
+###
 
-
-
-
-# Cristina Correction sugar Tree
-
+### Cristina Correction sugar Tree
 tree = tree[!measuredItemParentCPC=="23670.01"] # All ER = NA (rows=3878)
 tree = tree[!measuredItemParentCPC=="2351"] # All ER = NA 0.9200 0.9300 0.9650 0.9600 0.9350 0.9430 0.9346 (rows=3878)
 tree = tree[!measuredItemParentCPC=="23511"] # All ER = NA (rows=3878)
@@ -104,20 +101,18 @@ tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),
 # tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="2351f", extractionRate:=0.1]
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-#tree[measuredItemChildCPC=="2351f"& measuredItemParentCPC %in% c("23511.01","23512"),measuredItemChildCPC:="23520"]
 ###
 
 
-# Cristina Correction wheat Tree
+### Cristina Correction wheat Tree
 
 # tree = tree[!(measuredItemChildCPC=="23140.03" & measuredItemParentCPC=="23110")]
-
-
-
 ###
 
-## Graph of all commodities
 
+
+
+### Graph of all commodities
 # graphdata <- tree[, .(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, extractionRate, share)]
 # graphdata <- graphdata[, .(extractionRate = mean(extractionRate, na.rm = TRUE),
 #                  share = mean(share, na.rm = TRUE)),
@@ -143,10 +138,9 @@ tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),
 # dev.off()
 
 ###
+
 areaKeys = GetCodeList(domain = "suafbs", dataset = "sua", "geographicAreaM49")
 areaKeys = areaKeys[type == "country", code]
-
-
 
 elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua", "measuredElementSuaFbs")
 
@@ -177,8 +171,6 @@ elemKeys = c(strsplit(elemKeys, ", ")[[1]], sws_elements)
 itemKeys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", "measuredItemFbsSua")
 itemKeys = itemKeys[, code]
 
-
-
 key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = list(
   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
@@ -188,21 +180,24 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
 
 message("Reading SUA data...")
 
-# This gets the values for all countries, all elements which are children of the
-# element classes listed above, all CPCs in suafbs and all years between those
-# specified by the user.
+## This gets the values for all countries, all elements which are children of the
+## element classes listed above, all CPCs in suafbs and all years between those
+## specified by the user.
 
-#!! 3 warnings about things that need to be changed !!#
+##!! 3 warnings about things that need to be changed !!#
 # data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
                           # elementCol = "measuredElementSuaFbs")
 # setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
+
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/zeroWeightVector.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/crudeBalEl.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
+
+
 
 
 
@@ -216,24 +211,8 @@ load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFi
 
 
 
-## Cristina Sugar 
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeFra2.RData")
-# fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeFra2),c("2659","24110","2901","2903","2924")))
-# fbsTreeCri3 <- fbsTreeCri3[!measuredItemSuaFbs %in% c("2351")]
-# fbsTreeCri3 <- data.table(rbind(data.frame(fbsTreeCri3),c("2541","23511.02","2901","2903","2909")))
-# fbsTreeFra2 <- fbsTreeCri3
-# fbsTreeFra2[fbsID4=="2542",measuredItemSuaFbs:="23520"]
-# save(fbsTreeFra2,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeCri3.RData")
-
-
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fbsTreeCri3.RData")
-
-
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/cutItemsTestFra.RData")
-
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
-
-# Cristina SUGAR
+### CRISTINA: SUGAR
+### temporary change in the data for accounting for corrections in sugar Tree
 data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
 
 data=data[, list(Value = sum(Value, na.rm = TRUE)),
@@ -241,21 +220,14 @@ data=data[, list(Value = sum(Value, na.rm = TRUE)),
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 data=data[,c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected")]
+###
 
 
-animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildCPC])
-cutItemsTestFra=cutItems[!cutItemsTestFra %in% animalChildren]
+### CRISTINA: This was needed for Updating the CutItems. The actual CutItems files is updated
+# animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildCPC])
+###
 
 
-##Cristina
-cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540","2351f")))]
-##cutItemsTestFra = c(cutItemsTestFra, "23511.01", "23512")
-# cutItemsTestFra = c(cutItemsTestFra, "23520", "24110")
-# cutItemsTestFra = cutItemsTestFra[which(!(cutItemsTestFra%in% c("23511.01","23512","23540")))]
-cutItemsTestFra = c(cutItemsTestFra,"24110","23520","23511.02")
-
-
-##
 
 ## Update params for specific dataset
 params = defaultStandardizationParameters()
@@ -380,7 +352,7 @@ standardizationVectorized = function(data, tree, nutrientData){
               data$geographicAreaM49[1], "_sample_test.md"),
        split = TRUE)
 
-  out = standardizationWrapper(data = data, tree = tree, fbsTree = fbsTreeFra2, 
+  out = standardizationWrapper(data = data, tree = tree, fbsTree = fbsTree, 
                                    standParams = params, printCodes = printCodes,
                                    nutrientData = nutrientData,crudeBalEl = crudeBalEl,
                                debugFile= params$createIntermetiateFile)
@@ -409,21 +381,17 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("554"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","170","604","616"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276")&timePointYears=="2013",]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","891"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("56","40","60","258","372","380"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","380")&timePointYears=="2013",]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 
 
 if(params$createIntermetiateFile){
   
-  if(file.exists("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/StandardizedPrimaryEquivalent.csv")){
-    file.remove("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/StandardizedPrimaryEquivalent.csv")
+  if(file.exists("debugFile/StandardizedPrimaryEquivalent.csv")){
+    file.remove("debugFile/StandardizedPrimaryEquivalent.csv")
   }
-  if(file.exists("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing.csv")){
-    file.remove("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing.csv")
+  if(file.exists("debugFile/AfterCrudeBalancing.csv")){
+    file.remove("debugFile/AfterCrudeBalancing.csv")
   }
 }
 
@@ -455,77 +423,40 @@ message((proc.time() - ptm)[3])
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
-batchnumber = 17
-save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
+# batchnumber = 17
+# save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
-######################## CRISTINA plots ########################
-
-
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/fishCountryDES.RData")
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFunctions_Standardization/plotCOMPARE_DES/completeBatchPlots.RData")
-
-# batchnumber2Compare = 12
-# folder = "Batch13_Sugar2"
-# dir.create(paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/",folder), showWarnings = FALSE,recursive=TRUE)
-
-
-# ptm <- proc.time()
-# completeBatchPlots(standData,batchnumber,batchnumber2Compare,folder=folder)
-# message((proc.time() - ptm)[3])
-
-#################################################################
-
 
 ###################################
 ### FIRST INTERMEDIATE SAVE
 
 
 ptm <- proc.time()
-AfterCB = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/AfterCrudeBalancing.csv",
+AfterCB = read.table("debugFile/AfterCrudeBalancing.csv",
                      header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
                      colClasses = c("character","character","character","character","numeric","character","character"))
 AfterCB = data.table(AfterCB)
 
-save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
+# save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
 SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
-
-#sample saving on The T-Drive
-# countries45 <- c("356", "156", "586", "231", "50", "360", "834", "608", "566", "408", "704", "800",
-#                  "404", "4", "368", "450", "104", "894", "508", "887", "332", "484", "716", "764",
-#                  "144", "148", "170", "646", "854", "454", "24", "762", "384", "320", "604",
-#                  "140", "120", "524", "116", "324", "562", "218", "68", "686", "178")
-# 
-# write.csv(AfterCB[geographicAreaM49 %in% countries45],"C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/Batch12_CrudeBal_corrected/Intermediate_steps_savings_batch12/AfterCrudeBalancing.csv",row.names=FALSE)
-
-#
 
 
 ###################################
 ### SECOND INTERMEDIATE SAVE
 
 ptm <- proc.time()
-StandPrEq = read.table("C:/Users/Muschitiello/Documents/Github/faoswsStandardization/debugFile/StandardizedPrimaryEquivalent.csv",
+StandPrEq = read.table("debugFile/StandardizedPrimaryEquivalent.csv",
                      header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
                      colClasses = c("character","character","character","character","numeric","character","character"))
 StandPrEq = data.table(StandPrEq)
-save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
+# save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
 
 SaveData(domain = "suafbs", dataset = "fbs_standardized", data = AfterSt, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
-
-# sample saving on The T-Drive
-
-# write.csv(AfterSt[geographicAreaM49 %in% countries45],"C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/Batch12_CrudeBal_corrected/Intermediate_steps_savings_batch12/StandardizedPrimaryEquivalent.csv",row.names=FALSE)
-
-###################################
-
-
-
-
 
 ###################################
 ### FINAL SAVE

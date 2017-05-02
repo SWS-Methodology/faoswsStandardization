@@ -26,7 +26,7 @@
 ##' 
 
 
-filterOutFoodProc=function(data=data, params=p, tree=tree, availability=availability,zeroWeight= zeroWeightVector)
+filterOutFoodProc=function(data=data, params=p, tree=tree, availability=availability,zeroWeight= zeroWeight)
   
   
   
