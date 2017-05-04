@@ -75,41 +75,7 @@ finalStandardizationToPrimary = function(data, tree, standParams,
                               extractionName = standParams$extractVar)
     localParams = standParams
     localParams$elementPrefix = ""
-    
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # Wheat
-    data[get(params$itemVar)=="0111"
-         &get(params$protected)=="TRUE"
-         &get(params$elementVar)==params$foodCode
-         & "Value">60000
-         ,params$itemVar:="p0111"]
-    
-    
-    # Barley
-    data[get(params$itemVar)=="0115"
-         &get(params$protected)=="TRUE"
-         &get(params$elementVar)==params$foodCode
-         & "Value">10000
-         ,params$itemVar:="p0115"]
-    
-    # Oats
-    data[get(params$itemVar)=="0117"
-         &get(params$protected)=="TRUE"
-         &get(params$elementVar)==params$foodCode
-         & "Value">10000
-         ,params$itemVar:="p0117"]
-    
-    # MAize
-    data[get(params$itemVar)=="0112"
-         &get(params$protected)=="TRUE"
-         &get(params$elementVar)==params$foodCode
-         & "Value">100000
-         ,params$itemVar:="p0112"]
-    
-    
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
-    
+ 
     out = data[, standardizeTree(data = .SD, tree = standTree,
                                  standParams = localParams, elements = "Value",
                                  sugarHack = sugarHack,
@@ -136,86 +102,12 @@ finalStandardizationToPrimary = function(data, tree, standParams,
 
     ## Add on the primary value for use in some special cases of
     ## standardization.
-    out = merge(out, data[, c(standParams$mergeKey, standParams$elementVar, "Value"),
+    out = merge(out, data[, c(standParams$mergeKey, standParams$elementVar,standParams$protected,standParams$official, "Value"),
                           with = FALSE],
                 by = c(standParams$mergeKey, standParams$elementVar),
                 suffixes = c("", ".old"), all.x = TRUE)
     
-    ### Cristina Cereals 
-    # Wheat
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    out[!(measuredElementSuaFbs%in%c("food")&
-          measuredItemSuaFbs%in%c("0111"))]
-    
-    out[!(measuredElementSuaFbs%in%c("Calories","Proteins","Fats")&
-          measuredItemSuaFbs%in%c("p0111"))]
-    
-    out[measuredElementSuaFbs%in%c("food")&
-          measuredItemSuaFbs=="p0111",measuredItemSuaFbs:="0111"]
-    
-    # out[measuredElementSuaFbs%in%c("Calories","Proteins","Fats","food")&
-          # measuredItemSuaFbs=="p0111",measuredItemSuaFbs:="0111"]
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
-    # Barley
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    out[!(measuredElementSuaFbs%in%c("food")&
-            measuredItemSuaFbs%in%c("0115"))]
-    
-    out[!(measuredElementSuaFbs%in%c("Calories","Proteins","Fats")&
-            measuredItemSuaFbs%in%c("p0115"))]
-    
-    out[measuredElementSuaFbs%in%c("food")&
-          measuredItemSuaFbs=="p0115",measuredItemSuaFbs:="0115"]
-   
-     # out[!(measuredElementSuaFbs%in%c("Calories","Proteins","Fats","food")&
-          # measuredItemSuaFbs%in%c("p0115"))]
-    
-    # out[measuredElementSuaFbs%in%c("Calories","Proteins","Fats","food")&
-          # measuredItemSuaFbs=="p0115",measuredItemSuaFbs:="0115"]
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- 
-    # Oats
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    out[!(measuredElementSuaFbs%in%c("food")&
-            measuredItemSuaFbs%in%c("0117"))]
-    
-    out[!(measuredElementSuaFbs%in%c("Calories","Proteins","Fats")&
-            measuredItemSuaFbs%in%c("p0117"))]
-    
-    out[measuredElementSuaFbs%in%c("food")&
-          measuredItemSuaFbs=="p0117",measuredItemSuaFbs:="0117"]
-    
-    
-    # out[!(measuredElementSuaFbs%in%c("Calories","Proteins","Fats","food")&
-          # measuredItemSuaFbs%in%c("p0117"))]
-    
-    # out[measuredElementSuaFbs%in%c("Calories","Proteins","Fats","food")&
-          # measuredItemSuaFbs=="p0117",measuredItemSuaFbs:="0117"]
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
-    # Maize
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    out[!(measuredElementSuaFbs%in%c("food")&
-            measuredItemSuaFbs%in%c("0112"))]
-    
-    out[!(measuredElementSuaFbs%in%c("Calories","Proteins","Fats")&
-            measuredItemSuaFbs%in%c("p0112"))]
-    
-    out[measuredElementSuaFbs%in%c("food")&
-          measuredItemSuaFbs=="p0112",measuredItemSuaFbs:="0112"]
-    
-    
-    
-    
-    
-        # out[!measuredElementSuaFbs%in%c("Calories","Proteins","Fats","food")&
-    #       measuredItemSuaFbs%in%c("0112")]
-    # 
-    # out[measuredElementSuaFbs%in%c("Calories","Proteins","Fats","food")&
-    #       measuredItemSuaFbs=="p0112",measuredItemSuaFbs=="0112"]
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
+
     ## Production should never be standardized. Instead, take the primary value 
     ## directly.  But, the elements in the food processing tree won't have a
     ## previously assigned production, so don't do this for them.

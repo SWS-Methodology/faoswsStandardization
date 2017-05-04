@@ -66,7 +66,8 @@
 ##'   from the old system, converted in new element.   
 ##' @param printCodes A list of the item codes which should be printed at each 
 ##'   step to show the progress of the algorithm.
-##' @param debugFile folder for saving the intermediate files
+##' @param debugFile folder for saving the intermediate files.
+##' @param protected protected primary Equivalent Items.
 ##' @return A data.table containing the final balanced and standardized SUA 
 ##'   data.  Additionally, this table will have new elements in it if 
 ##'   nutrientData was provided.
@@ -77,7 +78,7 @@
 
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                   nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
-                                  debugFile= NULL){
+                                  debugFile= NULL, protected = NULL){
     
     ## Reassign standParams to p for brevity
     p = standParams
@@ -129,7 +130,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         if(colnames(nutrientData)[1] != p$itemVar)
             stop("First column of nutrient data must match standParams$itemVar!")
         stopifnot(ncol(nutrientData) > 1)
-        message("Nutrients are assumed to be:", paste(colnames(nutrientData)[-1], collapse = ", "))
+        # message("Nutrients are assumed to be:", paste(colnames(nutrientData)[-1], collapse = ", "))
+        geo=nameData(domain = "suafbs", dataset = "fbs_standardized",data.table(geographicAreaM49=data[,unique(get(p$geoVar))]))
+        yea=data[,unique(timePointYears)]
+        message("Country = ",as.character(geo[,2]),", year = ",yea)
         nutrientElements = colnames(nutrientData)[2:ncol(nutrientData)]
     } else {
         cat("No nutrient information provided, hence no nutrients are computed.")
@@ -356,7 +360,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }
 
     ### first intermediate SAVE 
-    message("Attempting to save balanced SUA data...")
+    # message("Attempting to save balanced SUA data...")
     setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
     fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
                                                              "foodManufacturing", "imports", "loss", "production", 
@@ -414,9 +418,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         data[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
              by = c(p$itemVar)]
       })
-      
-      
-      
     }
 
 
@@ -448,10 +449,43 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     #### CRISTINA delete the FoodMAnufacturin rows for the cut items 
     # because these have the code with the prefix f???_ 
-    # this generates problems when doing the saving back of the ssecond step.
+    # this generates problems when doing the saving back of the second step.
     data=data[!grepl("f???_",measuredItemSuaFbs)]
-  
-        
+    
+    ### CRISTINA PROTECTED PRIMARY EQUIVALENT FOOD VALUE 
+    # TO BE EXCLUDED FROM STANDARDIZATION are replaced 
+
+    if(!is.null(nutrientData)){
+      protected = merge(protected, nutrientData, by = p$itemVar, all.x = TRUE)
+      protected[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0, 
+           c("Calories", "Proteins", "Fats") := 
+             0]
+      ## Convert nutrient values into total nutrient info using food
+      ## allocation.
+      
+      ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
+      ## of the nutreient componets is 1/100g
+      
+      
+      sapply(nutrientElements, function(nutrient){
+        protected[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
+             by = c(p$itemVar)]
+      })
+    }
+    
+    protected[,food:=Value]
+    protected[,c("Value","measuredElementSuaFbs"):=NULL]
+    protected=melt.data.table(protected,id.vars = c("measuredItemSuaFbs","geographicAreaM49","timePointYears")
+                              ,measure.vars = c(nutrientElements,"food"),variable.name = "measuredElementSuaFbs"
+                              ,value.name = "newValue")
+    merged = data.table(left_join(data,protected,by=c(p$mergeKey,p$elementVar)))
+    merged[!is.na(newValue)
+           # &newValue<Value
+           ,Value:=newValue]
+    merged[,newValue:=NULL]
+    data=merged
+    ###
+     
     ### Second intermediate Save  
     ## message("Attempting to save unbalanced FBS data...")
     setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
