@@ -258,21 +258,21 @@ params$protected = "Protected"
 params$official = "Official"
 
 #protected data
-# primaryEq=fbsTree[,unique(measuredItemSuaFbs)]
-# 
-# # primary_1=tree[measuredItemParentCPC%in%primaryEq,unique(measuredItemParentCPC)]
-# # primary_2=primary_1[-(which(primary_1%in%tree[,measuredItemChildCPC]))]
-# 
-# protected = data[get(params$official)=="TRUE"
-#                  &get(params$protected)=="TRUE"
-#                  &get(params$elementVar)==params$foodCode
-#                  # &get(params$itemVar) %in% primary_2
-#                  &get(params$itemVar) %in% primaryEq
-#                  # &Value!=0
-#                  ,]
-# 
-# protected=merge(protected[,c(1,3,4),with=FALSE],data,by=c("measuredItemSuaFbs","geographicAreaM49","timePointYears"))
-# protected=protected[!is.na(measuredElementSuaFbs)]
+primaryEq=fbsTree[,unique(measuredItemSuaFbs)]
+
+# primary_1=tree[measuredItemParentCPC%in%primaryEq,unique(measuredItemParentCPC)]
+# primary_2=primary_1[-(which(primary_1%in%tree[,measuredItemChildCPC]))]
+
+protected = data[get(params$official)=="TRUE"
+                 &get(params$protected)=="TRUE"
+                 &get(params$elementVar)==params$foodCode
+                 # &get(params$itemVar) %in% primary_2
+                 &get(params$itemVar) %in% primaryEq
+                 # &Value!=0
+                 ,]
+
+protected=merge(protected[,c(1,3,4),with=FALSE],data,by=c("measuredItemSuaFbs","geographicAreaM49","timePointYears"))
+protected=protected[!is.na(measuredElementSuaFbs)]
 
 
 # Convert units for tourist and industrial
@@ -337,7 +337,7 @@ setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
 message("Defining vectorized standardization function...")
 
 standardizationVectorized = function(data, tree, nutrientData
-                                     # , protected
+                                     , protected
                                      ){
   
   # record if output is being sunk and at what level
@@ -382,7 +382,7 @@ standardizationVectorized = function(data, tree, nutrientData
                                    standParams = params, printCodes = printCodes,
                                    nutrientData = nutrientData, crudeBalEl = crudeBalEl,
                                    debugFile = params$createIntermetiateFile
-                               # , protected = protected
+                               , protected = protected
                                )
   return(out)
 }
@@ -443,8 +443,8 @@ for (i in seq_len(nrow(uniqueLevels))) {
              c("Calories", "Proteins", "Fats"))
     standData[[i]] = standardizationVectorized(data = dataSubset,
                                                tree = treeSubset,
-                                               nutrientData = subNutrientData
-                                               # ,protected = protectedSubset
+                                               nutrientData = subNutrientData,
+                                               protected = protectedSubset
                                                )
     
     standData[[i]] <- rbindlist(standData[[i]])
