@@ -78,7 +78,9 @@
 
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                   nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
-                                  debugFile= NULL, protected = NULL){
+                                  debugFile= NULL
+                                  # , protected = NULL
+                                  ){
     
     ## Reassign standParams to p for brevity
     p = standParams
@@ -452,39 +454,45 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     # this generates problems when doing the saving back of the second step.
     data=data[!grepl("f???_",measuredItemSuaFbs)]
     
-    ### CRISTINA PROTECTED PRIMARY EQUIVALENT FOOD VALUE 
-    # TO BE EXCLUDED FROM STANDARDIZATION are replaced 
-
-    if(!is.null(nutrientData)){
-      protected = merge(protected, nutrientData, by = p$itemVar, all.x = TRUE)
-      protected[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0, 
-           c("Calories", "Proteins", "Fats") := 
-             0]
-      ## Convert nutrient values into total nutrient info using food
-      ## allocation.
-      
-      ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
-      ## of the nutreient componets is 1/100g
-      
-      
-      sapply(nutrientElements, function(nutrient){
-        protected[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
-             by = c(p$itemVar)]
-      })
-    }
-    
-    protected[,food:=Value]
-    protected[,c("Value","measuredElementSuaFbs"):=NULL]
-    protected=melt.data.table(protected,id.vars = c("measuredItemSuaFbs","geographicAreaM49","timePointYears")
-                              ,measure.vars = c(nutrientElements,"food"),variable.name = "measuredElementSuaFbs"
-                              ,value.name = "newValue")
-    merged = data.table(left_join(data,protected,by=c(p$mergeKey,p$elementVar)))
-    merged[!is.na(newValue)
-           # &newValue<Value
-           ,Value:=newValue]
-    merged[,newValue:=NULL]
-    data=merged
-    ###
+    # ### CRISTINA PROTECTED PRIMARY EQUIVALENT FOOD VALUE 
+    # # TO BE EXCLUDED FROM STANDARDIZATION are replaced 
+    #  
+    # if(!is.null(nutrientData)){
+    #   protected = merge(protected, nutrientData, by = p$itemVar, all.x = TRUE)
+    #   protected[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0, 
+    #        c("Calories", "Proteins", "Fats") := 
+    #          0]
+    #   ## Convert nutrient values into total nutrient info using food
+    #   ## allocation.
+    #   
+    #   ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
+    #   ## of the nutreient componets is 1/100g
+    #   
+    #   
+    #   sapply(nutrientElements, function(nutrient){
+    #     protected[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
+    #          by = c(p$itemVar)]
+    #   })
+    # }
+    # 
+    # elements=protected[,unique(measuredElementSuaFbs)]
+    # protected=data.table(
+    #   dcast(protected,measuredItemSuaFbs+geographicAreaM49+timePointYears+Calories+Proteins+Fats~measuredElementSuaFbs,
+    #         value.var="Value"))
+    # if(!is.na(elements)){
+    # # protected[,food:=Value]
+    # # protected[,c("Value","measuredElementSuaFbs"):=NULL]
+    # protected=melt.data.table(protected,id.vars = c("measuredItemSuaFbs","geographicAreaM49","timePointYears")
+    #                           ,measure.vars = c(nutrientElements,elements),variable.name = "measuredElementSuaFbs"
+    #                           ,value.name = "newValue")
+    # merged = data.table(left_join(data,protected,by=c(p$mergeKey,p$elementVar)))
+    # merged[!is.na(newValue)
+    #        # &newValue<Value
+    #        ,Value:=newValue]
+    # merged[,newValue:=NULL]
+    # data=merged
+    # }
+    # ###
      
     ### Second intermediate Save  
     ## message("Attempting to save unbalanced FBS data...")

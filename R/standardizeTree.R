@@ -104,7 +104,11 @@ standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
     standardizationData[, c(childVar, yearVar, geoVar) :=
                             list(as.character(get(childVar)),
                                  as.character(get(yearVar)),
-                                 as.character(get(geoVar)))]
+                                 as.character(get(geoVar)),
+                                 
+                                 # Cristina Cereals exclusion in case of protected data
+                                 as.character(get(protected)))]
+    
     
     ## To deal with joint byproducts
 
@@ -116,9 +120,9 @@ standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
     ##' itself with a rate of 1 and a share of 1.
     
     # # Cristina Cereals exclusion in case of protected data
-    # standardizationData[get(childVar)=="0111"&get(protected)=="TRUE",
-    #                     c(parentVar, extractVar, shareVar) :=
-    #                         list("p0111", 1, 1)]
+    standardizationData[get(childVar)=="0111"&get(protected)=="TRUE",
+                        c(parentVar, extractVar, shareVar) :=
+                            list("p0111", 1, 1)]
     
     standardizationData[is.na(get(parentVar)),
                         c(parentVar, extractVar, shareVar) :=

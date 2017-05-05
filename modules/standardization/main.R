@@ -195,7 +195,8 @@ message("Reading SUA data...")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror3.RData")
 
 
 
@@ -221,7 +222,7 @@ data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>
   data.table
 
 data[flagObservationStatus=="",Official:=TRUE]
-data[flagObservationStatus!="",Official:=FALSE]
+data[is.na(Official),Official:=FALSE]
 data=data[,c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official")]
 
 ###
@@ -257,18 +258,22 @@ params$protected = "Protected"
 params$official = "Official"
 
 #protected data
-primaryEq=fbsTree[,unique(measuredItemSuaFbs)]
+# primaryEq=fbsTree[,unique(measuredItemSuaFbs)]
+# 
+# # primary_1=tree[measuredItemParentCPC%in%primaryEq,unique(measuredItemParentCPC)]
+# # primary_2=primary_1[-(which(primary_1%in%tree[,measuredItemChildCPC]))]
+# 
+# protected = data[get(params$official)=="TRUE"
+#                  &get(params$protected)=="TRUE"
+#                  &get(params$elementVar)==params$foodCode
+#                  # &get(params$itemVar) %in% primary_2
+#                  &get(params$itemVar) %in% primaryEq
+#                  # &Value!=0
+#                  ,]
+# 
+# protected=merge(protected[,c(1,3,4),with=FALSE],data,by=c("measuredItemSuaFbs","geographicAreaM49","timePointYears"))
+# protected=protected[!is.na(measuredElementSuaFbs)]
 
-primary_1=tree[measuredItemParentCPC%in%primaryEq,unique(measuredItemParentCPC)]
-primary_2=primary_1[-(which(primary_1%in%tree[,measuredItemChildCPC]))]
-
-
-protected = data[get(params$protected)=="TRUE"
-                 &get(params$official)=="TRUE"
-                 &get(params$elementVar)==params$foodCode
-                 &get(params$itemVar) %in% primary_2
-                 # &Value!=0
-                 ,]
 
 # Convert units for tourist and industrial
 message("Applying adjustments to commodity tree...")
@@ -331,7 +336,9 @@ setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
 
 message("Defining vectorized standardization function...")
 
-standardizationVectorized = function(data, tree, nutrientData, protected){
+standardizationVectorized = function(data, tree, nutrientData
+                                     # , protected
+                                     ){
   
   # record if output is being sunk and at what level
   sinkNumber <- sink.number()
@@ -374,7 +381,9 @@ standardizationVectorized = function(data, tree, nutrientData, protected){
   out = standardizationWrapper(data = data, tree = tree, fbsTree = fbsTree, 
                                    standParams = params, printCodes = printCodes,
                                    nutrientData = nutrientData, crudeBalEl = crudeBalEl,
-                                   debugFile = params$createIntermetiateFile, protected = protected)
+                                   debugFile = params$createIntermetiateFile
+                               # , protected = protected
+                               )
   return(out)
 }
 
@@ -403,6 +412,7 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","380")&timePointYears=="2013",]
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 
 
@@ -421,7 +431,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
     filter = uniqueLevels[i, ]
     dataSubset = data[filter, , on = c("geographicAreaM49", "timePointYears")]
     treeSubset = tree[filter, , on = c("geographicAreaM49", "timePointYears")]
-    protectedSubset = protected[filter, , on = c("geographicAreaM49", "timePointYears")]
+    # protectedSubset = protected[filter, , on = c("geographicAreaM49", "timePointYears")]
     # dataSubset[, c("geographicAreaM49", "timePointYears") := NULL]
     treeSubset[, c("geographicAreaM49", "timePointYears") := NULL]
     subNutrientData = nutrientData[filter, , on = c("geographicAreaM49",
@@ -433,8 +443,9 @@ for (i in seq_len(nrow(uniqueLevels))) {
              c("Calories", "Proteins", "Fats"))
     standData[[i]] = standardizationVectorized(data = dataSubset,
                                                tree = treeSubset,
-                                               nutrientData = subNutrientData,
-                                               protected = protectedSubset)
+                                               nutrientData = subNutrientData
+                                               # ,protected = protectedSubset
+                                               )
     
     standData[[i]] <- rbindlist(standData[[i]])
     names(standData[[i]])[grep("^fbsID", names(standData[[i]]))] <- params$itemVar
@@ -442,12 +453,13 @@ for (i in seq_len(nrow(uniqueLevels))) {
   
 }
 
+
 message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
-batchnumber = 19
+batchnumber = 20
 save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
