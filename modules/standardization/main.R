@@ -195,8 +195,8 @@ message("Reading SUA data...")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror3.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror3.RData")
 
 
 
@@ -412,7 +412,7 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","380")&timePointYears=="2013",]
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 
 
@@ -431,7 +431,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
     filter = uniqueLevels[i, ]
     dataSubset = data[filter, , on = c("geographicAreaM49", "timePointYears")]
     treeSubset = tree[filter, , on = c("geographicAreaM49", "timePointYears")]
-    # protectedSubset = protected[filter, , on = c("geographicAreaM49", "timePointYears")]
+    protectedSubset = protected[filter, , on = c("geographicAreaM49", "timePointYears")]
     # dataSubset[, c("geographicAreaM49", "timePointYears") := NULL]
     treeSubset[, c("geographicAreaM49", "timePointYears") := NULL]
     subNutrientData = nutrientData[filter, , on = c("geographicAreaM49",

@@ -79,7 +79,7 @@
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                   nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
                                   debugFile= NULL
-                                  # , protected = NULL
+                                  , protected = NULL
                                   ){
     
     ## Reassign standParams to p for brevity
@@ -316,7 +316,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## Add in elements not in the tree, as they are essentially parents
     nonTreeEl = data[[p$itemVar]]
     nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
-    ##primaryEl = c(primaryEl, nonTreeEl)
+    primaryEl = c(primaryEl, nonTreeEl)   ### !!!!!!!!!!!!!!!!!!!!!!!
     foodProcEl = unique(tree[get(p$targetVar) == "F",
                              get(p$parentVar)])
     #! This object is never used and I don't yet know why it's here
