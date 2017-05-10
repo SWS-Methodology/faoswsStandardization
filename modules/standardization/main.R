@@ -105,7 +105,6 @@ tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),
 
 
 ### Cristina Correction wheat Tree
-
 # tree = tree[!(measuredItemChildCPC=="23140.03" & measuredItemParentCPC=="23110")]
 ###
 
