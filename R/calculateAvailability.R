@@ -91,18 +91,20 @@ calculateAvailability = function(tree, standParams){
     output = output[, list(availability = mean(availability)),
                     by = c(standParams$childVar, standParams$parentVar)]
     
+  ### CRISTINA: this does not make sense. we made a mistake 
+    # outputNegativeAvail=output[availability <= 0 | is.na(availability) , .(get(standParams$parentVar),get(standParams$childVar))]
+    # setnames(outputNegativeAvail, c("V1", "V2"), c(standParams$parentVar,standParams$childVar))
+    # if(nrow(outputNegativeAvail)>0){
+    #   freqChild= data.table(table(outputNegativeAvail[, get(standParams$childVar)]))
+    #   setnames(freqChild, c("V1","N"), c(standParams$childVar, "freq"))
+    #   outputNegativeAvail=merge(outputNegativeAvail, freqChild , by=standParams$childVar)
+    #   outputNegativeAvail[, availability:=1/freq]
+    #   outputNegativeAvail[,freq:=NULL]
+    #   
+    #   output=output[availability >0 & !is.na(availability), ]
+    #   output=rbind(output,outputNegativeAvail)
+    # }
     
-    outputNegativeAvail=output[availability <= 0 | is.na(availability) , .(get(standParams$parentVar),get(standParams$childVar))]
-    setnames(outputNegativeAvail, c("V1", "V2"), c(standParams$parentVar,standParams$childVar))
-    if(nrow(outputNegativeAvail)>0){
-      freqChild= data.table(table(outputNegativeAvail[, get(standParams$childVar)]))
-      setnames(freqChild, c("V1","N"), c(standParams$childVar, "freq"))
-      outputNegativeAvail=merge(outputNegativeAvail, freqChild , by=standParams$childVar)
-      outputNegativeAvail[, availability:=1/freq]
-      outputNegativeAvail[,freq:=NULL]
-      
-      output=output[availability >0 & !is.na(availability), ]
-      output=rbind(output,outputNegativeAvail)
-    }
+    
     return(output)
 }

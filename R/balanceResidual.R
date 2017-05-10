@@ -114,8 +114,8 @@ balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
                                                      topNodes =primaryCommodities[i] ))
      
      primaryCommoditiesChildren[[i]]=primaryCommoditiesChildren[[i]][primaryCommoditiesChildren[[i]]!=primaryCommodities[i]]
-     if(nrow(data[standParams$itemVar %in% primaryCommoditiesChildren[[i]] , ])==0 |
-        sum(data[standParams$itemVar %in% primaryCommoditiesChildren[[i]] , Value], na.rm = TRUE)==0 )
+     if(nrow(data[get(standParams$itemVar) %in% primaryCommoditiesChildren[[i]] , ])==0 |
+        sum(data[get(standParams$itemVar) %in% primaryCommoditiesChildren[[i]] , Value], na.rm = TRUE)==0 )
         {
        
        TobeBalancedCommodity[[i]]= data.table(primaryCommodities[i])

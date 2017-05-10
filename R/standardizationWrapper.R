@@ -282,10 +282,36 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     setnames(tree, "share", p$shareVar)
     ## Calculate the share using proportions of availability, but default to the
     ## old value if no "by-availability" shares are available.
-    tree[, newShare := availability / sum(availability, na.rm = TRUE),
-              by = c(p$childVar)]
+    
+    
+## CRISTINA: Shares for availability <0
+    
+    
+    
+    # 
+    # tree[, newShare := availability / sum(availability, na.rm = TRUE),
+    #           by = c(p$childVar)]
+    # tree[, c(p$shareVar) :=
+    #               ifelse(is.na(newShare), get(p$shareVar), newShare)]
+    
+    
+    tree[availability>0, newShare := availability / sum(availability, na.rm = TRUE),
+         by = c(p$childVar)]
+    
+    
+    # treeNegativeAvail=tree[availability<=0]
+    freqChild= data.table(table(tree[, get(standParams$childVar)]))
+      setnames(freqChild, c("V1","N"), c(standParams$childVar, "freq"))
+      
+      tree=merge(tree, freqChild , by=standParams$childVar)
+      tree[availability<=0, newShare:=1/freq]
+      tree[,freq:=NULL]
+      
     tree[, c(p$shareVar) :=
-                  ifelse(is.na(newShare), get(p$shareVar), newShare)]
+           ifelse(is.na(newShare), get(p$shareVar), newShare)]
+    
+    
+    
     tree[, newShare := NULL]
     # if(length(printCodes) > 0){
     #     cat("\nAvailability of parents/children:\n\n")
