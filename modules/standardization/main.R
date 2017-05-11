@@ -411,7 +411,7 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","380")&timePointYears=="2013",]
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 
 
@@ -458,7 +458,7 @@ message((proc.time() - ptm)[3])
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
-batchnumber = 20
+batchnumber = 21
 save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
