@@ -171,11 +171,17 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## Delete nodes processed forward
     forwardParents = tree[get(p$targetVar) == "F", unique(get(p$parentVar))]
     tree = tree[!get(p$parentVar) %in% forwardParents, ]
-    if(length(printCodes) > 0){
+    
+    FPCommodities <- c( "01499.06", "01921.01")
+    if (length(which(FPCommodities%in%printCodes))>0)
+    {
+        if(length(printCodes) > 0){
         cat("\nSUA table after processing forward:")
         data = markUpdated(new = data, old = old, standParams = p)
         old = copy(data)
         print(printSUATable(data = data, standParams = p, printCodes = printCodes))
+        }
+      
     }
     
     
@@ -294,40 +300,63 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     # tree[, c(p$shareVar) :=
     #               ifelse(is.na(newShare), get(p$shareVar), newShare)]
     
+
     
-    tree[availability>0, newShare := availability / sum(availability, na.rm = TRUE),
-         by = c(p$childVar)]
+### Cristina trying to correct the availability and shares
     
+#1, comment this
     
-    # treeNegativeAvail=tree[availability<=0]
+    # tree[availability>0, newShare := availability / sum(availability, na.rm = TRUE),
+    #      by = c(p$childVar)]
+    # 
+    # 
+    # # treeNegativeAvail=tree[availability<=0]
+    # freqChild= data.table(table(tree[, get(standParams$childVar)]))
+    #   setnames(freqChild, c("V1","N"), c(standParams$childVar, "freq"))
+    #   
+    #   tree=merge(tree, freqChild , by=standParams$childVar)
+    #   
+    #   tree[availability<=0, newShare:=1/freq]
+    #   tree[,freq:=NULL]
+    #   
+
+    # 
+    
+# 2. create this
+    
     freqChild= data.table(table(tree[, get(standParams$childVar)]))
-      setnames(freqChild, c("V1","N"), c(standParams$childVar, "freq"))
-      
-      tree=merge(tree, freqChild , by=standParams$childVar)
-      tree[availability<=0, newShare:=1/freq]
-      tree[,freq:=NULL]
-      
+    setnames(freqChild, c("V1","N"), c(standParams$childVar, "freq"))
+    tree=merge(tree, freqChild , by=standParams$childVar)
+    tree[availability<=0, negShare:=1/freq]
+    tree[availability<=0, availability:=0]
+    tree[,sumPositiveAvail:=sum(availability,na.rm=TRUE),by = c(p$childVar)]
+    tree[,tempAvailability:=ifelse(availability<=0,negShare*sumPositiveAvail,availability)]
+    
+    tree[, newShare := tempAvailability / sum(tempAvailability, na.rm = TRUE),
+         by = c(p$childVar)]
+    tree[,availability:=tempAvailability]
+    
+    tree[,c("freq","tempAvailability","sumPositiveAvail","negShare"):=NULL]
+    
+### 
     tree[, c(p$shareVar) :=
            ifelse(is.na(newShare), get(p$shareVar), newShare)]
-    
-    
-    
     tree[, newShare := NULL]
-    # if(length(printCodes) > 0){
-    #     cat("\nAvailability of parents/children:\n\n")
-    #     print(knitr::kable(tree[get(p$childVar) %in% printCodes,
-    #                c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
-    #                with = FALSE]))
-    #     plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-    #                             get(p$childVar) %in% printCodes, ]
-    #     if(nrow(plotTree) > 0){
-    #         plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-    #                        childColname = p$childVar,
-    #                        extractionColname = p$extractVar, box.size = .06,
-    #                        box.type = "circle", cex.txt = 1, box.prop = .5,
-    #                        box.cex = 1)
-    #     }
-    # }
+    if(length(printCodes) > 0){
+        cat("\nAvailability of parents/children:\n\n")
+        print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+                   c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
+                   with = FALSE]))
+        plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+                                get(p$childVar) %in% printCodes, ]
+        if(nrow(plotTree) > 0){
+            plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+                           childColname = p$childVar,
+                           extractionColname = p$extractVar, box.size = .06,
+                           box.type = "circle", cex.txt = 1, box.prop = .5,
+                           box.cex = 1)
+        }
+    }
     
     
     
@@ -406,7 +435,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     standData <- standData[!is.na(Value),]
     
     standData[, flagObservationStatus := "I"]
-    standData[, flagMethod := "s"]
+    standData[, flagMethod := "b"]
     
     ##ptm <- proc.time()
     ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
@@ -465,7 +494,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                          cut=cutItems,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
-        cat("\nSUA table after standardization:")
+        cat("\nSUA table after standardization (BEFORE PROTECTED CORRECTION:")
         data = markUpdated(new = data, old = old, standParams = p)
         old = copy(data)
         print(printSUATable(data = data, standParams = p,
@@ -517,6 +546,18 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
            ,Value:=newValue]
     merged[,newValue:=NULL]
     data=merged
+    
+    if(length(printCodes) > 0){
+      cat("\nSUA table after standardization (AFTER PROTECTED CORRECTION:")
+      data = markUpdated(new = data, old = old, standParams = p)
+      old = copy(data)
+      print(printSUATable(data = data, standParams = p,
+                          printCodes = printCodes,
+                          nutrientElements = nutrientElements,
+                          printProcessing = TRUE))
+    }
+    
+    
     }
     ###
      

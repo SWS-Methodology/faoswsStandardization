@@ -184,9 +184,9 @@ message("Reading SUA data...")
 ## specified by the user.
 
 ##!! 3 warnings about things that need to be changed !!#
-# data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-                          # elementCol = "measuredElementSuaFbs")
-# setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
+elementCol = "measuredElementSuaFbs")
+setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
 
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
@@ -194,7 +194,7 @@ message("Reading SUA data...")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror3.RData")
 
 
@@ -355,17 +355,33 @@ standardizationVectorized = function(data, tree, nutrientData
   
  printCodes = character()
   
-  # printCodes=c("01801", "01802")
+  printCodes=c("0111")
   # ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
   # ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
   # ##printCodes = sample(samplePool, size = 1)
   #  if (!is.null(tree)) {
-  #  printCodes = getChildren(commodityTree = tree,
-  #                           parentColname = params$parentVar,
-  #                           childColname = params$childVar,
-  #                           topNodes = printCodes)
-  # #  }
+   printCodes = getChildren(commodityTree = tree,
+                            parentColname = params$parentVar,
+                            childColname = params$childVar,
+                            topNodes = printCodes)
 
+ 
+### Cristina for printing Germany and all the things involved in the wheat
+ 
+ # printCodes1 = "0111"
+ # printCodes2 = getChildren(commodityTree = tree,
+ #                           parentColname = params$parentVar,
+ #                           childColname = params$childVar,
+ #                           topNodes = printCodes1)
+ # printCodes3=tree[measuredItemChildCPC %in% printCodes2&measuredItemParentCPC%in%primaryEl,unique(measuredItemParentCPC)]
+ # printCodes = getChildren(commodityTree = tree,
+ #                          parentColname = params$parentVar,
+ #                          childColname = params$childVar,
+ #                          topNodes = printCodes3)
+ 
+ 
+ 
+ 
   dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
             )
 
@@ -412,6 +428,7 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","262","170","400"),]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 
 
@@ -458,7 +475,7 @@ message((proc.time() - ptm)[3])
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
-batchnumber = 21
+batchnumber = 24
 save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
