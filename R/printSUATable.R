@@ -37,7 +37,7 @@ printSUATable = function(data, standParams, printCodes, printProcessing = TRUE,
                     standParams$foodCode, standParams$stockCode,
                     standParams$importCode, standParams$exportCode,
                     standParams$foodProcCode, standParams$industrialCode,
-                    standParams$touristCode)
+                    standParams$touristCode,standParams$residualCode)
 
     printDT[, Value := ifelse(is.na(Value), "-", sapply(Value, roundNum))]
     printDT[(updateFlag), Value := paste0("**", Value, "**")]
@@ -64,15 +64,15 @@ printSUATable = function(data, standParams, printCodes, printProcessing = TRUE,
     setnames(printDT, oldNames[nameFilter],
              c("Production", "Feed", "Seed", "Loss",
                "Food", "StockChange", "Imports", "Exports",
-               "Food Processing", "Industrial", "Tourist")[nameFilter])
+               "Food Processing", "Industrial", "Tourist","Residuals")[nameFilter])
     if(printProcessing){
         items = c("Item", "Production", "Imports", "Exports", "StockChange",
                   "Food", "Food Processing", "Feed", "Seed", "Tourist",
-                  "Industrial", "Loss", nutrientElements)
+                  "Industrial", "Loss","Residuals", nutrientElements)
     } else {
         fbsElements = fbsElements[fbsElements != standParams$foodProcCode]
         items = c("Item", "Production", "Imports", "Exports", "StockChange",
-                  "Food", "Feed", "Seed", "Tourist", "Industrial", "Loss",
+                  "Food", "Feed", "Seed", "Tourist", "Industrial", "Loss","Residuals",
                   nutrientElements)
     }
     if(length(nutrientElements) > 0){

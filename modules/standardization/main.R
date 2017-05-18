@@ -184,9 +184,9 @@ message("Reading SUA data...")
 ## specified by the user.
 
 ##!! 3 warnings about things that need to be changed !!#
-data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-elementCol = "measuredElementSuaFbs")
-setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+# data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
+# elementCol = "measuredElementSuaFbs")
+# setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
 
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
@@ -194,7 +194,7 @@ setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror3.RData")
 
 
@@ -272,6 +272,13 @@ protected = data[get(params$official)=="TRUE"
 
 protected=merge(protected[,c(1,3,4),with=FALSE],data,by=c("measuredItemSuaFbs","geographicAreaM49","timePointYears"))
 protected=protected[!is.na(measuredElementSuaFbs)]
+
+
+###CRISTINA: Test for batch 26
+# data[get(params$protected)=="FALSE"
+#      &get(params$elementVar)==params$productionCode
+#      &!(get(params$itemVar) %in% primaryEq),Value:=NA]
+###
 
 
 # Convert units for tourist and industrial
@@ -424,11 +431,11 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","380")&timePointYears=="2013",]
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4")&timePointYears=="2013",]
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","262","170","400"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","1248","524"),]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 
 
@@ -475,7 +482,7 @@ message((proc.time() - ptm)[3])
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
-batchnumber = 24
+batchnumber = 26
 save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################

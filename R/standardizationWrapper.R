@@ -544,7 +544,15 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     merged[!is.na(newValue)
            # &newValue<Value
            ,Value:=newValue]
-    merged[,newValue:=NULL]
+
+  ###CRISTINA: Test for batch 25
+    # merged[!is.na(newValue)
+    #        # &newValue<Value
+    #        ,Value:=Value-newValue]
+  ###
+    
+    
+       merged[,newValue:=NULL]
     data=merged
     
     if(length(printCodes) > 0){
@@ -640,7 +648,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data[get(p$elementVar)==p$wasteCode, standardDeviation := Value * .25]
   ##Food processing
   data[get(p$elementVar)==p$foodProcCode, standardDeviation := Value * .25]
-   
+
+  
    
    
    data[!get(p$elementVar) %in% nutrientElements,
@@ -699,25 +708,29 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
        cat("\nFBS Table at first level of aggregation:\n")
        print(printSUATable(data = out[[1]], standParams = p,
                            printCodes = printCodeTable[, fbsID4],
-                           printProcessing = TRUE))
+                           printProcessing = TRUE,
+                           nutrientElements = nutrientElements))
        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID3"
        p$itemVar = "fbsID3"
        cat("\nFBS Table at second level of aggregation:\n")
        print(printSUATable(data = out[[2]], standParams = p,
                            printCodes = printCodeTable[, fbsID3],
-                           printProcessing = TRUE))
+                           printProcessing = TRUE,
+                           nutrientElements = nutrientElements))
        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID2"
        p$itemVar = "fbsID2"
        cat("\nFBS Table at third level of aggregation:\n")
        print(printSUATable(data = out[[3]], standParams = p,
                            printCodes = printCodeTable[, fbsID2],
-                           printProcessing = TRUE))
+                           printProcessing = TRUE,
+                           nutrientElements = nutrientElements))
        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID1"
        p$itemVar = "fbsID1"
        cat("\nFBS Table at final level of aggregation:\n")
        print(printSUATable(data = out[[4]], standParams = p,
                            printCodes = printCodeTable[, fbsID1],
-                           printProcessing = TRUE))
+                           printProcessing = TRUE,
+                           nutrientElements = nutrientElements))
      }
      
      
