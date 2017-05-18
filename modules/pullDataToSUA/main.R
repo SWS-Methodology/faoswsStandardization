@@ -69,8 +69,15 @@ eleKeys = strsplit(eleKeys[parent %in% c(oldProductionCode, oldFeedCode,
                                          oldSeedCode), children],
                    split = ", ")
 ## Combine with single codes
-eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys), 
-                                                      foodCode, industrialCode, lossCode, stocksCode))
+
+### CRistina deleted the food and loss codes
+# eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys),
+#                                                       foodCode, industrialCode, lossCode, stocksCode))
+
+
+eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys),
+                                                      industrialCode, stocksCode))
+
 
 itemKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                        dimension = "measuredItemCPC")[, code]
@@ -106,6 +113,25 @@ foodData = GetData(foodKey)
 setnames(foodData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
+
+
+## Harvest from Loss Domain
+message("Pulling data from Loss")
+eleLossKey=Dimension(name = "measuredElementSuaFbs",
+                     keys = lossCode)
+itemLossKey = GetCodeList(domain = "lossWaste", dataset = "loss",
+                       dimension = "measuredItemSuaFbs")[, code]
+itemLossDim = Dimension(name = "measuredItemSuaFbs", keys = itemLossKey)
+lossKey = DatasetKey(domain = "lossWaste", dataset = "loss",
+                     dimensions = list(
+                       geographicAreaM49 = geoDim,
+                       measuredElement = eleLossKey,
+                       measuredItemCPC = itemLossDim,
+                       timePointYears = timeDim)
+)
+lossData = GetData(lossKey)
+# setnames(lossData, c("measuredElement", "measuredItemCPC"),
+#          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
 
 
@@ -251,7 +277,7 @@ setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
 
 
 message("Merging data files together and saving")
-out = do.call("rbind", list(agData,foodData, tradeData, tourData))
+out = do.call("rbind", list(agData,foodData, lossData, tradeData, tourData))
 
 
 
@@ -260,7 +286,9 @@ out = do.call("rbind", list(agData,foodData, tradeData, tourData))
 
 out <- out[!is.na(Value),]
 
-stats = SaveData(domain = "suafbs", dataset = "sua", data = out)
+setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
+
+stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 20000)
 
 paste0(stats$inserted, " observations written, ",
        stats$ignored, " weren't updated, ",
