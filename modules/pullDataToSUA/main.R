@@ -183,53 +183,53 @@ setnames(tourData, c("tourismElement", "measuredItemCPC"),
 
 
 
-
+#### CRISTINA MODIFIED 23/05/2017
 ## Harvest from Trade: old FAOSTAT data
 ##message("Pulling data from Trade")
-##
-####eleTradeDim = Dimension(name = "measuredElementTrade",
-####                        keys = c(importCode, exportCode))
-##
-##tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")))
-##
-##geoKeysTrade=m492fs(geoKeys)
-##
-##geokeysTrade=geoKeysTrade[!is.na(geoKeysTrade)]
-##
-##tradeKey = DatasetKey(
-##  domain = "faostat_one", dataset = "FS1_SUA_UPD",
-##  dimensions = list(
-##    #user input except curacao,  saint martin and former germany
-##    geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
-##    measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
-##    measuredElementFS=Dimension(name = "measuredElementFS",
-##              keys = c( "61", "91")),
-##    timePointYears = timeDim ),
-##  sessionId =  slot(swsContext.datasets[[1]], "sessionId")
-##)
-##
-##
-##tradeData = GetData(tradeKey)
-##
-##
-##tradeData[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
-##                 measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
-##                                          version = "latest"))]
-##
-##
-##setnames(tradeData, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
-##         c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
-##
-##tradeData[, flagMethod := "-"]
-##
-##tradeData[flagObservationStatus %in% c("P", "*", "F"), flagObservationStatus := "T"]
+
+##eleTradeDim = Dimension(name = "measuredElementTrade",
+##                        keys = c(importCode, exportCode))
+
+tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")))
+
+geoKeysTrade=m492fs(geoKeys)
+
+geokeysTrade=geoKeysTrade[!is.na(geoKeysTrade)]
+
+tradeKey = DatasetKey(
+ domain = "faostat_one", dataset = "updated_sua",
+ dimensions = list(
+   #user input except curacao,  saint martin and former germany
+   geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
+   measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
+   measuredElementFS=Dimension(name = "measuredElementFS",
+             keys = c( "61", "91")),
+   timePointYears = timeDim ),
+ sessionId =  slot(swsContext.datasets[[1]], "sessionId")
+)
+
+
+tradeData = GetData(tradeKey)
+
+
+tradeData[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
+                measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
+                                         version = "latest"))]
+
+
+setnames(tradeData, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
+        c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
+
+tradeData[, flagMethod := "-"]
+
+tradeData[flagObservationStatus %in% c("P", "*", "F"), flagObservationStatus := "T"]
 
 
 
 
-##out[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
-##out[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
-
+tradeData[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
+tradeData[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
+#### End import FAOSTAT DATA for TRADE (CRISTINA)
 
 
 
@@ -286,6 +286,11 @@ out = do.call("rbind", list(agData,foodData, lossData, tradeData, tourData))
 
 out <- out[!is.na(Value),]
 
+# save data with TRAde FROM faostat
+
+# data=out
+# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeFAOSTAT.RData")
+
 setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
 
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 20000)
@@ -293,3 +298,4 @@ stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, wait
 paste0(stats$inserted, " observations written, ",
        stats$ignored, " weren't updated, ",
        stats$discarded, " had problems.")
+
