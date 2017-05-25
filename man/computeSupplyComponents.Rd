@@ -13,6 +13,8 @@ computeSupplyComponents(data, standParams, loop)
 provide information about the columns of data and tree, specifying (for 
 example) which columns should be standardized, which columns represent 
 parents/children, etc.}
+
+\item{loop}{just an index of loops}
 }
 \value{
 A data.table with the aggregated primary commodities.

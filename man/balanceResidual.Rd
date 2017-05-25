@@ -21,6 +21,8 @@ parents/children, etc.}
 some processed product.  The default is to place it into food, but this 
 list specifies which elements should allocate such a difference to feed.}
 
+\item{tree}{this is the sub tree used in the function.}
+
 \item{indCommodities}{Same as feedCommodities, but for commodities where we 
 allocate the difference to industrial utilization.}
 
@@ -29,11 +31,11 @@ sweet potatoes, etc.) should not be balanced at this step but rather by
 the balancing algorithm.  This argument allows the user to specify a
 character vector with these primary element codes.}
 
-\item{stockCommodities}{.}
+\item{stockCommodities}{This list specify which commodities should allocate imbalance to stock}
 
-\item{seedCommodities}{.}
+\item{seedCommodities}{This list specify which commodities should allocate imbalance to seed.}
 
-\item{lossCommodities}{.}
+\item{lossCommodities}{This list specify which commodities should allocate imbalance to loss.}
 
 \item{foodCommodities}{if we use the foodCommodities from the Crude Balancing matrix old faostat.}
 
@@ -42,6 +44,8 @@ where we allocate the difference to food processing.}
 
 \item{imbalanceThreshold}{The size that the imbalance must be in order for 
 an adjustment to be made.}
+
+\item{cut}{these are primary equivalent commodities.}
 }
 \value{
 Nothing is returned, but the Value column of the passed data.table 

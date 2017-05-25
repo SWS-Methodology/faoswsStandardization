@@ -23,6 +23,10 @@ aggregated into others.  This data.table should have columns parent,
 child, extraction rate, share, and target (target specifying if an element
 is processed forward or not).  Names of these columns should be provided
 in standParams.}
+
+\item{availability}{is availability used for calculation of food processing}
+
+\item{zeroWeight}{is vector of co-products}
 }
 \value{
 A data.table containing the final balanced and standardized SUA 

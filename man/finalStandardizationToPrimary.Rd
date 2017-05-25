@@ -24,6 +24,8 @@ parents/children, etc.}
 \item{specificTree}{Logical.  Is a country/year specific commodity tree 
 being provided?}
 
+\item{cut}{is a vector of primary Equivalent commodities}
+
 \item{additiveElements}{Column names of data which should be
 aggregated/standardized via simple addition.}
 }
