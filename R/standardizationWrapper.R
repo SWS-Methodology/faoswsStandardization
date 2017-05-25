@@ -423,7 +423,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                                              "foodManufacturing", "imports", "loss", "production", 
                                                              "seed", "stockChange", "residual","industrial", "tourist"),
                                      code=c("261", "281", "271", "5910", "5520", "5141", 
-                                            "5023", "5610", "5015", "5510",
+                                            "5023", "5610", "5016", "5510",
                                             "5525", "5071", "5166","5165", "5164"))
     
     standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
@@ -509,6 +509,54 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     # this generates problems when doing the saving back of the second step.
     data=data[!grepl("f???_",measuredItemSuaFbs)]
     
+    
+    ### Second intermediate Save  
+    ## message("Attempting to save unbalanced FBS data...")
+    setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+    ##
+    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+                                                             "foodManufacturing", "imports", "loss", "production", 
+                                                             "seed", "stockChange", "residual","industrial", "tourist"),
+                                     code=c("261", "281", "271", "5910", "5520", "5141", 
+                                            "5023", "5610", "5016", "5510",
+                                            "5525", "5071", "5166","5165", "5164"))
+    
+    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    standData[,`:=`(measuredElementSuaFbs = NULL)]
+    setnames(standData, "code", "measuredElementSuaFbs")
+    
+    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+                           Value)]
+    standData <- standData[!is.na(Value),]
+    
+    
+    ### Cristina Merge with FbsTree for saving only the PrimaryEquivalent CPC codes
+    standData=merge(standData,fbsTree,by.x="measuredItemFbsSua",by.y="measuredItemSuaFbs")
+    ###
+    
+    
+    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+                           Value)]
+    standData[, flagObservationStatus := "I"]
+    standData[, flagMethod := "s"]
+    ##ptm <- proc.time()
+    ##SaveData(domain = "suafbs", dataset = "fbs_standardized", data = standData)
+    ##message((proc.time() - ptm)[3])
+    
+    if(!is.null(debugFile)){
+      
+      saveFBSItermediateStep(directory="debugFile",
+                             fileName="StandardizedPrimaryEquivalent",
+                             data=standData)
+    }
+    
+    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    ####
+    
+    
+    
+    
+    
     ### CRISTINA PROTECTED PRIMARY EQUIVALENT FOOD VALUE
     # TO BE EXCLUDED FROM STANDARDIZATION are replaced
 
@@ -569,48 +617,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }
     ###
      
-    ### Second intermediate Save  
-    ## message("Attempting to save unbalanced FBS data...")
-    setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
-    ##
-    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-                                                             "foodManufacturing", "imports", "loss", "production", 
-                                                             "seed", "stockChange", "residual","industrial", "tourist"),
-                                     code=c("261", "281", "271", "5910", "5520", "5141", 
-                                            "5023", "5610", "5015", "5510",
-                                            "5525", "5071", "5166","5165", "5164"))
-    
-    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
-    standData[,`:=`(measuredElementSuaFbs = NULL)]
-    setnames(standData, "code", "measuredElementSuaFbs")
-    
-    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
-                           Value)]
-    standData <- standData[!is.na(Value),]
-    
-    
-    ### Cristina Merge with FbsTree for saving only the PrimaryEquivalent CPC codes
-    standData=merge(standData,fbsTree,by.x="measuredItemFbsSua",by.y="measuredItemSuaFbs")
-    ###
-    
-    
-    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
-                           Value)]
-    standData[, flagObservationStatus := "I"]
-    standData[, flagMethod := "s"]
-    ##ptm <- proc.time()
-    ##SaveData(domain = "suafbs", dataset = "fbs_standardized", data = standData)
-    ##message((proc.time() - ptm)[3])
-    
-    if(!is.null(debugFile)){
-      
-      saveFBSItermediateStep(directory="debugFile",
-                             fileName="StandardizedPrimaryEquivalent",
-                             data=standData)
-    }
-    
-    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-    ####
     
     
     

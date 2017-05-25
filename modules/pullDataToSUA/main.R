@@ -285,13 +285,18 @@ out = do.call("rbind", list(agData,foodData, lossData, tradeData, tourData))
 
 
 out <- out[!is.na(Value),]
+setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
+
 
 # save data with TRAde FROM faostat
-
-# data=out
+# data = elementCodesToNames(data = out, itemCol = "measuredItemFbsSua",
+#                            elementCol = "measuredElementSuaFbs")
+# 
+# setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
+# 
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeFAOSTAT.RData")
 
-setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
+
 
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 20000)
 

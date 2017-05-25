@@ -51,7 +51,7 @@ if (CheckDebug()) {
 #User name is what's after the slash
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
-# SWS_USER = "muschitiello"
+SWS_USER = "muschitiello2"
 
 message("Getting parameters/datasets...")
 
@@ -138,10 +138,10 @@ tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),
 
 ###
 
-areaKeys = GetCodeList(domain = "suafbs", dataset = "sua", "geographicAreaM49")
+areaKeys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", "geographicAreaM49")
 areaKeys = areaKeys[type == "country", code]
 
-elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua", "measuredElementSuaFbs")
+elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua_unbalanced", "measuredElementSuaFbs")
 
 #    code              description
 # 1:   51                   Output
@@ -189,14 +189,23 @@ message("Reading SUA data...")
 # setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
 
-# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
+# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/180523_dataNewLoss.RData")
+
+
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
+
+# last no Mirror import
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/180523_dataNewLoss.RData")
+
+# last mirror import
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror3.RData")
 
+# Faostat TRADE DATA
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeFAOSTAT.RData")
 
 
 
@@ -390,11 +399,11 @@ standardizationVectorized = function(data, tree, nutrientData
  
  
   dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
-            )
 
 
-  # ,recursive = TRUE
-  
+
+  ,recursive = TRUE
+  )
   sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/",
               data$timePointYears[1], "_",
               data$geographicAreaM49[1], "_sample_test.md"),
@@ -431,12 +440,13 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4")&timePointYears=="2013",]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4")&timePointYears=="2013",]
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","1248","524"),]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
+# uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("729", "166", "584", "580", "585", "674", "654", "238", "156")]
 
 
 if(params$createIntermetiateFile){
@@ -499,7 +509,7 @@ AfterCB = read.table("debugFile/AfterCrudeBalancing.csv",
 AfterCB = data.table(AfterCB)
 
 save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
-# SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
+SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
 
@@ -514,7 +524,7 @@ StandPrEq = read.table("debugFile/StandardizedPrimaryEquivalent.csv",
 StandPrEq = data.table(StandPrEq)
 save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
 
-# SaveData(domain = "suafbs", dataset = "fbs_standardized", data = AfterSt, waitTimeout = 20000)
+SaveData(domain = "suafbs", dataset = "fbs_standardized", data = StandPrEq, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
 ###################################
@@ -529,7 +539,7 @@ fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Pr
                                                          "seed", "stockChange", "residual","industrial", "tourist",
                                                          "DES_calories","DES_proteins","DES_fats", "population"),
                                  code=c("261", "281", "271", "5910", "5520", "5141", 
-                                        "5023", "5610", "5015", "5510",
+                                        "5023", "5610", "5016", "5510",
                                         "5525", "5071", "5166","5165", "5164","664","674","684","5215"))
 
 ##standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode), 
@@ -560,7 +570,7 @@ message("Attempting to save standardized data...")
 setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
 
 ptm <- proc.time()
-out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData, waitTimeout = 20000)
+out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData, waitTimeout = 2000000)
 cat(out$inserted + out$ignored, " observations written and problems with ",
     out$discarded, sep = "")
 paste0(out$inserted + out$ignored, " observations written and problems with ",
