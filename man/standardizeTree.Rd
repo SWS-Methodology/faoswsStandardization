@@ -4,7 +4,8 @@
 \alias{standardizeTree}
 \title{Standardize Tree}
 \usage{
-standardizeTree(data, tree, elements, standParams, sugarHack = TRUE)
+standardizeTree(data, tree, elements, standParams, zeroWeight = c(),
+  sugarHack = TRUE)
 }
 \arguments{
 \item{data}{A data.table object containing the data of interest.}
@@ -31,6 +32,9 @@ provide information about the columns of data and tree, specifying (for
 example) which columns should be standardized, which columns represent 
 parents/children, etc.}
 
+\item{zeroWeight}{Vector. Vector containg the items that must have a zero weights
+because they represent co-byproducts. (see the example wheat, wheat flour, wheat germ..)}
+
 \item{sugarHack}{Logical.  Indicates if the commodity tree should be edited 
 by this program to give the correction standardization of sugar?  This is 
 a hack and should be fixed, but for now it is generally necessary.}
@@ -46,4 +50,3 @@ itself with a rate of 1 and a share of 1.
 This function takes an input dataset and commodity tree and standardizes the
 data according to the tree.
 }
-

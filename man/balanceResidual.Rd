@@ -4,9 +4,10 @@
 \alias{balanceResidual}
 \title{Balance Residual}
 \usage{
-balanceResidual(data, standParams, feedCommodities = c(),
-  indCommodities = c(), primaryCommodities = c(),
-  foodProcessCommodities = c(), imbalanceThreshold = 10)
+balanceResidual(data, standParams, feedCommodities = c(), tree = tree,
+  indCommodities = c(), primaryCommodities = c(), stockCommodities = c(),
+  seedCommodities = c(), lossCommodities = c(), foodCommodities = c(),
+  foodProcessCommodities = c(), imbalanceThreshold = 10, cut = c())
 }
 \arguments{
 \item{data}{The data.table containing the full dataset for standardization.}
@@ -27,6 +28,14 @@ allocate the difference to industrial utilization.}
 sweet potatoes, etc.) should not be balanced at this step but rather by
 the balancing algorithm.  This argument allows the user to specify a
 character vector with these primary element codes.}
+
+\item{stockCommodities}{.}
+
+\item{seedCommodities}{.}
+
+\item{lossCommodities}{.}
+
+\item{foodCommodities}{if we use the foodCommodities from the Crude Balancing matrix old faostat.}
 
 \item{foodProcessCommodities}{Same as feedCommodities, but for commodities 
 where we allocate the difference to food processing.}
@@ -51,4 +60,3 @@ If supply > utilization, we must choose where to allocate the imbalance. The
 default variable is food, but for some commodities we could instead use 
 feed, food processing, or industrial.
 }
-

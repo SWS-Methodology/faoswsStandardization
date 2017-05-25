@@ -30,4 +30,3 @@ Nothing is returned, but a table is returned in a nice format to
 \description{
 Print SUA Table
 }
-

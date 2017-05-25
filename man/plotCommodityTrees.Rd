@@ -43,4 +43,3 @@ in a commodity tree object.  A separate plot is given for each node that
 has no parent, and this should allow for the production of a wheat tree,
 a milk tree, etc.
 }
-

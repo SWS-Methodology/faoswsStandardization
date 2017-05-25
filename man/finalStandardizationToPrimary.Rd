@@ -5,7 +5,7 @@
 \title{Final Standardization to Primary Equivalent}
 \usage{
 finalStandardizationToPrimary(data, tree, standParams, sugarHack = TRUE,
-  specificTree = TRUE, additiveElements = c())
+  specificTree = TRUE, cut = c(), additiveElements = c())
 }
 \arguments{
 \item{data}{The data.table containing the full dataset for standardization.}
@@ -35,4 +35,3 @@ After the full SUA has been balanced, all the commodities need to be rolled
 up to their primary equivalents.  This function does this, aggregating up 
 trade and food.
 }
-

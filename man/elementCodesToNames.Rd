@@ -27,9 +27,8 @@ The passed data.table "data" but with an updated element column
 This function converts element codes (such as 5510, 5421, ...) into 
 meaningful names (such as "production", "yield", etc.).  It only works with 
 the codes defined in this file on the share drive: 
-paste0(R_SWS_SHARE_PATH,"/browningj/elementCodes.csv") (which will 
+paste0(R_SWS_SHARE_PATH,"/browningj/") (which will 
 eventually become an adhoc table).  The tricky part of this function is that
 the commodity type must be used to correctly choose the element code, as 
 different commodities may use different codes for production, yield, ...
 }
-

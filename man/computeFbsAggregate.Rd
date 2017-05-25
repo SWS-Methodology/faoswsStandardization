@@ -29,4 +29,3 @@ A list of four data.tables, each containing the final FBS data at
 This function takes the FBS aggregation tree and rolls up the SUA data to 
 all FBS levels.
 }
-

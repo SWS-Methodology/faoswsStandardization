@@ -5,7 +5,8 @@
 \title{Full Standardization Process}
 \usage{
 standardizationWrapper(data, tree, fbsTree = NULL, standParams,
-  nutrientData = NULL, printCodes = c())
+  nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
+  debugFile = NULL, protected = NULL)
 }
 \arguments{
 \item{data}{The data.table containing the full dataset for standardization. 
@@ -39,8 +40,17 @@ proteins, and fats columns there should be numeric values representing
 multipliers to convert kilograms of the item into calories/proteins/fats. 
 If NULL, nothing is done with nutrients.}
 
+\item{crudeBalEl}{A data.table containing one column with the item codes 
+(and this column's name must match standParams$itemVar) and additional 
+columns representing, for each commodity the corresponding balancing element
+from the old system, converted in new element.}
+
 \item{printCodes}{A list of the item codes which should be printed at each 
 step to show the progress of the algorithm.}
+
+\item{debugFile}{folder for saving the intermediate files.}
+
+\item{protected}{protected primary Equivalent Items.}
 }
 \value{
 A data.table containing the final balanced and standardized SUA 
@@ -82,4 +92,3 @@ food element values.
 7. (only if fbsTree is provided) Sum all commodities up to their FBS level 
 categories.  This is the final step to prepare data for FAOSTAT.
 }
-
