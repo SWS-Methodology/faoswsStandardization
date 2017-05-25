@@ -20,4 +20,3 @@ This function is designed to call MASS::huber with two exceptions: missing
 values are removed and, if MASS::huber results in an error, the non-robust 
 mean/sd are returned.
 }
-

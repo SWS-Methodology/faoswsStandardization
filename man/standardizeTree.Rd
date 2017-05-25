@@ -50,4 +50,3 @@ itself with a rate of 1 and a share of 1.
 This function takes an input dataset and commodity tree and standardizes the
 data according to the tree.
 }
-

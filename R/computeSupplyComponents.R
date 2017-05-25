@@ -11,7 +11,8 @@
 ##'   provide information about the columns of data and tree, specifying (for 
 ##'   example) which columns should be standardized, which columns represent 
 ##'   parents/children, etc.
-##' 
+##' @param loop just an index of loops
+
 ##'   
 ##' @return A data.table with the aggregated primary commodities.
 ##' @export

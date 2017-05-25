@@ -26,14 +26,15 @@
 ##' @param indCommodities Same as feedCommodities, but for commodities where we 
 ##'   allocate the difference to industrial utilization.
 ##' @param foodCommodities if we use the foodCommodities from the Crude Balancing matrix old faostat.
-##' @param seedCommodities .
-##' @param stockCommodities .
-##' @param lossCommodities . 
+##' @param seedCommodities This list specify which commodities should allocate imbalance to seed.
+##' @param stockCommodities This list specify which commodities should allocate imbalance to stock
+##' @param lossCommodities This list specify which commodities should allocate imbalance to loss. 
 ##' @param foodProcessCommodities Same as feedCommodities, but for commodities 
 ##'   where we allocate the difference to food processing.
 ##' @param imbalanceThreshold The size that the imbalance must be in order for 
 ##'   an adjustment to be made.
-##'   
+##' @param cut these are primary equivalent commodities.
+##' @param tree this is the sub tree used in the function.
 ##' @return Nothing is returned, but the Value column of the passed data.table 
 ##'   is updated.
 ##'   

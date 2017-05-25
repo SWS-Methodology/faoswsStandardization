@@ -17,7 +17,7 @@
 ##'   being provided?
 ##' @param additiveElements Column names of data which should be
 ##'   aggregated/standardized via simple addition.
-##'   
+##' @param cut is a vector of primary Equivalent commodities
 ##' @return A data.table with the aggregated primary commodities.
 ##'   
 

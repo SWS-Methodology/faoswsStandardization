@@ -15,4 +15,3 @@ The number as a character string, formatted "nicely".
 \description{
 Helper function for rounding numbers for display.
 }
-

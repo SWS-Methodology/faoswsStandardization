@@ -58,4 +58,3 @@ into a new commodity tree.  It does this by first translating all parents
 and children in the tree to their new elements.  This may create duplicated
 edges, and in those cases the extraction rates and shares are averaged.
 }
-
