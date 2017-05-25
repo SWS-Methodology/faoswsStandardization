@@ -51,7 +51,7 @@ if (CheckDebug()) {
 #User name is what's after the slash
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
-SWS_USER = "muschitiello2"
+# SWS_USER = "muschitiello2"
 
 message("Getting parameters/datasets...")
 
@@ -184,9 +184,9 @@ message("Reading SUA data...")
 ## specified by the user.
 
 ##!! 3 warnings about things that need to be changed !!#
-# data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-# elementCol = "measuredElementSuaFbs")
-# setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
+elementCol = "measuredElementSuaFbs")
+setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
 
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/180523_dataNewLoss.RData")
@@ -199,7 +199,7 @@ message("Reading SUA data...")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
 
 # last no Mirror import
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/180523_dataNewLoss.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/180523_dataNewLoss.RData")
 
 # last mirror import
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror3.RData")
@@ -492,8 +492,8 @@ message((proc.time() - ptm)[3])
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
-batchnumber = 26
-save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
+# batchnumber = 26
+# save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
 
@@ -508,7 +508,7 @@ AfterCB = read.table("debugFile/AfterCrudeBalancing.csv",
                      colClasses = c("character","character","character","character","numeric","character","character"))
 AfterCB = data.table(AfterCB)
 
-save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
+# save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
 SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
@@ -522,7 +522,7 @@ StandPrEq = read.table("debugFile/StandardizedPrimaryEquivalent.csv",
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
                      colClasses = c("character","character","character","character","numeric","character","character"))
 StandPrEq = data.table(StandPrEq)
-save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
+# save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
 
 SaveData(domain = "suafbs", dataset = "fbs_standardized", data = StandPrEq, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
