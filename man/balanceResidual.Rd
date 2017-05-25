@@ -60,3 +60,4 @@ If supply > utilization, we must choose where to allocate the imbalance. The
 default variable is food, but for some commodities we could instead use 
 feed, food processing, or industrial.
 }
+

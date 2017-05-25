@@ -35,3 +35,4 @@ Generates a plot of the commodity tree as specified by edges.
 This function generates a plot for one commodity trees defined with an edge 
 list.
 }
+

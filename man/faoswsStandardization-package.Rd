@@ -2,8 +2,8 @@
 % Please edit documentation in R/faoswsStandardization-package.R
 \docType{package}
 \name{faoswsStandardization-package}
-\alias{faoswsStandardization-package}
 \alias{faoswsStandardization}
+\alias{faoswsStandardization-package}
 \title{Package for standardization of Food Balance Sheets}
 \description{
 This package contains support functions for the standardization process. The process contains balancing as well (contained in the faoswsBalancing package). The main function \code{standardizationWrapper} controls the flow of the whole process.
@@ -11,3 +11,4 @@ This package contains support functions for the standardization process. The pro
 \author{
 Josh Browning <joshua.browning@fao.org>
 }
+

@@ -22,3 +22,4 @@ The same data.table as what was passed ("data") but possibly with
 This function takes a data.table and adds rows to it so that the data 
 contains an observation for all elements for each commodity in the dataset.
 }
+

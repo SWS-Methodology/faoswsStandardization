@@ -32,3 +32,4 @@ Note: when commodities are processed forward like this, the final flag is
 assigned ARBITRARILY as the first flag observed (for lack of a better
 approach).  This should be corrected.
 }
+

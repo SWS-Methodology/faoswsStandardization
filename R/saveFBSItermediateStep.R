@@ -1,9 +1,13 @@
-## This function hs been created in order to locally save some intermedate steps
-## of the Standardization module. This exigency arose for validation purposes.
-##' @param directory Where does the intermediate step has to be saved back?
-##' @param fileName Name of the file we are creating
-##' @param data data.table that has been saved into the 
+##' Save Intermediate steps of Standardization process
 ##' 
+##' This function has been created in order to locally save some intermediate
+##' steps of the Standardization module. This exigency arose for validation
+##' purposes.
+##' 
+##' @param directory Where does the intermediate step have to be saved back to?
+##' @param fileName Name of the file we are creating
+##' @param data data.table to be saved
+##'   
 ##' @export
 
 saveFBSItermediateStep=function(directory, fileName, data){

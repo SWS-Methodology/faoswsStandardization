@@ -22,3 +22,4 @@ After the full SUA has been balanced, all the commodities need to be rolled
 up to their primary equivalents.  This function does this, aggregating up 
 trade and food.
 }
+
