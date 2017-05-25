@@ -1,13 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
-	<Name>Standardization&BalancingNew</Name>
+	<Name>Standardization</Name>
 	<Description>Standardize SUA data for the Food Balance Sheets</Description>
 	<Category>Computation</Category>
 	<Authors>
 		<Author>
-			<Name>Cristina Muschitiello</Name>
-			<Mail>cristina.muschitiello@fao.org</Mail>
+			<Name>Sebastian Campbell</Name>
+			<Mail>sebastian.campbell@fao.org</Mail>
 		</Author>
 	</Authors>
 	<Params>
@@ -17,7 +17,7 @@
             <Description>The start of the computation period</Description>
             <Compulsory>true</Compulsory>
             <Min>1961</Min>
-            <Max>2015</Max>
+            <Max>2013</Max>
     </Param>
     <Param xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Number">
             <Code>endYear</Code>
@@ -25,7 +25,7 @@
             <Description>The end of the computation period</Description>
             <Compulsory>true</Compulsory>
             <Min>1961</Min>
-            <Max>2015</Max>
+            <Max>2013</Max>
     </Param>
 	</Params>
 	<Datasets>
