@@ -14,6 +14,7 @@ Description: The package implements standardization of SUA data according to
 License: FAO
 BugReports: https://github.com/SWS-Methodology/faoswsStandardization/issues
 LazyData: yes
+Depends: R (>= 2.10)
 Imports:
     faosws (>= 0.3.2),
     faoswsUtil (>= 0.2.0),
