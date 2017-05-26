@@ -188,33 +188,36 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
 
     
    ## STEP 3: Compute availability and hence shares
-   ##       data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-   ##                         ifelse(get(p$elementVar) == p$productionCode, 1,
-   ##                         ifelse(get(p$elementVar) == p$importCode, 1,
-   ##                         ifelse(get(p$elementVar) == p$exportCode, -1,
-   ##                         ifelse(get(p$elementVar) == p$stockCode, -1,
-   ##                         ifelse(get(p$elementVar) == p$foodCode, -1,
-   ##                         ifelse(get(p$elementVar) == p$foodProcCode, 0,
-   ##                         ifelse(get(p$elementVar) == p$feedCode, -1,
-   ##                         ifelse(get(p$elementVar) == p$wasteCode, -1,
-   ##                         ifelse(get(p$elementVar) == p$seedCode, -1,
-   ##                         ifelse(get(p$elementVar) == p$industrialCode, -1,
-   ##                         ifelse(get(p$elementVar) == p$touristCode, -1,
-   ##                         ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
-   ##      by = c(p$mergeKey)]
+    
+    ### CRISTINA: reactivate this availability calculation. 
+    
+         data[, availability := sum(ifelse(is.na(Value), 0, Value) *
+                           ifelse(get(p$elementVar) == p$productionCode, 1,
+                           ifelse(get(p$elementVar) == p$importCode, 1,
+                           ifelse(get(p$elementVar) == p$exportCode, -1,
+                           ifelse(get(p$elementVar) == p$stockCode, -1,
+                           ifelse(get(p$elementVar) == p$foodCode, -1,
+                           ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                           ifelse(get(p$elementVar) == p$feedCode, -1,
+                           ifelse(get(p$elementVar) == p$wasteCode, -1,
+                           ifelse(get(p$elementVar) == p$seedCode, -1,
+                           ifelse(get(p$elementVar) == p$industrialCode, -1,
+                           ifelse(get(p$elementVar) == p$touristCode, -1,
+                           ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
+        by = c(p$mergeKey)]
     
     
     
     
 
-   
+      ### CRISTINA: commenting this availability calculation chosen by Francesca/Carola. 
     
-    data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                                 ifelse(get(p$elementVar) == p$productionCode, 1,
-                                 ifelse(get(p$elementVar) == p$importCode, 1,
-                                 ifelse(get(p$elementVar) == p$exportCode, -1,
-                                 ifelse(get(p$elementVar) == p$seedCode, -1,0))))),
-         by = c(p$mergeKey)]
+    # data[, availability := sum(ifelse(is.na(Value), 0, Value) *
+    #                              ifelse(get(p$elementVar) == p$productionCode, 1,
+    #                              ifelse(get(p$elementVar) == p$importCode, 1,
+    #                              ifelse(get(p$elementVar) == p$exportCode, -1,
+    #                              ifelse(get(p$elementVar) == p$seedCode, -1,0))))),
+    #      by = c(p$mergeKey)]
     
     
     
@@ -233,6 +236,13 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     ## The trees that have not to be standardized back are cut changing their codes 
     ## in the child column (both in tree and in availability)
+  
+    ############ CRISTINA: 
+    ## I will try to delete this after the calculation of shares, because, for the 
+    ## calculation of food processing, cuts have to treated as children
+    
+    tree[,tempChild:=get(standParams$childVar)]
+    # availability[,tempChild:=get(standParams$childVar)]
     
     tree[get(standParams$childVar) %in% cutItems,
        c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
@@ -240,16 +250,21 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     availability[get(standParams$childVar) %in% cutItems,
          c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
     
-
+    ## also I have created the function calculateShares and changed filterOut
     
     
     
+    ### CRISTINA calculate shares
+    tree=calculateShares(data=data, params=p, tree=tree, availability=availability,zeroWeight=zeroWeight)
     
-    
+    ### now remove the f???_ prefix for cuts in order to include them in the calculation of food processing
+    tree[,standParams$childVar:=tempChild]
+    tree[,tempChild:=NULL]
     
     ##STEP to filter out from the TOT availability of each commodity the portion that must be allocated to the FOOD processing.
 
     # standardization of the production to obtain foodProc
+    #### CRISTINA: FilterOut have been changed
     foodProc=filterOutFoodProc(data=data, params=p, tree=tree, availability=availability,zeroWeight=zeroWeight)
     
     data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
@@ -259,10 +274,16 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     
     
+    ### now indicate cuts again
+    
+    tree[get(standParams$childVar) %in% cutItems,
+         c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+    
+    availability[get(standParams$childVar) %in% cutItems,
+                 c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
     
     
-    
-    
+    #######
     
     
       
@@ -323,25 +344,27 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     # 
     
 # 2. create this
+    ### this has been moved when food processing hase been implemented and corrected
+    ### in calculateShares
     
-    freqChild= data.table(table(tree[, get(standParams$childVar)]))
-    setnames(freqChild, c("V1","N"), c(standParams$childVar, "freq"))
-    tree=merge(tree, freqChild , by=standParams$childVar)
-    tree[availability<=0, negShare:=1/freq]
-    tree[availability<=0, availability:=0]
-    tree[,sumPositiveAvail:=sum(availability,na.rm=TRUE),by = c(p$childVar)]
-    tree[,tempAvailability:=ifelse(availability<=0,negShare*sumPositiveAvail,availability)]
-    
-    tree[, newShare := tempAvailability / sum(tempAvailability, na.rm = TRUE),
-         by = c(p$childVar)]
-    tree[,availability:=tempAvailability]
-    
-    tree[,c("freq","tempAvailability","sumPositiveAvail","negShare"):=NULL]
+    # freqChild= data.table(table(tree[, get(standParams$childVar)]))
+    # setnames(freqChild, c("V1","N"), c(standParams$childVar, "freq"))
+    # tree=merge(tree, freqChild , by=standParams$childVar)
+    # tree[availability<=0, negShare:=1/freq]
+    # tree[availability<=0, availability:=0]
+    # tree[,sumPositiveAvail:=sum(availability,na.rm=TRUE),by = c(p$childVar)]
+    # tree[,tempAvailability:=ifelse(availability<=0,negShare*sumPositiveAvail,availability)]
+    # 
+    # tree[, newShare := tempAvailability / sum(tempAvailability, na.rm = TRUE),
+    #      by = c(p$childVar)]
+    # tree[,availability:=tempAvailability]
+    # 
+    # tree[,c("freq","tempAvailability","sumPositiveAvail","negShare"):=NULL]
     
 ### 
-    tree[, c(p$shareVar) :=
-           ifelse(is.na(newShare), get(p$shareVar), newShare)]
-    tree[, newShare := NULL]
+    # tree[, c(p$shareVar) :=
+    #        ifelse(is.na(newShare), get(p$shareVar), newShare)]
+    # tree[, newShare := NULL]
     if(length(printCodes) > 0){
         cat("\nAvailability of parents/children:\n\n")
         print(knitr::kable(tree[get(p$childVar) %in% printCodes,
