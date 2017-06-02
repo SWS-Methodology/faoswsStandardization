@@ -51,7 +51,7 @@ if (CheckDebug()) {
 #User name is what's after the slash
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
-SWS_USER = "muschitielloBatch31"
+# SWS_USER = "muschitielloBatch31"
 
 message("Getting parameters/datasets...")
 
@@ -519,9 +519,12 @@ message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
 standData = rbindlist(standData)
-batchnumber = 31
 
-save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
+save(standData,file=("debugFile/standData.RData"))
+
+# batchnumber = 31
+# 
+# save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
 
@@ -536,8 +539,8 @@ AfterCB = read.table("debugFile/AfterCrudeBalancing.csv",
                      colClasses = c("character","character","character","character","character","character","character"))
 AfterCB = data.table(AfterCB)
 
-save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
-# SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
+# save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
+SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
 
@@ -550,9 +553,9 @@ StandPrEq = read.table("debugFile/StandardizedPrimaryEquivalent.csv",
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
                      colClasses = c("character","character","character","character","character","character","character"))
 StandPrEq = data.table(StandPrEq)
-save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
+# save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
 
-# SaveData(domain = "suafbs", dataset = "fbs_standardized", data = StandPrEq, waitTimeout = 20000)
+SaveData(domain = "suafbs", dataset = "fbs_standardized", data = StandPrEq, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
 ###################################
