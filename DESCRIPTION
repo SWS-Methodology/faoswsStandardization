@@ -2,7 +2,7 @@ Package: faoswsStandardization
 Type: Package
 Title: Package to perform standardization of SUA (supply utilization account)
     data to FBS level
-Version: 0.1.5
+Version: 0.1.6
 Date: 2017-06-02
 Authors@R: c(person("Josh", "Browning", role = "aut", email = "joshua.browning@fao.org"),
              person("Sebastian", "Campbell", role = "cre", email = "sebastian.campbell@fao.org"))

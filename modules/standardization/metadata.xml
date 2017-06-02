@@ -29,16 +29,16 @@
     </Param>
 	</Params>
 	<Datasets>
-		<MainDataset>
-			<Code>fbs</Code>
-			<SelectableDimensions>
-				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredElementSuaFbs</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredItemSuaFbs</SelectableDimension>
-				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
-			</SelectableDimensions>
-		</MainDataset>
-	</Datasets>
-	<InteractiveValidation>false</InteractiveValidation>
-	<Background>false</Background>
+        <MainDataset>
+            <Code>fbs_balanced_</Code>
+        </MainDataset>
+        <Dataset>
+            <Code>sua_balanced</Code>
+        </Dataset>
+        <Dataset>
+            <Code>fbs_standardized</Code>
+        </Dataset>
+    </Datasets>
+    <InteractiveValidation>false</InteractiveValidation>
+    <Background>false</Background>
 </RScript>

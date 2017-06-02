@@ -51,7 +51,7 @@ if (CheckDebug()) {
 #User name is what's after the slash
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
-# SWS_USER = "muschitielloBatch31"
+SWS_USER = "muschitielloBatch32"
 
 message("Getting parameters/datasets...")
 
@@ -93,13 +93,6 @@ tree[measuredItemParentCPC=="23511.01", measuredItemParentCPC:="2351f"]
 tree[measuredItemParentCPC=="23512", measuredItemParentCPC:="2351f"]
 tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),]
 
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# CRISTINA To be lately activated for ANOTHER SUGAR CORRECTION
-# tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="2351f", extractionRate:=0.11]
-# tree[measuredItemParentCPC=="01801" & measuredItemChildCPC=="2351f", extractionRate:=0.14]
-# tree[measuredItemParentCPC=="2351f"&is.na(extractionRate),extractionRate:=0.935]
-# tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="2351f", extractionRate:=0.1]
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ###
 
@@ -184,11 +177,11 @@ message("Reading SUA data...")
 ## specified by the user.
 
 ##!! 3 warnings about things that need to be changed !!#
-# data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-# elementCol = "measuredElementSuaFbs")
-# setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-# 
-# 
+data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
+elementCol = "measuredElementSuaFbs")
+setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+
+
 # save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/260523_dataAllNew.RData")
 
 
@@ -200,7 +193,7 @@ message("Reading SUA data...")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/180523_dataNewLoss.RData")
 
 # last no Mirror import
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/260523_dataAllNew.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/260523_dataAllNew.RData")
 
 # last mirror import
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror3.RData")
