@@ -517,8 +517,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                          cut=cutItems,
                                          additiveElements = nutrientElements)
     if(length(printCodes) > 0){
-        cat("\nSUA table after standardization (BEFORE PROTECTED CORRECTION:")
-        data = markUpdated(new = data, old = old, standParams = p)
+      # cat("\nSUA table after standardization (BEFORE PROTECTED CORRECTION:)")
+      cat("\nSUA table after standardization")
+      data = markUpdated(new = data, old = old, standParams = p)
         old = copy(data)
         print(printSUATable(data = data, standParams = p,
                             printCodes = printCodes,
@@ -578,68 +579,75 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     
     
-    
-    
-    ### CRISTINA PROTECTED PRIMARY EQUIVALENT FOOD VALUE
-    # TO BE EXCLUDED FROM STANDARDIZATION are replaced
+##### ALL this process to be deactivated 
+    # if we delete food official values of crops from the beggining   
+    # Deactivate or reactivate from A to B
 
-    if(!is.null(nutrientData)){
-      protected = merge(protected, nutrientData, by = p$itemVar, all.x = TRUE)
-      protected[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0,
-           c("Calories", "Proteins", "Fats") :=
-             0]
-      ## Convert nutrient values into total nutrient info using food
-      ## allocation.
-
-      ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
-      ## of the nutreient componets is 1/100g
-
-
-      sapply(nutrientElements, function(nutrient){
-        protected[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
-             by = c(p$itemVar)]
-      })
-    }
-
-    elements=protected[,unique(measuredElementSuaFbs)]
-    protected=data.table(
-      dcast(protected,measuredItemSuaFbs+geographicAreaM49+timePointYears+Calories+Proteins+Fats~measuredElementSuaFbs,
-            value.var="Value"))
-    if(!is.na(elements)){
-    # protected[,food:=Value]
-    # protected[,c("Value","measuredElementSuaFbs"):=NULL]
-    protected=melt.data.table(protected,id.vars = c("measuredItemSuaFbs","geographicAreaM49","timePointYears")
-                              ,measure.vars = c(nutrientElements,elements),variable.name = "measuredElementSuaFbs"
-                              ,value.name = "newValue")
-    merged = data.table(left_join(data,protected,by=c(p$mergeKey,p$elementVar)))
-    merged[!is.na(newValue)
-           # &newValue<Value
-           ,Value:=newValue]
-
-  ###CRISTINA: Test for batch 25
-    # merged[!is.na(newValue)
-    #        # &newValue<Value
-    #        ,Value:=Value-newValue]
-  ###
-    
-    
-       merged[,newValue:=NULL]
-    data=merged
-    
-    if(length(printCodes) > 0){
-      cat("\nSUA table after standardization (AFTER PROTECTED CORRECTION:")
-      data = markUpdated(new = data, old = old, standParams = p)
-      old = copy(data)
-      print(printSUATable(data = data, standParams = p,
-                          printCodes = printCodes,
-                          nutrientElements = nutrientElements,
-                          printProcessing = TRUE))
-    }
-    
-    
-    }
-    ###
-     
+# # A
+#     ### CRISTINA PROTECTED PRIMARY EQUIVALENT FOOD VALUE
+#     # TO BE EXCLUDED FROM STANDARDIZATION are replaced
+# 
+# if(!is.null(nutrientData)){
+#   protected = merge(protected, nutrientData, by = p$itemVar, all.x = TRUE)
+#   protected[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0,
+#        c("Calories", "Proteins", "Fats") :=
+#          0]
+#   ## Convert nutrient values into total nutrient info using food
+#   ## allocation.
+# 
+#   ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
+#   ## of the nutreient componets is 1/100g
+# 
+# 
+#   sapply(nutrientElements, function(nutrient){
+#     protected[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
+#          by = c(p$itemVar)]
+#   })
+# }
+# 
+# elements=protected[,unique(measuredElementSuaFbs)]
+# protected=data.table(
+#   dcast(protected,measuredItemSuaFbs+geographicAreaM49+timePointYears+Calories+Proteins+Fats~measuredElementSuaFbs,
+#         value.var="Value"))
+# if(!is.na(elements)){
+# # protected[,food:=Value]
+# # protected[,c("Value","measuredElementSuaFbs"):=NULL]
+# protected=melt.data.table(protected,id.vars = c("measuredItemSuaFbs","geographicAreaM49","timePointYears")
+#                           ,measure.vars = c(nutrientElements,elements),variable.name = "measuredElementSuaFbs"
+#                           ,value.name = "newValue")
+# merged = data.table(left_join(data,protected,by=c(p$mergeKey,p$elementVar)))
+# merged[get(p$elementVar)==p$foodCode&!is.na(newValue)
+#        # &newValue<Value
+#        ,Value:=newValue]
+# 
+#            ## lets try to invert the process
+# 
+#            # ,Value:=Value-newValue]
+# 
+#   ###CRISTINA: Test for batch 25
+#     # merged[!is.na(newValue)
+#     #        # &newValue<Value
+#     #        ,Value:=Value-newValue]
+#   ###
+#     
+#     
+#        merged[,newValue:=NULL]
+#     data=merged
+# 
+#     if(length(printCodes) > 0){
+#       cat("\nSUA table after standardization (AFTER PROTECTED CORRECTION:")
+#       data = markUpdated(new = data, old = old, standParams = p)
+#       old = copy(data)
+#       print(printSUATable(data = data, standParams = p,
+#                           printCodes = printCodes,
+#                           nutrientElements = nutrientElements,
+#                           printProcessing = TRUE))
+#     }
+# 
+# 
+#     }
+#     ###
+# # B     
     
     
     
