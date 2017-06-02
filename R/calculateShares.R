@@ -16,7 +16,9 @@
 ##'   provide information about the columns of data and tree, specifying (for 
 ##'   example) which columns should be standardized, which columns represent 
 ##'   parents/children, etc.
-##' 
+##' @param availability Avalaibility as previously calculated
+##' @param zeroWeight as previously defined
+
 ##' @return A data.table containing the final balanced and standardized SUA 
 ##'   data.  Additionally, this table will have new elements in it if 
 ##'   nutrientData was provided.
