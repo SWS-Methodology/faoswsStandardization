@@ -12,7 +12,7 @@ library(dplyr)
 library(MASS) 
 library(lattice)
 library(reshape2)
-library(RcppRoll)
+
 
 if(packageVersion("faoswsStandardization") < package_version('0.1.0')){
   stop("faoswsStandardization is out of date")
@@ -51,7 +51,7 @@ if (CheckDebug()) {
 #User name is what's after the slash
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
-# SWS_USER = "muschitiello2"
+SWS_USER = "muschitielloBatch31"
 
 message("Getting parameters/datasets...")
 
@@ -99,7 +99,7 @@ tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),
 # tree[measuredItemParentCPC=="01801" & measuredItemChildCPC=="2351f", extractionRate:=0.14]
 # tree[measuredItemParentCPC=="2351f"&is.na(extractionRate),extractionRate:=0.935]
 # tree[measuredItemParentCPC=="01802" & measuredItemChildCPC=="2351f", extractionRate:=0.1]
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ###
 
@@ -184,12 +184,12 @@ message("Reading SUA data...")
 ## specified by the user.
 
 ##!! 3 warnings about things that need to be changed !!#
-data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-elementCol = "measuredElementSuaFbs")
-setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-
-
-# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/180523_dataNewLoss.RData")
+# data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
+# elementCol = "measuredElementSuaFbs")
+# setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+# 
+# 
+# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/260523_dataAllNew.RData")
 
 
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
@@ -197,9 +197,10 @@ setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
+# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/180523_dataNewLoss.RData")
 
 # last no Mirror import
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/180523_dataNewLoss.RData")
+load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/260523_dataAllNew.RData")
 
 # last mirror import
 # load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror3.RData")
@@ -222,7 +223,10 @@ setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
 ### CRISTINA: SUGAR
 ### temporary change in the data for accounting for corrections in sugar Tree
-data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
+# data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
+# I just discovered that this change is already in the data file
+data[!measuredItemSuaFbs %in% c("23511.01","23512")]
+
 
 data=data[, list(Value = sum(Value, na.rm = TRUE)),
      by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
@@ -231,7 +235,7 @@ data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>
 
 data[flagObservationStatus=="",Official:=TRUE]
 data[is.na(Official),Official:=FALSE]
-data=data[,c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official")]
+data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official"))]
 
 ###
 
@@ -266,31 +270,52 @@ params$protected = "Protected"
 params$official = "Official"
 
 #protected data
+#### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
+# now we have to delete all the wrong values:
+
 primaryEq=fbsTree[,unique(measuredItemSuaFbs)]
 
-# primary_1=tree[measuredItemParentCPC%in%primaryEq,unique(measuredItemParentCPC)]
-# primary_2=primary_1[-(which(primary_1%in%tree[,measuredItemChildCPC]))]
-
+#### CRISTINA: idea of treatment of official food values for the 19 commodities of the Questionnairses
+# setnames(crudeBalEl,"measuredElementSuaFbs","balElement")
+# dataBalEl = data.table(left_join(data,crudeBalEl,by=c("measuredItemSuaFbs","geographicAreaM49")))
+# dataBalEl[get(params$elementVar)==params$foodCode
+#           &get(params$itemVar) %in% primaryEq
+#           &balElement%in%c(params$foodCode)
+#                  ,Value:=NA]
+# data=dataBalEl[,c(1,3,2,4:7),with=FALSE]
+# 
+# This part for the moment is not commented because protected is
+# a parameter. When this removal will be decided definively, 
+# this has to be removed from here and from argument of wrapper
 protected = data[get(params$official)=="TRUE"
                  &get(params$protected)=="TRUE"
                  &get(params$elementVar)==params$foodCode
-                 # &get(params$itemVar) %in% primary_2
                  &get(params$itemVar) %in% primaryEq
-                 # &Value!=0
+                 # &!is.na(Value)
                  ,]
+# 
+# protected=merge(protected[,c(1,3,4),with=FALSE],data,by=c("measuredItemSuaFbs","geographicAreaM49","timePointYears"))
+# protected=protected[!is.na(measuredElementSuaFbs)]
+# 
+# setnames(crudeBalEl,"balElement",params$elementVar)
+###
 
-protected=merge(protected[,c(1,3,4),with=FALSE],data,by=c("measuredItemSuaFbs","geographicAreaM49","timePointYears"))
-protected=protected[!is.na(measuredElementSuaFbs)]
+### CRISTINA: trial for BAtch 30 (Germany based decision)
+cropsOfficialFood = c("0111","0112","0115","0116","0117","01199.02","01801","01802")
+data[get(params$itemVar)%in%cropsOfficialFood
+     &get(params$official)==TRUE
+     &get(params$elementVar)==params$foodCode
+     ,Value:=NA]
 
 
-###CRISTINA: Test for batch 26
-# data[get(params$protected)=="FALSE"
-#      &get(params$elementVar)==params$productionCode
-#      &!(get(params$itemVar) %in% primaryEq),Value:=NA]
+###CRISTINA: Test for batch 28
+data[get(params$protected)=="FALSE"
+     &get(params$elementVar)==params$productionCode
+     &!(get(params$itemVar) %in% primaryEq),Value:=NA]
 ###
 
 
-# Convert units for tourist and industrial
+# Convert units for tourist and industrialAfterCB
 message("Applying adjustments to commodity tree...")
 
 ## Update tree by setting some edges to "F", computing average extraction rates
@@ -443,19 +468,22 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4")&timePointYears=="2013",]
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","1248","524"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","8","380","246"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36","96"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("144")&timePointYears=="2011",]
+
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 # uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("729", "166", "584", "580", "585", "674", "654", "238", "156")]
 
 
 if(params$createIntermetiateFile){
-  
+
   if(file.exists("debugFile/StandardizedPrimaryEquivalent.csv")){
     file.remove("debugFile/StandardizedPrimaryEquivalent.csv")
   }
-  if(file.exists("debugFile/AfterCrudeBalancing.csv")){
-    file.remove("debugFile/AfterCrudeBalancing.csv")
+  if(file.exists("debugFile/AfterCrudeBalancing_b.csv")){
+    file.remove("debugFile/AfterCrudeBalancing_b.csv")
   }
 }
 
@@ -491,9 +519,9 @@ message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
 standData = rbindlist(standData)
+batchnumber = 31
 
-# batchnumber = 26
-# save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
+save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
 #################################################################
 
@@ -505,11 +533,11 @@ ptm <- proc.time()
 AfterCB = read.table("debugFile/AfterCrudeBalancing.csv",
                      header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
-                     colClasses = c("character","character","character","character","numeric","character","character"))
+                     colClasses = c("character","character","character","character","character","character","character"))
 AfterCB = data.table(AfterCB)
 
-# save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
-SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
+save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
+# SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
 
@@ -520,11 +548,11 @@ ptm <- proc.time()
 StandPrEq = read.table("debugFile/StandardizedPrimaryEquivalent.csv",
                      header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
-                     colClasses = c("character","character","character","character","numeric","character","character"))
+                     colClasses = c("character","character","character","character","character","character","character"))
 StandPrEq = data.table(StandPrEq)
-# save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
+save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
 
-SaveData(domain = "suafbs", dataset = "fbs_standardized", data = StandPrEq, waitTimeout = 20000)
+# SaveData(domain = "suafbs", dataset = "fbs_standardized", data = StandPrEq, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
 ###################################

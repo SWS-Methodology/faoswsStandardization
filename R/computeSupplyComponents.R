@@ -74,7 +74,7 @@ computeSupplyComponents= function(data, standParams, loop){
   
   nutrients = lapply(elementsToCreate, function(x){
     
-    temp=data[,c("geographicAreaM49","timePointYears",x,paste0("fbsID",4-loop+1)), with=FALSE]
+    temp=data[,mget(c("geographicAreaM49","timePointYears",x,paste0("fbsID",4-loop+1)))]
     temp[, Value := get(x)]
     temp[, c(standParams$elementVar) := x]
     temp[, c(x) := NULL]
@@ -87,7 +87,7 @@ computeSupplyComponents= function(data, standParams, loop){
   
   data[, c("DES_calories","DES_proteins","DES_fats", "population"):=NULL]
   
-  nutrients=nutrients[,c("geographicAreaM49","timePointYears","measuredElementSuaFbs",paste0("fbsID", 4-loop+1),"Value"), with=FALSE]
+  nutrients=nutrients[,mget(c("geographicAreaM49","timePointYears","measuredElementSuaFbs",paste0("fbsID", 4-loop+1),"Value"))]
   
   out = rbind(data,nutrients)
   out = unique(out)

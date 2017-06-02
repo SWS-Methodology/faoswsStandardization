@@ -94,6 +94,15 @@ balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
     data[, newValue := ifelse(is.na(Value), 0, Value) + imbalance]
     # I'm a little confused about why flags aren't used here, but it looks like 
     # items where there's a positive values are marked as official
+    ###
+    # CRISTINA: I'm reacttivating the use of flags and I will consider all the
+    # PROTECTED Production values
+
+    # data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
+    #                              get(standParams$protected)==TRUE),
+    #      by = c(standParams$itemVar)]
+    ###   
+    
     data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
                                    !is.na(Value) & Value > 0),
          by = c(standParams$itemVar)]
@@ -102,7 +111,9 @@ balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
     data[, officialFood := any(get(standParams$elementVar) == standParams$foodCode &
                                  !is.na(Value) & Value > 0),
         by = c(standParams$itemVar)]
+  
     
+# The commodities that have to be crude balanced are the NON PRIMARY
    TobeBalancedCommodity=list()
    primaryCommoditiesChildren=list()
    for(i in seq_len(length(unique(primaryCommodities))) )
@@ -135,8 +146,9 @@ balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
     
     ## Supply > Utilization: assign difference to food, feed, etc.  Or, if 
     ## production is official, force a balance by adjusting food, feed, etc.
-    data[(imbalance > imbalanceThreshold & officialProd )
-         & (!get(standParams$itemVar) %in% NotTobeBalanced) ,
+   data[(imbalance > imbalanceThreshold & officialProd )
+    # data[(imbalance > imbalanceThreshold)
+             & (!get(standParams$itemVar) %in% NotTobeBalanced) ,
          ## Remember, data is currently in long format.  This condition is ugly, but the idea is
          ## that Value should be replaced with newValue if the particular row of interest
          ## corresponds to the food variable and if the commodity should have it's residual
@@ -168,7 +180,7 @@ balanceResidual = function(data, standParams, feedCommodities = c(), tree=tree,
     
     ## Supply < Utilization
     data[imbalance < -imbalanceThreshold & !officialProd &
-             (!get(standParams$itemVar) %in% primaryCommodities) &
+             (!get(standParams$itemVar) %in% NotTobeBalanced) &
              get(standParams$elementVar) == p$productionCode ,
              Value := -newValue]
     data[, c("imbalance", "newValue") := NULL]

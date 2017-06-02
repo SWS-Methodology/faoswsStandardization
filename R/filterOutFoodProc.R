@@ -33,77 +33,7 @@ filterOutFoodProc=function(data=data, params=p, tree=tree, availability=availabi
   
 {
   
-  tree = merge(tree, availability,
-               by = c(params$childVar, params$parentVar))
-  tree = tree[, list(share = sum(share),
-                     availability = max(availability)),
-              by = c(params$childVar, params$parentVar, params$extractVar, 
-                     params$targetVar, params$standParentVar)]
-  setnames(tree, "share", params$shareVar)
-  ## Calculate the share using proportions of availability, but default to the
-  ## old value if no "by-availability" shares are available.
-  tree[, newShare := availability / sum(availability, na.rm = TRUE),
-       by = c(params$childVar)]
-  tree[, c(params$shareVar) :=
-         ifelse(is.na(newShare), get(params$shareVar), newShare)]
-  tree[, newShare := NULL]
-  
-  
-  # weight
-  
-  tree[,weight:=1]
-  zeroWeightChildren=list()
-  for(i in seq_len(length(zeroWeight)))
-  { 
-    
-    
-    zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
-                                                    parentColname =params$parentVar,
-                                                    childColname = params$childVar,
-                                                    topNodes =zeroWeight[i] ))
-    
-    
-  }
-  
-  zeroWeightDescendants= rbindlist(zeroWeightChildren)
-  
-  tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
-
-
-
-
-
-
-
-  
-    data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                      ifelse(get(params$elementVar) == params$productionCode, 1,
-                      ifelse(get(params$elementVar) == params$importCode, 1,
-                      ifelse(get(params$elementVar) == params$exportCode, -1,
-                      ifelse(get(params$elementVar) == params$stockCode, -1,
-                      ifelse(get(params$elementVar) == params$foodCode, -1,
-                      ifelse(get(params$elementVar) == params$foodProcCode, 0,
-                      ifelse(get(params$elementVar) == params$feedCode, -1,
-                      ifelse(get(params$elementVar) == params$wasteCode, -1,
-                      ifelse(get(params$elementVar) == params$seedCode, -1,
-                      ifelse(get(params$elementVar) == params$industrialCode, -1,
-                      ifelse(get(params$elementVar) == params$touristCode, -1,
-                      ifelse(get(params$elementVar) == params$residualCode, -1, 0))))))))))))),
-   by = c(params$mergeKey)]
-  
   data[measuredElementSuaFbs=="production" & availability<0 & is.na(Value), Value:=-availability]
   
   
