@@ -297,7 +297,7 @@ setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
 
 
 
-stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 20000)
+stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
 
 paste0(stats$inserted, " observations written, ",
        stats$ignored, " weren't updated, ",

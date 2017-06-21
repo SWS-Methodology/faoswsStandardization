@@ -68,6 +68,7 @@
 ##'   step to show the progress of the algorithm.
 ##' @param debugFile folder for saving the intermediate files.
 ##' @param protected protected primary Equivalent Items.
+##' @param batchnumber Number of batch running.
 ##' @return A data.table containing the final balanced and standardized SUA 
 ##'   data.  Additionally, this table will have new elements in it if 
 ##'   nutrientData was provided.
@@ -79,7 +80,7 @@
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                   nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
                                   debugFile= NULL
-                                  , protected = NULL
+                                  , protected = NULL,batchnumber=batchnumber
                                   ){
     
     ## Reassign standParams to p for brevity
@@ -135,7 +136,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         # message("Nutrients are assumed to be:", paste(colnames(nutrientData)[-1], collapse = ", "))
         geo=nameData(domain = "suafbs", dataset = "fbs_standardized",data.table(geographicAreaM49=data[,unique(get(p$geoVar))]))
         yea=data[,unique(timePointYears)]
-        message("Country = ",as.character(geo[,2]),", year = ",yea)
+        message("Country = ",as.character(geo[,2,with=FALSE]),", year = ",yea)
         nutrientElements = colnames(nutrientData)[2:ncol(nutrientData)]
     } else {
         cat("No nutrient information provided, hence no nutrients are computed.")
@@ -157,9 +158,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         old = copy(data)
         print(printSUATable(data = data, standParams = p, printCodes = printCodes))
     }
-    
-    
-  
     
     ## STEP 1: Process forward.
     data = processForward(data = data, tree = tree,
@@ -394,7 +392,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## Add in elements not in the tree, as they are essentially parents
     nonTreeEl = data[[p$itemVar]]
     nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
-    # primaryEl = c(primaryEl, nonTreeEl)   
+    # primaryEl = c(primaryEl, nonTreeEl)
     foodProcEl = unique(tree[get(p$targetVar) == "F",
                              get(p$parentVar)])
     #! This object is never used and I don't yet know why it's here
@@ -466,8 +464,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     if(!is.null(debugFile)){
       
-      saveFBSItermediateStep(directory="debugFile",
-                             fileName="AfterCrudeBalancing",
+      saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
+                             fileName=paste0("B",batchnumber,"_02_AfterCB_BeforeST"),
                              data=standData)
     }
     
@@ -569,8 +567,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     if(!is.null(debugFile)){
       
-      saveFBSItermediateStep(directory="debugFile",
-                             fileName="StandardizedPrimaryEquivalent",
+      saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
+                             fileName=paste0("B",batchnumber,"_03_AfterST_BeforeFBSbal"),
                              data=standData)
     }
     
