@@ -40,6 +40,11 @@ if (CheckDebug()) {
     token = PARAMS[["token"]]
   )
   
+  # always set 999 for subset batches for testing
+  # Last complete batch Run 31
+  batchnumber = 999    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+
+  
   ## Source local scripts for this local tes
   # for (file in dir(apiDirectory, full.names = T))
   #   source(file)
@@ -51,7 +56,15 @@ if (CheckDebug()) {
 #User name is what's after the slash
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
-SWS_USER = "muschitielloBatch31b"
+
+# I one want to create sub-folder in the share drive,
+# instead of replace the existing 
+# (for example save example files for different batches)
+# put the name in the .yml file
+# default is NULL
+if(CheckDebug()){
+SUB_FOLDER = paste0(PARAMS[["subShare"]],batchnumber) 
+}
 
 message("Getting parameters/datasets...")
 
@@ -184,28 +197,28 @@ message("Reading SUA data...")
 # data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
 # elementCol = "measuredElementSuaFbs")
 # setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-# 
-# 
-# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/05062017_dataAllNew_Seed.RData")
 
 
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeChri.RData")
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno.RData")
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeNewFoodBruno2.RData")
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror2.RData")
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataNoMirror.RData")
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/180523_dataNewLoss.RData")
-load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/260523_dataAllNew.RData")
 
-# last no Mirror import
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/05062017_dataAllNew_Seed.RData.RData")
+# if(CheckDebug()){
+# save(data,file=file.path(PARAMS$localFiles, "05062017_dataAllNew_Seed.RData")
+# }
 
-# last mirror import
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataMirror3.RData")
-
-# Faostat TRADE DATA
-# load("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeFAOSTAT.RData")
-
+if(CheckDebug()){
+  # load(file.path(PARAMS$localFiles, "dataTradeChri.RData.RData"))
+  # load(file.path(PARAMS$localFiles, "dataTradeNewFoodBruno.RData"))
+  # load(file.path(PARAMS$localFiles, "dataTradeNewFoodBruno2.RData"))
+  # load(file.path(PARAMS$localFiles, "dataMirror2.RData"))
+  # load(file.path(PARAMS$localFiles, "dataNoMirror.RData"))
+  # last no Mirror import
+  # load(file.path(PARAMS$localFiles, "05062017_dataAllNew_Seed.RData.RData")
+  # last mirror import
+  # load(file.path(PARAMS$localFiles, "dataMirror3.RData")
+  # Faostat TRADE DATA
+  # load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT.RData")
+  
+  load(file.path(PARAMS$localFiles, "260523_dataAllNew.RData"))
+}
 
 
 
@@ -239,6 +252,7 @@ data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM
 
 
 ### CRISTINA: This was needed for Updating the CutItems. The actual CutItems files is updated
+### so the following line is not needed
 # animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildCPC])
 ###
 
@@ -421,13 +435,13 @@ standardizationVectorized = function(data, tree, nutrientData
  
  
  
-  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/"), showWarnings = FALSE
+  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/", SUB_FOLDER, "/standardization/"), showWarnings = FALSE
 
 
 
   ,recursive = TRUE
   )
-  sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/",
+  sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER,"/", SUB_FOLDER, "/standardization/",
               data$timePointYears[1], "_",
               data$geographicAreaM49[1], "_sample_test.md"),
        split = TRUE)
@@ -463,7 +477,7 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4")&timePointYears=="2013",]
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4")&timePointYears=="2013",]
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","8","380","246"),]
@@ -474,12 +488,7 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 # uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("729", "166", "584", "580", "585", "674", "654", "238", "156")]
 
-batchnumber = 31
-dir.create(paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/debugFile/Batch_",batchnumber), showWarnings = FALSE,recursive=TRUE)
-
 if(params$createIntermetiateFile){
-
-
   if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterCB_BeforeST.csv"))){
     file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterCB_BeforeST.csv"))
   }
@@ -489,12 +498,20 @@ if(params$createIntermetiateFile){
 }
 
 
+if(CheckDebug()){
+  dir.create(paste0(PARAMS$debugFolder,"/Batch_",batchnumber), showWarnings = FALSE,recursive=TRUE)
+}
+
 
 ## IMBALANCE ANALYSIS 1: INITIAL SUA IMBALANCE 
+# save the initial data locally for future reports
+if(CheckDebug()){
 initialSua = data
-save(initialSua,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/debugFile/Batch_",batchnumber,"/B",batchnumber,"_01_InitialSua_BeforeCB.RData"))
-##
+save(initialSua,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_01_InitialSua_BeforeCB.RData"))
+}
 
+
+# Run all the standardization and balancig for combination of country/year
 ptm <- proc.time()
 for (i in seq_len(nrow(uniqueLevels))) {
     filter = uniqueLevels[i, ]
@@ -529,38 +546,21 @@ message((proc.time() - ptm)[3])
 message("Combining standardized data...")
 standData = rbindlist(standData)
 
+# Save the StandData
 save(standData,file=("debugFile/standData.RData"))
 
 # 
-save(standData,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/TemporaryBatches/standDatabatch",batchnumber,".RData"))
 
+# Save the StandData LOCALLY
+if(CheckDebug()){
+  save(standData,file=paste0(PARAMS$temporaryStandData,"/standDatabatch",batchnumber,".RData"))
+}
 #################################################################
 
-###################################
-## IMBALANCE ANALYSIS SAVE 2
-ptm <- proc.time()
-BeforeCB = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterCB_BeforeST.csv"),
-                     header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-                                                      "timePointYears","Value","flagObservationStatus","flagMethod"),
-                     colClasses = c("character","character","character","character","character","character","character"))
-BeforeCB = data.table(BeforeCB)
-
-save(BeforeCB,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/debugFile/B",batchnumber,"_02_BeforeCrudeBalancing.RData"))
-message((proc.time() - ptm)[3])
 
 ###################################
 ## IMBALANCE ANALYSIS SAVE 2
 ### FIRST INTERMEDIATE SAVE
-# ptm <- proc.time()
-# AfterCB = read.table("debugFile/AfterCrudeBalancing.csv",
-#                      header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
-#                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
-#                      colClasses = c("character","character","character","character","character","character","character"))
-# AfterCB = data.table(AfterCB)
-# 
-# save(AfterCB,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/AfterCrudeBalancing_batch",batchnumber,".RData"))
-# # SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB, waitTimeout = 20000)
-# message((proc.time() - ptm)[3])
 
 ptm <- proc.time()
 AfterCB_BeforeST = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterCB_BeforeST.csv"),
@@ -569,38 +569,30 @@ AfterCB_BeforeST = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnu
                      colClasses = c("character","character","character","character","character","character","character"))
 AfterCB_BeforeST = data.table(AfterCB_BeforeST)
 
-save(AfterCB_BeforeST,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterCB_BeforeST.RData"))
 # SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB_BeforeST, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
+# Save these data LOCALLY
+if(CheckDebug()){
+  save(AfterCB_BeforeST,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_02_AfterCB_BeforeST.RData"))
+}
 
 ###################################
 ## IMBALANCE ANALYSIS SAVE 3
 ### SECOND INTERMEDIATE SAVE
-
-# ptm <- proc.time()
-# StandPrEq = read.table("debugFile/StandardizedPrimaryEquivalent.csv",
-#                      header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
-#                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
-#                      colClasses = c("character","character","character","character","character","character","character"))
-# StandPrEq = data.table(StandPrEq)
-# save(StandPrEq,file=paste0("C:/Users/Muschitiello/Documents/StandardizationFrancescaCristina/debugFile/StandardizedPrimaryEquivalent_batch",batchnumber,".RData"))
-# 
-# # SaveData(domain = "suafbs", dataset = "fbs_standardized", data = StandPrEq, waitTimeout = 20000)
-# message((proc.time() - ptm)[3])
-
-
 ptm <- proc.time()
 AfterST_BeforeFBSbal = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"),
                        header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
                                                         "timePointYears","Value","flagObservationStatus","flagMethod"),
                        colClasses = c("character","character","character","character","character","character","character"))
 AfterST_BeforeFBSbal = data.table(AfterST_BeforeFBSbal)
-save(AfterST_BeforeFBSbal,file=paste0("C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.RData"))
-
 # SaveData(domain = "suafbs", dataset = "fbs_standardized", data = AfterST_BeforeFBSbal, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
+# Save these data LOCALLY
+if(CheckDebug()){
+  save(AfterST_BeforeFBSbal,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.RData"))
+}
 
 ###################################
 ### FINAL SAVE
