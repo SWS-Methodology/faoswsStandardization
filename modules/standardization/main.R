@@ -435,7 +435,9 @@ standardizationVectorized = function(data, tree, nutrientData
  
  
  
-  dir.create(paste0( SUB_FOLDER, "/standardization/"), showWarnings = FALSE
+  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/", SUB_FOLDER, "/standardization/"), showWarnings = FALSE
+
+
 
   ,recursive = TRUE
   )
