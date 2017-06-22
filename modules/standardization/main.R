@@ -90,7 +90,7 @@ animals= unique(tree[measuredItemChildCPC %in% meat, measuredItemParentCPC])
 
 tree=tree[!measuredItemParentCPC %in% animals,]
 
-
+### Francesca cassava correction
 tree=tree[measuredItemParentCPC!="01520",]
 
 
@@ -408,7 +408,7 @@ standardizationVectorized = function(data, tree, nutrientData
   
  printCodes = character()
   
-  printCodes=c("0111")
+  printCodes=c("21111.01")
   # ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
   # ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
   # ##printCodes = sample(samplePool, size = 1)
@@ -435,9 +435,7 @@ standardizationVectorized = function(data, tree, nutrientData
  
  
  
-  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/", SUB_FOLDER, "/standardization/"), showWarnings = FALSE
-
-
+  dir.create(paste0( SUB_FOLDER, "/standardization/"), showWarnings = FALSE
 
   ,recursive = TRUE
   )
@@ -477,7 +475,7 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4")&timePointYears=="2013",]
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("376","36", "40")&timePointYears=="2013",]
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","8","380","246"),]
