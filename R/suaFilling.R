@@ -6,7 +6,7 @@
 ##' 
 ##' It works in loops:
 ##' 
-##' LOOP1:
+##' LOOP1: 
 ##' 
 ##' - If supply < utilization
 ##'   * the imbalance is  assigned to production, if it is not official
