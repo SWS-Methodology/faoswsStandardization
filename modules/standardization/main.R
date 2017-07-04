@@ -42,7 +42,7 @@ if (CheckDebug()) {
   
   # always set 999 for subset batches for testing
   # Last complete batch Run 32
-  batchnumber = 999    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 998    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
@@ -211,13 +211,14 @@ if(CheckDebug()){
   # load(file.path(PARAMS$localFiles, "dataMirror2.RData"))
   # load(file.path(PARAMS$localFiles, "dataNoMirror.RData"))
   # last no Mirror import
-  # load(file.path(PARAMS$localFiles, "05062017_dataAllNew_Seed.RData.RData")
+  # load(file.path(PARAMS$localFiles, "05062017_dataAllNew_Seed.RData.RData"))
   # last mirror import
-  # load(file.path(PARAMS$localFiles, "dataMirror3.RData")
+  # load(file.path(PARAMS$localFiles, "dataMirror3.RData"))
   # Faostat TRADE DATA
-  # load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT.RData")
+  # load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT.RData"))
   
   load(file.path(PARAMS$localFiles, "260523_dataAllNew.RData"))
+
 }
 
 
@@ -236,7 +237,7 @@ if(CheckDebug()){
 ### temporary change in the data for accounting for corrections in sugar Tree
 # data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
 # I just discovered that this change is already in the data file
-data[!measuredItemSuaFbs %in% c("23511.01","23512")]
+# data[!measuredItemSuaFbs %in% c("23511.01","23512")]
 
 
 data=data[, list(Value = sum(Value, na.rm = TRUE)),
@@ -358,6 +359,14 @@ tree[, extractionRate := ifelse(is.na(extractionRate),
                                 extractionRate),
      by = c("measuredItemParentCPC", "measuredItemChildCPC")]
 # If there's still no extraction rate, use an extraction rate of 1
+
+
+
+# CRISTINA: I would chenge this to 0 because if no country report an extraction rate
+# for a commodity, is probably because those commodities are not re;ated
+# example: tree[geographicAreaM49=="276"&timePointYearsSP=="2012"&measuredItemParentCPC=="0111"]
+# wheat germ shoul have ER max of 2% while here results in 100%
+
 tree[is.na(extractionRate), extractionRate := 1]
 
 
@@ -389,7 +398,8 @@ setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
 message("Defining vectorized standardization function...")
 
 standardizationVectorized = function(data, tree, nutrientData
-                                     , protected, batchnumber
+                                     , protected, batchnumber,
+                                     utilizationTable
                                      ){
   
   # record if output is being sunk and at what level
@@ -408,15 +418,15 @@ standardizationVectorized = function(data, tree, nutrientData
   
  printCodes = character()
   
-  printCodes=c("21111.01")
+  printCodes=c("0111")
   # ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
   # ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
   # ##printCodes = sample(samplePool, size = 1)
-  #  if (!is.null(tree)) {
-   printCodes = getChildren(commodityTree = tree,
-   parentColname = params$parentVar,
-   childColname = params$childVar,
-   topNodes = printCodes)
+   # if (!is.null(tree)) {
+  printCodes = getChildren(commodityTree = tree,
+  parentColname = params$parentVar,
+  childColname = params$childVar,
+  topNodes = printCodes)
 
 
 ### Cristina for printing Germany and all the things involved in the wheat
@@ -450,7 +460,8 @@ standardizationVectorized = function(data, tree, nutrientData
                                    standParams = params, printCodes = printCodes,
                                    nutrientData = nutrientData, crudeBalEl = crudeBalEl,
                                    debugFile = params$createIntermetiateFile
-                               , protected = protected, batchnumber = batchnumber
+                               , protected = protected, batchnumber = batchnumber,
+                               utilizationTable = utilizationTable
                                )
   return(out)
 }
@@ -477,13 +488,13 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("376","36", "40")&timePointYears=="2013",]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("376","36", "40")&timePointYears=="2013",]
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","8","380","246"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","380),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36","96"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36")&timePointYears=="2011",]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276")&timePointYears=="2008"]
 
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 # uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("729", "166", "584", "580", "585", "674", "654", "238", "156")]
@@ -494,6 +505,9 @@ if(params$createIntermetiateFile){
   }
   if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))){
     file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))
+  }
+  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
+    file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))
   }
 }
 
@@ -527,11 +541,14 @@ for (i in seq_len(nrow(uniqueLevels))) {
                             fun.agg = aggFun)
     setnames(subNutrientData, nutrientCodes,
              c("Calories", "Proteins", "Fats"))
+    utilizationTableSubset = utilizationTable[get(params$geoVar)==as.character(uniqueLevels[i,1,with=FALSE])]
+
     standData[[i]] = standardizationVectorized(data = dataSubset,
                                                tree = treeSubset,
                                                nutrientData = subNutrientData,
                                                protected = protectedSubset,
-                                               batchnumber = batchnumber
+                                               batchnumber = batchnumber,
+                                               utilizationTable = utilizationTableSubset
                                                )
     
     standData[[i]] <- rbindlist(standData[[i]])
@@ -556,6 +573,23 @@ if(CheckDebug()){
   save(standData,file=paste0(PARAMS$temporaryStandData,"/standDatabatch",batchnumber,".RData"))
 }
 #################################################################
+###################################
+## FORCED COMMODITIES IN THE SUA FILLING PROCESS
+ptm <- proc.time()
+if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
+FORCED_PROD = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"),
+                              header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
+                                                               "timePointYears","Value","flagObservationStatus","flagMethod"),
+                              colClasses = c("character","character","character","character","character","character","character"))
+FORCED_PROD = data.table(FORCED_PROD)
+message((proc.time() - ptm)[3])
+
+# Save these data LOCALLY
+if(CheckDebug()){
+  save(FORCED_PROD,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.RData"))
+ }
+}
+###################################
 
 
 ###################################

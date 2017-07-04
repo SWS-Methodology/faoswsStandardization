@@ -74,7 +74,7 @@ calculateAvailability = function(tree, standParams){
             editedTree[, availability := mean(
                 (sapply(availability, na2zero) + sapply(availability.child, na2zero)) *
                     get(standParams$extractVar)),
-                by = c(standParams$childVar, "newChild")]
+                by = c(standParams$parentVar, "newChild")]
             editedTree[, c(standParams$childVar) := newChild]
             editedTree[, c("newChild", "availability.child") := NULL]
             

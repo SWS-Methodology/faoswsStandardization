@@ -1,4 +1,4 @@
-##' filterOutFoodProc
+##' calculateFoodProc
 ##' 
 ##' 
 ##' 
@@ -27,14 +27,14 @@
 ##' 
 
 
-filterOutFoodProc=function(data=data, params=p, tree=tree, availability=availability,zeroWeight= zeroWeight)
+calculateFoodProc=function(data=data, params=c(), tree=tree, availability=availability,zeroWeight= zeroWeight)
   
   
   
 {
-  
+  p=params
 
-  data[measuredElementSuaFbs=="production" & availability<0 & is.na(Value), Value:=-availability]
+  # data[measuredElementSuaFbs==p$productionCode & availability<0 & is.na(Value), Value:=-availability]
   
   
   mergeToTree = data[get(params$elementVar)== params$productionCode,list(measuredItemSuaFbs=get(params$itemVar),Value=Value)]

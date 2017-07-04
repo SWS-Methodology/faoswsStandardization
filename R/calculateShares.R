@@ -28,17 +28,17 @@
 ##' 
 
 
-calculateShares=function(data=data, params=p, tree=tree, availability=availability,zeroWeight= zeroWeight)
+calculateShares=function(data=data, params=p, tree=tree,zeroWeight= zeroWeight)
 
   
 {
 
-  tree = merge(tree, availability,
-               by = c(params$childVar, params$parentVar))
+  # tree = merge(tree, availability,
+  #              by = c(params$childVar, params$parentVar))
   tree = tree[, list(share = sum(share),
                      availability = max(availability)),
               by = c(params$childVar, params$parentVar, params$extractVar, 
-                     params$targetVar, params$standParentVar,"tempChild")]
+                     params$targetVar, params$standParentVar)]
   setnames(tree, "share", params$shareVar)
   ## Calculate the share using proportions of availability, but default to the
   ## old value if no "by-availability" shares are available.
@@ -66,6 +66,7 @@ calculateShares=function(data=data, params=p, tree=tree, availability=availabili
   }
   
   zeroWeightDescendants= rbindlist(zeroWeightChildren)
+  zeroWeightDescendants= unique(unlist(zeroWeightDescendants))
   
   tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
   
