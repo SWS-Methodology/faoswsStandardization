@@ -132,6 +132,7 @@ standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
     
     
     zeroWeightDescendants= rbindlist(zeroWeightChildren)
+    zeroWeightDescendants= unique(unlist(zeroWeightDescendants))
     
     
     standardizationData[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]

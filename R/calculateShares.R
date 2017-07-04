@@ -66,6 +66,7 @@ calculateShares=function(data=data, params=p, tree=tree, availability=availabili
   }
   
   zeroWeightDescendants= rbindlist(zeroWeightChildren)
+  zeroWeightDescendants= unique(unlist(zeroWeightDescendants))
   
   tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
   
