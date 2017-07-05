@@ -41,8 +41,8 @@ if (CheckDebug()) {
   )
   
   # always set 999 for subset batches for testing
-  # Last complete batch Run 32
-  batchnumber = 997    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  # Last complete batch Run 33
+  batchnumber = 999    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
@@ -481,7 +481,7 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","8","380","246"),]
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36","96"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36")&timePointYears=="2011",]
 
