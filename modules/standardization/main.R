@@ -41,7 +41,7 @@ if (CheckDebug()) {
   )
   
   # always set 999 for subset batches for testing
-  # Last complete batch Run 34
+  # Last complete batch Run 34 (Francesca 6-7-2017)
   batchnumber = 34    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
