@@ -4,27 +4,27 @@
 ##' by allocating the "imbalance" according to a Ranking of the possible 
 ##' Uitlizazions for each combination of country/commodity
 ##' 
-##' It works in loops:
-##' 
-##' LOOP1: 
-##' 
 ##' - If supply < utilization
-##'   * the imbalance is  assigned to production, if it is not official
-##'   * if is official Utilizations are proportionally reduced, 
-##'     if the difference S-U <=10% Utilizations
+##'   * the imbalance is assigned to production, if it is not official
+##'   * if is official it is checked if the commodity is a stock commodity
+##'     i.e. if it does make sense to allocate stock. If it is so, stock is created (negative)
+##'   * if production is official and is not a stocj comodity, 
+##'     Utilizations are proportionally reduced,if the difference S-U <=10% Utilizations
 ##'   * if none of these operations is possible, a manual check of the data is needed
-##' - if supply > utilization a Multiple filler approach is usde: 
-##'   * Utilization are created based on a ranking of possible Utilization 
-##'     coming from an external source
+##'     (for the moment production is increased anyway and an external file is produced for check)
+##' - if supply > utilization a Multiple filler approach is used: 
+##'   * If all the ranked utilizations are present 
+##'     these are proportionally incremented
+##'   * if one is empty, imbalance goes to this commodity
+##'   * if more than one is empty, Utilization are created based on a ranking of possible Utilization 
+##'     coming from an external source.
+##'     The approach used is of the Inverse Ranking. 
 ##'     (CRISTINA: for the moment we are trying with the Approach2: using old SUA)
 ##' 
-##' LOOP2: 
-##' (Now production has been allocated and some utilization)
-##' Food Processing is computed
-##' This will create more utilizations and So it will be needed to go back to the 
-##' Loop 1
-##' Negative Stock is created in this step
-##' 
+##' Trade and Food Processing is never created in this function:
+##' - trade is supposed to be "protected", 
+##' - food processing is created outside this function 
+##'   using a specific function and is not replaced here
 ##' 
 ##' @param data The data.table containing the full dataset for standardization.
 ##' @param p The parameters for standardization.  These parameters 
@@ -41,24 +41,20 @@
 ##'   an adjustment to be made.
 ##' @param cut these are primary equivalent commodities.
 ##' @param tree this is the sub tree used in the function.
-##' @param foodProc indicates if food processing have been already calculated or not. On this information depends the 
-##' sum of utils annd the fact that this element is considered or not
 ##' @return the Value column of the passed data.table is updated 
 ##'   
 
 suaFilling = function(data, p = p, tree=tree,
                       primaryCommodities = c(), stockCommodities = c(),
-                      utilizationTable=c(),imbalanceThreshold = 10,foodProc=FALSE){
+                      debugFile= NULL,
+                      utilizationTable=c(),imbalanceThreshold = 10){
 
     # The commodities that have to be crude balanced are the NON PRIMARY
     
     stopifnot(imbalanceThreshold > 0)
 
-  if(foodProc==FALSE){
     eleToExclude = c(p$productionCode,p$exportCode,p$importCode,p$foodProcCode)
-  }else{
-    eleToExclude = c(p$productionCode,p$exportCode,p$importCode)
-    }
+ 
   
 #############################
    # STEP 1: create production for subsequent food processing calculation:
@@ -100,6 +96,9 @@ suaFilling = function(data, p = p, tree=tree,
                          NA))))))))))))),
        by = c(p$mergeKey)]
   
+  # the following line added otherwise some cases were not treated at all 
+  data[is.na(officialProd),officialProd:="FALSE"]
+  
   # I serparate the different blocks of data for trating them separately 
   dataPrimary = data[(get(p$itemVar) %in% primaryCommodities)]
   dataNoPrimary = data[!(get(p$itemVar) %in% primaryCommodities)]
@@ -113,15 +112,13 @@ suaFilling = function(data, p = p, tree=tree,
   ## Supply < utilization (= imbalance < -imbalanceThreshold)
   
   # if production is not official, create production
-  dataNegImb[!officialProd & get(p$elementVar)==p$productionCode,
+  dataNegImb[officialProd=="FALSE" & get(p$elementVar)==p$productionCode,
              newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
   
   # if production is official and is a stock commodity, Create negative stock
 
-  dataNegImb[officialProd & get(p$itemVar) %in% stockCommodities,
-             newValue:= ifelse(get(p$elementVar) == p$stockCode,
-                               ifelse(is.na(Value),-imbalance,sum(-imbalance,Value,na.rm=TRUE)),
-                               NA),
+  dataNegImb[officialProd=="TRUE" & get(p$itemVar) %in% stockCommodities&get(p$elementVar) == p$stockCode,
+             newValue:= ifelse(is.na(Value),imbalance,Value+imbalance),
              by=c(p$mergeKey)]
   
     # if production is official and is NOT a stock commodity and abs(imbalance)<90% of sum(Utilization),
@@ -129,7 +126,7 @@ suaFilling = function(data, p = p, tree=tree,
   # this is for nod deleting completely the existing utilization, allowing a reduction that will still leave
   # an amount of utilization
   
-  dataNegImb[officialProd & !(get(p$itemVar) %in% stockCommodities)&(abs(imbalance)<=(0.6*sumUtils)),
+  dataNegImb[officialProd=="TRUE" & !(get(p$itemVar) %in% stockCommodities)&(abs(imbalance)<=(0.6*sumUtils)),
                     newValue:=(1-(abs(imbalance)/sumUtils))*
                       ifelse(get(p$elementVar)%in%eleToExclude,NA,
                              ifelse(is.na(Value),NA,Value))]
@@ -139,23 +136,31 @@ suaFilling = function(data, p = p, tree=tree,
   # these cases have to be revised and should NOT bebalanced
   # I'm forcing the balancing for the moment but saving externally the 
   # data table with this information
-  NoFillable=dataNegImb[officialProd & !(get(p$itemVar) %in% stockCommodities)&
+  NoFillable=dataNegImb[officialProd=="TRUE" & !(get(p$itemVar) %in% stockCommodities)&
                (abs(imbalance)>(0.6*sumUtils))]
              
              
-  dataNegImb[officialProd & !(get(p$itemVar) %in% stockCommodities)&
+  dataNegImb[officialProd=="TRUE" & !(get(p$itemVar) %in% stockCommodities)&
                (abs(imbalance)>(0.6*sumUtils))& get(p$elementVar)==p$productionCode,
              newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
 
   ## Supply > utilization (= imbalance > imbalanceThreshold)
   
   
-  dataPosImb
-  
   actualCommodities = dataPosImb[,unique(measuredItemSuaFbs)]
   
   for (i in actualCommodities){
-    # Se tutti i Value sono popolati
+    # If none of the utilization is activable based in the utilization Table
+    if(length(dataPosImb[measuredItemSuaFbs==i
+                         &!(get(p$elementVar)%in%eleToExclude)
+                         &!is.na(rank),Value])==0){
+    # conventionally put all on food (As was in the previous version of the new module)
+    # this a very rare case but can happen
+      dataPosImb[measuredItemSuaFbs==i
+                 &!(get(p$elementVar)%in%eleToExclude)&
+                 get(p$elementVar)==p$foodCode,newValue:=imbalance]
+    }else{
+      # Se tutti i Value sono popolati
     if(length(dataPosImb[measuredItemSuaFbs==i
                          &!(get(p$elementVar)%in%eleToExclude)
                          &!is.na(rank)&(is.na(Value)|Value==0),Value])==0){
@@ -198,7 +203,7 @@ suaFilling = function(data, p = p, tree=tree,
     
   }
   
-  
+}
   
   
   ###    ###    ###    ###    
@@ -237,13 +242,23 @@ suaFilling = function(data, p = p, tree=tree,
   }
   ###    ###    ###    ###    
   
-  dataNegImb[!is.na(newValue),Value:=ifelse(is.na(Value),newValue,Value+newValue)]
-  dataPosImb[!is.na(newValue),Value:=ifelse(is.na(Value),newValue,Value+newValue)]
-  
+  if(dim(dataNegImb)[1]==0){
+    if(dim(dataPosImb)[1]==0){
+      data=rbind(dataPrimary,dataNoImb)
+    }else{
+      dataPosImb[!is.na(newValue),Value:=newValue]
+      data=rbind(dataPrimary,dataNoImb,dataPosImb[,1:14,with=FALSE])
+    }
+  }else{
+    dataNegImb[!is.na(newValue),Value:=newValue]
+  if(dim(dataPosImb)[1]==0){
+    data=rbind(dataPrimary,dataNoImb,dataNegImb[,1:14,with=FALSE])
+  }else{
+  dataPosImb[!is.na(newValue),Value:=newValue]
   data=rbind(dataPrimary,dataNoImb,dataNegImb[,1:14,with=FALSE],dataPosImb[,1:14,with=FALSE])
-  
+  } 
+}
   data[, c("imbalance","sumUtils") := NULL]   
-  
   
 }
     

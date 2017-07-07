@@ -69,6 +69,7 @@
 ##' @param debugFile folder for saving the intermediate files.
 ##' @param protected protected primary Equivalent Items.
 ##' @param batchnumber Number of batch running.
+##' @param utilizationTable Table of utilization for suaFilling
 ##' @return A data.table containing the final balanced and standardized SUA 
 ##'   data.  Additionally, this table will have new elements in it if 
 ##'   nutrientData was provided.
@@ -80,7 +81,8 @@
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                   nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
                                   debugFile= NULL
-                                  , protected = NULL,batchnumber=batchnumber
+                                  , protected = NULL,batchnumber=batchnumber,
+                                  utilizationTable = utilizationTable
                                   ){
     
     ## Reassign standParams to p for brevity
@@ -182,12 +184,38 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       
     }
     
+    ### STEP2 Initial Sua Filling 
+    level = findProcessingLevel(tree, from = p$parentVar,
+                                to = p$childVar, aupusParam = p)
+    primaryEl = level[processingLevel == 0, get(p$itemVar)]
+    ## Add in elements not in the tree, as they are essentially parents
+    nonTreeEl = data[[p$itemVar]]
+    nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
+    # primaryEl = c(primaryEl, nonTreeEl)
+
+    data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
+                                 Official==TRUE),
+         by = c(standParams$itemVar)]
     
+    data=data.table(left_join(data,utilizationTable,by=c("geographicAreaM49","measuredElementSuaFbs","measuredItemSuaFbs")))
+    
+    data=suaFilling(data, p=p, tree=tree,
+                    primaryCommodities = primaryEl, debugFile=p$createIntermetiateFile,
+                    stockCommodities = stockCommodities,
+                    utilizationTable=utilizationTable,imbalanceThreshold = 10)
 
     
-   ## STEP 3: Compute availability and hence shares
+    if(length(printCodes) > 0){
+      cat("\nSUA table after sua Filling STEP 1:")
+      data = markUpdated(new = data, old = old, standParams = p)
+      old = copy(data)
+      print(printSUATable(data = data, standParams = p,
+                          printCodes = printCodes))
+    }
     
-    ### CRISTINA: reactivate this availability calculation. 
+    
+    
+    ### STEP 3: Compute availability and SHARE 1 
     
          data[, availability := sum(ifelse(is.na(Value), 0, Value) *
                            ifelse(get(p$elementVar) == p$productionCode, 1,
@@ -204,87 +232,221 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                            ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
         by = c(p$mergeKey)]
     
+  
     
-    
-    
+         mergeToTree = data[, list(availability = mean(availability)),
+                            by = c(p$itemVar)]
+         setnames(mergeToTree, p$itemVar, p$parentVar)
+         plotTree = copy(tree)
+         tree = merge(tree, mergeToTree, by = p$parentVar, all.x = TRUE)
+         
+      #### SHAREs 1 
+         # share are the proportion of availability of each parent
+         # on the total availability by child
+         
+         tree[,availability.child:=availability*get(p$extractVar)]
+         tree[, newShare := availability.child / sum(availability.child, na.rm = TRUE),
+              by = c(params$childVar)]         
+         tree[, c(params$shareVar) :=
+                ifelse(is.na(newShare), get(params$shareVar), newShare)]
+         # tree[, c("newShare","availability.child", "availability") := NULL]
+         tree[, c("newShare") := NULL]
+         
+         # share are the proportion of availability of each parent
+         # on the total availability by child
+         # if availability is negative
+         # shares are  a proportion of the number of child of each parent
+         
+         freqChild= data.table(table(tree[, get(params$childVar)]))
+         setnames(freqChild, c("V1","N"), c(params$childVar, "freq"))
+         tree=merge(tree, freqChild , by=params$childVar)
+         tree[availability.child<=0, negShare:=1/freq]
+         # tree[availability.child<=0, availability.child:=0]
+         
+         # because a child can have some positive and negative availabilities
+         # new avail. and shares have to be calculated for all the child
+         # in order to make shares sum at 1
+         
+         tree[,sumPositiveAvail:=sum(availability.child*ifelse(availability.child>0,1,0),na.rm=TRUE),by = c(params$childVar)]
+         
+         tree[,tempAvailability:=ifelse(availability.child<=0,negShare*sumPositiveAvail,availability)]
+         
+         tree[, newShare := tempAvailability / sum(tempAvailability, na.rm = TRUE),
+              by = c(params$childVar)]
+         tree[,availability.child:=tempAvailability]
+         tree[,availability:=availability.child]
+         
+         tree[,c("freq","tempAvailability","sumPositiveAvail","negShare","availability.child"):=NULL]
+         tree[, c(params$shareVar) :=
+                ifelse(is.na(newShare), get(params$shareVar), newShare)]
+         tree[, newShare := NULL]
+         
+         # weight
+         
+         tree[,weight:=1]
+         tree[measuredItemChildCPC %in% zeroWeight , weight:=0]
+         
+         ### CRISTINA 
+         # here I deactivate this steps because shares are used in their level
+         
+         # zeroWeightChildren=list()
+         # for(i in seq_len(length(zeroWeight)))
+         # { 
+         #   zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
+         #                                                   parentColname =params$parentVar,
+         #                                                   childColname = params$childVar,
+         #                                                   topNodes =zeroWeight[i] ))
+         #  }
+         # 
+         # zeroWeightDescendants= rbindlist(zeroWeightChildren)
+         # zeroWeightDescendants= unique(unlist(zeroWeightDescendants))
+         # 
+         # tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
 
-      ### CRISTINA: commenting this availability calculation chosen by Francesca/Carola. 
-    
-    # data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-    #                              ifelse(get(p$elementVar) == p$productionCode, 1,
-    #                              ifelse(get(p$elementVar) == p$importCode, 1,
-    #                              ifelse(get(p$elementVar) == p$exportCode, -1,
-    #                              ifelse(get(p$elementVar) == p$seedCode, -1,0))))),
-    #      by = c(p$mergeKey)]
-    
-    
-    
-    
+         if(length(printCodes) > 0){
+           cat("\nAvailability of children and shares:\n\n")
+           print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+                                   c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
+                                   with = FALSE]))
+           plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+                                 get(p$childVar) %in% printCodes, ]
+           if(nrow(plotTree) > 0){
+             plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+                            childColname = p$childVar,
+                            extractionColname = p$extractVar, box.size = .06,
+                            box.type = "circle", cex.txt = 1, box.prop = .5,
+                            box.cex = 1)
+           }
+         }
+         
+         
+         
+         ### STEP 4: Compute FOOD PROCESSING
+         
+         
+         foodProc=calculateFoodProc(data=data, params=p, tree=tree, zeroWeight=zeroWeight)
+         
+         data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
+         
+         #integrate the food processing in the elements
+         
+         data[measuredElementSuaFbs==p$foodProcCode&!is.na(foodProcElement),Value:=foodProcElement]
+         data[,foodProcElement:=NULL]
+         
+         tree[, c("availability","foodProcElement"):=NULL]
+         
+         if(length(printCodes) > 0){
+           cat("\nSUA table with FOOD PROCESSING:")
+           data = markUpdated(new = data, old = old, standParams = p)
+           old = copy(data)
+           print(printSUATable(data = data, standParams = p,
+                               printCodes = printCodes))
+         }
+         
+         
+         ### STEP 5: Execute Sua Filling again with Food processing
+         
+         data[,c("availability","updateFlag"):=NULL]
+         
+         data=suaFilling(data, p=p, tree=tree,
+                         primaryCommodities = primaryEl,
+                         debugFile = params$createIntermetiateFile, stockCommodities = stockCommodities,
+                         utilizationTable=utilizationTable,imbalanceThreshold = 10,foodProc=FALSE)
+         
+         
+         
+         if(length(printCodes) > 0){
+           cat("\nSUA table after sua Filling STEP 2:")
+           data = markUpdated(new = data, old = old, standParams = p)
+           old = copy(data)
+           print(printSUATable(data = data, standParams = p,
+                               printCodes = printCodes))
+         }
+         
+         
+         
+         ### STEP 3: Compute availability and SHARE 1 
+         
+         data[, availability := sum(ifelse(is.na(Value), 0, Value) *
+                                    ifelse(get(p$elementVar) == p$productionCode, 1,
+                                    ifelse(get(p$elementVar) == p$importCode, 1,
+                                    ifelse(get(p$elementVar) == p$exportCode, -1,
+                                    ifelse(get(p$elementVar) == p$stockCode, -1,
+                                    ifelse(get(p$elementVar) == p$foodCode, -1,
+                                    ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                                    ifelse(get(p$elementVar) == p$feedCode, -1,
+                                    ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                    ifelse(get(p$elementVar) == p$seedCode, -1,
+                                    ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                    ifelse(get(p$elementVar) == p$touristCode, -1,
+                                    ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
+              by = c(p$mergeKey)]
+         
+         
     # There's only one availability value per group, but we need an aggregation
     # function so we use mean.
     mergeToTree = data[, list(availability = mean(availability)),
                         by = c(p$itemVar)]
     setnames(mergeToTree, p$itemVar, p$parentVar)
-    plotTree = copy(tree)
+    # plotTree = copy(tree)
     tree = merge(tree, mergeToTree, by = p$parentVar, all.x = TRUE)
     availability = calculateAvailability(tree, p)
-    tree[, availability := NULL]
+    # tree[, availability := NULL]
     
     
     
     ## The trees that have not to be standardized back are cut changing their codes 
     ## in the child column (both in tree and in availability)
   
-    ############ CRISTINA: 
-    ## I will try to delete this after the calculation of shares, because, for the 
-    ## calculation of food processing, cuts have to treated as children
-    
-    tree[,tempChild:=get(standParams$childVar)]
-    # availability[,tempChild:=get(standParams$childVar)]
-    
+    # ############ CRISTINA: 
+    # ## I will try to delete this after the calculation of shares, because, for the 
+    # ## calculation of food processing, cuts have to treated as children
+    # 
+    # tree[,tempChild:=get(standParams$childVar)]
+    # # availability[,tempChild:=get(standParams$childVar)]
+    # 
     tree[get(standParams$childVar) %in% cutItems,
        c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-  
-    availability[get(standParams$childVar) %in% cutItems,
-         c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    
-    ## also I have created the function calculateShares and changed filterOut
-    
-    
-    
-    ### CRISTINA calculate shares
-    tree=calculateShares(data=data, params=p, tree=tree, availability=availability,zeroWeight=zeroWeight)
-    
-    ### now remove the f???_ prefix for cuts in order to include them in the calculation of food processing
-    tree[,standParams$childVar:=tempChild]
-    tree[,tempChild:=NULL]
-    
-    ##STEP to filter out from the TOT availability of each commodity the portion that must be allocated to the FOOD processing.
 
-    # standardization of the production to obtain foodProc
-    #### CRISTINA: FilterOut have been changed
-    foodProc=filterOutFoodProc(data=data, params=p, tree=tree, availability=availability,zeroWeight=zeroWeight)
-    
-    data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
-    
-    
-    tree[, availability:=NULL]
-    
-    
-    
-    ### now indicate cuts again
-    
-    tree[get(standParams$childVar) %in% cutItems,
-         c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    
     availability[get(standParams$childVar) %in% cutItems,
-                 c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    
+         c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+    # 
+    # ## also I have created the function calculateShares and changed filterOut
+    # 
+    # 
+    # 
+    ### CRISTINA calculate shares
+    # tree=calculateShares(data=data, params=p, tree=tree, zeroWeight=zeroWeight)
+    # 
+    # ### now remove the f???_ prefix for cuts in order to include them in the calculation of food processing
+    # tree[,standParams$childVar:=tempChild]
+    # tree[,tempChild:=NULL]
+    # 
+    # ##STEP to filter out from the TOT availability of each commodity the portion that must be allocated to the FOOD processing.
+    # 
+    # # standardization of the production to obtain foodProc
+    # #### CRISTINA: FilterOut have been changed
+    # foodProc=filterOutFoodProc(data=data, params=p, tree=tree, availability=availability,zeroWeight=zeroWeight)
+    # 
+    # data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
+    # 
+    # 
+    # tree[, availability:=NULL]
+    # 
+    # 
+    # 
+    # ### now indicate cuts again
+    # 
+    # tree[get(standParams$childVar) %in% cutItems,
+    #      c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+    # 
+    # availability[get(standParams$childVar) %in% cutItems,
+    #              c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+    # 
     
     #######
     
-    
-      
+    tree[, availability := NULL]
     
     tree = collapseEdges(edges = tree, parentName = p$parentVar,
                          childName = p$childVar,
@@ -292,6 +454,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                          keyCols = NULL)
     tree = merge(tree, availability,
                       by = c(p$childVar, p$parentVar))
+    
+    tree=calculateShares(data=data, params=p, tree=tree, zeroWeight=zeroWeight)
+    
     ## The structure of the tree may cause certain edges to be duplicated (for 
     ## example, if one product can be created via several different paths of a 
     ## tree).  Remove those duplicated edges here.  Availability of the parent
@@ -300,71 +465,18 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## For shares, we may have different default shares to different processes. 
     ## Without having a specific way of how to aggregate these shares, we add
     ## them (which is somewhat reasonable).
-    tree = tree[, list(share = sum(share),
-                       availability = max(availability)),
-                by = c(p$childVar, p$parentVar, p$extractVar, 
-                       p$targetVar, p$standParentVar)]
-    setnames(tree, "share", p$shareVar)
+    # tree = tree[, list(share = sum(share),
+    #                    availability = max(availability)),
+    #             by = c(p$childVar, p$parentVar, p$extractVar, 
+    #                    p$targetVar, p$standParentVar)]
+    # setnames(tree, "share", p$shareVar)
     ## Calculate the share using proportions of availability, but default to the
     ## old value if no "by-availability" shares are available.
     
-    
-## CRISTINA: Shares for availability <0
-    
-    
-    
-    # 
-    # tree[, newShare := availability / sum(availability, na.rm = TRUE),
-    #           by = c(p$childVar)]
-    # tree[, c(p$shareVar) :=
-    #               ifelse(is.na(newShare), get(p$shareVar), newShare)]
-    
 
     
-### Cristina trying to correct the availability and shares
-    
-#1, comment this
-    
-    # tree[availability>0, newShare := availability / sum(availability, na.rm = TRUE),
-    #      by = c(p$childVar)]
-    # 
-    # 
-    # # treeNegativeAvail=tree[availability<=0]
-    # freqChild= data.table(table(tree[, get(standParams$childVar)]))
-    #   setnames(freqChild, c("V1","N"), c(standParams$childVar, "freq"))
-    #   
-    #   tree=merge(tree, freqChild , by=standParams$childVar)
-    #   
-    #   tree[availability<=0, newShare:=1/freq]
-    #   tree[,freq:=NULL]
-    #   
-
-    # 
-    
-# 2. create this
-    ### this has been moved when food processing hase been implemented and corrected
-    ### in calculateShares
-    
-    # freqChild= data.table(table(tree[, get(standParams$childVar)]))
-    # setnames(freqChild, c("V1","N"), c(standParams$childVar, "freq"))
-    # tree=merge(tree, freqChild , by=standParams$childVar)
-    # tree[availability<=0, negShare:=1/freq]
-    # tree[availability<=0, availability:=0]
-    # tree[,sumPositiveAvail:=sum(availability,na.rm=TRUE),by = c(p$childVar)]
-    # tree[,tempAvailability:=ifelse(availability<=0,negShare*sumPositiveAvail,availability)]
-    # 
-    # tree[, newShare := tempAvailability / sum(tempAvailability, na.rm = TRUE),
-    #      by = c(p$childVar)]
-    # tree[,availability:=tempAvailability]
-    # 
-    # tree[,c("freq","tempAvailability","sumPositiveAvail","negShare"):=NULL]
-    
-### 
-    # tree[, c(p$shareVar) :=
-    #        ifelse(is.na(newShare), get(p$shareVar), newShare)]
-    # tree[, newShare := NULL]
-    if(length(printCodes) > 0){
-        cat("\nAvailability of parents/children:\n\n")
+       if(length(printCodes) > 0){
+        cat("\nAvailability of parents/children 2:\n\n")
         print(knitr::kable(tree[get(p$childVar) %in% printCodes,
                    c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
                    with = FALSE]))
@@ -379,64 +491,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         }
     }
     
-    
-    
-    ##try to inverte step 2 with step 3
-    
-    ## STEP 2: Balance some products by specifying which element should get the 
-    ## residual.  Don't balance the "balancing level" (usually primary level) by
-    ## passing NA.
-    level = findProcessingLevel(tree, from = p$parentVar,
-                                to = p$childVar, aupusParam = p)
-    primaryEl = level[processingLevel == 0, get(p$itemVar)]
-    ## Add in elements not in the tree, as they are essentially parents
-    nonTreeEl = data[[p$itemVar]]
-    nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
-    # primaryEl = c(primaryEl, nonTreeEl)
-    foodProcEl = unique(tree[get(p$targetVar) == "F",
-                             get(p$parentVar)])
-    #! This object is never used and I don't yet know why it's here
-    officialProd = data[get(p$elementVar) == p$productionCode & Value > 0,
-                        get(p$itemVar)]
-    ## Elements with official production shouldn't have their production 
-    ## updated.  Instead, the food value should be updated, and this is what 
-    ## will happen if that element is not specified to any of the groupings in
-    ## balanceResidual()
-    
-    
-    ### Cristina new crude Balancing
-    crudeBalEl = crudeBalEl[geographicAreaM49==unique(data[,geographicAreaM49])]
-    feedCommodities = crudeBalEl[get(p$elementVar)==p$feedCode,get(p$itemVar)]
-    indCommodities = crudeBalEl[get(p$elementVar)==p$industrialCode,get(p$itemVar)]
-    foodProcessCommodities = crudeBalEl[get(p$elementVar)==p$foodProcCode,get(p$itemVar)]
-    stockCommodities = crudeBalEl[get(p$elementVar)==p$stockCode,get(p$itemVar)]
-    seedCommodities = crudeBalEl[get(p$elementVar)==p$seedCode,get(p$itemVar)]
-    lossCommodities = crudeBalEl[get(p$elementVar)==p$wasteCode,get(p$itemVar)]
-    foodCommodities = data[get(p$elementVar) == p$foodCode & !(get(p$itemVar) %in% c(indCommodities, feedCommodities,foodProcessCommodities,stockCommodities,seedCommodities,lossCommodities)),get(p$itemVar)]
-        
-    balanceResidual(data, p,
-                    tree=tree,
-                    primaryCommodities = primaryEl,
-                    foodProcessCommodities = foodProcessCommodities,
-                    feedCommodities = feedCommodities,
-                    indCommodities = indCommodities,
-                    stockCommodities = stockCommodities,
-                    seedCommodities = seedCommodities,
-                    lossCommodities = lossCommodities,
-                    foodCommodities = foodCommodities,
-                    cut=cutItems)
-    ###
-    
-    
-    
-    if(length(printCodes) > 0){
-      cat("\nSUA table after balancing processed elements:")
-      data = markUpdated(new = data, old = old, standParams = p)
-      old = copy(data)
-      print(printSUATable(data = data, standParams = p,
-                          printCodes = printCodes))
-    }
-
+ 
     ### first intermediate SAVE 
     # message("Attempting to save balanced SUA data...")
     setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")

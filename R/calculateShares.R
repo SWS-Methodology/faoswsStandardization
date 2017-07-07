@@ -77,8 +77,8 @@ calculateShares=function(data=data, params=p, tree=tree,zeroWeight= zeroWeight)
   setnames(freqChild, c("V1","N"), c(params$childVar, "freq"))
   tree=merge(tree, freqChild , by=params$childVar)
   tree[availability<=0, negShare:=1/freq]
-  tree[availability<=0, availability:=0]
-  tree[,sumPositiveAvail:=sum(availability,na.rm=TRUE),by = c(params$childVar)]
+  # tree[availability<=0, availability:=0]
+  tree[,sumPositiveAvail:=sum(availability*ifelse(availability>0,1,0),na.rm=TRUE),by = c(params$childVar)]
   tree[,tempAvailability:=ifelse(availability<=0,negShare*sumPositiveAvail,availability)]
   
   tree[, newShare := tempAvailability / sum(tempAvailability, na.rm = TRUE),

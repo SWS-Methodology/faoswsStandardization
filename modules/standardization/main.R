@@ -41,8 +41,8 @@ if (CheckDebug()) {
   )
   
   # always set 999 for subset batches for testing
-  # Last complete batch Run 32
-  batchnumber = 998    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  # Last complete batch Run 34 Francesca 6/7/17
+  batchnumber = 35    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
@@ -494,7 +494,8 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","8","380","246"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","380),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36","96"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276")&timePointYears=="2008"]
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("214")&timePointYears=="2010"]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("232")]
 
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 # uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("729", "166", "584", "580", "585", "674", "654", "238", "156")]
@@ -556,6 +557,9 @@ for (i in seq_len(nrow(uniqueLevels))) {
     standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))] 
   
 }
+
+
+
 
 
 message((proc.time() - ptm)[3])

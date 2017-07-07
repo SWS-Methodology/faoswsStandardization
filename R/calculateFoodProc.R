@@ -27,7 +27,7 @@
 ##' 
 
 
-calculateFoodProc=function(data=data, params=c(), tree=tree, availability=availability,zeroWeight= zeroWeight)
+calculateFoodProc=function(data=data, params=c(), tree=tree,zeroWeight= zeroWeight)
   
   
   
