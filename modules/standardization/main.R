@@ -43,7 +43,7 @@ if (CheckDebug()) {
   # always set 999 for subset batches for testing
   # Last complete batch Run 34 (Francesca 6-7-2017)
   # Last complete batch Run 35 (Cristina 7-7-2017)
-  batchnumber = 35    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 36    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
