@@ -138,7 +138,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         # message("Nutrients are assumed to be:", paste(colnames(nutrientData)[-1], collapse = ", "))
         geo=nameData(domain = "suafbs", dataset = "fbs_standardized",data.table(geographicAreaM49=data[,unique(get(p$geoVar))]))
         yea=data[,unique(timePointYears)]
-        message("Country = ",as.character(geo[,2,with=FALSE]),", year = ",yea)
+        message("Country = ",as.character(geo[,2,with=FALSE])," (M49=",as.character(geo[,1,with=FALSE]), ") , year = ",yea)
         nutrientElements = colnames(nutrientData)[2:ncol(nutrientData)]
     } else {
         cat("No nutrient information provided, hence no nutrients are computed.")
@@ -158,7 +158,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     if(length(printCodes) > 0){
         cat("Initial SUA table:")
         old = copy(data)
-        print(printSUATable(data = data, standParams = p, printCodes = printCodes))
+        # print(printSUATable(data = data, standParams = p, printCodes = printCodes))
+        printSUATable(data = data, standParams = p, printCodes = printCodes)
     }
     
     ## STEP 1: Process forward.
@@ -181,7 +182,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         old = copy(data)
         print(printSUATable(data = data, standParams = p, printCodes = printCodes))
         }
-      
+      data[,updateFlag:=NULL]
     }
     
     ### STEP2 Initial Sua Filling 
@@ -213,6 +214,42 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                           printCodes = printCodes))
     }
     
+    #############################################
+    ### SAVE SUA FILLING 1 OUTPUT
+    setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+                                                             "foodManufacturing", "imports", "loss", "production", 
+                                                             "seed", "stockChange", "residual","industrial", "tourist"),
+                                     code=c("261", "281", "271", "5910", "5520", "5141", 
+                                            "5023", "5610", "5016", "5510",
+                                            "5525", "5071", "5166","5165", "5164"))
+    
+    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    standData[,`:=`(measuredElementSuaFbs = NULL)]
+    setnames(standData, "code", "measuredElementSuaFbs")
+    
+    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+                           Value)]
+    standData <- standData[!is.na(Value),]
+    
+    standData[, flagObservationStatus := "I"]
+    standData[, flagMethod := "b"]
+    
+    ##ptm <- proc.time()
+    ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
+    ##message((proc.time() - ptm)[3])
+    
+    if(!is.null(debugFile)){
+      
+      saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
+                             fileName=paste0("B",batchnumber,"_00a_AfterSuaFilling1.csv"),
+                             data=standData)
+    }
+    
+    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    #############################################
+    
+    
     
     
     ### STEP 3: Compute availability and SHARE 1 
@@ -221,15 +258,15 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                            ifelse(get(p$elementVar) == p$productionCode, 1,
                            ifelse(get(p$elementVar) == p$importCode, 1,
                            ifelse(get(p$elementVar) == p$exportCode, -1,
-                           ifelse(get(p$elementVar) == p$stockCode, -1,
-                           ifelse(get(p$elementVar) == p$foodCode, -1,
+                           ifelse(get(p$elementVar) == p$stockCode, 0,
+                           ifelse(get(p$elementVar) == p$foodCode, 0,
                            ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                           ifelse(get(p$elementVar) == p$feedCode, -1,
-                           ifelse(get(p$elementVar) == p$wasteCode, -1,
-                           ifelse(get(p$elementVar) == p$seedCode, -1,
-                           ifelse(get(p$elementVar) == p$industrialCode, -1,
-                           ifelse(get(p$elementVar) == p$touristCode, -1,
-                           ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
+                           ifelse(get(p$elementVar) == p$feedCode, 0,
+                           ifelse(get(p$elementVar) == p$wasteCode, 0,
+                           ifelse(get(p$elementVar) == p$seedCode, 0,
+                           ifelse(get(p$elementVar) == p$industrialCode, 0,
+                           ifelse(get(p$elementVar) == p$touristCode, 0,
+                           ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
         by = c(p$mergeKey)]
     
   
@@ -308,15 +345,15 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
            print(knitr::kable(tree[get(p$childVar) %in% printCodes,
                                    c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
                                    with = FALSE]))
-           plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-                                 get(p$childVar) %in% printCodes, ]
-           if(nrow(plotTree) > 0){
-             plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-                            childColname = p$childVar,
-                            extractionColname = p$extractVar, box.size = .06,
-                            box.type = "circle", cex.txt = 1, box.prop = .5,
-                            box.cex = 1)
-           }
+           # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+           #                       get(p$childVar) %in% printCodes, ]
+           # if(nrow(plotTree) > 0){
+           #   plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+           #                  childColname = p$childVar,
+           #                  extractionColname = p$extractVar, box.size = .06,
+           #                  box.type = "circle", cex.txt = 1, box.prop = .5,
+           #                  box.cex = 1)
+           # }
          }
          
          
@@ -331,6 +368,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          #integrate the food processing in the elements
          
          data[measuredElementSuaFbs==p$foodProcCode&!is.na(foodProcElement),Value:=foodProcElement]
+         
          data[,foodProcElement:=NULL]
          
          tree[, c("availability","foodProcElement"):=NULL]
@@ -342,6 +380,37 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
            print(printSUATable(data = data, standParams = p,
                                printCodes = printCodes))
          }
+
+         #############################################
+         ### SAVE FOOD PROCESSING OUTPUT
+         setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+         fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+                                                                  "foodManufacturing", "imports", "loss", "production", 
+                                                                  "seed", "stockChange", "residual","industrial", "tourist"),
+                                          code=c("261", "281", "271", "5910", "5520", "5141", 
+                                                 "5023", "5610", "5016", "5510",
+                                                 "5525", "5071", "5166","5165", "5164"))
+         
+         standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+         standData[,`:=`(measuredElementSuaFbs = NULL)]
+         setnames(standData, "code", "measuredElementSuaFbs")
+         
+         standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+                                Value)]
+         standData <- standData[!is.na(Value),]
+         
+         standData[, flagObservationStatus := "I"]
+         standData[, flagMethod := "b"]
+
+         if(!is.null(debugFile)){
+           
+           saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
+                                  fileName=paste0("B",batchnumber,"_00b_AfterFoodProc.csv"),
+                                  data=standData)
+         }
+         
+         setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+         #############################################
          
          
          ### STEP 5: Execute Sua Filling again with Food processing
@@ -351,7 +420,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          data=suaFilling(data, p=p, tree=tree,
                          primaryCommodities = primaryEl,
                          debugFile = params$createIntermetiateFile, stockCommodities = stockCommodities,
-                         utilizationTable=utilizationTable,imbalanceThreshold = 10,foodProc=FALSE)
+                         utilizationTable=utilizationTable,imbalanceThreshold = 10)
          
          
          
@@ -365,22 +434,30 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          
          
          
-         ### STEP 3: Compute availability and SHARE 1 
+         ### STEP 3: Compute availability and SHARE 2 
          
-         data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                                    ifelse(get(p$elementVar) == p$productionCode, 1,
-                                    ifelse(get(p$elementVar) == p$importCode, 1,
-                                    ifelse(get(p$elementVar) == p$exportCode, -1,
-                                    ifelse(get(p$elementVar) == p$stockCode, -1,
-                                    ifelse(get(p$elementVar) == p$foodCode, -1,
-                                    ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                                    ifelse(get(p$elementVar) == p$feedCode, -1,
-                                    ifelse(get(p$elementVar) == p$wasteCode, -1,
-                                    ifelse(get(p$elementVar) == p$seedCode, -1,
-                                    ifelse(get(p$elementVar) == p$industrialCode, -1,
-                                    ifelse(get(p$elementVar) == p$touristCode, -1,
-                                    ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
-              by = c(p$mergeKey)]
+         # data[, availability := sum(ifelse(is.na(Value), 0, Value) *
+         #                            ifelse(get(p$elementVar) == p$productionCode, 1,
+         #                            ifelse(get(p$elementVar) == p$importCode, 1,
+         #                            ifelse(get(p$elementVar) == p$exportCode, -1,
+         #                            ifelse(get(p$elementVar) == p$stockCode, -1,
+         #                            ifelse(get(p$elementVar) == p$foodCode, -1,
+         #                            ifelse(get(p$elementVar) == p$foodProcCode, 0,
+         #                            ifelse(get(p$elementVar) == p$feedCode, -1,
+         #                            ifelse(get(p$elementVar) == p$wasteCode, -1,
+         #                            ifelse(get(p$elementVar) == p$seedCode, -1,
+         #                            ifelse(get(p$elementVar) == p$industrialCode, -1,
+         #                            ifelse(get(p$elementVar) == p$touristCode, -1,
+         #                            ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
+         #      by = c(p$mergeKey)]
+         # 
+
+         
+         data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
+         
+         setnames(data,"foodProcElement","availability")
+
+         
          
          
     # There's only one availability value per group, but we need an aggregation
@@ -480,15 +557,15 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         print(knitr::kable(tree[get(p$childVar) %in% printCodes,
                    c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
                    with = FALSE]))
-        plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-                                get(p$childVar) %in% printCodes, ]
-        if(nrow(plotTree) > 0){
-            plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-                           childColname = p$childVar,
-                           extractionColname = p$extractVar, box.size = .06,
-                           box.type = "circle", cex.txt = 1, box.prop = .5,
-                           box.cex = 1)
-        }
+        # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+        #                         get(p$childVar) %in% printCodes, ]
+        # if(nrow(plotTree) > 0){
+        #     plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+        #                    childColname = p$childVar,
+        #                    extractionColname = p$extractVar, box.size = .06,
+        #                    box.type = "circle", cex.txt = 1, box.prop = .5,
+        #                    box.cex = 1)
+        # }
     }
     
  
@@ -520,7 +597,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     if(!is.null(debugFile)){
       
       saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
-                             fileName=paste0("B",batchnumber,"_02_AfterCB_BeforeST"),
+                             fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"),
                              data=standData)
     }
     

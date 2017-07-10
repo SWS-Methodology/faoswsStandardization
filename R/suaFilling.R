@@ -168,11 +168,11 @@ suaFilling = function(data, p = p, tree=tree,
       
       sumV=sum(dataPosImb[measuredItemSuaFbs==i
                           &!(get(p$elementVar)%in%eleToExclude)
-                          &!is.na(rank),Value],na.rm=TRUE)
+                          &!is.na(rank)&Value>0,Value],na.rm=TRUE)
       
       dataPosImb[measuredItemSuaFbs==i
                  &!(get(p$elementVar)%in%eleToExclude)
-                 &!is.na(rank),newValue:=imbalance*(Value/sumV)]
+                 &!is.na(rank)&Value>0,newValue:=imbalance*(Value/sumV)]
     }else{
       #se un valore non 'e popolato 
       if(length(dataPosImb[measuredItemSuaFbs==i

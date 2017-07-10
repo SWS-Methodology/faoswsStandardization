@@ -110,6 +110,10 @@ tree[measuredItemParentCPC=="23511.01", measuredItemParentCPC:="2351f"]
 tree[measuredItemParentCPC=="23512", measuredItemParentCPC:="2351f"]
 tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),]
 
+#### CRISTINA more corrections on sugar tree CRISTINA 7/7/2018
+tree[measuredItemChildCPC=="2351f",extractionRate:=0.11]
+tree[measuredItemParentCPC=="01343"& measuredItemChildCPC=="21419.01",extractionRate:=0.29]
+tree[measuredItemParentCPC=="01491.01"& measuredItemChildCPC=="2165",extractionRate:=0.19]
 
 ###
 
@@ -419,6 +423,7 @@ standardizationVectorized = function(data, tree, nutrientData
  printCodes = character()
   
   printCodes=c("0111")
+ # printCodes=fcl2cpc(c("0267","0265","0310","0333","0263","0275","0280","0296","0299","0336","0339"))
   # ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
   # ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
   # ##printCodes = sample(samplePool, size = 1)
@@ -428,22 +433,6 @@ standardizationVectorized = function(data, tree, nutrientData
   childColname = params$childVar,
   topNodes = printCodes)
 
-
-### Cristina for printing Germany and all the things involved in the wheat
- 
- # printCodes1 = "0111"
- # printCodes2 = getChildren(commodityTree = tree,
- #                           parentColname = params$parentVar,
- #                           childColname = params$childVar,
- #                           topNodes = printCodes1)
- # printCodes3=tree[measuredItemChildCPC %in% printCodes2&measuredItemParentCPC%in%primaryEl,unique(measuredItemParentCPC)]
- # printCodes = getChildren(commodityTree = tree,
- #                          parentColname = params$parentVar,
- #                          childColname = params$childVar,
- #                          topNodes = printCodes3)
- 
- 
- 
  
   dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/", SUB_FOLDER, "/standardization/"), showWarnings = FALSE
 
@@ -492,17 +481,25 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","8","380","246"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","380),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24","276","380","804","344"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24","804"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24")&timePointYears=="2001",]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36","96"),]
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("214")&timePointYears=="2010"]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("232")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("214")&timePointYears=="2010"]
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276")]
 
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 # uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("729", "166", "584", "580", "585", "674", "654", "238", "156")]
 
 if(params$createIntermetiateFile){
-  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterCB_BeforeST.csv"))){
-    file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterCB_BeforeST.csv"))
+  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
+    file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))
+  }
+  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))){
+    file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))
+  }
+  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))){
+    file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))
   }
   if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))){
     file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))
@@ -559,10 +556,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
 }
 
 
-
-
-
-message((proc.time() - ptm)[3])
+debugmessage((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
 standData = rbindlist(standData)
@@ -577,6 +571,43 @@ if(CheckDebug()){
   save(standData,file=paste0(PARAMS$temporaryStandData,"/standDatabatch",batchnumber,".RData"))
 }
 #################################################################
+###################################
+## AFTER SUA FILLING 1 (No intermediate saving)
+ptm <- proc.time()
+if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
+  AfterSuaFilling1 = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"),
+                           header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
+                                                            "timePointYears","Value","flagObservationStatus","flagMethod"),
+                           colClasses = c("character","character","character","character","character","character","character"))
+  AfterSuaFilling1 = data.table(AfterSuaFilling1)
+  message((proc.time() - ptm)[3])
+  
+  # Save these data LOCALLY
+  if(CheckDebug()){
+    save(AfterSuaFilling1,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.RData"))
+  }
+}
+###################################
+
+
+###################################
+## AFTER FOOD PROCESSING
+ptm <- proc.time()
+if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))){
+  AfterFoodProc = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"),
+                           header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
+                                                            "timePointYears","Value","flagObservationStatus","flagMethod"),
+                           colClasses = c("character","character","character","character","character","character","character"))
+  AfterFoodProc = data.table(AfterFoodProc)
+  message((proc.time() - ptm)[3])
+  
+  # Save these data LOCALLY
+  if(CheckDebug()){
+    save(AfterFoodProc,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.RData"))
+  }
+}
+###################################
+
 ###################################
 ## FORCED COMMODITIES IN THE SUA FILLING PROCESS
 ptm <- proc.time()
@@ -601,18 +632,18 @@ if(CheckDebug()){
 ### FIRST INTERMEDIATE SAVE
 
 ptm <- proc.time()
-AfterCB_BeforeST = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterCB_BeforeST.csv"),
+AfterSuaFilling = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"),
                      header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
                      colClasses = c("character","character","character","character","character","character","character"))
-AfterCB_BeforeST = data.table(AfterCB_BeforeST)
+AfterSuaFilling = data.table(AfterSuaFilling)
 
-# SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterCB_BeforeST, waitTimeout = 20000)
+# SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterSuaFilling, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
 # Save these data LOCALLY
 if(CheckDebug()){
-  save(AfterCB_BeforeST,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_02_AfterCB_BeforeST.RData"))
+  save(AfterSuaFilling,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))
 }
 
 ###################################
