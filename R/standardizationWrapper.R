@@ -180,7 +180,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         cat("\nSUA table after processing forward:")
         data = markUpdated(new = data, old = old, standParams = p)
         old = copy(data)
-        print(printSUATable(data = data, standParams = p, printCodes = printCodes))
+        printSUATable(data = data, standParams = p, printCodes = printCodes)
         }
       data[,updateFlag:=NULL]
     }
@@ -193,25 +193,25 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     nonTreeEl = data[[p$itemVar]]
     nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
     # primaryEl = c(primaryEl, nonTreeEl)
-
     data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
                                  Official==TRUE),
          by = c(standParams$itemVar)]
+    data[is.na(officialProd), officialProd :=FALSE]
     
     data=data.table(left_join(data,utilizationTable,by=c("geographicAreaM49","measuredElementSuaFbs","measuredItemSuaFbs")))
     
     data=suaFilling(data, p=p, tree=tree,
                     primaryCommodities = primaryEl, debugFile=p$createIntermetiateFile,
                     stockCommodities = stockCommodities,
-                    utilizationTable=utilizationTable,imbalanceThreshold = 10)
+                    utilizationTable=utilizationTable,imbalanceThreshold = 10,loop1=TRUE)
 
     
     if(length(printCodes) > 0){
       cat("\nSUA table after sua Filling STEP 1:")
       data = markUpdated(new = data, old = old, standParams = p)
       old = copy(data)
-      print(printSUATable(data = data, standParams = p,
-                          printCodes = printCodes))
+      printSUATable(data = data, standParams = p,
+                          printCodes = printCodes)
     }
     
     #############################################
@@ -242,7 +242,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     if(!is.null(debugFile)){
       
       saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
-                             fileName=paste0("B",batchnumber,"_00a_AfterSuaFilling1.csv"),
+                             fileName=paste0("B",batchnumber,"_00a_AfterSuaFilling1"),
                              data=standData)
     }
     
@@ -377,8 +377,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
            cat("\nSUA table with FOOD PROCESSING:")
            data = markUpdated(new = data, old = old, standParams = p)
            old = copy(data)
-           print(printSUATable(data = data, standParams = p,
-                               printCodes = printCodes))
+           printSUATable(data = data, standParams = p,
+                               printCodes = printCodes)
          }
 
          #############################################
@@ -405,7 +405,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          if(!is.null(debugFile)){
            
            saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
-                                  fileName=paste0("B",batchnumber,"_00b_AfterFoodProc.csv"),
+                                  fileName=paste0("B",batchnumber,"_00b_AfterFoodProc"),
                                   data=standData)
          }
          
@@ -420,7 +420,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          data=suaFilling(data, p=p, tree=tree,
                          primaryCommodities = primaryEl,
                          debugFile = params$createIntermetiateFile, stockCommodities = stockCommodities,
-                         utilizationTable=utilizationTable,imbalanceThreshold = 10)
+                         utilizationTable=utilizationTable,imbalanceThreshold = 10,loop1=FALSE)
          
          
          
@@ -428,8 +428,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
            cat("\nSUA table after sua Filling STEP 2:")
            data = markUpdated(new = data, old = old, standParams = p)
            old = copy(data)
-           print(printSUATable(data = data, standParams = p,
-                               printCodes = printCodes))
+           printSUATable(data = data, standParams = p,
+                               printCodes = printCodes)
          }
          
          
@@ -597,7 +597,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     if(!is.null(debugFile)){
       
       saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
-                             fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"),
+                             fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST"),
                              data=standData)
     }
     
@@ -651,10 +651,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       cat("\nSUA table after standardization")
       data = markUpdated(new = data, old = old, standParams = p)
         old = copy(data)
-        print(printSUATable(data = data, standParams = p,
+        printSUATable(data = data, standParams = p,
                             printCodes = printCodes,
                             nutrientElements = nutrientElements,
-                            printProcessing = TRUE))
+                            printProcessing = TRUE)
     }
 
     
@@ -768,10 +768,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
 #       cat("\nSUA table after standardization (AFTER PROTECTED CORRECTION:")
 #       data = markUpdated(new = data, old = old, standParams = p)
 #       old = copy(data)
-#       print(printSUATable(data = data, standParams = p,
+#       printSUATable(data = data, standParams = p,
 #                           printCodes = printCodes,
 #                           nutrientElements = nutrientElements,
-#                           printProcessing = TRUE))
+#                           printProcessing = TRUE)
 #     }
 # 
 # 

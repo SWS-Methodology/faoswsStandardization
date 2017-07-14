@@ -41,7 +41,11 @@ if (CheckDebug()) {
   )
   
   # always set 999 for subset batches for testing
+  # Last complete batch Run 35 Cristina 11/7/17
   # Last complete batch Run 34 Francesca 6/7/17
+  # Last complete batch Run 36 Francesca 
+  # Last complete batch Run 37 Francesca 
+  
   batchnumber = 35    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
@@ -422,7 +426,7 @@ standardizationVectorized = function(data, tree, nutrientData
   
  printCodes = character()
   
-  printCodes=c("0111")
+  printCodes=c("2165","0113")
  # printCodes=fcl2cpc(c("0267","0265","0310","0333","0263","0275","0280","0296","0299","0336","0339"))
   # ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
   # ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
@@ -485,8 +489,8 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24","804"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24")&timePointYears=="2001",]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36","96"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("214")&timePointYears=="2010"]
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("1249")&timePointYears=="2000"]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("528","882","784")]
 
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
 # uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("729", "166", "584", "580", "585", "674", "654", "238", "156")]
@@ -556,7 +560,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
 }
 
 
-debugmessage((proc.time() - ptm)[3])
+message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
 standData = rbindlist(standData)
@@ -643,7 +647,7 @@ message((proc.time() - ptm)[3])
 
 # Save these data LOCALLY
 if(CheckDebug()){
-  save(AfterSuaFilling,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))
+  save(AfterSuaFilling,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.RData"))
 }
 
 ###################################
