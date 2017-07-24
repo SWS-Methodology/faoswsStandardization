@@ -37,6 +37,13 @@ calculateFoodProc=function(data=data, params=c(), tree=tree,zeroWeight= zeroWeig
   # data[measuredElementSuaFbs==p$productionCode & availability<0 & is.na(Value), Value:=-availability]
   
   
+  ##### CRISTINa: trying to ca;culate food proc using production + import
+  # mergeToTree = data[get(params$elementVar)%in% c(params$productionCode,params$importCode)]
+  # mergeToTree = mergeToTree[,Value:=sum(Value,na.rm = TRUE),by=c(params$mergeKey)]
+  # mergeToTree = mergeToTree[,list(measuredItemSuaFbs=get(params$itemVar),Value=Value)]
+  ##### CRISTINa: very bad
+  
+    
   mergeToTree = data[get(params$elementVar)== params$productionCode,list(measuredItemSuaFbs=get(params$itemVar),Value=Value)]
   
   setnames(mergeToTree, params$itemVar, params$childVar)

@@ -1,3 +1,4 @@
+
 ## load the library
 library(faosws)
 library(faoswsUtil)
@@ -45,8 +46,13 @@ if (CheckDebug()) {
   # Last complete batch Run 34 Francesca 6/7/17
   # Last complete batch Run 36 Francesca 
   # Last complete batch Run 37 Francesca 
+  # Last complete batch Run 38 Cristina Sua filling cut corrected 
+  # Last complete batch Run 39 Cristina Sua filling primary commodities & Share corrections
+  # Last complete batch Run 40 Cristina Sua filling primary commodities with FAOSTAT TRADE
+  # Last complete batch Run 41 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food   
+  # Last complete batch Run 42 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food and Tree corrections  
   
-  batchnumber = 35    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 42    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
@@ -120,14 +126,9 @@ tree[measuredItemParentCPC=="01343"& measuredItemChildCPC=="21419.01",extraction
 tree[measuredItemParentCPC=="01491.01"& measuredItemChildCPC=="2165",extractionRate:=0.19]
 
 ###
+##### FRANCESCA CORRECTIONS FOR TREES HAVE TO BE RUN HERE.
 
-
-### Cristina Correction wheat Tree
-# tree = tree[!(measuredItemChildCPC=="23140.03" & measuredItemParentCPC=="23110")]
-###
-
-
-
+# tree=manualTreeCorrections(tree,cereals=TRUE)
 
 ### Graph of all commodities
 # graphdata <- tree[, .(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, extractionRate, share)]
@@ -211,6 +212,28 @@ message("Reading SUA data...")
 # if(CheckDebug()){
 # save(data,file=file.path(PARAMS$localFiles, "05062017_dataAllNew_Seed.RData")
 # }
+## Update params for specific dataset
+params = defaultStandardizationParameters()
+params$itemVar = "measuredItemSuaFbs"
+params$mergeKey[params$mergeKey == "measuredItemCPC"] = "measuredItemSuaFbs"
+params$elementVar = "measuredElementSuaFbs"
+params$childVar = "measuredItemChildCPC"
+params$parentVar = "measuredItemParentCPC"
+params$productionCode = "production"
+params$importCode = "imports"
+params$exportCode = "exports"
+params$stockCode = "stockChange"
+params$foodCode = "food"
+params$feedCode = "feed"
+params$seedCode = "seed"
+params$wasteCode = "loss"
+params$industrialCode = "industrial"
+params$touristCode = "tourist"
+params$foodProcCode = "foodManufacturing"
+params$residualCode = "residual"
+params$createIntermetiateFile= "TRUE"
+params$protected = "Protected"
+params$official = "Official"
 
 if(CheckDebug()){
   # load(file.path(PARAMS$localFiles, "dataTradeChri.RData.RData"))
@@ -224,8 +247,10 @@ if(CheckDebug()){
   # load(file.path(PARAMS$localFiles, "dataMirror3.RData"))
   # Faostat TRADE DATA
   # load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT.RData"))
+  # NEW Faostat TRADE DATA (19/07/2017)
+  load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT2.RData"))
   
-  load(file.path(PARAMS$localFiles, "260523_dataAllNew.RData"))
+  # load(file.path(PARAMS$localFiles, "260523_dataAllNew.RData"))
 
 }
 
@@ -257,6 +282,34 @@ data[flagObservationStatus=="",Official:=TRUE]
 data[is.na(Official),Official:=FALSE]
 data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official"))]
 
+########################################
+# Final Changes in the data files for sugar
+
+datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
+datas[measuredElementSuaFbs=="tourist",measuredItemSuaFbs:="2351f"]
+datas[measuredElementSuaFbs=="stockChange"&geographicAreaM49=="705",measuredItemSuaFbs:="2351f"]
+datas[measuredElementSuaFbs=="food"&geographicAreaM49%in%c("422","28","308"),measuredItemSuaFbs:="2351f"]
+datas[,s2351f:=sum(Value*
+                     ifelse(get(params$elementVar) == params$productionCode&measuredItemSuaFbs=="2351f",1,0),na.rm = TRUE),
+      by=c("geographicAreaM49","timePointYears")]
+dataTorBind = unique(datas[measuredElementSuaFbs==params$productionCode,list(geographicAreaM49,timePointYears,measuredElementSuaFbs,s2351f)])
+datas[,s2351f:=NULL]
+dataTorBind = dataTorBind[,measuredItemSuaFbs:="2351f"]
+# dataTorBind = dataTorBind[,flagObservationStatus:="I"]
+# dataTorBind = dataTorBind[,flagMethod:="s"]
+setnames(dataTorBind,"s2351f","Value")
+dataTorBind=dataTorBind[,c(5,3,1,2,4),with=FALSE]
+dataTorBind=dataTorBind[,Protected:="FALSE"]
+dataTorBind=dataTorBind[,Official:="TRUE"]
+datas=rbind(datas[!measuredElementSuaFbs==params$productionCode],dataTorBind)
+data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
+# 3523601-3513983
+data=rbind(data,datas)
+# 3523601-3521384
+# 9618-7401
+########################################
+
+
 ###
 
 
@@ -267,28 +320,6 @@ data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM
 
 
 
-## Update params for specific dataset
-params = defaultStandardizationParameters()
-params$itemVar = "measuredItemSuaFbs"
-params$mergeKey[params$mergeKey == "measuredItemCPC"] = "measuredItemSuaFbs"
-params$elementVar = "measuredElementSuaFbs"
-params$childVar = "measuredItemChildCPC"
-params$parentVar = "measuredItemParentCPC"
-params$productionCode = "production"
-params$importCode = "imports"
-params$exportCode = "exports"
-params$stockCode = "stockChange"
-params$foodCode = "food"
-params$feedCode = "feed"
-params$seedCode = "seed"
-params$wasteCode = "loss"
-params$industrialCode = "industrial"
-params$touristCode = "tourist"
-params$foodProcCode = "foodManufacturing"
-params$residualCode = "residual"
-params$createIntermetiateFile= "TRUE"
-params$protected = "Protected"
-params$official = "Official"
 
 #protected data
 #### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
@@ -375,7 +406,11 @@ tree[, extractionRate := ifelse(is.na(extractionRate),
 # example: tree[geographicAreaM49=="276"&timePointYearsSP=="2012"&measuredItemParentCPC=="0111"]
 # wheat germ shoul have ER max of 2% while here results in 100%
 
-tree[is.na(extractionRate), extractionRate := 1]
+# tree[is.na(extractionRate), extractionRate := 1]
+tree=tree[!is.na(extractionRate)]
+
+
+
 
 
 itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
@@ -426,7 +461,7 @@ standardizationVectorized = function(data, tree, nutrientData
   
  printCodes = character()
   
-  printCodes=c("2165","0113")
+  printCodes=c("0113")
  # printCodes=fcl2cpc(c("0267","0265","0310","0333","0263","0275","0280","0296","0299","0336","0339"))
   # ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
   # ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
@@ -454,8 +489,7 @@ standardizationVectorized = function(data, tree, nutrientData
                                    nutrientData = nutrientData, crudeBalEl = crudeBalEl,
                                    debugFile = params$createIntermetiateFile
                                , protected = protected, batchnumber = batchnumber,
-                               utilizationTable = utilizationTable
-                               )
+                               utilizationTable = utilizationTable)
   return(out)
 }
 
@@ -484,15 +518,22 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("376","36", "40")&timePointYears=="2013",]
 ### for verify standardization
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("276","8","380","246"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("178","414"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24","276","380","804","344"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24","804"),]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24")&timePointYears=="2001",]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36","96"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("1249")&timePointYears=="2000"]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("528","882","784")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("124")&timePointYears=="2002",]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("152","178","262","380"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("212","242","659","158")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("659")] # Saint Kittes
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("96","882","242","152")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("96","882","158")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("124","132","344")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("50","52","68","1248")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("50","1248")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("158","1248" )]
 
-uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886"),]
+uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886","654"),]
 # uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("729", "166", "584", "580", "585", "674", "654", "238", "156")]
 
 if(params$createIntermetiateFile){
@@ -560,6 +601,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
 }
 
 
+
 message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
@@ -575,6 +617,12 @@ if(CheckDebug()){
   save(standData,file=paste0(PARAMS$temporaryStandData,"/standDatabatch",batchnumber,".RData"))
 }
 #################################################################
+###################################
+## INITIAL IMBALANCE
+  # write.table(initialSua, paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_000_InitialSua.csv"))
+
+
+
 ###################################
 ## AFTER SUA FILLING 1 (No intermediate saving)
 ptm <- proc.time()
@@ -622,6 +670,7 @@ FORCED_PROD = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,
                               colClasses = c("character","character","character","character","character","character","character"))
 FORCED_PROD = data.table(FORCED_PROD)
 message((proc.time() - ptm)[3])
+message(paste0( length(FORCED_PROD[,unique(measuredItemFbsSua)])," Commodity have a FORCED supply element"))
 
 # Save these data LOCALLY
 if(CheckDebug()){
@@ -641,7 +690,6 @@ AfterSuaFilling = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnum
                                                       "timePointYears","Value","flagObservationStatus","flagMethod"),
                      colClasses = c("character","character","character","character","character","character","character"))
 AfterSuaFilling = data.table(AfterSuaFilling)
-
 # SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterSuaFilling, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 

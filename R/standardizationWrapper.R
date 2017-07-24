@@ -157,9 +157,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data = addMissingElements(data, p)
     if(length(printCodes) > 0){
         cat("Initial SUA table:")
-        old = copy(data)
-        # print(printSUATable(data = data, standParams = p, printCodes = printCodes))
-        printSUATable(data = data, standParams = p, printCodes = printCodes)
+      old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
+      printSUATable(data = data, standParams = p, printCodes = printCodes)
     }
     
     ## STEP 1: Process forward.
@@ -179,7 +178,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         if(length(printCodes) > 0){
         cat("\nSUA table after processing forward:")
         data = markUpdated(new = data, old = old, standParams = p)
-        old = copy(data)
+        old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
         printSUATable(data = data, standParams = p, printCodes = printCodes)
         }
       data[,updateFlag:=NULL]
@@ -196,20 +195,26 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
                                  Official==TRUE),
          by = c(standParams$itemVar)]
-    data[is.na(officialProd), officialProd :=FALSE]
+    data[, ProtectedFood := any(get(standParams$elementVar) == standParams$foodCode &
+                                 Official==TRUE),
+         by = c(standParams$itemVar)]
     
+    data[is.na(officialProd), officialProd :=FALSE]
+    data[is.na(ProtectedFood), ProtectedFood :=FALSE]
+
     data=data.table(left_join(data,utilizationTable,by=c("geographicAreaM49","measuredElementSuaFbs","measuredItemSuaFbs")))
+    
+    data = unique(data)
     
     data=suaFilling(data, p=p, tree=tree,
                     primaryCommodities = primaryEl, debugFile=p$createIntermetiateFile,
                     stockCommodities = stockCommodities,
-                    utilizationTable=utilizationTable,imbalanceThreshold = 10,loop1=TRUE)
+                    utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=TRUE)
 
-    
     if(length(printCodes) > 0){
       cat("\nSUA table after sua Filling STEP 1:")
       data = markUpdated(new = data, old = old, standParams = p)
-      old = copy(data)
+      old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
       printSUATable(data = data, standParams = p,
                           printCodes = printCodes)
     }
@@ -297,7 +302,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          freqChild= data.table(table(tree[, get(params$childVar)]))
          setnames(freqChild, c("V1","N"), c(params$childVar, "freq"))
          tree=merge(tree, freqChild , by=params$childVar)
-         tree[availability.child<=0, negShare:=1/freq]
+         
+         ### CRISTINA this function has to be used also when availability is NA
+         
+         tree[availability.child<=0|is.na(availability.child), negShare:=1/freq]
          # tree[availability.child<=0, availability.child:=0]
          
          # because a child can have some positive and negative availabilities
@@ -306,9 +314,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          
          tree[,sumPositiveAvail:=sum(availability.child*ifelse(availability.child>0,1,0),na.rm=TRUE),by = c(params$childVar)]
          
-         tree[,tempAvailability:=ifelse(availability.child<=0,negShare*sumPositiveAvail,availability)]
+         tree[,tempAvailability:=ifelse(availability.child<=0|is.na(availability.child),negShare*sumPositiveAvail,availability)]
          
-         tree[, newShare := tempAvailability / sum(tempAvailability, na.rm = TRUE),
+         
+         # CRISTINA last change in availability calculation for RICE SaintKitts
+         tree[, newShare := ifelse(tempAvailability==0,negShare, tempAvailability / sum(tempAvailability, na.rm = TRUE)),
               by = c(params$childVar)]
          tree[,availability.child:=tempAvailability]
          tree[,availability:=availability.child]
@@ -339,22 +349,22 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          # zeroWeightDescendants= unique(unlist(zeroWeightDescendants))
          # 
          # tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
-
-         if(length(printCodes) > 0){
-           cat("\nAvailability of children and shares:\n\n")
-           print(knitr::kable(tree[get(p$childVar) %in% printCodes,
-                                   c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
-                                   with = FALSE]))
-           # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-           #                       get(p$childVar) %in% printCodes, ]
-           # if(nrow(plotTree) > 0){
-           #   plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-           #                  childColname = p$childVar,
-           #                  extractionColname = p$extractVar, box.size = .06,
-           #                  box.type = "circle", cex.txt = 1, box.prop = .5,
-           #                  box.cex = 1)
-           # }
-         }
+# 
+#          if(length(printCodes) > 0){
+#            cat("\nAvailability of children and shares:\n\n")
+#            print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+#                                    c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
+#          with = FALSE]))
+#            # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+#            #                       get(p$childVar) %in% printCodes, ]
+#            # if(nrow(plotTree) > 0){
+#            #   plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+#            #                  childColname = p$childVar,
+#            #                  extractionColname = p$extractVar, box.size = .06,
+#            #                  box.type = "circle", cex.txt = 1, box.prop = .5,
+#            #                  box.cex = 1)
+#            # }
+#          }
          
          
          
@@ -372,11 +382,12 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          data[,foodProcElement:=NULL]
          
          tree[, c("availability","foodProcElement"):=NULL]
+         data[,c("availability","updateFlag"):=NULL]
          
          if(length(printCodes) > 0){
            cat("\nSUA table with FOOD PROCESSING:")
            data = markUpdated(new = data, old = old, standParams = p)
-           old = copy(data)
+           old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
            printSUATable(data = data, standParams = p,
                                printCodes = printCodes)
          }
@@ -420,14 +431,14 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          data=suaFilling(data, p=p, tree=tree,
                          primaryCommodities = primaryEl,
                          debugFile = params$createIntermetiateFile, stockCommodities = stockCommodities,
-                         utilizationTable=utilizationTable,imbalanceThreshold = 10,loop1=FALSE)
+                         utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=FALSE)
          
-         
-         
+        
+
          if(length(printCodes) > 0){
            cat("\nSUA table after sua Filling STEP 2:")
            data = markUpdated(new = data, old = old, standParams = p)
-           old = copy(data)
+           old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
            printSUATable(data = data, standParams = p,
                                printCodes = printCodes)
          }
@@ -467,7 +478,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     setnames(mergeToTree, p$itemVar, p$parentVar)
     # plotTree = copy(tree)
     tree = merge(tree, mergeToTree, by = p$parentVar, all.x = TRUE)
-    availability = calculateAvailability(tree, p)
     # tree[, availability := NULL]
     
     
@@ -485,8 +495,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     tree[get(standParams$childVar) %in% cutItems,
        c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
 
-    availability[get(standParams$childVar) %in% cutItems,
-         c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+    availability = calculateAvailability(tree, p)
+    
+    # availability[get(standParams$childVar) %in% cutItems,
+    #      c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
     # 
     # ## also I have created the function calculateShares and changed filterOut
     # 
@@ -552,21 +564,21 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
 
     
-       if(length(printCodes) > 0){
-        cat("\nAvailability of parents/children 2:\n\n")
-        print(knitr::kable(tree[get(p$childVar) %in% printCodes,
-                   c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
-                   with = FALSE]))
-        # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-        #                         get(p$childVar) %in% printCodes, ]
-        # if(nrow(plotTree) > 0){
-        #     plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-        #                    childColname = p$childVar,
-        #                    extractionColname = p$extractVar, box.size = .06,
-        #                    box.type = "circle", cex.txt = 1, box.prop = .5,
-        #                    box.cex = 1)
-        # }
-    }
+    #    if(length(printCodes) > 0){
+    #     cat("\nAvailability of parents/children 2:\n\n")
+    #     print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+    #                c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
+    #                with = FALSE]))
+    #     # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+    #     #                         get(p$childVar) %in% printCodes, ]
+    #     # if(nrow(plotTree) > 0){
+    #     #     plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+    #     #                    childColname = p$childVar,
+    #     #                    extractionColname = p$extractVar, box.size = .06,
+    #     #                    box.type = "circle", cex.txt = 1, box.prop = .5,
+    #     #                    box.cex = 1)
+    #     # }
+    # }
     
  
     ### first intermediate SAVE 
@@ -650,8 +662,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       # cat("\nSUA table after standardization (BEFORE PROTECTED CORRECTION:)")
       cat("\nSUA table after standardization")
       data = markUpdated(new = data, old = old, standParams = p)
-        old = copy(data)
-        printSUATable(data = data, standParams = p,
+      old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
+      printSUATable(data = data, standParams = p,
                             printCodes = printCodes,
                             nutrientElements = nutrientElements,
                             printProcessing = TRUE)
@@ -708,78 +720,22 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ####
     
     
-    
-##### ALL this process to be deactivated 
-    # if we delete food official values of crops from the beggining   
-    # Deactivate or reactivate from A to B
 
-# # A
-#     ### CRISTINA PROTECTED PRIMARY EQUIVALENT FOOD VALUE
-#     # TO BE EXCLUDED FROM STANDARDIZATION are replaced
-# 
-# if(!is.null(nutrientData)){
-#   protected = merge(protected, nutrientData, by = p$itemVar, all.x = TRUE)
-#   protected[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0,
-#        c("Calories", "Proteins", "Fats") :=
-#          0]
-#   ## Convert nutrient values into total nutrient info using food
-#   ## allocation.
-# 
-#   ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
-#   ## of the nutreient componets is 1/100g
-# 
-# 
-#   sapply(nutrientElements, function(nutrient){
-#     protected[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
-#          by = c(p$itemVar)]
-#   })
-# }
-# 
-# elements=protected[,unique(measuredElementSuaFbs)]
-# protected=data.table(
-#   dcast(protected,measuredItemSuaFbs+geographicAreaM49+timePointYears+Calories+Proteins+Fats~measuredElementSuaFbs,
-#         value.var="Value"))
-# if(!is.na(elements)){
-# # protected[,food:=Value]
-# # protected[,c("Value","measuredElementSuaFbs"):=NULL]
-# protected=melt.data.table(protected,id.vars = c("measuredItemSuaFbs","geographicAreaM49","timePointYears")
-#                           ,measure.vars = c(nutrientElements,elements),variable.name = "measuredElementSuaFbs"
-#                           ,value.name = "newValue")
-# merged = data.table(left_join(data,protected,by=c(p$mergeKey,p$elementVar)))
-# merged[get(p$elementVar)==p$foodCode&!is.na(newValue)
-#        # &newValue<Value
-#        ,Value:=newValue]
-# 
-#            ## lets try to invert the process
-# 
-#            # ,Value:=Value-newValue]
-# 
-#   ###CRISTINA: Test for batch 25
-#     # merged[!is.na(newValue)
-#     #        # &newValue<Value
-#     #        ,Value:=Value-newValue]
-#   ###
-#     
-#     
-#        merged[,newValue:=NULL]
-#     data=merged
-# 
-#     if(length(printCodes) > 0){
-#       cat("\nSUA table after standardization (AFTER PROTECTED CORRECTION:")
-#       data = markUpdated(new = data, old = old, standParams = p)
-#       old = copy(data)
-#       printSUATable(data = data, standParams = p,
-#                           printCodes = printCodes,
-#                           nutrientElements = nutrientElements,
-#                           printProcessing = TRUE)
-#     }
-# 
-# 
-#     }
-#     ###
-# # B     
+    ########################################    
+    ##Rice Natalia and Rachele
     
+
+    data[measuredItemSuaFbs=="0113" & !(measuredElementSuaFbs %in% nutrientElements), Value:=Value*0.667]
+    foodValue=data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="food", Value]
+    calories=nutrientData$Calories[nutrientData$measuredItemSuaFbs=="0113"]
+    proteins=nutrientData$Proteins[nutrientData$measuredItemSuaFbs=="0113"]
+    fats=nutrientData$Fats[nutrientData$measuredItemSuaFbs=="0113"]
     
+    data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Calories", Value:=foodValue*calories*10000]
+    data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Proteins", Value:=foodValue* proteins*10000]
+    data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Fats", Value:=foodValue*fats*10000]
+    
+    ########################################
     
     
    ## STEP 5: Balance at the balancing level.
@@ -802,7 +758,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ##Stock
   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
   ##Food
-  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .05]
+  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .01]
   ##Feed
   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
   ##Seed
@@ -841,10 +797,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
    if(length(printCodes) > 0){
        cat("\nSUA table after balancing:")
        data = markUpdated(new = data, old = old, standParams = p)
-       old = copy(data)
-       print(printSUATable(data = data, standParams = p, printCodes = printCodes,
+       old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
+       printSUATable(data = data, standParams = p, printCodes = printCodes,
                            printProcessing = TRUE,
-                           nutrientElements = nutrientElements))
+                           nutrientElements = nutrientElements)
        data[, updateFlag := NULL]
    }
    ## STEP 6: Update calories of processed products proportionally based on
@@ -853,10 +809,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
    if(length(printCodes) > 0){
      cat("\nSUA table with updated nutrient values:")
      data = markUpdated(new = data, old = old, standParams = p)
-     old = copy(data)
-     print(printSUATable(data = data, standParams = p, printCodes = printCodes,
+     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
+     printSUATable(data = data, standParams = p, printCodes = printCodes,
                          printProcessing = TRUE,
-                         nutrientElements = nutrientElements))
+                         nutrientElements = nutrientElements)
      data[, updateFlag := NULL]
    }
    data[, c("balancedValue", "nutrientElement", "foodAdjRatio") := NULL]
@@ -873,31 +829,31 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID4"
        p$itemVar = "fbsID4"
        cat("\nFBS Table at first level of aggregation:\n")
-       print(printSUATable(data = out[[1]], standParams = p,
+       printSUATable(data = out[[1]], standParams = p,
                            printCodes = printCodeTable[, fbsID4],
                            printProcessing = TRUE,
-                           nutrientElements = nutrientElements))
+                           nutrientElements = nutrientElements)
        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID3"
        p$itemVar = "fbsID3"
        cat("\nFBS Table at second level of aggregation:\n")
-       print(printSUATable(data = out[[2]], standParams = p,
+       printSUATable(data = out[[2]], standParams = p,
                            printCodes = printCodeTable[, fbsID3],
                            printProcessing = TRUE,
-                           nutrientElements = nutrientElements))
+                           nutrientElements = nutrientElements)
        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID2"
        p$itemVar = "fbsID2"
        cat("\nFBS Table at third level of aggregation:\n")
-       print(printSUATable(data = out[[3]], standParams = p,
+       printSUATable(data = out[[3]], standParams = p,
                            printCodes = printCodeTable[, fbsID2],
                            printProcessing = TRUE,
-                           nutrientElements = nutrientElements))
+                           nutrientElements = nutrientElements)
        p$mergeKey[p$mergeKey == p$itemVar] = "fbsID1"
        p$itemVar = "fbsID1"
        cat("\nFBS Table at final level of aggregation:\n")
-       print(printSUATable(data = out[[4]], standParams = p,
+       printSUATable(data = out[[4]], standParams = p,
                            printCodes = printCodeTable[, fbsID1],
                            printProcessing = TRUE,
-                           nutrientElements = nutrientElements))
+                           nutrientElements = nutrientElements)
      }
      
      
