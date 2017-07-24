@@ -6,7 +6,7 @@
 ##' data.table that is named updateFlag, and it is TRUE if there is a difference
 ##' and FALSE otherwise.
 ##' 
-##' @param new The new data.table with the standardization data.
+##' @param data The new data.table with the standardization data.
 ##' @param old The original data.table with the standardization data.
 ##' @param standParams The parameters for standardization.  These parameters 
 ##'   provide information about the columns of data and tree, specifying (for 
@@ -21,6 +21,7 @@ markUpdated = function(new, old, standParams){
               with = FALSE]
     new = merge(new, old, by = c(standParams$mergeKey, standParams$elementVar),
                 all.x = TRUE, suffixes = c("", ".old"))
+    new = unique(new)
     new[, updateFlag := !mapply(identical, x = Value, y = Value.old)]
     new[, Value.old := NULL]
     return(new)

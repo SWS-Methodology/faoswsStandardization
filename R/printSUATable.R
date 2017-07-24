@@ -86,7 +86,7 @@ printSUATable = function(data, standParams, printCodes, printProcessing = TRUE,
             printDT[is.na(get(colName)), c(colName) := "-"]
         }
     })
-    out = knitr::kable(printDT[, items, with = FALSE], align = 'r')
+    out = print(knitr::kable(printDT[, items, with = FALSE], align = 'r'))
     return(out)
 }
 

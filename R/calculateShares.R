@@ -28,17 +28,17 @@
 ##' 
 
 
-calculateShares=function(data=data, params=p, tree=tree, availability=availability,zeroWeight= zeroWeight)
+calculateShares=function(data=data, params=p, tree=tree,zeroWeight= zeroWeight)
 
   
 {
 
-  tree = merge(tree, availability,
-               by = c(params$childVar, params$parentVar))
+  # tree = merge(tree, availability,
+  #              by = c(params$childVar, params$parentVar))
   tree = tree[, list(share = sum(share),
                      availability = max(availability)),
               by = c(params$childVar, params$parentVar, params$extractVar, 
-                     params$targetVar, params$standParentVar,"tempChild")]
+                     params$targetVar, params$standParentVar)]
   setnames(tree, "share", params$shareVar)
   ## Calculate the share using proportions of availability, but default to the
   ## old value if no "by-availability" shares are available.
@@ -76,13 +76,14 @@ calculateShares=function(data=data, params=p, tree=tree, availability=availabili
   freqChild= data.table(table(tree[, get(params$childVar)]))
   setnames(freqChild, c("V1","N"), c(params$childVar, "freq"))
   tree=merge(tree, freqChild , by=params$childVar)
-  tree[availability<=0, negShare:=1/freq]
-  tree[availability<=0, availability:=0]
-  tree[,sumPositiveAvail:=sum(availability,na.rm=TRUE),by = c(params$childVar)]
-  tree[,tempAvailability:=ifelse(availability<=0,negShare*sumPositiveAvail,availability)]
+  tree[availability<=0|is.na(availability), negShare:=1/freq]
+  # tree[availability<=0, availability:=0]
+  tree[,sumPositiveAvail:=sum(availability*ifelse(availability>0,1,0),na.rm=TRUE),by = c(params$childVar)]
+  tree[,tempAvailability:=ifelse(availability<=0|is.na(availability),negShare*sumPositiveAvail,availability)]
   
-  tree[, newShare := tempAvailability / sum(tempAvailability, na.rm = TRUE),
+  tree[, newShare := ifelse(tempAvailability==0,negShare, tempAvailability / sum(tempAvailability, na.rm = TRUE)),
        by = c(params$childVar)]
+  
   tree[,availability:=tempAvailability]
   
   tree[,c("freq","tempAvailability","sumPositiveAvail","negShare"):=NULL]
