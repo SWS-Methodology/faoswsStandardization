@@ -4,17 +4,17 @@
 ##' @param tree the Tree to be modified
 ##' @param cereals if to modify or not cereals. 
 ##' this has been added because some changes on cereals were tested as bad
+##' 
+##' @export
+##'   
 ##' @return the tree updated
 ##'   
 
 
 
 
-manualTreeCorrections <- function(tree=tree,cereals=FALSE){
+manualTreeCorrections <- function(tree=tree){
 
-  
-
-if(cereals==TRUE){
   
   ############################################################
   ##                                                        ##
@@ -84,7 +84,7 @@ if(cereals==TRUE){
   ##tree[(measuredItemParentCPC=="23120.06" & measuredItemChildCPC=="24310.01"), extractionRate:=3.58]
   ##tree[(measuredItemParentCPC=="23161.03" & measuredItemChildCPC=="24310.01"), extractionRate:=5.8]
   
-} 
+  
   
   ############################################################
   ##                                                        ##
@@ -180,8 +180,7 @@ if(cereals==TRUE){
   ############################################################
   
   
-  measuredItemParentCPC
-  
+
   
   tree[(measuredItemParentCPC=="2161" & measuredItemChildCPC=="34120"), extractionRate:=0.98]
   tree[(measuredItemParentCPC=="2162" & measuredItemChildCPC=="34120"), extractionRate:=0.98]
@@ -392,8 +391,6 @@ if(cereals==TRUE){
   
   tree=tree[!(measuredItemParentCPC=="02211" & measuredItemChildCPC=="22251.02"), ]
   tree=tree[!(measuredItemParentCPC=="02211.02" & measuredItemChildCPC=="22212"), ]
-  
-  
   
   
 }

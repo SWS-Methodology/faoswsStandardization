@@ -128,7 +128,7 @@ tree[measuredItemParentCPC=="01491.01"& measuredItemChildCPC=="2165",extractionR
 ###
 ##### FRANCESCA CORRECTIONS FOR TREES HAVE TO BE RUN HERE.
 
-# tree=manualTreeCorrections(tree,cereals=TRUE)
+tree=manualTreeCorrections(tree)
 
 ### Graph of all commodities
 # graphdata <- tree[, .(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, extractionRate, share)]
