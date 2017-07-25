@@ -51,8 +51,9 @@ if (CheckDebug()) {
   # Last complete batch Run 40 Cristina Sua filling primary commodities with FAOSTAT TRADE
   # Last complete batch Run 41 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food   
   # Last complete batch Run 42 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food and Tree corrections  
+  # Last complete batch Run 43 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food and Tree corrections, more bug corrections
   
-  batchnumber = 998   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 43   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
@@ -277,8 +278,8 @@ data=data[, list(Value = sum(Value, na.rm = TRUE)),
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 
-# data[flagObservationStatus%in%c("","T"),Official:=TRUE]
-data[flagObservationStatus%in%c(""),Official:=TRUE]
+data[flagObservationStatus%in%c("","T"),Official:=TRUE]
+# data[flagObservationStatus%in%c(""),Official:=TRUE]
 data[is.na(Official),Official:=FALSE]
 data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official"))]
 
@@ -536,7 +537,7 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("124","132","344")]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("50","52","68","1248")]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("50","1248")]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("818","158","84","840","36","31","32","218","740","858")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("818","158","84","840","36","31","32","218","740","858","788","643")]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","158","276","788","643")]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("144")]
 
