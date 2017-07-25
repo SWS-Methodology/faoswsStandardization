@@ -259,7 +259,7 @@ suaFilling = function(data, p = p, tree=tree,
           # allora in base alla seguente funzione dei rank e rank inversi:
           sumRank = sum(dataPosImb[measuredItemSuaFbs==i
                                    &!(get(p$elementVar)%in%eleToExclude)
-                                   &!is.na(rank)&(is.na(Value)|Value==0),rank])
+                                   &!is.na(rank)&(is.na(Value)|Value==0),rankInv])
           dataPosImb[measuredItemSuaFbs==i
                      &!(get(p$elementVar)%in%eleToExclude)
                      &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(rankInv/sumRank)]
@@ -285,15 +285,15 @@ suaFilling = function(data, p = p, tree=tree,
       # conventionally put all on food (As was in the previous version of the new module)
       # this a very rare case but can happen
       # ONLY IF FOOD IS NOT PROTECTED
-      if(dataPosImbP[measuredItemSuaFbs==i
-                     &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
-                     get(p$elementVar)==p$foodCode,ProtectedFood]=="FALSE"){
-             dataPosImbP[measuredItemSuaFbs==i
-                 &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
-                   get(p$elementVar)==p$foodCode,newValue:=imbalance]      
-        } # IF FOOD IS PROTECTED THE LINE WILL REMAIN IMBALANCED
-    }else{
-      # Se tutti i Value sono popolati
+    #   if(dataPosImbP[measuredItemSuaFbs==i
+    #                  &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
+    #                  get(p$elementVar)==p$foodCode,ProtectedFood]=="FALSE"){
+    #          dataPosImbP[measuredItemSuaFbs==i
+    #              &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
+    #                get(p$elementVar)==p$foodCode,newValue:=imbalance]
+    #     } # IF FOOD IS PROTECTED THE LINE WILL REMAIN IMBALANCED
+    # }else{
+    #   # Se tutti i Value sono popolati
       if(length(dataPosImbP[measuredItemSuaFbs==i
                            &!(get(p$elementVar)%in%eleToExclude)
                            &!is.na(rank)&(is.na(Value)),Value])==0){
@@ -331,7 +331,7 @@ suaFilling = function(data, p = p, tree=tree,
             # allora in base alla seguente funzione dei rank e rank inversi:
             sumRank = sum(dataPosImbP[measuredItemSuaFbs==i
                                      &!(get(p$elementVar)%in%eleToExclude)
-                                     &!is.na(rank)&(is.na(Value)|Value==0),rank])
+                                     &!is.na(rank)&(is.na(Value)|Value==0),rankInv])
             dataPosImbP[measuredItemSuaFbs==i
                        &!(get(p$elementVar)%in%eleToExclude)
                        &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(rankInv/sumRank)]

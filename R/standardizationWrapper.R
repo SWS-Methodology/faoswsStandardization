@@ -725,16 +725,16 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ##Rice Natalia and Rachele
     
 
-    data[measuredItemSuaFbs=="0113" & !(measuredElementSuaFbs %in% nutrientElements), Value:=Value*0.667]
-    foodValue=data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="food", Value]
-    calories=nutrientData$Calories[nutrientData$measuredItemSuaFbs=="0113"]
-    proteins=nutrientData$Proteins[nutrientData$measuredItemSuaFbs=="0113"]
-    fats=nutrientData$Fats[nutrientData$measuredItemSuaFbs=="0113"]
-    
-    data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Calories", Value:=foodValue*calories*10000]
-    data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Proteins", Value:=foodValue* proteins*10000]
-    data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Fats", Value:=foodValue*fats*10000]
-    
+    # data[measuredItemSuaFbs=="0113" & !(measuredElementSuaFbs %in% nutrientElements), Value:=Value*0.667]
+    # foodValue=data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="food", Value]
+    # calories=nutrientData$Calories[nutrientData$measuredItemSuaFbs=="0113"]
+    # proteins=nutrientData$Proteins[nutrientData$measuredItemSuaFbs=="0113"]
+    # fats=nutrientData$Fats[nutrientData$measuredItemSuaFbs=="0113"]
+    # 
+    # data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Calories", Value:=foodValue*calories*10000]
+    # data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Proteins", Value:=foodValue* proteins*10000]
+    # data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Fats", Value:=foodValue*fats*10000]
+    # 
     ########################################
     
     

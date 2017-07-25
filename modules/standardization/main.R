@@ -52,7 +52,7 @@ if (CheckDebug()) {
   # Last complete batch Run 41 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food   
   # Last complete batch Run 42 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food and Tree corrections  
   
-  batchnumber = 42    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 998   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
@@ -152,7 +152,6 @@ tree[measuredItemParentCPC=="01491.01"& measuredItemChildCPC=="2165",extractionR
 # 
 # pdf(width=20, height=20, file="biggraph.pdf")
 # plot(g, vertex.size = .8, vertex.label.cex = 3, vertex.label.color = "indianred", 
-#      edge.arrow.size = 0.05, edge.width=.1, edge.curved = TRUE)
 # dev.off()
 
 ###
@@ -278,7 +277,8 @@ data=data[, list(Value = sum(Value, na.rm = TRUE)),
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 
-data[flagObservationStatus=="",Official:=TRUE]
+# data[flagObservationStatus%in%c("","T"),Official:=TRUE]
+data[flagObservationStatus%in%c(""),Official:=TRUE]
 data[is.na(Official),Official:=FALSE]
 data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official"))]
 
@@ -308,6 +308,12 @@ data=rbind(data,datas)
 # 3523601-3521384
 # 9618-7401
 ########################################
+
+
+##### Temporary change in Stock data for Rice
+# 
+# data[measuredItemSuaFbs=="0113"&measuredElementSuaFbs=="stockChange"&
+#        geographicAreaM49%in%c("818","158","84","840","36","31","32","218","740","858"),Value:=-Value]
 
 
 ###
@@ -353,7 +359,7 @@ protected = data[get(params$official)=="TRUE"
 ###
 
 ### CRISTINA: trial for BAtch 30 (Germany based decision)
-cropsOfficialFood = c("0111","0112","0115","0116","0117","01199.02","01801","01802")
+cropsOfficialFood = c("0111","0115","0112","0116","0117","01199.02","01801","01802")
 data[get(params$itemVar)%in%cropsOfficialFood
      &get(params$official)==TRUE
      &get(params$elementVar)==params$foodCode
@@ -412,7 +418,6 @@ tree=tree[!is.na(extractionRate)]
 
 
 
-
 itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
 itemMap = itemMap[, c("code", "type"), with = FALSE]
 setnames(itemMap, "code", "measuredItemSuaFbs")
@@ -461,7 +466,7 @@ standardizationVectorized = function(data, tree, nutrientData
   
  printCodes = character()
   
-  printCodes=c("0113")
+  printCodes=c("0112")
  # printCodes=fcl2cpc(c("0267","0265","0310","0333","0263","0275","0280","0296","0299","0336","0339"))
   # ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
   # ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
@@ -531,7 +536,9 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("124","132","344")]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("50","52","68","1248")]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("50","1248")]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("158","1248" )]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("818","158","84","840","36","31","32","218","740","858")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","158","276","788","643")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("144")]
 
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886","654"),]
 # uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("729", "166", "584", "580", "585", "674", "654", "238", "156")]
