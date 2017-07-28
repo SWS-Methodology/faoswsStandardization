@@ -52,8 +52,12 @@ if (CheckDebug()) {
   # Last complete batch Run 41 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food   
   # Last complete batch Run 42 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food and Tree corrections  
   # Last complete batch Run 43 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food and Tree corrections, more bug corrections
+  # Last complete batch Run 44 Cristina=LAst bug corrected
+  # Last complete batch Run 45 Cristina Food, Tourist, stock from FAOSTAT trade but without problematic countries_cutCorrected
+  # Last complete batch Run 46 Cristina=Food, Tourist, stock from FAOSTAT trade but without problematic countries
   
-  batchnumber = 43   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+
+  batchnumber = 46   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
@@ -129,7 +133,7 @@ tree[measuredItemParentCPC=="01491.01"& measuredItemChildCPC=="2165",extractionR
 ###
 ##### FRANCESCA CORRECTIONS FOR TREES HAVE TO BE RUN HERE.
 
-tree=manualTreeCorrections(tree)
+# tree=manualTreeCorrections(tree)
 
 ### Graph of all commodities
 # graphdata <- tree[, .(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, extractionRate, share)]
@@ -248,30 +252,19 @@ if(CheckDebug()){
   # Faostat TRADE DATA
   # load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT.RData"))
   # NEW Faostat TRADE DATA (19/07/2017)
-  load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT2.RData"))
+  # load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT2.RData"))
+  # Food Tourist & Stock recaluclated with old TRADE and OLD TRADE 26/07/2017
+  # load(file.path(PARAMS$localFiles, "data_AllTradeFAOSTAT.RData"))
   
-  # load(file.path(PARAMS$localFiles, "260523_dataAllNew.RData"))
+  
+  load(file.path(PARAMS$localFiles, "260523_dataAllNew.RData"))
 
 }
 
 
 
-## Cristina: correcting for Serbia and Montenegro:
-# 1. The data for Servia and Montenegro (fal=186, m49=891) exist even after 2006 but with the same value as for the 2005.
-# then I removed the data after 2005.
-# NB There is not 186 (m49891 in the CrudeBalEl the I duplicated the value of Serbia fal=272 m49=688)
-# 2. There are data for Montenegro and Serbia (separated) even before 2006
-
-
-
-
-
 ### CRISTINA: SUGAR
 ### temporary change in the data for accounting for corrections in sugar Tree
-# data[measuredItemSuaFbs %in% c("23511.01","23512"),measuredItemSuaFbs:= "2351f"]
-# I just discovered that this change is already in the data file
-# data[!measuredItemSuaFbs %in% c("23511.01","23512")]
-
 
 data=data[, list(Value = sum(Value, na.rm = TRUE)),
      by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
@@ -309,23 +302,6 @@ data=rbind(data,datas)
 # 3523601-3521384
 # 9618-7401
 ########################################
-
-
-##### Temporary change in Stock data for Rice
-# 
-# data[measuredItemSuaFbs=="0113"&measuredElementSuaFbs=="stockChange"&
-#        geographicAreaM49%in%c("818","158","84","840","36","31","32","218","740","858"),Value:=-Value]
-
-
-###
-
-
-### CRISTINA: This was needed for Updating the CutItems. The actual CutItems files is updated
-### so the following line is not needed
-# animalChildren=unique(tree[measuredItemParentCPC %in% animals,measuredItemChildCPC])
-###
-
-
 
 
 #protected data
@@ -406,8 +382,6 @@ tree[, extractionRate := ifelse(is.na(extractionRate),
      by = c("measuredItemParentCPC", "measuredItemChildCPC")]
 # If there's still no extraction rate, use an extraction rate of 1
 
-
-
 # CRISTINA: I would chenge this to 0 because if no country report an extraction rate
 # for a commodity, is probably because those commodities are not re;ated
 # example: tree[geographicAreaM49=="276"&timePointYearsSP=="2012"&measuredItemParentCPC=="0111"]
@@ -467,16 +441,16 @@ standardizationVectorized = function(data, tree, nutrientData
   
  printCodes = character()
   
-  printCodes=c("0112")
+  # printCodes=c("0111")
  # printCodes=fcl2cpc(c("0267","0265","0310","0333","0263","0275","0280","0296","0299","0336","0339"))
   # ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
   # ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
   # ##printCodes = sample(samplePool, size = 1)
    # if (!is.null(tree)) {
-  printCodes = getChildren(commodityTree = tree,
-  parentColname = params$parentVar,
-  childColname = params$childVar,
-  topNodes = printCodes)
+  # printCodes = getChildren(commodityTree = tree,
+  # parentColname = params$parentVar,
+  # childColname = params$childVar,
+  # topNodes = printCodes)
 
  
   dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/", SUB_FOLDER, "/standardization/"), showWarnings = FALSE
@@ -521,28 +495,14 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("376","36", "40")&timePointYears=="2013",]
 ### for verify standardization
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("646","250","276"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("178","414"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24","276","380","804","344"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24","804"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("24")&timePointYears=="2001",]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("124")&timePointYears=="2002",]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("152","178","262","380"),]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("212","242","659","158")]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("659")] # Saint Kittes
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("96","882","242","152")]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("96","882","158")]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("124","132","344")]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("50","52","68","1248")]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("50","1248")]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("818","158","84","840","36","31","32","218","740","858","788","643")]
 # uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","158","276","788","643")]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("144")]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("158")]
+# uniqueLevels=uniqueLevels[geographicAreaM49=="616" & timePointYears=="2009"]
 
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886","654"),]
-# uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("729", "166", "584", "580", "585", "674", "654", "238", "156")]
+# uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("158","736","729","891","688","720","887","616","530"),]
 
 if(params$createIntermetiateFile){
   if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
