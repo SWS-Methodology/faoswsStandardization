@@ -60,14 +60,9 @@
 ##'   proteins, and fats columns there should be numeric values representing 
 ##'   multipliers to convert kilograms of the item into calories/proteins/fats. 
 ##'   If NULL, nothing is done with nutrients.
-##' @param crudeBalEl A data.table containing one column with the item codes 
-##'   (and this column's name must match standParams$itemVar) and additional 
-##'   columns representing, for each commodity the corresponding balancing element
-##'   from the old system, converted in new element.   
 ##' @param printCodes A list of the item codes which should be printed at each 
 ##'   step to show the progress of the algorithm.
 ##' @param debugFile folder for saving the intermediate files.
-##' @param protected protected primary Equivalent Items.
 ##' @param batchnumber Number of batch running.
 ##' @param utilizationTable Table of utilization for suaFilling
 ##' @return A data.table containing the final balanced and standardized SUA 
@@ -79,9 +74,8 @@
 ##' 
 
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
-                                  nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
-                                  debugFile= NULL
-                                  , protected = NULL,batchnumber=batchnumber,
+                                  nutrientData = NULL, printCodes = c(),
+                                  debugFile= NULL,batchnumber=batchnumber,
                                   utilizationTable = utilizationTable
                                   ){
     
@@ -145,9 +139,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         nutrientElements = c()
     }
 
-    
-    
-    
     ## STEP 0.1: Add missing element codes for commodities that are in the data
     ## (so that we can print it).  Then, print the table!
     ## Note that this function has been repeted juast after the processForward
@@ -332,24 +323,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          
          tree[,weight:=1]
          tree[measuredItemChildCPC %in% zeroWeight , weight:=0]
-         
-         ### CRISTINA 
-         # here I deactivate this steps because shares are used in their level
-         
-         # zeroWeightChildren=list()
-         # for(i in seq_len(length(zeroWeight)))
-         # { 
-         #   zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
-         #                                                   parentColname =params$parentVar,
-         #                                                   childColname = params$childVar,
-         #                                                   topNodes =zeroWeight[i] ))
-         #  }
-         # 
-         # zeroWeightDescendants= rbindlist(zeroWeightChildren)
-         # zeroWeightDescendants= unique(unlist(zeroWeightDescendants))
-         # 
-         # tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
-# 
+
 #          if(length(printCodes) > 0){
 #            cat("\nAvailability of children and shares:\n\n")
 #            print(knitr::kable(tree[get(p$childVar) %in% printCodes,
@@ -445,31 +419,12 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          
          
          
-         ### STEP 3: Compute availability and SHARE 2 
-         
-         # data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-         #                            ifelse(get(p$elementVar) == p$productionCode, 1,
-         #                            ifelse(get(p$elementVar) == p$importCode, 1,
-         #                            ifelse(get(p$elementVar) == p$exportCode, -1,
-         #                            ifelse(get(p$elementVar) == p$stockCode, -1,
-         #                            ifelse(get(p$elementVar) == p$foodCode, -1,
-         #                            ifelse(get(p$elementVar) == p$foodProcCode, 0,
-         #                            ifelse(get(p$elementVar) == p$feedCode, -1,
-         #                            ifelse(get(p$elementVar) == p$wasteCode, -1,
-         #                            ifelse(get(p$elementVar) == p$seedCode, -1,
-         #                            ifelse(get(p$elementVar) == p$industrialCode, -1,
-         #                            ifelse(get(p$elementVar) == p$touristCode, -1,
-         #                            ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
-         #      by = c(p$mergeKey)]
-         # 
+    ### STEP 3: Compute availability and SHARE 2 
 
+   data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
          
-         data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
-         
-         setnames(data,"foodProcElement","availability")
+  setnames(data,"foodProcElement","availability")
 
-         
-         
          
     # There's only one availability value per group, but we need an aggregation
     # function so we use mean.
@@ -479,62 +434,13 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     # plotTree = copy(tree)
     tree = merge(tree, mergeToTree, by = p$parentVar, all.x = TRUE)
     # tree[, availability := NULL]
-    
-    
-    
-    ## The trees that have not to be standardized back are cut changing their codes 
-    ## in the child column (both in tree and in availability)
   
-    # ############ CRISTINA: 
-    # ## I will try to delete this after the calculation of shares, because, for the 
-    # ## calculation of food processing, cuts have to treated as children
-    # 
-    # tree[,tempChild:=get(standParams$childVar)]
-    # # availability[,tempChild:=get(standParams$childVar)]
-    # 
-    tree[get(standParams$childVar) %in% cutItems,
+    
+       tree[get(standParams$childVar) %in% cutItems,
        c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
 
     availability = calculateAvailability(tree, p)
-    
-    # availability[get(standParams$childVar) %in% cutItems,
-    #      c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    # 
-    # ## also I have created the function calculateShares and changed filterOut
-    # 
-    # 
-    # 
-    ### CRISTINA calculate shares
-    # tree=calculateShares(data=data, params=p, tree=tree, zeroWeight=zeroWeight)
-    # 
-    # ### now remove the f???_ prefix for cuts in order to include them in the calculation of food processing
-    # tree[,standParams$childVar:=tempChild]
-    # tree[,tempChild:=NULL]
-    # 
-    # ##STEP to filter out from the TOT availability of each commodity the portion that must be allocated to the FOOD processing.
-    # 
-    # # standardization of the production to obtain foodProc
-    # #### CRISTINA: FilterOut have been changed
-    # foodProc=filterOutFoodProc(data=data, params=p, tree=tree, availability=availability,zeroWeight=zeroWeight)
-    # 
-    # data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
-    # 
-    # 
-    # tree[, availability:=NULL]
-    # 
-    # 
-    # 
-    # ### now indicate cuts again
-    # 
-    # tree[get(standParams$childVar) %in% cutItems,
-    #      c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    # 
-    # availability[get(standParams$childVar) %in% cutItems,
-    #              c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    # 
-    
-    #######
-    
+
     tree[, availability := NULL]
     
     tree = collapseEdges(edges = tree, parentName = p$parentVar,
@@ -546,24 +452,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     tree=calculateShares(data=data, params=p, tree=tree, zeroWeight=zeroWeight)
     
-    ## The structure of the tree may cause certain edges to be duplicated (for 
-    ## example, if one product can be created via several different paths of a 
-    ## tree).  Remove those duplicated edges here.  Availability of the parent
-    ## should not increase.  All availability values within each group should be
-    ## the same, so taking the max shouldn't do anything/cause any problems. 
-    ## For shares, we may have different default shares to different processes. 
-    ## Without having a specific way of how to aggregate these shares, we add
-    ## them (which is somewhat reasonable).
-    # tree = tree[, list(share = sum(share),
-    #                    availability = max(availability)),
-    #             by = c(p$childVar, p$parentVar, p$extractVar, 
-    #                    p$targetVar, p$standParentVar)]
-    # setnames(tree, "share", p$shareVar)
-    ## Calculate the share using proportions of availability, but default to the
-    ## old value if no "by-availability" shares are available.
-    
 
-    
     #    if(length(printCodes) > 0){
     #     cat("\nAvailability of parents/children 2:\n\n")
     #     print(knitr::kable(tree[get(p$childVar) %in% printCodes,
@@ -616,13 +505,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
     ###    
     
-    
-    
-    
-    
-        
-    
-    
     ## STEP 2.1 Compute calories
     if(!is.null(nutrientData)){
       data = merge(data, nutrientData, by = p$itemVar, all.x = TRUE)
@@ -643,14 +525,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }
 
 
-    
-    
-    
-    
-    
-    
-
-    
    
     ## STEP 4: Standardize commodities to balancing level
     data = finalStandardizationToPrimary(data = data, tree = tree,

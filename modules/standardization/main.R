@@ -42,22 +42,13 @@ if (CheckDebug()) {
   )
   
   # always set 999 for subset batches for testing
-  # Last complete batch Run 35 Cristina 11/7/17
-  # Last complete batch Run 34 Francesca 6/7/17
-  # Last complete batch Run 36 Francesca 
-  # Last complete batch Run 37 Francesca 
-  # Last complete batch Run 38 Cristina Sua filling cut corrected 
-  # Last complete batch Run 39 Cristina Sua filling primary commodities & Share corrections
-  # Last complete batch Run 40 Cristina Sua filling primary commodities with FAOSTAT TRADE
-  # Last complete batch Run 41 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food   
-  # Last complete batch Run 42 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food and Tree corrections  
-  # Last complete batch Run 43 Cristina Sua filling primary c.debugged, FAOSTAT TRADE, RICE food and Tree corrections, more bug corrections
-  # Last complete batch Run 44 Cristina=LAst bug corrected
-  # Last complete batch Run 45 Cristina Food, Tourist, stock from FAOSTAT trade but without problematic countries_cutCorrected
-  # Last complete batch Run 46 Cristina=Food, Tourist, stock from FAOSTAT trade but without problematic countries
+  # Last complete batch Run 45 Cristina Food, Tourist, stock from FAOSTAT trade but without problematic countries_oldCuts
+  # Last complete batch Run 46 Cristina=Food, Tourist, stock from FAOSTAT trade but without problematic countries_lessCuts
+  # Last complete batch Run 47 Cristina=old SUA old Cuts
+  # Last complete batch Run 48 Cristina=old SUA old Cuts no ZeroWeightDescendants
   
 
-  batchnumber = 46   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 48   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
@@ -254,17 +245,26 @@ if(CheckDebug()){
   # NEW Faostat TRADE DATA (19/07/2017)
   # load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT2.RData"))
   # Food Tourist & Stock recaluclated with old TRADE and OLD TRADE 26/07/2017
-  # load(file.path(PARAMS$localFiles, "data_AllTradeFAOSTAT.RData"))
+  load(file.path(PARAMS$localFiles, "data_AllTradeFAOSTAT.RData"))
+  
+  # Old SUA
+  # load(file.path(PARAMS$localFiles, "dataOldSua.RData"))
   
   
-  load(file.path(PARAMS$localFiles, "260523_dataAllNew.RData"))
+  # load(file.path(PARAMS$localFiles, "260523_dataAllNew.RData"))
 
 }
 
+################
+####only for OLD DATA BALANCED
+# data[measuredElementSuaFbs=="stockChange"&!is.na(Value),Value:=-Value]
+# data[,timePointYears:=as.character(timePointYears)]
+# data=data[timePointYears%in%yearVals]
+############################
 
-
-### CRISTINA: SUGAR
-### temporary change in the data for accounting for corrections in sugar Tree
+######### ######### #########
+### CRISTINA: 
+### All this folllowing data manipulation DO NOT HAVE TO BE DONE IF USING OLD SUA DATA
 
 data=data[, list(Value = sum(Value, na.rm = TRUE)),
      by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
@@ -278,6 +278,7 @@ data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM
 
 ########################################
 # Final Changes in the data files for sugar
+### temporary change in the data for accounting for corrections in sugar Tree
 
 datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
 datas[measuredElementSuaFbs=="tourist",measuredItemSuaFbs:="2351f"]
@@ -302,7 +303,7 @@ data=rbind(data,datas)
 # 3523601-3521384
 # 9618-7401
 ########################################
-
+######### ######### #########
 
 #protected data
 #### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
@@ -310,32 +311,7 @@ data=rbind(data,datas)
 
 primaryEq=fbsTree[,unique(measuredItemSuaFbs)]
 
-#### CRISTINA: idea of treatment of official food values for the 19 commodities of the Questionnairses
-# setnames(crudeBalEl,"measuredElementSuaFbs","balElement")
-# dataBalEl = data.table(left_join(data,crudeBalEl,by=c("measuredItemSuaFbs","geographicAreaM49")))
-# dataBalEl[get(params$elementVar)==params$foodCode
-#           &get(params$itemVar) %in% primaryEq
-#           &balElement%in%c(params$foodCode)
-#                  ,Value:=NA]
-# data=dataBalEl[,c(1,3,2,4:7),with=FALSE]
-# 
-# This part for the moment is not commented because protected is
-# a parameter. When this removal will be decided definively, 
-# this has to be removed from here and from argument of wrapper
-protected = data[get(params$official)=="TRUE"
-                 &get(params$protected)=="TRUE"
-                 &get(params$elementVar)==params$foodCode
-                 &get(params$itemVar) %in% primaryEq
-                 # &!is.na(Value)
-                 ,]
-# 
-# protected=merge(protected[,c(1,3,4),with=FALSE],data,by=c("measuredItemSuaFbs","geographicAreaM49","timePointYears"))
-# protected=protected[!is.na(measuredElementSuaFbs)]
-# 
-# setnames(crudeBalEl,"balElement",params$elementVar)
-###
-
-### CRISTINA: trial for BAtch 30 (Germany based decision)
+### CRISTINA: test for BAtch 30 (Germany based decision)
 cropsOfficialFood = c("0111","0115","0112","0116","0117","01199.02","01801","01802")
 data[get(params$itemVar)%in%cropsOfficialFood
      &get(params$official)==TRUE
@@ -364,8 +340,6 @@ FPCommodities <- c( "01499.06", "01921.01")
 
 # These commodities are forwards processed instead of backwards processed:
 #        code             description type
-# 1: 23511.01 Cane sugar, centrifugal CRNP
-# 2:    23512              Beet sugar CRNP
 # 3: 01499.06      Kapokseed in shell CRNP
 # 4: 01921.01   Seed cotton, unginned CRPR  
 
@@ -380,17 +354,8 @@ tree[, extractionRate := ifelse(is.na(extractionRate),
                                 mean(extractionRate, na.rm = TRUE),
                                 extractionRate),
      by = c("measuredItemParentCPC", "measuredItemChildCPC")]
-# If there's still no extraction rate, use an extraction rate of 1
-
-# CRISTINA: I would chenge this to 0 because if no country report an extraction rate
-# for a commodity, is probably because those commodities are not re;ated
-# example: tree[geographicAreaM49=="276"&timePointYearsSP=="2012"&measuredItemParentCPC=="0111"]
-# wheat germ shoul have ER max of 2% while here results in 100%
-
-# tree[is.na(extractionRate), extractionRate := 1]
+# If there's still no extraction rate, delete connection
 tree=tree[!is.na(extractionRate)]
-
-
 
 
 itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
@@ -420,10 +385,8 @@ setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
 
 message("Defining vectorized standardization function...")
 
-standardizationVectorized = function(data, tree, nutrientData
-                                     , protected, batchnumber,
-                                     utilizationTable
-                                     ){
+standardizationVectorized = function(data, tree, nutrientData,batchnumber,
+                                     utilizationTable){
   
   # record if output is being sunk and at what level
   sinkNumber <- sink.number()
@@ -442,23 +405,15 @@ standardizationVectorized = function(data, tree, nutrientData
  printCodes = character()
   
   # printCodes=c("0111")
- # printCodes=fcl2cpc(c("0267","0265","0310","0333","0263","0275","0280","0296","0299","0336","0339"))
-  # ##samplePool = parentNodes[parentNodes %in% data$measuredItemSuaFbs]
-  # ##if (length(samplePool) == 0) samplePool = data$measuredItemSuaFbs
-  # ##printCodes = sample(samplePool, size = 1)
-   # if (!is.null(tree)) {
   # printCodes = getChildren(commodityTree = tree,
   # parentColname = params$parentVar,
   # childColname = params$childVar,
   # topNodes = printCodes)
 
  
-  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/", SUB_FOLDER, "/standardization/"), showWarnings = FALSE
-
-
-
-  ,recursive = TRUE
-  )
+  dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/", SUB_FOLDER, "/standardization/")
+             , showWarnings = FALSE,recursive = TRUE
+            )
   sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER,"/", SUB_FOLDER, "/standardization/",
               data$timePointYears[1], "_",
               data$geographicAreaM49[1], "_sample_test.md"),
@@ -466,9 +421,9 @@ standardizationVectorized = function(data, tree, nutrientData
 
   out = standardizationWrapper(data = data, tree = tree, fbsTree = fbsTree, 
                                    standParams = params, printCodes = printCodes,
-                                   nutrientData = nutrientData, crudeBalEl = crudeBalEl,
+                                   nutrientData = nutrientData,
                                    debugFile = params$createIntermetiateFile
-                               , protected = protected, batchnumber = batchnumber,
+                               ,batchnumber = batchnumber,
                                utilizationTable = utilizationTable)
   return(out)
 }
@@ -495,14 +450,32 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-### for verify standardization
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("818","158","84","840","36","31","32","218","740","858","788","643")]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","158","276","788","643")]
-# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("158")]
-# uniqueLevels=uniqueLevels[geographicAreaM49=="616" & timePointYears=="2009"]
-
+### ONLY CONSIDER FAOSTAT COUNTRIES
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("4", "8", "12", "24", "28", "32", "51", "36", "40", "31", "44", 
+                                                   "50", "52", "112", "56", "84", "204", "60", "68", "70", "72", 
+                                                   "76", "96", "100", "854", "132", "116", "120", "124", "140", 
+                                                   "148", "152", "344", "446", "1248", "158", "170", "178", "188", 
+                                                   "384", "191", "192", "196", "203", "408", "208", "262", "212", 
+                                                   "214", "218", "818", "222", "233", "231", "242", "246", "250", 
+                                                   "258", "266", "270", "268", "276", "288", "300", "308", "320", 
+                                                   "324", "624", "328", "332", "340", "348", "352", "356", "360", 
+                                                   "364", "368", "372", "376", "380", "388", "392", "400", "398", 
+                                                   "404", "296", "414", "417", "418", "428", "422", "426", "430", 
+                                                   "440", "442", "450", "454", "458", "462", "466", "470", "478", 
+                                                   "480", "484", "496", "499", "504", "508", "104", "516", "524", 
+                                                   "528", "530", "540", "554", "558", "562", "566", "578", "512", 
+                                                   "586", "591", "600", "604", "608", "616", "620", "410", "498", 
+                                                   "642", "643", "646", "659", "662", "670", "882", "678", "682", 
+                                                   "686", "688", "891", "694", "703", "705", "90", "710", "724", 
+                                                   "144", "729", "736", "740", "748", "752", "756", "762", "764", 
+                                                   "807", "626", "768", "780", "788", "792", "795", "800", "804", 
+                                                   "784", "826", "834", "840", "858", "860", "548", "862", "704", 
+                                                   "887", "894", "716")]
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886","654"),]
-# uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("158","736","729","891","688","720","887","616","530"),]
+
+# the following countries are under investigation and correction and are deleted for the moment
+# CRISTINA 01/08/2018
+uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("158","736","729","891","688","720","887","616","530"),]
 
 if(params$createIntermetiateFile){
   if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
@@ -542,8 +515,6 @@ for (i in seq_len(nrow(uniqueLevels))) {
     filter = uniqueLevels[i, ]
     dataSubset = data[filter, , on = c("geographicAreaM49", "timePointYears")]
     treeSubset = tree[filter, , on = c("geographicAreaM49", "timePointYears")]
-    protectedSubset = protected[filter, , on = c("geographicAreaM49", "timePointYears")]
-    # dataSubset[, c("geographicAreaM49", "timePointYears") := NULL]
     treeSubset[, c("geographicAreaM49", "timePointYears") := NULL]
     subNutrientData = nutrientData[filter, , on = c("geographicAreaM49",
                                                     "timePointYears")]
@@ -557,7 +528,6 @@ for (i in seq_len(nrow(uniqueLevels))) {
     standData[[i]] = standardizationVectorized(data = dataSubset,
                                                tree = treeSubset,
                                                nutrientData = subNutrientData,
-                                               protected = protectedSubset,
                                                batchnumber = batchnumber,
                                                utilizationTable = utilizationTableSubset
                                                )
@@ -567,9 +537,6 @@ for (i in seq_len(nrow(uniqueLevels))) {
     standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))] 
   
 }
-
-
-
 message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")

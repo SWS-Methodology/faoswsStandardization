@@ -52,26 +52,8 @@ calculateShares=function(data=data, params=p, tree=tree,zeroWeight= zeroWeight)
   # weight
   
   tree[,weight:=1]
-  zeroWeightChildren=list()
-  for(i in seq_len(length(zeroWeight)))
-  { 
-    
-    
-    zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
-                                                    parentColname =params$parentVar,
-                                                    childColname = params$childVar,
-                                                    topNodes =zeroWeight[i] ))
-    
-    
-  }
+  tree[measuredItemChildCPC %in% zeroWeight, weight:=0]
   
-  zeroWeightDescendants= rbindlist(zeroWeightChildren)
-  zeroWeightDescendants= unique(unlist(zeroWeightDescendants))
-  
-  tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
-  
-  
-# this have been removed from Wrapper and put here
   
   freqChild= data.table(table(tree[, get(params$childVar)]))
   setnames(freqChild, c("V1","N"), c(params$childVar, "freq"))
