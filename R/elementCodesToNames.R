@@ -66,7 +66,8 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
     
     ## Map element codes to names
     warning("This map should eventually be updated as an Datatable! Issue #12")
-    itemCodeKey = fread(paste0(R_SWS_SHARE_PATH,"/browningj/elementCodes.csv"))
+    # itemCodeKey = fread(paste0(R_SWS_SHARE_PATH,"/browningj/elementCodes.csv"))
+    itemCodeKey = ReadDatatable("element_codes")
     itemCodeKey[, c("description", "factor") := NULL]
     ## Cheap duct-taped on method for removing all the indigenous and biological
     ## cattle

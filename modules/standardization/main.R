@@ -477,7 +477,7 @@ standardizationVectorized = function(data, tree, nutrientData
 setnames(tree, "timePointYearsSP", "timePointYears")
 uniqueLevels = data[, .N, by = c("geographicAreaM49", "timePointYears")]
 uniqueLevels[, N := NULL]
-elementGroup = read.csv(paste0(R_SWS_SHARE_PATH, "/browningj/elementCodes.csv"))
+elementGroup = ReadDatatable("element_codes")
 
 
 parentNodes = getCommodityLevel(tree, parentColname = "measuredItemParentCPC",

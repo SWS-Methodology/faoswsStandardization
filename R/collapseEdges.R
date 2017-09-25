@@ -57,6 +57,6 @@ collapseEdges = function(edges, parentName = "parentID",
         finalEdges = rbind(finalEdges, currEdges[get(parentName) %in% targetNodes, ])
         currEdges = currEdges[!get(parentName) %in% targetNodes, ]
     }
-    finalEdges = unique(finalEdges)
+    finalEdges = unique(finalEdges,by=colnames(finalEdges))
     return(finalEdges)
 }
