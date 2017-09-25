@@ -46,9 +46,11 @@ if (CheckDebug()) {
   # Last complete batch Run 46 Cristina=Food, Tourist, stock from FAOSTAT trade but without problematic countries_lessCuts
   # Last complete batch Run 47 Cristina=old SUA old Cuts
   # Last complete batch Run 48 Cristina=old SUA old Cuts no ZeroWeightDescendants
+  # Last complete batch Run 49 Cristina=old SUA old Cuts no ZeroWeightDescendants, some changes in tree
+  # Last complete batch Run 50 Cristina=old SUA old Cuts no ZeroWeightDescendants, some changes in tree, cut Short
   
 
-  batchnumber = 48   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 5799 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
@@ -85,7 +87,8 @@ yearVals = as.character(startYear:endYear)
 
 
 # Get commodity tree with child shares of parent
-tree = getCommodityTree(timePointYears = yearVals)
+# tree = getCommodityTree(timePointYears = yearVals)
+load(file.path(PARAMS$localFiles, "tree0108.RData"))
 
 ### Francesca meat correction
 meat=c("21118.01","21139","21111.01" ,"21112","21113.01","21114","21115","21116","21117.01","21117.02","21118.02","21118.03","21119.01","21121","21122",
@@ -98,8 +101,6 @@ tree=tree[!measuredItemParentCPC %in% animals,]
 
 ### Francesca cassava correction
 tree=tree[measuredItemParentCPC!="01520",]
-
-
 
 ### Cristina Correction sugar Tree
 tree = tree[!measuredItemParentCPC=="23670.01"] # All ER = NA (rows=3878)
@@ -116,11 +117,81 @@ tree[measuredItemParentCPC=="23511.01", measuredItemParentCPC:="2351f"]
 tree[measuredItemParentCPC=="23512", measuredItemParentCPC:="2351f"]
 tree = tree[!(measuredItemParentCPC=="2351f" & measuredItemChildCPC == "2351f"),]
 
+##############################
+##############################
+##############################
+##############################
 #### CRISTINA more corrections on sugar tree CRISTINA 7/7/2018
 tree[measuredItemChildCPC=="2351f",extractionRate:=0.11]
 tree[measuredItemParentCPC=="01343"& measuredItemChildCPC=="21419.01",extractionRate:=0.29]
 tree[measuredItemParentCPC=="01491.01"& measuredItemChildCPC=="2165",extractionRate:=0.19]
+##############################
+tree=tree[!(measuredItemParentCPC=="2165"&measuredItemChildCPC=="21932.02")]
+tree=tree[!(measuredItemParentCPC=="39150.02"&measuredItemChildCPC=="F0666")]
+tree=tree[!(measuredItemParentCPC=="F1243"&measuredItemChildCPC=="21700.02")]
+tree=tree[!(measuredItemParentCPC=="F1275"&measuredItemChildCPC=="21700.02")]
+tree=tree[!(measuredItemParentCPC=="F1275"&measuredItemChildCPC=="21700.01")]
+# tree[measuredItemParentCPC=="21523" & measuredItemChildCPC=="21700.02", extractionRate:=1]
+# tree[measuredItemParentCPC=="21529.03" & measuredItemChildCPC=="21700.02", extractionRate:=1]
+tree[measuredItemParentCPC=="21523" & measuredItemChildCPC=="F1275", extractionRate:=1]
+#cocoa
+tree=tree[!(measuredItemParentCPC=="23620"&measuredItemChildCPC=="F0666")]
+#milk
+tree=tree[!(measuredItemParentCPC=="02211"&measuredItemChildCPC=="22212")]
+tree=tree[measuredItemParentCPC=="22251.01"&measuredItemChildCPC=="22251.04",measuredItemParentCPC:="22251.02"]
+#Wheat
+tree=tree[measuredItemParentCPC=="0111"&measuredItemChildCPC=="23140.02",extractionRate:=0.95]
+#egg
+tree=tree[measuredItemParentCPC=="23993.02"&measuredItemChildCPC=="23993.01",extractionRate:=0.5]
 
+#GRoundNUTS
+tree[measuredItemChildCPC=="21495.02"&measuredItemParentCPC=="21421",extractionRate:=0.85]
+#
+
+# MARGARINE for OILS
+tree=tree[!(measuredItemParentCPC=="21523"&measuredItemChildCPC=="21700.02")]
+tree=tree[!(measuredItemParentCPC=="21529.03"&measuredItemChildCPC=="21700.02")]
+tree=tree[!(measuredItemParentCPC=="F1275"&measuredItemChildCPC=="21700.01")]
+tree=tree[!(measuredItemParentCPC=="21523"&measuredItemChildCPC=="F1275")]
+# 
+# SUNFLOWER SEED OIL
+tree=tree[!(measuredItemParentCPC=="21631.01"&measuredItemChildCPC=="F1243")]
+tree=tree[!(measuredItemParentCPC=="21631.01"&measuredItemChildCPC=="34550")]
+tree=tree[!(measuredItemParentCPC=="21631.01"&measuredItemChildCPC=="34120")]
+#
+# OIL OD OLIVE RESIDUES
+tree=tree[!(measuredItemParentCPC=="21673")]
+# 
+# OIL OD CASTOR BEANS
+tree=tree[!(measuredItemParentCPC=="21691.04")]
+# 
+# SESAMESEED OIL
+tree=tree[!(measuredItemParentCPC=="21691.07"&measuredItemChildCPC=="34120")]
+tree=tree[!(measuredItemParentCPC=="21691.07"&measuredItemChildCPC=="34550")]
+tree=tree[!(measuredItemParentCPC=="21691.07"&measuredItemChildCPC=="F1243")]
+
+# # LINSEED
+tree=tree[!(measuredItemParentCPC=="21691.13"&is.na(extractionRate))]
+# 
+# #MORE ON FATS AND OILS
+tree=tree[!(measuredItemParentCPC=="F1243")]
+# 
+# ANIMAL FATS
+tree=tree[!(measuredItemParentCPC=="21521")]
+
+
+
+# cereals other added 9/21/2017 # to check for all countries
+tree=tree[!(measuredItemParentCPC%in%c("23120.10")&measuredItemChildCPC%in%c("39120.12"))]
+tree=tree[!(measuredItemParentCPC%in%c("01195")&measuredItemChildCPC%in%c("39120.13","23120.90"))]
+
+
+
+# ##############################
+##############################
+##############################
+##############################
+##############################
 ###
 ##### FRANCESCA CORRECTIONS FOR TREES HAVE TO BE RUN HERE.
 
@@ -245,10 +316,10 @@ if(CheckDebug()){
   # NEW Faostat TRADE DATA (19/07/2017)
   # load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT2.RData"))
   # Food Tourist & Stock recaluclated with old TRADE and OLD TRADE 26/07/2017
-  load(file.path(PARAMS$localFiles, "data_AllTradeFAOSTAT.RData"))
+  # load(file.path(PARAMS$localFiles, "data_AllTradeFAOSTAT.RData"))
   
   # Old SUA
-  # load(file.path(PARAMS$localFiles, "dataOldSua.RData"))
+  load(file.path(PARAMS$localFiles, "dataOldSua.RData"))
   
   
   # load(file.path(PARAMS$localFiles, "260523_dataAllNew.RData"))
@@ -257,53 +328,53 @@ if(CheckDebug()){
 
 ################
 ####only for OLD DATA BALANCED
-# data[measuredElementSuaFbs=="stockChange"&!is.na(Value),Value:=-Value]
-# data[,timePointYears:=as.character(timePointYears)]
-# data=data[timePointYears%in%yearVals]
+data[measuredElementSuaFbs=="stockChange"&!is.na(Value),Value:=-Value]
+data[,timePointYears:=as.character(timePointYears)]
+data=data[timePointYears%in%yearVals]
 ############################
 
-######### ######### #########
-### CRISTINA: 
-### All this folllowing data manipulation DO NOT HAVE TO BE DONE IF USING OLD SUA DATA
-
-data=data[, list(Value = sum(Value, na.rm = TRUE)),
-     by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
-data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
-  data.table
-
-data[flagObservationStatus%in%c("","T"),Official:=TRUE]
-# data[flagObservationStatus%in%c(""),Official:=TRUE]
-data[is.na(Official),Official:=FALSE]
-data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official"))]
-
-########################################
-# Final Changes in the data files for sugar
-### temporary change in the data for accounting for corrections in sugar Tree
-
-datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
-datas[measuredElementSuaFbs=="tourist",measuredItemSuaFbs:="2351f"]
-datas[measuredElementSuaFbs=="stockChange"&geographicAreaM49=="705",measuredItemSuaFbs:="2351f"]
-datas[measuredElementSuaFbs=="food"&geographicAreaM49%in%c("422","28","308"),measuredItemSuaFbs:="2351f"]
-datas[,s2351f:=sum(Value*
-                     ifelse(get(params$elementVar) == params$productionCode&measuredItemSuaFbs=="2351f",1,0),na.rm = TRUE),
-      by=c("geographicAreaM49","timePointYears")]
-dataTorBind = unique(datas[measuredElementSuaFbs==params$productionCode,list(geographicAreaM49,timePointYears,measuredElementSuaFbs,s2351f)])
-datas[,s2351f:=NULL]
-dataTorBind = dataTorBind[,measuredItemSuaFbs:="2351f"]
-# dataTorBind = dataTorBind[,flagObservationStatus:="I"]
-# dataTorBind = dataTorBind[,flagMethod:="s"]
-setnames(dataTorBind,"s2351f","Value")
-dataTorBind=dataTorBind[,c(5,3,1,2,4),with=FALSE]
-dataTorBind=dataTorBind[,Protected:="FALSE"]
-dataTorBind=dataTorBind[,Official:="TRUE"]
-datas=rbind(datas[!measuredElementSuaFbs==params$productionCode],dataTorBind)
-data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
-# 3523601-3513983
-data=rbind(data,datas)
-# 3523601-3521384
-# 9618-7401
-########################################
-######### ######### #########
+# ######### ######### #########
+# ### CRISTINA: 
+# ### All this folllowing data manipulation DO NOT HAVE TO BE DONE IF USING OLD SUA DATA
+# 
+# data=data[, list(Value = sum(Value, na.rm = TRUE)),
+#      by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
+# data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
+#   data.table
+# 
+# data[flagObservationStatus%in%c("","T"),Official:=TRUE]
+# # data[flagObservationStatus%in%c(""),Official:=TRUE]
+# data[is.na(Official),Official:=FALSE]
+# data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official"))]
+# 
+# ########################################
+# # Final Changes in the data files for sugar
+# ### temporary change in the data for accounting for corrections in sugar Tree
+# 
+# datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
+# datas[measuredElementSuaFbs=="tourist",measuredItemSuaFbs:="2351f"]
+# datas[measuredElementSuaFbs=="stockChange"&geographicAreaM49=="705",measuredItemSuaFbs:="2351f"]
+# datas[measuredElementSuaFbs=="food"&geographicAreaM49%in%c("422","28","308"),measuredItemSuaFbs:="2351f"]
+# datas[,s2351f:=sum(Value*
+#                      ifelse(get(params$elementVar) == params$productionCode&measuredItemSuaFbs=="2351f",1,0),na.rm = TRUE),
+#       by=c("geographicAreaM49","timePointYears")]
+# dataTorBind = unique(datas[measuredElementSuaFbs==params$productionCode,list(geographicAreaM49,timePointYears,measuredElementSuaFbs,s2351f)])
+# datas[,s2351f:=NULL]
+# dataTorBind = dataTorBind[,measuredItemSuaFbs:="2351f"]
+# # dataTorBind = dataTorBind[,flagObservationStatus:="I"]
+# # dataTorBind = dataTorBind[,flagMethod:="s"]
+# setnames(dataTorBind,"s2351f","Value")
+# dataTorBind=dataTorBind[,c(5,3,1,2,4),with=FALSE]
+# dataTorBind=dataTorBind[,Protected:="FALSE"]
+# dataTorBind=dataTorBind[,Official:="TRUE"]
+# datas=rbind(datas[!measuredElementSuaFbs==params$productionCode],dataTorBind)
+# data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
+# # 3523601-3513983
+# data=rbind(data,datas)
+# # 3523601-3521384
+# # 9618-7401
+# ########################################
+# ######### ######### #########
 
 #protected data
 #### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
@@ -311,19 +382,19 @@ data=rbind(data,datas)
 
 primaryEq=fbsTree[,unique(measuredItemSuaFbs)]
 
-### CRISTINA: test for BAtch 30 (Germany based decision)
+# ### CRISTINA: test for BAtch 30 (Germany based decision)
 cropsOfficialFood = c("0111","0115","0112","0116","0117","01199.02","01801","01802")
 data[get(params$itemVar)%in%cropsOfficialFood
      &get(params$official)==TRUE
      &get(params$elementVar)==params$foodCode
      ,Value:=NA]
-
-
-###CRISTINA: Test for batch 28
+#
+#
+# ###CRISTINA: Test for batch 28, later integrated in the procedure
 data[get(params$protected)=="FALSE"
      &get(params$elementVar)==params$productionCode
      &!(get(params$itemVar) %in% primaryEq),Value:=NA]
-###
+# ###
 
 
 # Convert units for tourist and industrialAfterCB
@@ -346,16 +417,17 @@ FPCommodities <- c( "01499.06", "01921.01")
 tree[, target := ifelse(measuredItemParentCPC %in% FPCommodities,
                         "F", "B")]
 tree = adjustCommodityTree(tree, parentColname = "measuredItemParentCPC",
-                           childColname = "measuredItemChildCPC", nSigma = 2)
+                           childColname = "measuredItemChildCPC", nSigma = 2)  
 
 # If there's no extraction rate, use the mean extraction rate for that parent
 # child combinations
-tree[, extractionRate := ifelse(is.na(extractionRate),
-                                mean(extractionRate, na.rm = TRUE),
-                                extractionRate),
-     by = c("measuredItemParentCPC", "measuredItemChildCPC")]
+# tree[, extractionRate := ifelse(is.na(extractionRate),
+#                                 mean(extractionRate, na.rm = TRUE),
+#                                 extractionRate),
+#      by = c("measuredItemParentCPC", "measuredItemChildCPC")]
 # If there's still no extraction rate, delete connection
-tree=tree[!is.na(extractionRate)]
+
+# tree=tree[!is.na(extractionRate)]
 
 
 itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
@@ -385,6 +457,12 @@ setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
 
 message("Defining vectorized standardization function...")
 
+
+##################################################################!!!!!!!!!!!!!!!!!!!!
+##################################################################!!!!!!!!!!!!!!!!!!!!
+##################################################################!!!!!!!!!!!!!!!!!!!!
+
+
 standardizationVectorized = function(data, tree, nutrientData,batchnumber,
                                      utilizationTable){
   
@@ -403,12 +481,12 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
   # If it has a non-zero value, those are the codes which will have file outputs
   
  printCodes = character()
-  
-  # printCodes=c("0111")
-  # printCodes = getChildren(commodityTree = tree,
-  # parentColname = params$parentVar,
-  # childColname = params$childVar,
-  # topNodes = printCodes)
+
+ printCodes = c("01801", "01802", "2351f", "23520","23670.01")
+  printCodes = getChildren(commodityTree = tree,
+  parentColname = params$parentVar,
+  childColname = params$childVar,
+  topNodes = printCodes)
 
  
   dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/", SUB_FOLDER, "/standardization/")
@@ -432,7 +510,7 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
 setnames(tree, "timePointYearsSP", "timePointYears")
 uniqueLevels = data[, .N, by = c("geographicAreaM49", "timePointYears")]
 uniqueLevels[, N := NULL]
-elementGroup = read.csv(paste0(R_SWS_SHARE_PATH, "/browningj/elementCodes.csv"))
+elementGroup = ReadDatatable("element_codes")
 
 
 parentNodes = getCommodityLevel(tree, parentColname = "measuredItemParentCPC",
@@ -476,6 +554,21 @@ uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("728","886","654"),]
 # the following countries are under investigation and correction and are deleted for the moment
 # CRISTINA 01/08/2018
 uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("158","736","729","891","688","720","887","616","530"),]
+
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("840","380","748"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("686","380","28"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("56","70","96","72","446","208"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("36","44","52"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("380","44"),]
+
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("52","32","56","380","484"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("56","124","442","380","36","554","784"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("56","380","36","52"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("8","12","28","810","24"),]
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("51","28","44","52","56"),]
+uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("1248"),]
+
+
 
 if(params$createIntermetiateFile){
   if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
@@ -543,7 +636,7 @@ message("Combining standardized data...")
 standData = rbindlist(standData)
 
 # Save the StandData
-save(standData,file=("debugFile/standData.RData"))
+# save(standData,file=("debugFile/standData.RData"))
 
 # 
 
@@ -650,55 +743,56 @@ if(CheckDebug()){
   save(AfterST_BeforeFBSbal,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.RData"))
 }
 
-###################################
-### FINAL SAVE
-
-warning("The below is a rough hack to convert codes back. In truth, I'm almost
-        certain that the units are not the same. A unit conversion needs to happen at
-        the beginning and at this step.")
-
-fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-                                                         "foodManufacturing", "imports", "loss", "production", 
-                                                         "seed", "stockChange", "residual","industrial", "tourist",
-                                                         "DES_calories","DES_proteins","DES_fats", "population"),
-                                 code=c("261", "281", "271", "5910", "5520", "5141", 
-                                        "5023", "5610", "5016", "5510",
-                                        "5525", "5071", "5166","5165", "5164","664","674","684","5215"))
-
-##standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode), 
-##  `:=`(measuredElementSuaFbs = "other", 
-##       Value = sum(Value, na.rm=TRUE)), 
-##  by=c(params$mergeKey)]
-
-standData = merge(standData, fbs_sua_conversion, by = "measuredElementSuaFbs")
-standData[,`:=`(measuredElementSuaFbs = NULL)]
-setnames(standData, "code", "measuredElementSuaFbs")
-
-standData[, standardDeviation := NULL]
-
-## Assign flags: I for imputed (as we're estimating/standardizing) and s for
-## "sum" (aggregate)
-standData[, flagObservationStatus := "I"]
-standData[, flagMethod := "s"]
-
-setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears", 
-                         "Value", "flagObservationStatus", "flagMethod"))
-
-# Remove NA Values
-standData <- standData[!is.na(Value),]
-
-message("Attempting to save standardized data...")
-
-
-setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
-
-ptm <- proc.time()
-out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData, waitTimeout = 2000000)
-cat(out$inserted + out$ignored, " observations written and problems with ",
-    out$discarded, sep = "")
-paste0(out$inserted + out$ignored, " observations written and problems with ",
-       out$discarded)
-message((proc.time() - ptm)[3])
-
-
+# ###################################
+# ### FINAL SAVE
+# 
+# warning("The below is a rough hack to convert codes back. In truth, I'm almost
+#         certain that the units are not the same. A unit conversion needs to happen at
+#         the beginning and at this step.")
+# 
+# fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+#                                                          "foodManufacturing", "imports", "loss", "production", 
+#                                                          "seed", "stockChange", "residual","industrial", "tourist",
+#                                                          "DES_calories","DES_proteins","DES_fats", "population"),
+#                                  code=c("261", "281", "271", "5910", "5520", "5141", 
+#                                         "5023", "5610", "5016", "5510",
+#                                         "5525", "5071", "5166","5165", "5164","664","674","684","5215"))
+# 
+# ##standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode), 
+# ##  `:=`(measuredElementSuaFbs = "other", 
+# ##       Value = sum(Value, na.rm=TRUE)), 
+# ##  by=c(params$mergeKey)]
+# 
+# standData = merge(standData, fbs_sua_conversion, by = "measuredElementSuaFbs")
+# standData[,`:=`(measuredElementSuaFbs = NULL)]
+# setnames(standData, "code", "measuredElementSuaFbs")
+# 
+# standData[, standardDeviation := NULL]
+# 
+# ## Assign flags: I for imputed (as we're estimating/standardizing) and s for
+# ## "sum" (aggregate)
+# standData[, flagObservationStatus := "I"]
+# standData[, flagMethod := "s"]
+# 
+# setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears", 
+#                          "Value", "flagObservationStatus", "flagMethod"))
+# 
+# # Remove NA Values
+# standData <- standData[!is.na(Value),]
+# 
+# message("Attempting to save standardized data...")
+# 
+# 
+# setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
+# 
+# ptm <- proc.time()
+# out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData, waitTimeout = 2000000)
+# cat(out$inserted + out$ignored, " observations written and problems with ",
+#     out$discarded, sep = "")
+# paste0(out$inserted + out$ignored, " observations written and problems with ",
+#        out$discarded)
+# message((proc.time() - ptm)[3])
+# 
+# 
+# 
 

@@ -324,21 +324,21 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          tree[,weight:=1]
          tree[measuredItemChildCPC %in% zeroWeight , weight:=0]
 
-#          if(length(printCodes) > 0){
-#            cat("\nAvailability of children and shares:\n\n")
-#            print(knitr::kable(tree[get(p$childVar) %in% printCodes,
-#                                    c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
-#          with = FALSE]))
-#            # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-#            #                       get(p$childVar) %in% printCodes, ]
-#            # if(nrow(plotTree) > 0){
-#            #   plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-#            #                  childColname = p$childVar,
-#            #                  extractionColname = p$extractVar, box.size = .06,
-#            #                  box.type = "circle", cex.txt = 1, box.prop = .5,
-#            #                  box.cex = 1)
-#            # }
-#          }
+         # if(length(printCodes) > 0){
+         #   cat("\nAvailability of children and shares:\n\n")
+         #   print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+         #                           c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
+         # with = FALSE]))
+         #   # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+         #   #                       get(p$childVar) %in% printCodes, ]
+         #   # if(nrow(plotTree) > 0){
+         #   #   plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+         #   #                  childColname = p$childVar,
+         #   #                  extractionColname = p$extractVar, box.size = .06,
+         #   #                  box.type = "circle", cex.txt = 1, box.prop = .5,
+         #   #                  box.cex = 1)
+         #   # }
+         # }
          
          
          
@@ -447,27 +447,46 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                          childName = p$childVar,
                          extractionName = p$extractVar,
                          keyCols = NULL)
+    #####
+    #### CRISTINA adding steps to avoiding multiple lines for each 
+    # combination fo parent child due to the fact that
+    # the same combination can happen because a child can be
+    # also a nephew of a commodity
+    # I'm taking mean share, mean ER and only one type
+    tree[,p$extractVar:=mean(get(p$extractVar),na.rm=TRUE),by=c(p$parentVar,p$childVar)]
+    tree[,share:=mean(share,na.rm=TRUE),by=c(p$parentVar,p$childVar)]
+    tree = tree[,c(1:4),with=FALSE]
+    tree=unique(tree)
+    tree[, target := ifelse(get(p$parentVar) %in% FPCommodities,
+                            "F", "B")]
+    tree = merge(tree, itemMap, by = "measuredItemParentCPC")
+    tree[,standParentID:=NA]
+    tree[,weight:=1]
+    tree[get(p$childVar) %in% zeroWeight , weight:=0]
+    #####
+    
+    
     tree = merge(tree, availability,
                       by = c(p$childVar, p$parentVar))
     
     tree=calculateShares(data=data, params=p, tree=tree, zeroWeight=zeroWeight)
     
 
-    #    if(length(printCodes) > 0){
-    #     cat("\nAvailability of parents/children 2:\n\n")
-    #     print(knitr::kable(tree[get(p$childVar) %in% printCodes,
-    #                c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
-    #                with = FALSE]))
-    #     # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-    #     #                         get(p$childVar) %in% printCodes, ]
-    #     # if(nrow(plotTree) > 0){
-    #     #     plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-    #     #                    childColname = p$childVar,
-    #     #                    extractionColname = p$extractVar, box.size = .06,
-    #     #                    box.type = "circle", cex.txt = 1, box.prop = .5,
-    #     #                    box.cex = 1)
-    #     # }
-    # }
+       if(length(printCodes) > 0){
+        cat("\nAvailability of parents/children 2:\n\n")
+        print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+                   c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
+                   with = FALSE]))
+        # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+        #                         get(p$childVar) %in% printCodes, ]
+        # if(nrow(plotTree) > 0){
+        #     plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+        #                    childColname = p$childVar,
+        #                    extractionColname = p$extractVar, box.size = .06,
+        #                    box.type = "circle", cex.txt = 1, box.prop = .5,
+        #                    box.cex = 1)
+        # }
+    }
     
  
     ### first intermediate SAVE 
@@ -596,9 +615,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
 
     ########################################    
-    ##Rice Natalia and Rachele
-    
-
+    # ##Rice Natalia and Rachele
+    # 
+    # 
     # data[measuredItemSuaFbs=="0113" & !(measuredElementSuaFbs %in% nutrientElements), Value:=Value*0.667]
     # foodValue=data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="food", Value]
     # calories=nutrientData$Calories[nutrientData$measuredItemSuaFbs=="0113"]
@@ -608,8 +627,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     # data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Calories", Value:=foodValue*calories*10000]
     # data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Proteins", Value:=foodValue* proteins*10000]
     # data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Fats", Value:=foodValue*fats*10000]
-    # 
-    ########################################
+
+    #######################################
     
     
    ## STEP 5: Balance at the balancing level.
@@ -624,7 +643,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data[, standardDeviation := Value * .1]
    
   ##Production
-  data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .02]
+  data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .01]
   ##Import
   data[get(p$elementVar)==p$importCode, standardDeviation := Value * .02]
   ##Export
@@ -632,7 +651,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ##Stock
   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
   ##Food
-  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .01]
+  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .001]
   ##Feed
   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
   ##Seed
