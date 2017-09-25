@@ -5,7 +5,7 @@
 \title{calculateShares}
 \usage{
 calculateShares(data = data, params = p, tree = tree,
-  availability = availability, zeroWeight = zeroWeight)
+  zeroWeight = zeroWeight)
 }
 \arguments{
 \item{data}{The data.table containing the full dataset for standardization. 
@@ -24,9 +24,9 @@ child, extraction rate, share, and target (target specifying if an element
 is processed forward or not).  Names of these columns should be provided
 in params.}
 
-\item{availability}{Avalaibility as previously calculated}
-
 \item{zeroWeight}{as previously defined}
+
+\item{availability}{Avalaibility as previously calculated}
 }
 \value{
 A data.table containing the final balanced and standardized SUA 

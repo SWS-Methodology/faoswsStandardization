@@ -6,7 +6,8 @@
 \usage{
 standardizationWrapper(data, tree, fbsTree = NULL, standParams,
   nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
-  debugFile = NULL, protected = NULL)
+  debugFile = NULL, protected = NULL, batchnumber = batchnumber,
+  utilizationTable = utilizationTable)
 }
 \arguments{
 \item{data}{The data.table containing the full dataset for standardization. 
@@ -51,6 +52,10 @@ step to show the progress of the algorithm.}
 \item{debugFile}{folder for saving the intermediate files.}
 
 \item{protected}{protected primary Equivalent Items.}
+
+\item{batchnumber}{Number of batch running.}
+
+\item{utilizationTable}{Table of utilization for suaFilling}
 }
 \value{
 A data.table containing the final balanced and standardized SUA 
