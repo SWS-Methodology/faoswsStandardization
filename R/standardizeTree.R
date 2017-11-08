@@ -91,6 +91,7 @@ standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
     ## collapse the tree (otherwise if A -> B -> C in the tree, C may be
     ## standardized only to B and not to A, as desired).
     standKey = standParams$mergeKey[standParams$mergeKey != standParams$itemVar]
+    if(dim(tree)[1]!=0){
     tree = collapseEdges(edges = tree, parentName = standParams$parentVar,
                          childName = standParams$childVar,
                          extractionName = standParams$extractVar,
@@ -100,6 +101,7 @@ standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
     tree[, c(parentVar, childVar, yearVar, geoVar) :=
              list(as.character(get(parentVar)), as.character(get(childVar)),
                   as.character(get(yearVar)), as.character(get(geoVar)))]
+    }
     setnames(standardizationData, itemVar, childVar)
     standardizationData[, c(childVar, yearVar, geoVar) :=
                             list(as.character(get(childVar)),

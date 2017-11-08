@@ -45,7 +45,7 @@
 ##' @return the Value column of the passed data.table is updated 
 ##'   
 
-suaFilling = function(data, p = p, tree=tree,
+suaFillingNO = function(data, p = p, tree=tree,
                       primaryCommodities = c(), stockCommodities = c(),
                       debugFile= NULL,
                       utilizationTable=c(), 
@@ -235,7 +235,7 @@ suaFilling = function(data, p = p, tree=tree,
       # 
       dataPosImb[measuredItemSuaFbs==i
                  &!(get(p$elementVar)%in%eleToExclude)
-                 &!is.na(rank)                              ############### Vhange 10/17/2017
+                 # &!is.na(rank)
                  &Value>0,
                  newValue:=ifelse(is.na(Value),NA,
                            Value+abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup))))]
@@ -298,12 +298,28 @@ suaFilling = function(data, p = p, tree=tree,
                            &!(get(p$elementVar)%in%eleToExclude)
                            &!is.na(rank)&(is.na(Value)),Value])==0){
         # AS NOW WE ARE CONSIDERING PRIMARIES, IF ALL THE VALUES ARE POPULATED
-        # DON'T DO ANYTHING
+        # ONLY CHANGE THE NON PROTECTED VALUES
+        #SO
+        # IF VALUES ARE ALL PROTECTED COPY THEM
+        
+        if(length(dataPosImbP[measuredItemSuaFbs==i
+                              &!(get(p$elementVar)%in%eleToExclude)
+                              &!is.na(rank)&(!is.na(Value))&Protected=="FALSE",Value])==0){
         dataPosImbP[measuredItemSuaFbs==i
                    &!(get(p$elementVar)%in%eleToExclude)
                    # &!is.na(rank)
                    &Value>0,
                    newValue:=Value]
+        }else{
+          # if there is some non protected value, increment them proportionally to ranks
+          sumRank = sum(dataPosImbP[measuredItemSuaFbs==i
+                                    &!(get(p$elementVar)%in%eleToExclude)
+                                    &!is.na(rank)&(!is.na(Value))&Protected=="FALSE",rankInv])
+          dataPosImbP[measuredItemSuaFbs==i
+                                  &!(get(p$elementVar)%in%eleToExclude)
+                                  &!is.na(rank)&(!is.na(Value))&Protected=="FALSE",newValue:=Value+imbalance*(rankInv/sumRank)]
+        }
+#here ends the case in which all value are populated
       }else{
         #se un valore non 'e popolato e non e' stock ED E' FOOD 
         if(length(dataPosImbP[measuredItemSuaFbs==i
@@ -340,8 +356,8 @@ suaFilling = function(data, p = p, tree=tree,
       }
       
     }
-    
-  }
+  }   
+
   ############ End loop primary
   
 }  #this brackets refer only at the second loop

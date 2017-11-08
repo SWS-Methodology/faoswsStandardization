@@ -46,6 +46,12 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
     
     ## Get the mapping from item code to item type.
     elementMap = GetCodeList("agriculture", "aproduction", "measuredItemCPC")
+    
+    #### ADDED for solving the problem of cassava code: CRISTINA 
+    elementMap[code=="01520.02",type:="CRPR"]
+    elementMap[code=="39120.18",type:="CRNP"]
+    #### 
+    
     setnames(elementMap, "code", itemCol)
     elementMap = elementMap[, c(itemCol, "type"), with = FALSE]
     out = merge(out, elementMap, by = itemCol, all.x = TRUE)
@@ -66,19 +72,19 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
     
     ## Map element codes to names
     warning("This map should eventually be updated as an Datatable! Issue #12")
-    # itemCodeKey = fread(paste0(R_SWS_SHARE_PATH,"/browningj/elementCodes.csv"))
-    itemCodeKey = ReadDatatable("element_codes")
+    itemCodeKey = fread(paste0(R_SWS_SHARE_PATH,"/browningj/elementCodes.csv"))
+    # itemCodeKey = ReadDatatable("element_codes")
     itemCodeKey[, c("description", "factor") := NULL]
     ## Cheap duct-taped on method for removing all the indigenous and biological
     ## cattle
-    itemCodeKey = itemCodeKey[order(itemType, production), ]
-    itemCodeKey[, suffix := paste0("_", seq_len(.N)), by = "itemType"]
+    itemCodeKey = itemCodeKey[order(itemtype, production), ]
+    itemCodeKey[, suffix := paste0("_", seq_len(.N)), by = "itemtype"]
     itemCodeKey[suffix == "_1", suffix := ""]
     warning("All indigenous and biological cattle and poultry have been
     removed. This is a bad thing and it would be best to find a way to replace
     them. I recommend looking at issue #17")
     itemCodeKey = itemCodeKey[suffix == "", ]
-    itemCodeKey = melt(data = itemCodeKey, id.vars = c("itemType", "suffix"))
+    itemCodeKey = melt(data = itemCodeKey, id.vars = c("itemtype", "suffix"))
     itemCodeKey = itemCodeKey[!is.na(value), ]
     ## Verify we don't have duplicated codes
     if(nrow(itemCodeKey[, !"suffix", with = FALSE]) >
@@ -90,7 +96,7 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
     }
     itemCodeKey[, variable := paste0(variable, suffix)]
     itemCodeKey[, suffix := NULL]
-    setnames(itemCodeKey, c("itemType", "value"), c("type", elementCol))
+    setnames(itemCodeKey, c("itemtype", "value"), c("type", elementCol))
     itemCodeKey[, c(elementCol) := as.character(get(elementCol))]
     out = merge(out, itemCodeKey, by = c("type", elementCol), all.x = TRUE)
     if(any(is.na(out$variable))){

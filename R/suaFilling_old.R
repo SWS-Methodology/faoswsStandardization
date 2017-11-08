@@ -45,7 +45,7 @@
 ##' @return the Value column of the passed data.table is updated 
 ##'   
 
-suaFilling = function(data, p = p, tree=tree,
+suaFilling_old = function(data, p = p, tree=tree,
                       primaryCommodities = c(), stockCommodities = c(),
                       debugFile= NULL,
                       utilizationTable=c(), 
@@ -235,7 +235,7 @@ suaFilling = function(data, p = p, tree=tree,
       # 
       dataPosImb[measuredItemSuaFbs==i
                  &!(get(p$elementVar)%in%eleToExclude)
-                 &!is.na(rank)                              ############### Vhange 10/17/2017
+                 # &!is.na(rank)
                  &Value>0,
                  newValue:=ifelse(is.na(Value),NA,
                            Value+abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup))))]
@@ -292,7 +292,7 @@ suaFilling = function(data, p = p, tree=tree,
     #              &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
     #                get(p$elementVar)==p$foodCode,newValue:=imbalance]
     #     } # IF FOOD IS PROTECTED THE LINE WILL REMAIN IMBALANCED
-    }else{
+    # }else{
     #   # Se tutti i Value sono popolati
       if(length(dataPosImbP[measuredItemSuaFbs==i
                            &!(get(p$elementVar)%in%eleToExclude)

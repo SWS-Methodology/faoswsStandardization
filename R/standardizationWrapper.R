@@ -176,12 +176,17 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }
     
     ### STEP2 Initial Sua Filling 
+    
+    if(dim(tree)[1]!=0){
     level = findProcessingLevel(tree, from = p$parentVar,
                                 to = p$childVar, aupusParam = p)
     primaryEl = level[processingLevel == 0, get(p$itemVar)]
+    }else{
+    primaryEl=c()
+    }
     ## Add in elements not in the tree, as they are essentially parents
-    nonTreeEl = data[[p$itemVar]]
-    nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
+    # nonTreeEl = data[[p$itemVar]]
+    # nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
     # primaryEl = c(primaryEl, nonTreeEl)
     data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
                                  Official==TRUE),
@@ -229,7 +234,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     standData <- standData[!is.na(Value),]
     
     standData[, flagObservationStatus := "I"]
-    standData[, flagMethod := "b"]
+    standData[, flagMethod := "e"]
     
     ##ptm <- proc.time()
     ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
@@ -281,8 +286,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          tree[, newShare := availability.child / sum(availability.child, na.rm = TRUE),
               by = c(params$childVar)]         
          tree[, c(params$shareVar) :=
-                ifelse(is.na(newShare), get(params$shareVar), newShare)]
-         # tree[, c("newShare","availability.child", "availability") := NULL]
+        ifelse(is.na(newShare), get(params$shareVar), newShare)]
+# tree[, c("newShare","availability.child", "availability") := NULL]
          tree[, c("newShare") := NULL]
          
          # share are the proportion of availability of each parent
@@ -290,10 +295,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          # if availability is negative
          # shares are  a proportion of the number of child of each parent
          
+         if(dim(tree)[1]!=0){
          freqChild= data.table(table(tree[, get(params$childVar)]))
          setnames(freqChild, c("V1","N"), c(params$childVar, "freq"))
          tree=merge(tree, freqChild , by=params$childVar)
-         
+         }
          ### CRISTINA this function has to be used also when availability is NA
          
          tree[availability.child<=0|is.na(availability.child), negShare:=1/freq]
@@ -321,24 +327,33 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          
          # weight
          
+         treeShares=plotTree
+         treeShares=treeShares[!is.na(get(p$shareVar))]
+         setnames(treeShares,"share","oldShare")
+         tree=data.table(left_join(tree,treeShares,by=colnames(treeShares)[c(1:3,5:7)]))
+         tree[, c(params$shareVar) :=
+                ifelse(is.na(oldShare), get(params$shareVar), oldShare)]
+         tree[, oldShare := NULL]
+         
+         
          tree[,weight:=1]
          tree[measuredItemChildCPC %in% zeroWeight , weight:=0]
 
-         # if(length(printCodes) > 0){
-         #   cat("\nAvailability of children and shares:\n\n")
-         #   print(knitr::kable(tree[get(p$childVar) %in% printCodes,
-         #                           c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
-         # with = FALSE]))
-         #   # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-         #   #                       get(p$childVar) %in% printCodes, ]
-         #   # if(nrow(plotTree) > 0){
-         #   #   plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-         #   #                  childColname = p$childVar,
-         #   #                  extractionColname = p$extractVar, box.size = .06,
-         #   #                  box.type = "circle", cex.txt = 1, box.prop = .5,
-         #   #                  box.cex = 1)
-         #   # }
-         # }
+         if(length(printCodes) > 0){
+           cat("\nAvailability of children and shares:\n\n")
+           print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+                                   c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
+         with = FALSE]))
+           # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+           #                       get(p$childVar) %in% printCodes, ]
+           # if(nrow(plotTree) > 0){
+           #   plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+           #                  childColname = p$childVar,
+           #                  extractionColname = p$extractVar, box.size = .06,
+           #                  box.type = "circle", cex.txt = 1, box.prop = .5,
+           #                  box.cex = 1)
+           # }
+         }
          
          
          
@@ -385,7 +400,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          standData <- standData[!is.na(Value),]
          
          standData[, flagObservationStatus := "I"]
-         standData[, flagMethod := "b"]
+         standData[, flagMethod := "e"]
 
          if(!is.null(debugFile)){
            
@@ -425,6 +440,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          
   setnames(data,"foodProcElement","availability")
 
+  if(dim(tree)[1]!=0){
          
     # There's only one availability value per group, but we need an aggregation
     # function so we use mean.
@@ -439,6 +455,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
        tree[get(standParams$childVar) %in% cutItems,
        c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
 
+       
+       
     availability = calculateAvailability(tree, p)
 
     tree[, availability := NULL]
@@ -471,6 +489,18 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     tree=calculateShares(data=data, params=p, tree=tree, zeroWeight=zeroWeight)
     
+    
+    treeShares[get(standParams$childVar) %in% cutItems,
+               c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+    
+    # treeShares=treeShares[,c(2,1,3,5,7,4),with=FALSE]
+    treeShares=treeShares[,mget(c("measuredItemChildCPC","measuredItemParentCPC","extractionRate",
+                                  "target","standParentID","oldShare"))]
+    tree=data.table(left_join(tree,treeShares,by=colnames(treeShares)[c(1:5)]))
+    tree[, c(params$shareVar) :=
+           ifelse(is.na(oldShare), get(params$shareVar), oldShare)]
+    tree[, oldShare := NULL]
+    
 
        if(length(printCodes) > 0){
         cat("\nAvailability of parents/children 2:\n\n")
@@ -487,7 +517,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         #                    box.cex = 1)
         # }
     }
-    
+  }    
  
     ### first intermediate SAVE 
     # message("Attempting to save balanced SUA data...")
@@ -508,7 +538,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     standData <- standData[!is.na(Value),]
     
     standData[, flagObservationStatus := "I"]
-    standData[, flagMethod := "b"]
+    standData[, flagMethod := "e"]
     
     ##ptm <- proc.time()
     ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
@@ -698,7 +728,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
    }
    ## STEP 6: Update calories of processed products proportionally based on
    ## updated food element values.
-   data[(nutrientElement), Value := Value * foodAdjRatio]
+   # data[(nutrientElement), Value := Value * foodAdjRatio]
+   
+   
+   data[(nutrientElement), Value := ifelse(((!is.na(Value))&is.na(foodAdjRatio)),Value, Value * foodAdjRatio)]
+   
    if(length(printCodes) > 0){
      cat("\nSUA table with updated nutrient values:")
      data = markUpdated(new = data, old = old, standParams = p)
