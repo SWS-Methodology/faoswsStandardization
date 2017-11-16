@@ -267,6 +267,12 @@ out = do.call("rbind", list(agData,foodData, lossData, tradeData, tourData))
 out <- out[!is.na(Value),]
 setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
 
+# SAVE DATA TEST 10/11/2017
+data = elementCodesToNames(data = out, itemCol = "measuredItemFbsSua",
+                           elementCol = "measuredElementSuaFbs")
+data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
+save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTEST6_v02.RData")
+
 # SAVE DATA TEST 4/11/2017
 # data = elementCodesToNames(data = out, itemCol = "measuredItemFbsSua",
 #                            elementCol = "measuredElementSuaFbs")

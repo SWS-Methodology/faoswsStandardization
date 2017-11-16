@@ -45,7 +45,7 @@ if (CheckDebug()) {
   # Last complete batch Run 62 Cristina=old SUA, New Trees from old IO tables
   
 
-  batchnumber = 101 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 104 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
   
   ## Source local scripts for this local tes
@@ -78,7 +78,9 @@ endYear = as.numeric(swsContext.computationParams$endYear)
 stopifnot(startYear <= endYear)
 
 yearVals = as.character(startYear:endYear)
+
 yearVals = as.character(2010:2015)  # For the Tool of NAtalia and for the test november
+# yearVals = as.character(2000:2015)
 
 ##############################################################
 ################### NEW TREE CORRECTIONS #####################
@@ -90,9 +92,16 @@ yearVals = as.character(2010:2015)  # For the Tool of NAtalia and for the test n
 # load(file.path(PARAMS$localFiles, "treeTestAllShares_NorSwed2.RData")) # this has no duplication 
 
 # load(file.path(PARAMS$localFiles, "treeTestAllShares.RData")) # this has no duplication
+#########################
 load(file.path(PARAMS$localFiles, "treeTest6countries00_15.RData"))
 
+
+##### Changes in trees have tobe executed here
+
+
+
 tree=tree[timePointYearsSP%in%yearVals]
+#########################
 # load(file.path(PARAMS$localFiles, "treeTestAll.RData"))
 # load(file.path(PARAMS$localFiles, "treeTestFin.RData"))
 
@@ -329,13 +338,24 @@ if(CheckDebug()){
   
   # Old SUA
   # load(file.path(PARAMS$localFiles, "dataOldSuaCorr.RData"))
-
+  # Old SUA as reimported from the correct table in SWS
+  # batch 78
+  # load(file.path(PARAMS$localFiles, "dataOldSuadownloaded110817.RData"))
+  # data=data[,mget(c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49", 
+  #   "timePointYears", "Value", "Official", "Protected"))]
+  #########################
   # New TRade production for 6 ccountries
   # first test on new methodology
-  load(file.path(PARAMS$localFiles, "dataTEST6.RData"))
+  # load(file.path(PARAMS$localFiles, "dataTEST6.RData"))
+  #japan updated
+  load(file.path(PARAMS$localFiles, "dataTEST6_v02.RData"))
+  
+  
   setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
   data=data[timePointYears%in%yearVals]
-  # load(file.path(PARAMS$localFiles, "260523_dataAllNew.RData"))
+  ########################
+  
+  
 
 }
 
@@ -346,10 +366,11 @@ if(CheckDebug()){
 # ### CRISTINA: 
 # ### All this folllowing data manipulation DO NOT HAVE TO BE DONE IF USING OLD SUA DATA
 # 
-# ########################################
-# # Final Changes in the data files for sugar
-# ### temporary change in the data for accounting for corrections in sugar Tree
-# 
+########################################
+# Final Changes in the data files for sugar
+### temporary change in the data for accounting for corrections in sugar Tree
+
+#######################################
 datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
 datas[measuredElementSuaFbs=="tourist",measuredItemSuaFbs:="2351f"]
 datas[measuredElementSuaFbs=="stockChange"&geographicAreaM49=="705",measuredItemSuaFbs:="2351f"]
@@ -373,7 +394,7 @@ data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
 data=rbind(data,datas)
 
 # ########################################
-# 
+#
 data=data[, list(Value = sum(Value, na.rm = TRUE)),
           by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
@@ -384,22 +405,33 @@ data[flagObservationStatus%in%c("","T"),Official:=TRUE]
 data[is.na(Official),Official:=FALSE]
 # data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official"))]
 # ######### ######### #########
+#######################################
 
 #protected data
 #### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
 # now we have to delete all the wrong values:
-
-primaryEq=fbsTree[,unique(measuredItemSuaFbs)]
-
 # THE FOLLOWING STEPS HAVE BEEN COMMENTED BECAUSE THEY SHOULD NOT BE NEEDED
 ######################################################################################
 # # ### CRISTINA: test for BAtch 30 (Germany based decision)
 # cropsOfficialFood = c("0111","0115","0112","0116","0117","01199.02","01801","01802")
-cropsOfficialFood = c("0111","0112","0115","0116","0117","01199.02","01801","01802")
+#########################
+# cropsOfficialFood = c("0111","0112","0115","0116","0117","01199.02","01801","01802")
+# this second Line is for the test on 6
+cropsOfficialFood = c("0111","0112","0113","0115","0116","0117","01199.02","01801","01802")
 data[!geographicAreaM49%in%c("604")&get(params$itemVar)%in%cropsOfficialFood
      &get(params$official)==TRUE
      &get(params$elementVar)==params$foodCode
      ,Value:=NA]
+#########################
+# DELETE THE PRODUCTION OF NO-PRIMARY PRODUCTS
+level = findProcessingLevel(tree, from = params$parentVar,
+                            to = params$childVar, aupusParam = params)
+primaryEl = level[processingLevel == 0, get(params$itemVar)]
+data[get(params$protected)=="FALSE"
+     &get(params$elementVar)==params$productionCode
+     &!(get(params$itemVar) %in% primaryEl),Value:=NA]
+
+
 # #
 # #
 # # ###CRISTINA: Test for batch 28, later integrated in the procedure
@@ -529,7 +561,7 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
  # printCodes = fbsTree[fbsID4%in%c("2542","2543"),measuredItemSuaFbs]
  # printCodes = c("21641.01","21641.02","2161","2165",fbsTree[fbsID4=="2586",measuredItemSuaFbs])
  # printCodes = c("21641.01","21641.02","2161","2165","0115","24320")
- # printCodes = c("2165")
+ # printCodes = c("0111")
  # printCodes = getChildren(commodityTree = tree,
  # parentColname = params$parentVar,
  # childColname = params$childVar,
@@ -609,8 +641,10 @@ uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("499","736","729","891","688
 #                                                    "646", "854", "454", "24", "762", "384", "320", "604", "140",
 #                                                    "524", "116", "218", "686", "120", "324", "562", "68", "178"),]
 
+#########################
 uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("1248","454","686","360","392","484"),]  ### TEST 6
-
+#########################
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("360"),]  ### TEST 6
 
 if(params$createIntermetiateFile){
   if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
