@@ -63,7 +63,7 @@ message("Pulling data from Agriculture Production")
 geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "geographicAreaM49")[type == "country", code]
 #geokeys TEST 04/11/2017 6 countries
-geoKeys = c("1248","454","686","360","392","484")
+geoKeys = c("1248","454","686","360","392","484","716")
 geoDim = Dimension(name = "geographicAreaM49", keys = geoKeys)
 eleKeys = GetCodeTree(domain = "agriculture", dataset = "aproduction",
                       dimension = "measuredElement")
@@ -271,7 +271,8 @@ setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
 data = elementCodesToNames(data = out, itemCol = "measuredItemFbsSua",
                            elementCol = "measuredElementSuaFbs")
 data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
-save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTEST6_v02.RData")
+# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTEST6_v02.RData")
+save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTEST6_v03.RData") # for batch 107
 
 # SAVE DATA TEST 4/11/2017
 # data = elementCodesToNames(data = out, itemCol = "measuredItemFbsSua",
