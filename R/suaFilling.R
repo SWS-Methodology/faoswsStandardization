@@ -160,11 +160,19 @@ suaFilling = function(data, p = p, tree=tree,
     
 
   ## Supply < utilization (= imbalance < -imbalanceThreshold)
-  
-  # if production is not official, create production
-  dataNegImb[officialProd=="FALSE" & get(p$elementVar)==p$productionCode,
-             newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
+########################## OLD VERSION CHANGED THE 29 NOVEMBER 17
+# if production is not official, create production
+# dataNegImb[officialProd=="FALSE" & get(p$elementVar)==p$productionCode,
+#            newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
+##########################
 
+    
+    
+# ########################### NEW VERSION CHANGED  29 NOVEMBER 17  
+# # # if production EXISTS (protected or estimated Via the sub-module), create production
+dataNegImb[get(p$elementVar)==p$productionCode & (is.na(Value)|Value==0),
+           newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
+# ###########################
 
   ########################################################  
   # if production is official 
