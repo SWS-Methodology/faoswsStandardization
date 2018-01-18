@@ -41,9 +41,6 @@ if (CheckDebug()) {
     token = PARAMS[["token"]]
   )
   
-
-  batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
-
 } else {
   message("Running on server, no need to call GetTestEnvironment...")
   
