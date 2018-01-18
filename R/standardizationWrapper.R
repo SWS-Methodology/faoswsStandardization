@@ -139,7 +139,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         nutrientElements = c()
     }
 
-    ## STEP 0.1: Add missing element codes for commodities that are in the data
+    ## STEP 1: Add missing element codes for commodities that are in the data
     ## (so that we can print it).  Then, print the table!
     ## Note that this function has been repeted juast after the processForward
     ## because missingElements have to be created for those children which were not in 
@@ -152,29 +152,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       printSUATable(data = data, standParams = p, printCodes = printCodes)
     }
     
-    ## STEP 1: Process forward.
-    data = processForward(data = data, tree = tree,
-                          standParams = p)$data
-    
-    ## As already anticipated, missing elements are added after the processForward
     data = addMissingElements(data, p)
-    
-    ## Delete nodes processed forward
-    forwardParents = tree[get(p$targetVar) == "F", unique(get(p$parentVar))]
-    tree = tree[!get(p$parentVar) %in% forwardParents, ]
-    
-    FPCommodities <- c( "01499.06", "01921.01")
-    if (length(which(FPCommodities%in%printCodes))>0)
-    {
-        if(length(printCodes) > 0){
-        cat("\nSUA table after processing forward:")
-        data = markUpdated(new = data, old = old, standParams = p)
-        old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
-        printSUATable(data = data, standParams = p, printCodes = printCodes)
-        }
-      data[,updateFlag:=NULL]
-    }
-    
+
     ### STEP2 Initial Sua Filling 
     
     if(dim(tree)[1]!=0){
@@ -184,10 +163,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }else{
     primaryEl=c()
     }
-    ## Add in elements not in the tree, as they are essentially parents
-    # nonTreeEl = data[[p$itemVar]]
-    # nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
-    # primaryEl = c(primaryEl, nonTreeEl)
     data[, ProtectedProd := any(get(standParams$elementVar) == standParams$productionCode &
                                  Official==TRUE),
          by = c(standParams$itemVar)]

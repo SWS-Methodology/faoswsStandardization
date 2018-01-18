@@ -4,13 +4,12 @@ Title: Package to perform standardization of SUA (supply utilization account)
     data to FBS level
 Version: 0.1.6
 Date: 2017-06-02
-Authors@R: c(person("Josh", "Browning", role = "aut", email = "joshua.browning@fao.org"),
+Authors@R: c(person("Cristina", "Muschitiello", role = "cat", email = "cristina.muschitiello@fao.org"),
              person("Sebastian", "Campbell", role = "cre", email = "sebastian.campbell@fao.org"))
 Description: The package implements standardization of SUA data according to
     provided commodity trees. Essentially, this is the process of converting
     processed products into primary equivalents. This package provides all of
-    the necessary logic for this standardization as well as some tools (such as
-    cleaning up commodity trees with extreme/unreasonable extraction rates).
+    the necessary logic for this standardization as well as some tools.
 License: FAO
 BugReports: https://github.com/SWS-Methodology/faoswsStandardization/issues
 LazyData: yes
@@ -22,6 +21,8 @@ Imports:
     diagram (>= 1.6.3),
     faoswsBalancing (>= 0.0.1),
     igraph (>= 0.7.1),
+    dplyr
+    lattice
     MASS (>= 7.3.35),
     reshape2 (>= 1.4.1)
 Suggests:

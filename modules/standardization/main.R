@@ -2,12 +2,12 @@
 ## load the library
 library(faosws)
 library(faoswsUtil)
-library(data.table)
-library(igraph)
 library(faoswsBalancing)
 library(faoswsStandardization)
 library(faoswsFlag)
 
+library(data.table)
+library(igraph)
 library(stringr)
 library(dplyr)
 library(MASS) 
