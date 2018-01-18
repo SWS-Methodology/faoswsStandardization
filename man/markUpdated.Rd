@@ -7,14 +7,14 @@
 markUpdated(new, old, standParams)
 }
 \arguments{
-\item{new}{The new data.table with the standardization data.}
-
 \item{old}{The original data.table with the standardization data.}
 
 \item{standParams}{The parameters for standardization.  These parameters 
 provide information about the columns of data and tree, specifying (for 
 example) which columns should be standardized, which columns represent 
 parents/children, etc.}
+
+\item{data}{The new data.table with the standardization data.}
 }
 \value{
 The same data.table as new but with an additional column.

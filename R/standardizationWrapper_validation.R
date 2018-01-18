@@ -115,7 +115,7 @@ standardizationWrapper_validation = function(data, tree, fbsTree = NULL, standPa
         nutrientElements = c()
     }
 
-    ## STEP 0.1: Add missing element codes for commodities that are in the data
+    ## STEP 1: Add missing element codes for commodities that are in the data
     ## (so that we can print it).  Then, print the table!
     ## Note that this function has been repeted juast after the processForward
     ## because missingElements have to be created for those children which were not in 
@@ -127,29 +127,10 @@ standardizationWrapper_validation = function(data, tree, fbsTree = NULL, standPa
       old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
       printSUATable(data = data, standParams = p, printCodes = printCodes)
     }
+  
     
-    ## STEP 1: Process forward.
-    # data = processForward(data = data, tree = tree,
-    #                       standParams = p)$data
-    
-    ## As already anticipated, missing elements are added after the processForward
     data = addMissingElements(data, p)
     
-    ## Delete nodes processed forward
-    # forwardParents = tree[get(p$targetVar) == "F", unique(get(p$parentVar))]
-    # tree = tree[!get(p$parentVar) %in% forwardParents, ]
-    
-    # FPCommodities <- c( "01499.06", "01921.01")
-    # if (length(which(FPCommodities%in%printCodes))>0)
-    # {
-    #     if(length(printCodes) > 0){
-    #     cat("\nSUA table after processing forward:")
-    #     data = markUpdated(new = data, old = old, standParams = p)
-    #     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
-    #     printSUATable(data = data, standParams = p, printCodes = printCodes)
-    #     }
-    #   data[,updateFlag:=NULL]
-    # }
     
     ### STEP2 Initial Sua Filling 
     
