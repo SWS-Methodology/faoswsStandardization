@@ -2,29 +2,32 @@
 ##' 
 ##' This function forces a the filling of empty elements in the pulled SUA
 ##' by allocating the "imbalance" according to a Ranking of the possible 
-##' Uitlizazions for each combination of country/commodity
+##' Uitlizazions for each combination of country/commodity.
 ##' 
-##' - If supply < utilization
-##'   * the imbalance is assigned to production, if it is not official
-##'   * if is official it is checked if the commodity is a stock commodity
-##'     i.e. if it does make sense to allocate stock. If it is so, stock is created (negative)
-##'   * if production is official and is not a stocj comodity, 
-##'     Utilizations are proportionally reduced,if the difference S-U <=10% Utilizations
-##'   * if none of these operations is possible, a manual check of the data is needed
-##'     (for the moment production is increased anyway and an external file is produced for check)
+##' 1. PRODUCTION OF DERIVERD
+##'    Production of derived commodities is created, when is not estimated via the 
+##'    sub-module of derived and when utilization are higher than supplies.
+##'    
+##' 2. FOOD PROCESSING 
+##'    with all productions, food processing is created for all parent commoditeis
+##' 
+##' 3. ALL OTHER ELEMENTS ARE FILLED, IF NEEDED
 ##' - if supply > utilization a Multiple filler approach is used: 
 ##'   * If all the ranked utilizations are present 
 ##'     these are proportionally incremented
 ##'   * if one is empty, imbalance goes to this commodity
 ##'   * if more than one is empty, Utilization are created based on a ranking of possible Utilization 
 ##'     coming from an external source.
-##'     The approach used is of the Inverse Ranking. 
-##'     (CRISTINA: for the moment we are trying with the Approach2: using old SUA)
+##'     The approach used id the "Inverse Ranking Rule"
+##'   
+##' - If supply < utilization
+##'   * All utilization are reduced by 30%
+##'   * if this is not enought to cover the imbalance, production is incremented if is not official,
+##'     if is official, utilization are firs reduced of another 30% and then production is reduced.
 ##' 
-##' Trade and Food Processing is never created in this function:
-##' - trade is supposed to be "protected", 
-##' - food processing is created outside this function 
-##'   using a specific function and is not replaced here
+##' If OFFICIAL PRODUCTION is CHANGED, changed rows go in an external file
+##' 
+##' Trade is never touched
 ##' 
 ##' @param data The data.table containing the full dataset for standardization.
 ##' @param p The parameters for standardization.  These parameters 

@@ -1,5 +1,5 @@
 
-##' Full Standardization Process
+##' FULL STANDARDIZATION PROCESS 
 ##' 
 ##' This function implements the new standardization process.  The algorithm is 
 ##' as follows:

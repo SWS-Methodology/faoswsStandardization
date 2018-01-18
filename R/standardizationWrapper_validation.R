@@ -1,38 +1,14 @@
 
-##' Full Standardization Process
+##' FULL STANDARDIZATION PROCESS - VERSION FOR VALIDATION OF OLD DATA
 ##' 
-##' This function implements the new standardization process.  The algorithm is 
-##' as follows:
+##' This version is designed for working on Sua data coming from old methodology
 ##' 
-##' 1. Any edges with a target of "F" should be immediately "processed forward".
-##' This amounts to computing the residual and allocating it to food processing,
-##' and, hence, to production of the children of this node.
+##' This process differs from the "regular" one for: 
+##' - utilization table. In this case loss rank is kept because in the old mthodology there was loss
+##'   also for non primary products. Loss is then been deleted in the new methodology version
+##'   
+##' - Sua Filling is slightly different 
 ##' 
-##' 2. Balance the processed products in the SUA by creating production of 
-##' processed products.  If a node is set to be processed forward, then it is 
-##' also balanced via a residual (i.e. food processing).
-##' 
-##' 2.1 Since food quantities are now available, we can compute initial calorie 
-##' estimates.
-##' 
-##' 3. Availability at the "balancing level" (usually primary level, but 
-##' possibly lower if a node is processed forward or standardized in a different
-##' tree) is determined.  Note that at this point, all edges designated with an 
-##' "F" (i.e. forward) will have been removed, and so "balancing level" is the 
-##' same as the top node of the tree.  This availability defines shares for 
-##' standardization.  If no availability of parents is available, the initial 
-##' shares are used (in tree[, get(standParams$shareVar)]).
-##' 
-##' 4. Standardize commodities according to the commodity tree.  This defines 
-##' the food processing element at balancing level.
-##' 
-##' 5. Balance at the balancing level.
-##' 
-##' 6. Update calories of processed products proportionally based on updated 
-##' food element values.
-##' 
-##' 7. (only if fbsTree is provided) Sum all commodities up to their FBS level 
-##' categories.  This is the final step to prepare data for FAOSTAT.
 ##' 
 ##' @param data The data.table containing the full dataset for standardization. 
 ##'   It should have columns corresponding to year, country, element, commodity,
@@ -153,27 +129,27 @@ standardizationWrapper_validation = function(data, tree, fbsTree = NULL, standPa
     }
     
     ## STEP 1: Process forward.
-    data = processForward(data = data, tree = tree,
-                          standParams = p)$data
+    # data = processForward(data = data, tree = tree,
+    #                       standParams = p)$data
     
     ## As already anticipated, missing elements are added after the processForward
     data = addMissingElements(data, p)
     
     ## Delete nodes processed forward
-    forwardParents = tree[get(p$targetVar) == "F", unique(get(p$parentVar))]
-    tree = tree[!get(p$parentVar) %in% forwardParents, ]
+    # forwardParents = tree[get(p$targetVar) == "F", unique(get(p$parentVar))]
+    # tree = tree[!get(p$parentVar) %in% forwardParents, ]
     
-    FPCommodities <- c( "01499.06", "01921.01")
-    if (length(which(FPCommodities%in%printCodes))>0)
-    {
-        if(length(printCodes) > 0){
-        cat("\nSUA table after processing forward:")
-        data = markUpdated(new = data, old = old, standParams = p)
-        old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
-        printSUATable(data = data, standParams = p, printCodes = printCodes)
-        }
-      data[,updateFlag:=NULL]
-    }
+    # FPCommodities <- c( "01499.06", "01921.01")
+    # if (length(which(FPCommodities%in%printCodes))>0)
+    # {
+    #     if(length(printCodes) > 0){
+    #     cat("\nSUA table after processing forward:")
+    #     data = markUpdated(new = data, old = old, standParams = p)
+    #     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
+    #     printSUATable(data = data, standParams = p, printCodes = printCodes)
+    #     }
+    #   data[,updateFlag:=NULL]
+    # }
     
     ### STEP2 Initial Sua Filling 
     

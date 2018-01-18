@@ -1,3 +1,6 @@
+##' FUNCTION FOR FILLING THE SUA FOR MISSING OR WRONG VALUES.
+##' THIS IS THE VERSION USED FOR VALIDATION OF DATA FROM OLD METHODOLOGY
+##' 
 ##' This function replaces the old BalanceResidual
 ##' 
 ##' This function forces a the filling of empty elements in the pulled SUA
@@ -19,7 +22,6 @@
 ##'   * if more than one is empty, Utilization are created based on a ranking of possible Utilization 
 ##'     coming from an external source.
 ##'     The approach used is of the Inverse Ranking. 
-##'     (CRISTINA: for the moment we are trying with the Approach2: using old SUA)
 ##' 
 ##' Trade and Food Processing is never created in this function:
 ##' - trade is supposed to be "protected", 
