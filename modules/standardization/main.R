@@ -41,16 +41,9 @@ if (CheckDebug()) {
     token = PARAMS[["token"]]
   )
   
-  # always set "lastbatchNumber"+ 99 for subset batches for testing (ex: 6299)
-  # Last complete batch Run 62 Cristina=old SUA, New Trees from old IO tables
-  
 
-  batchnumber = 107 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
 
-  
-  ## Source local scripts for this local tes
-  # for (file in dir(apiDirectory, full.names = T))
-  #   source(file)
 } else {
   message("Running on server, no need to call GetTestEnvironment...")
   
@@ -60,7 +53,7 @@ if (CheckDebug()) {
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
 
-# I one want to create sub-folder in the share drive,
+# If one want to create sub-folder in the share drive,
 # instead of replace the existing 
 # (for example save example files for different batches)
 # put the name in the .yml file
@@ -73,7 +66,6 @@ message("Getting parameters/datasets...")
 
 # start and end year for standardization come from user parameters
 startYear = as.numeric(swsContext.computationParams$startYear)
-# endYear = as.numeric(swsContext.computationParams$endYear)
 endYear = as.numeric(swsContext.computationParams$endYear)
 stopifnot(startYear <= endYear)
 
@@ -81,44 +73,60 @@ yearVals = as.character(startYear:endYear)
 
 
 ##############################################################
-################### NEW TREE CORRECTIONS #####################
+################## DOWNLOAD TREE FROM SWS ####################
+##############################################################
 
-# Get commodity tree with child shares of parent
-# tree = getCommodityTree(timePointYears = yearVals)
-# load(file.path(PARAMS$localFiles, "tree0108.RData"))
-# load(file.path(PARAMS$localFiles, "treeTestAll2.RData")) # this has no duplication 
-# load(file.path(PARAMS$localFiles, "treeTestAllShares_NorSwed2.RData")) # this has no duplication 
-
-# load(file.path(PARAMS$localFiles, "treeTestAllShares.RData")) # this has no duplication
-#########################
-load(file.path(PARAMS$localFiles, "treeTestAllSharesJapancopied.RData"))
-
-
-# all changes have been already included
-# this manual load will be changed when tree will be in the sws
-
-tree=tree[timePointYearsSP%in%yearVals]
-# tree=tree[!measuredItemParentCPC%in%c("0113","23162")]
-# ##' 6. Some more change on the cuts
-# ##' this can be done only here
-# ##' if this code is moved from here it will not take correct information
-# 
-cut2keep=c("2413","2161", "2162", "21631.01", "21641.01", "21641.02", "2168",
-           "21691.14", "2165", "34120", "21932.02", "2166", "21691.07",
-           "2167", "21673", "21691.01", "21691.02", "21691.03", "21691.04",
-           "21691.05", "21691.06", "21631.02", "21691.08", "21691.09", "21691.10",
-           "21691.11", "21691.12", "21691.13", "21691.90", "23620", "21693.02", "34550","2351f","F1243"
-)
-cutItems2exclude=cutItems[-which(cutItems%in%cut2keep)]
-tree=tree[!(measuredItemChildCPC%in%cutItems2exclude)]
-
-tree=tree[!is.na(extractionRate)]
-
-
-###
 
 areaKeys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", "geographicAreaM49")
 areaKeys = areaKeys[type == "country", code]
+
+elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua_unbalanced", "measuredElementSuaFbs")
+elemKeys = elemKeys[parent =="41",
+                    paste0(children, collapse = ", ")]
+
+elemKeys = C("5423")
+elemKeys = c(strsplit(elemKeys, ", ")[[1]], sws_elements)
+itemKeys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", "measuredItemFbsSua")
+itemKeys = itemKeys[, code]
+
+treekey = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = list(
+  geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+  measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
+  measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
+  timePointYears = Dimension(name = "timePointYears", keys = yearVals)
+))
+
+
+tree = GetData(treekey)
+
+##############################################################
+################## SOME TREE CORRECTIONS #####################
+##############################################################
+tree[,timePointYearsSP:=as.character(timePointYearsSP)]
+
+oilFatsCPC=c("2161", "2162", "21631.01", "21641.01", "21641.02", "2168", 
+             "21691.14", "2165", "34120", "21932.02", "2166", "21691.07", 
+             "2167", "21673", "21691.01", "21691.02", "21691.03", "21691.04", 
+             "21691.05", "21691.06", "21631.02", "21691.08", "21691.09", "21691.10", 
+             "21691.11", "21691.12", "21691.13", "21691.90", "23620", "21700.01", 
+             "21700.02", "21693.02", "34550", "F1275", "21512", "21512.01", 
+             "21513", "21514", "F0994", "21515", "21511.01", "21511.02", "21521", 
+             "21511.03", "21522", "21519.02", "21519.03", "21529.03", "21529.02", 
+             "21932.01", "21523", "F1243", "F0666")
+
+tree[!(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),share:=NA]
+tree=tree[timePointYearsSP%in%yearVals]
+tree=tree[!is.na(extractionRate)]
+tree=tree[!is.na(measuredItemChildCPC)]
+
+
+##############################################################
+################## DOWNLOAD DATA FROM SWS ####################
+##############################################################
+
+areaKeys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", "geographicAreaM49")
+areaKeys = areaKeys[type == "country", code]
+areaKeys=c("1248","454","686","360","392","484","716")
 
 elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua_unbalanced", "measuredElementSuaFbs")
 
@@ -162,17 +170,14 @@ message("Reading SUA data...")
 ## element classes listed above, all CPCs in suafbs and all years between those
 ## specified by the user.
 
-##!! 3 warnings about things that need to be changed !!#
-# data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-# elementCol = "measuredElementSuaFbs")
-# setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-# data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
-# data=data[geographicAreaM49%in%c("1248","454","686","360","392","484")]
-# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTEST6_v02.RData")
+data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
+elementCol = "measuredElementSuaFbs")
+setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
 
-# if(CheckDebug()){
-# save(data,file=file.path(PARAMS$localFiles, "05062017_dataAllNew_Seed.RData")
-# }
+data=data[timePointYears%in%yearVals]
+data=data[!is.na(measuredElementSuaFbs)]
+
 ## Update params for specific dataset
 params = defaultStandardizationParameters()
 params$itemVar = "measuredItemSuaFbs"
@@ -196,57 +201,12 @@ params$createIntermetiateFile= "TRUE"
 params$protected = "Protected"
 params$official = "Official"
 
-if(CheckDebug()){
-  # load(file.path(PARAMS$localFiles, "dataTradeChri.RData.RData"))
-  # load(file.path(PARAMS$localFiles, "dataTradeNewFoodBruno.RData"))
-  # load(file.path(PARAMS$localFiles, "dataTradeNewFoodBruno2.RData"))
-  # load(file.path(PARAMS$localFiles, "dataMirror2.RData"))
-  # load(file.path(PARAMS$localFiles, "dataNoMirror.RData"))
-  # last no Mirror import
-  # load(file.path(PARAMS$localFiles, "05062017_dataAllNew_Seed.RData.RData"))
-  # last mirror import
-  # load(file.path(PARAMS$localFiles, "dataMirror3.RData"))
-  # Faostat TRADE DATA
-  # load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT.RData"))
-  # NEW Faostat TRADE DATA (19/07/2017)
-  # load(file.path(PARAMS$localFiles, "dataTradeFAOSTAT2.RData"))
-  # Food Tourist & Stock recaluclated with old TRADE and OLD TRADE 26/07/2017
-  # load(file.path(PARAMS$localFiles, "data_AllTradeFAOSTAT.RData"))
-  
-  # Old SUA
-  # load(file.path(PARAMS$localFiles, "dataOldSuaCorr.RData"))
-  # Old SUA as reimported from the correct table in SWS
-  # batch 78
-  # load(file.path(PARAMS$localFiles, "dataOldSuadownloaded110817.RData"))
-  # data=data[,mget(c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49", 
-  #   "timePointYears", "Value", "Official", "Protected"))]
-  #########################
-  # New TRade production for 6 ccountries
-  # first test on new methodology
-  # load(file.path(PARAMS$localFiles, "dataTEST6.RData"))
-  
-  #AllUpdated (B105)
-  # load(file.path(PARAMS$localFiles, "dataTEST6_v02.RData"))
-  load(file.path(PARAMS$localFiles, "dataTEST6_v03.RData")) # For batch 107
-  
-  
-  
-  
-  setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
-  data=data[timePointYears%in%yearVals]
-  
-  
-  
-
-}
 
 
+# Remove Feed for SUgar refined
 
+data[measuredItemSuaFbs=="23520"&measuredElementSuaFbs=="feed",Value:=0]
 
-# ######### ######### #########
-# ### CRISTINA: 
-# ### All this folllowing data manipulation DO NOT HAVE TO BE DONE IF USING OLD SUA DATA
-# 
 ########################################
 # Final Changes in the data files for sugar
 ### temporary change in the data for accounting for corrections in sugar Tree
@@ -263,88 +223,65 @@ dataTorBind = unique(datas[measuredElementSuaFbs=="production",list(geographicAr
 datas[,s2351f:=NULL]
 datas=datas[!(measuredItemSuaFbs%in%c("23511.01","23512"))]
 dataTorBind = dataTorBind[,measuredItemSuaFbs:="2351f"]
-# dataTorBind = dataTorBind[,flagObservationStatus:="I"]
-# dataTorBind = dataTorBind[,flagMethod:="s"]
+
 setnames(dataTorBind,"s2351f","Value")
 dataTorBind=dataTorBind[,c(7,3,1,2,4:6),with=FALSE]
-# dataTorBind=dataTorBind[,Protected:="FALSE"]
-# dataTorBind=dataTorBind[,Official:="TRUE"]
+
 datas=rbind(datas[!measuredElementSuaFbs=="production"],dataTorBind)
 data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
-# 3523601-3513983
+
 data=rbind(data,datas)
 
-# ########################################
-#
+########################################
+
 data=data[, list(Value = sum(Value, na.rm = TRUE)),
           by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 
 data[flagObservationStatus%in%c("","T"),Official:=TRUE]
-# data[flagObservationStatus%in%c(""),Official:=TRUE]
 data[is.na(Official),Official:=FALSE]
-# data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official"))]
-# ######### ######### #########
+
 #######################################
 
 #protected data
 #### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
 # now we have to delete all the wrong values:
 # THE FOLLOWING STEPS HAVE BEEN COMMENTED BECAUSE THEY SHOULD NOT BE NEEDED
-######################################################################################
-# # ### CRISTINA: test for BAtch 30 (Germany based decision)
-# cropsOfficialFood = c("0111","0115","0112","0116","0117","01199.02","01801","01802")
-#########################
-# cropsOfficialFood = c("0111","0112","0115","0116","0117","01199.02","01801","01802")
-# this second Line is for the test on 6
+# the data might have to be corrected from the questionnaires
+
 cropsOfficialFood = c("0111","0112","0113","0115","0116","0117","01199.02","01801","01802")
 data[!geographicAreaM49%in%c("604")&get(params$itemVar)%in%cropsOfficialFood
-     # &get(params$official)==TRUE
      &get(params$elementVar)==params$foodCode
      ,Value:=NA]
 
+# modify utilization Table for: 
+# 1. Not taking into account food for the non food primary item
+# 2. Consider Loss only for the item in the list of the loss dataset
+utilizationTable=utilizationTable[!(measuredElementSuaFbs=="food"&measuredItemSuaFbs%in%cropsOfficialFood)]
+utilizationTable=utilizationTable[!(measuredElementSuaFbs=="loss"&measuredItemSuaFbs%in%fbsTree[fbsID4%in%c("2605"),measuredItemSuaFbs])]
 
 #########################
-# DELETE THE PRODUCTION OF NO-PRIMARY PRODUCTS
-###### COMMENTED FOR BATCH 106
+
+# For DERIVED select only the protected and the estimation (coming from the submodule)
+
 level = findProcessingLevel(tree, from = params$parentVar,
                             to = params$childVar, aupusParam = params)
 primaryEl = level[processingLevel == 0, get(params$itemVar)]
-# data[get(params$protected)=="FALSE"
-#      &get(params$elementVar)==params$productionCode
-#      &!(get(params$itemVar) %in% primaryEl),Value:=NA]
-####### BATCH 106
-# #
-# #
-# # ###CRISTINA: Test for batch 28, later integrated in the procedure
-# # data[get(params$protected)=="FALSE"
-# #      &get(params$elementVar)==params$productionCode
-# #      &!(get(params$itemVar) %in% primaryEq),Value:=NA]
-# # ###
 
-####### BATCH 107
-# #
-# # I have to select Protected and Estimation (I,e)
+# I have to select Protected and Estimation (I,e)
+# For all the others delete the production value
+# this will leave the Sua Filling creting prodcution, where needed
 
 data[!(get(params$protected)=="TRUE"|(flagObservationStatus=="I"&flagMethod=="e"))
      &get(params$elementVar)==params$productionCode
      &!(get(params$itemVar) %in% primaryEl),Value:=NA]
 
 
-# # ###
-
-
 #######################################################################################
-
-# Convert units for tourist and industrialAfterCB
-message("Applying adjustments to commodity tree...")
-
 ## Update tree by setting some edges to "F", computing average extraction rates
 ## when missing, and bringing in extreme extraction rates
-# FPCommodities <- c("23511.01", "23512","01499.06", "01921.01")
 
-##Cristina
 FPCommodities <- c( "01499.06", "01921.01")
 ##
 
@@ -356,19 +293,8 @@ FPCommodities <- c( "01499.06", "01921.01")
 
 tree[, target := ifelse(measuredItemParentCPC %in% FPCommodities,
                         "F", "B")]
-# tree2 = adjustCommodityTree(tree, parentColname = "measuredItemParentCPC",
-                           # childColname = "measuredItemChildCPC", nSigma = 2)  
 
-# If there's no extraction rate, use the mean extraction rate for that parent
-# child combinations
-# tree[, extractionRate := ifelse(is.na(extractionRate),
-#                                 mean(extractionRate, na.rm = TRUE),
-#                                 extractionRate),
-#      by = c("measuredItemParentCPC", "measuredItemChildCPC")]
-# If there's still no extraction rate, delete connection
-
-# tree=tree[!is.na(extractionRate)]
-
+# MERGE the TREE with the item Map fpr future manipulation
 
 itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
 itemMap = itemMap[, c("code", "type"), with = FALSE]
@@ -383,63 +309,11 @@ data = data[!is.na(measuredElementSuaFbs), ]
 data[,.N,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs","measuredItemSuaFbs")][N>1]
 
 
-##### This is a temporary correction for Batch 107
+##### This is a temporary correction for Batch 107,108,109
 ##### Code 2351f Has to be checked... prodcution & flags)
 data=unique(data,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs","measuredItemSuaFbs"))
 ########################
-########################
-########################
-# # For Batch 106 I have to copy the derived quantities for all the countries and use
-# # for Japan, quantities of 2013 also in 2014 and 2015
-# 
-# dataNew=data
-# 
-# load(file.path(PARAMS$localFiles, "dataOldSua1172017_test.RData"))
-# data=dataTest
-# faostatData=data[geographicAreaM49%in%c("1248","454","686","360","392","484","716")&timePointYears%in%yearVals]
-# faostatData[,timePointYears:=as.character(timePointYears)]
-# 
-# data=dataNew
-# 
-# faostatData=faostatData[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Official","Protected"))]
-# setnames(itemMap, "measuredItemParentCPC", "measuredItemSuaFbs")
-# faostatData = merge(faostatData, itemMap, by = "measuredItemSuaFbs")
-# 
-# 
-# setnames(itemMap, "measuredItemSuaFbs", "measuredItemParentCPC")
-# 
-# 
-# prodData=data[!(measuredItemSuaFbs%in%primaryEl)&measuredElementSuaFbs=="production"]
-# data=data[!(!(measuredItemSuaFbs%in%primaryEl)&measuredElementSuaFbs=="production")]
-# prodFaostat=faostatData[!(measuredItemSuaFbs%in%primaryEl)&measuredElementSuaFbs=="production"]
-# prodFaostat[,flagObservationStatus:=NA]
-# prodFaostat[,flagMethod:=NA]
-# prodFaostat[,Valid:=TRUE]
-# 
-# setcolorder(prodFaostat,colnames(data))
-# 
-# data13J=prodFaostat[geographicAreaM49=="392"&timePointYears=="2013"]
-# data14J=data.table(data.frame(data13J))
-# data15J=data.table(data.frame(data13J))
-# 
-# data14J=data14J[,timePointYears:="2014"]
-# data15J=data15J[,timePointYears:="2015"]
-# 
-# data=rbind(data,prodFaostat,data14J,data15J)
-########################
-########################
-######################## 
-# # For Batch 107 I'm usind derived produced by the module of derived
-# # therefore there is nothing I have to do 
-
-## check 
-# data[geographicAreaM49=="392"&measuredItemSuaFbs=="23110"&measuredElementSuaFbs=="production"]
-# faostatData[geographicAreaM49=="392"&measuredItemSuaFbs=="23110"&measuredElementSuaFbs=="production"]
-# data[geographicAreaM49=="360"&measuredItemSuaFbs=="23110"&measuredElementSuaFbs=="production"]
-# faostatData[geographicAreaM49=="360"&measuredItemSuaFbs=="23110"&measuredElementSuaFbs=="production"]
-
 #######################################################
-## IMBALANCE ANALYSIS 1: INITIAL SUA IMBALANCE 
 # save the initial data locally for future reports
 if(CheckDebug()){
   dir.create(paste0(PARAMS$debugFolder,"/Batch_",batchnumber), showWarnings = FALSE,recursive=TRUE)
@@ -521,11 +395,16 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
  # printCodes = c("21641.01","21641.02","2161","2165",fbsTree[fbsID4=="2586",measuredItemSuaFbs])
  # printCodes = c("21641.01","21641.02","2161","2165","0115","24320")
  # printCodes = c(fbsTree[fbsID4=="2805",measuredItemSuaFbs],"0113")
- printCodes = c("0112")
- printCodes = getChildren(commodityTree = tree,
- parentColname = params$parentVar,
- childColname = params$childVar,
- topNodes = printCodes)
+ # printCodes = c("24490","F0665","F1061","22254","01324","01620","01355.90","01211","21512","2165",
+ #                "01318","01234","39120.04","39130.04","23220.02","22130.01","22110.02","02211",
+ #                "02212","02291","02292")
+ # printCodes = c("0112")
+ # printCodes = fbsTree[fbsID4%in%c("2605"),measuredItemSuaFbs]
+
+ # printCodes = getChildren(commodityTree = tree,
+ # parentColname = params$parentVar,
+ # childColname = params$childVar,
+ # topNodes = printCodes)
 
  
   dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/", SUB_FOLDER, "/standardization/")
@@ -601,11 +480,11 @@ uniqueLevels=uniqueLevels[!geographicAreaM49 %in% c("499","736","729","891","688
 #                                                    "646", "854", "454", "24", "762", "384", "320", "604", "140",
 #                                                    "524", "116", "218", "686", "120", "324", "562", "68", "178"),]
 
-#########################
+########################
 uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("1248","454","686","360","392","484","716"),]  ### TEST 6
 uniqueLevels=uniqueLevels[order(geographicAreaM49,timePointYears)]
-#########################
-uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("454"),]
+########################
+# uniqueLevels=uniqueLevels[geographicAreaM49 %in% c("716"),]
 
 if(params$createIntermetiateFile){
   if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
@@ -797,9 +676,9 @@ if(CheckDebug()){
 #                                         "5023", "5610", "5016", "5510",
 #                                         "5525", "5071", "5166","5165", "5164","664","674","684","5215"))
 # 
-# ##standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode), 
-# ##  `:=`(measuredElementSuaFbs = "other", 
-# ##       Value = sum(Value, na.rm=TRUE)), 
+# ##standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode),
+# ##  `:=`(measuredElementSuaFbs = "other",
+# ##       Value = sum(Value, na.rm=TRUE)),
 # ##  by=c(params$mergeKey)]
 # 
 # standData = merge(standData, fbs_sua_conversion, by = "measuredElementSuaFbs")
@@ -814,7 +693,7 @@ if(CheckDebug()){
 # standData[, flagMethod := "s"]
 # 
 # setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears",
-                         # "Value", "flagObservationStatus", "flagMethod"))
+# "Value", "flagObservationStatus", "flagMethod"))
 # 
 # # Remove NA Values
 # standData <- standData[!is.na(Value),]
@@ -833,5 +712,5 @@ if(CheckDebug()){
 # message((proc.time() - ptm)[3])
 # 
 # 
-# 
+
 

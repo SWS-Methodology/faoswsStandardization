@@ -50,103 +50,235 @@ suaFilling = function(data, p = p, tree=tree,
                       debugFile= NULL,
                       utilizationTable=c(), 
                       imbalanceThreshold = 10,loop1=TRUE){
-
-    # The commodities that have to be crude balanced are the NON PRIMARY
-    
-    stopifnot(imbalanceThreshold > 0)
-
-    eleToExclude = c(p$productionCode,p$exportCode,p$importCode,p$stockCode)
- 
   
-#############################
-   # STEP 1: create production for subsequent food processing calculation:
-############################# 
-
+  # The commodities that have to be crude balanced are the NON PRIMARY
+  
+  stopifnot(imbalanceThreshold > 0)
+  
+  eleToExclude = c(p$productionCode,p$exportCode,p$importCode,p$stockCode)
+  
+  
+  #############################
+  # STEP 1: create production for subsequent food processing calculation:
+  ############################# 
+  
   ## Supply-Utilization = imbalance
   
   data[, imbalance := sum(ifelse(is.na(Value), 0, Value) *
-                          ifelse(get(p$elementVar) == p$productionCode, 1,
-                          ifelse(get(p$elementVar) == p$importCode, 1,
-                          ifelse(get(p$elementVar) == p$exportCode, -1,
-                          ifelse(get(p$elementVar) == p$stockCode, -1,
-                          ifelse(get(p$elementVar) == p$foodCode, -1,
-                          ifelse(get(p$elementVar) == p$foodProcCode, -1,
-                          ifelse(get(p$elementVar) == p$feedCode, -1,
-                          ifelse(get(p$elementVar) == p$wasteCode, -1,
-                          ifelse(get(p$elementVar) == p$seedCode, -1,
-                          ifelse(get(p$elementVar) == p$industrialCode, -1,
-                          ifelse(get(p$elementVar) == p$touristCode, -1,
-                          ifelse(get(p$elementVar) == p$residualCode, -1, 
-                          NA))))))))))))),
+                            ifelse(get(p$elementVar) == p$productionCode, 1,
+                                   ifelse(get(p$elementVar) == p$importCode, 1,
+                                          ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                 ifelse(get(p$elementVar) == p$stockCode, -1,
+                                                        ifelse(get(p$elementVar) == p$foodCode, -1,
+                                                               ifelse(get(p$elementVar) == p$foodProcCode, -1,
+                                                                      ifelse(get(p$elementVar) == p$feedCode, -1,
+                                                                             ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                                                                    ifelse(get(p$elementVar) == p$seedCode, -1,
+                                                                                           ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                                                                                  ifelse(get(p$elementVar) == p$touristCode, -1,
+                                                                                                         ifelse(get(p$elementVar) == p$residualCode, -1, 
+                                                                                                                NA))))))))))))),
        by = c(p$mergeKey)]
   
   # we need the sum of Utilizations
   
   data[, sumUtils := sum(ifelse(is.na(Value), 0, Value) *
-                         ifelse(get(p$elementVar) == p$productionCode, 0,
-                         ifelse(get(p$elementVar) == p$importCode, 0,
-                         ifelse(get(p$elementVar) == p$exportCode, 0,
-                         ifelse(get(p$elementVar) == p$stockCode, ifelse(is.na(Value),0,ifelse(Value<0,0,1)),
-                         ifelse(get(p$elementVar) == p$foodCode, 1,
-                         ifelse(get(p$elementVar) == p$foodProcCode, 1,
-                         ifelse(get(p$elementVar) == p$feedCode, 1,
-                         ifelse(get(p$elementVar) == p$wasteCode, 1,
-                         ifelse(get(p$elementVar) == p$seedCode, 1,
-                         ifelse(get(p$elementVar) == p$industrialCode, 1,
-                         ifelse(get(p$elementVar) == p$touristCode, 1,
-                         ifelse(get(p$elementVar) == p$residualCode, 1, 
-                         NA))))))))))))),
+                           ifelse(get(p$elementVar) == p$productionCode, 0,
+                                  ifelse(get(p$elementVar) == p$importCode, 0,
+                                         ifelse(get(p$elementVar) == p$exportCode, 0,
+                                                ifelse(get(p$elementVar) == p$stockCode, ifelse(is.na(Value),0,ifelse(Value<0,0,1)),
+                                                       ifelse(get(p$elementVar) == p$foodCode, 1,
+                                                              ifelse(get(p$elementVar) == p$foodProcCode, 1,
+                                                                     ifelse(get(p$elementVar) == p$feedCode, 1,
+                                                                            ifelse(get(p$elementVar) == p$wasteCode, 1,
+                                                                                   ifelse(get(p$elementVar) == p$seedCode, 1,
+                                                                                          ifelse(get(p$elementVar) == p$industrialCode, 1,
+                                                                                                 ifelse(get(p$elementVar) == p$touristCode, 1,
+                                                                                                        ifelse(get(p$elementVar) == p$residualCode, 1, 
+                                                                                                               NA))))))))))))),
        by = c(p$mergeKey)]
-
+  
   data[, sumSup := sum(ifelse(is.na(Value), 0, Value) *
                          ifelse(get(p$elementVar) == p$productionCode, 1,
-                         ifelse(get(p$elementVar) == p$importCode, 1,
-                         ifelse(get(p$elementVar) == p$exportCode, 0,
-                         ifelse(get(p$elementVar) == p$stockCode, 0,
-                         ifelse(get(p$elementVar) == p$foodCode, 0,
-                         ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                         ifelse(get(p$elementVar) == p$feedCode, 0,
-                         ifelse(get(p$elementVar) == p$wasteCode, 0,
-                         ifelse(get(p$elementVar) == p$seedCode, 0,
-                         ifelse(get(p$elementVar) == p$industrialCode, 0,
-                         ifelse(get(p$elementVar) == p$touristCode, 0,
-                         ifelse(get(p$elementVar) == p$residualCode, 0,
-                         NA))))))))))))),
+                                ifelse(get(p$elementVar) == p$importCode, 1,
+                                       ifelse(get(p$elementVar) == p$exportCode, 0,
+                                              ifelse(get(p$elementVar) == p$stockCode, 0,
+                                                     ifelse(get(p$elementVar) == p$foodCode, 0,
+                                                            ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                                                                   ifelse(get(p$elementVar) == p$feedCode, 0,
+                                                                          ifelse(get(p$elementVar) == p$wasteCode, 0,
+                                                                                 ifelse(get(p$elementVar) == p$seedCode, 0,
+                                                                                        ifelse(get(p$elementVar) == p$industrialCode, 0,
+                                                                                               ifelse(get(p$elementVar) == p$touristCode, 0,
+                                                                                                      ifelse(get(p$elementVar) == p$residualCode, 0,
+                                                                                                             NA))))))))))))),
        by = c(p$mergeKey)]
   
   
   data[, sumSupstock := sum(ifelse(is.na(Value), 0, Value) *
-                         ifelse(get(p$elementVar) == p$productionCode, 1,
-                         ifelse(get(p$elementVar) == p$importCode, 1,
-                         ifelse(get(p$elementVar) == p$exportCode, 0,
-                         ifelse(get(p$elementVar) == p$stockCode,ifelse(is.na(Value),0,ifelse(Value<0,-1,0)),
-                         ifelse(get(p$elementVar) == p$foodCode, 0,
-                         ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                         ifelse(get(p$elementVar) == p$feedCode, 0,
-                         ifelse(get(p$elementVar) == p$wasteCode, 0,
-                         ifelse(get(p$elementVar) == p$seedCode, 0,
-                         ifelse(get(p$elementVar) == p$industrialCode, 0,
-                         ifelse(get(p$elementVar) == p$touristCode, 0,
-                         ifelse(get(p$elementVar) == p$residualCode, 0, 
-                         NA))))))))))))),
+                              ifelse(get(p$elementVar) == p$productionCode, 1,
+                                     ifelse(get(p$elementVar) == p$importCode, 1,
+                                            ifelse(get(p$elementVar) == p$exportCode, 0,
+                                                   ifelse(get(p$elementVar) == p$stockCode,ifelse(is.na(Value),0,ifelse(Value<0,-1,0)),
+                                                          ifelse(get(p$elementVar) == p$foodCode, 0,
+                                                                 ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                                                                        ifelse(get(p$elementVar) == p$feedCode, 0,
+                                                                               ifelse(get(p$elementVar) == p$wasteCode, 0,
+                                                                                      ifelse(get(p$elementVar) == p$seedCode, 0,
+                                                                                             ifelse(get(p$elementVar) == p$industrialCode, 0,
+                                                                                                    ifelse(get(p$elementVar) == p$touristCode, 0,
+                                                                                                           ifelse(get(p$elementVar) == p$residualCode, 0, 
+                                                                                                                  NA))))))))))))),
        by = c(p$mergeKey)]
   
   
   # the following line added otherwise some cases were not treated at all 
-  data[is.na(officialProd),officialProd:="FALSE"]
+  data[is.na(ProtectedProd),ProtectedProd:="FALSE"]
   data[is.na(ProtectedFood),ProtectedFood:="FALSE"]
   
   # I serparate the different blocks of data for trating them separately 
   
-  # if(loop1==FALSE){
-  #   primaryCommodities = c()
-  # }
-  #   dataPrimary = data[(get(p$itemVar) %in% primaryCommodities)]
-  #   dataNoPrimary = data[!(get(p$itemVar) %in% primaryCommodities)]
-  #   dataNoImb = dataNoPrimary[imbalance<=imbalanceThreshold&imbalance>=(-imbalanceThreshold)]
-  #   dataNegImb = dataNoPrimary[imbalance < (-imbalanceThreshold)]
-  #   dataPosImb = dataNoPrimary[imbalance > imbalanceThreshold]
-
+  dataPrimary = data[(get(p$itemVar) %in% primaryCommodities)]
+  dataNoImbP = dataPrimary[imbalance<=imbalanceThreshold&imbalance>=(-imbalanceThreshold)] # never touched
+  dataNegImbP = dataPrimary[imbalance < (-imbalanceThreshold)] # never touched
+  dataPosImbP = dataPrimary[imbalance > imbalanceThreshold]
+  
+  dataNoPrimary = data[!(get(p$itemVar) %in% primaryCommodities)]
+  dataNoImb = dataNoPrimary[imbalance<=imbalanceThreshold&imbalance>=(-imbalanceThreshold)] # never touched
+  dataNegImb = dataNoPrimary[imbalance < (-imbalanceThreshold)]
+  dataPosImb = dataNoPrimary[imbalance > imbalanceThreshold]
+  
+  ########################## Supply < utilization (= imbalance < -imbalanceThreshold)
+  
+  if (loop1==TRUE) {
+    # # if production EXISTS (protected or estimated Via the sub-module), 
+    # # DON'T DO ANYTHING. 
+    # if production do NOT EXISTS or is a NOT protected 0, create it
+    dataNegImb[get(p$elementVar)==p$productionCode & ProtectedProd==FALSE & (is.na(Value)|Value==0),
+               newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
+  }
+  
+  if (loop1==FALSE) {
+    ######################### NEW VERSION 12/06/2017
+    ######################### DEFINITIONS
+    # First of all try to reduce UTilizations without tuching Food
+    
+    pTolerance = 0.3
+    
+    # 1. reduce the present Utilizations
+    #    by the 30% of each utilization 
+    #    stock here are incremented or reduced of an amount proportional 
+    #    to their value in respect to other utilization
+    
+    # if the reduction of maximum 30% is enought to cover all imbalance
+    dataNegImb_ptol=dataNegImb[abs(imbalance)<=(pTolerance*sumUtils)]
+    dataNegImb_ptol[,newValue:= ifelse(is.na(Value),NA,
+                                       ifelse(get(p$elementVar)%in%eleToExclude,NA,
+                                              Value-abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup)))))]  
+    # if the all imbalance is NOT covered by the 30% of the all utilization
+    # reduce the utilizations by 30% anyway
+    dataNegImb_Noptol=dataNegImb[ # Production existing (either officiali or not)
+      abs(imbalance)>(pTolerance*sumUtils)]
+    
+    dataNegImb_Noptol[,newValue:= ifelse(is.na(Value),NA,
+                                         ifelse(get(p$elementVar)%in%eleToExclude,NA,
+                                                Value-(pTolerance*(Value))))]
+    dataNegImb_ptol[,Value:=ifelse(!is.na(newValue),newValue,Value)]
+    dataNegImb_ptol[,newValue:=NULL]
+    dataNegImb_Noptol[,Value:=ifelse(!is.na(newValue),newValue,Value)]
+    dataNegImb_Noptol[,newValue:=NULL]
+    
+    
+    dataNegImb=rbind(dataNegImb_ptol,dataNegImb_Noptol)
+    dataNegImbComm=dataNegImb[,measuredItemSuaFbs]
+    ############################################################################################
+    ############################################################################################
+    ############################################################################################
+    ############################################################################################
+    # Now recalculate all steps for updating those commodities that have been balanced
+    
+    # First reconstruct the data
+    
+    data=data[!(measuredItemSuaFbs%in%dataNegImbComm)]
+    data=rbind(data,dataNegImb)
+    
+    # Then start again
+    ## Supply-Utilization = imbalance
+    
+    data[, imbalance := sum(ifelse(is.na(Value), 0, Value) *
+                              ifelse(get(p$elementVar) == p$productionCode, 1,
+                                     ifelse(get(p$elementVar) == p$importCode, 1,
+                                            ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                   ifelse(get(p$elementVar) == p$stockCode, -1,
+                                                          ifelse(get(p$elementVar) == p$foodCode, -1,
+                                                                 ifelse(get(p$elementVar) == p$foodProcCode, -1,
+                                                                        ifelse(get(p$elementVar) == p$feedCode, -1,
+                                                                               ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                                                                      ifelse(get(p$elementVar) == p$seedCode, -1,
+                                                                                             ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                                                                                    ifelse(get(p$elementVar) == p$touristCode, -1,
+                                                                                                           ifelse(get(p$elementVar) == p$residualCode, -1, 
+                                                                                                                  NA))))))))))))),
+         by = c(p$mergeKey)]
+    
+    # we need the sum of Utilizations
+    
+    data[, sumUtils := sum(ifelse(is.na(Value), 0, Value) *
+                             ifelse(get(p$elementVar) == p$productionCode, 0,
+                                    ifelse(get(p$elementVar) == p$importCode, 0,
+                                           ifelse(get(p$elementVar) == p$exportCode, 0,
+                                                  ifelse(get(p$elementVar) == p$stockCode, ifelse(is.na(Value),0,ifelse(Value<0,0,1)),
+                                                         ifelse(get(p$elementVar) == p$foodCode, 1,
+                                                                ifelse(get(p$elementVar) == p$foodProcCode, 1,
+                                                                       ifelse(get(p$elementVar) == p$feedCode, 1,
+                                                                              ifelse(get(p$elementVar) == p$wasteCode, 1,
+                                                                                     ifelse(get(p$elementVar) == p$seedCode, 1,
+                                                                                            ifelse(get(p$elementVar) == p$industrialCode, 1,
+                                                                                                   ifelse(get(p$elementVar) == p$touristCode, 1,
+                                                                                                          ifelse(get(p$elementVar) == p$residualCode, 1, 
+                                                                                                                 NA))))))))))))),
+         by = c(p$mergeKey)]
+    
+    data[, sumSup := sum(ifelse(is.na(Value), 0, Value) *
+                           ifelse(get(p$elementVar) == p$productionCode, 1,
+                                  ifelse(get(p$elementVar) == p$importCode, 1,
+                                         ifelse(get(p$elementVar) == p$exportCode, 0,
+                                                ifelse(get(p$elementVar) == p$stockCode, 0,
+                                                       ifelse(get(p$elementVar) == p$foodCode, 0,
+                                                              ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                                                                     ifelse(get(p$elementVar) == p$feedCode, 0,
+                                                                            ifelse(get(p$elementVar) == p$wasteCode, 0,
+                                                                                   ifelse(get(p$elementVar) == p$seedCode, 0,
+                                                                                          ifelse(get(p$elementVar) == p$industrialCode, 0,
+                                                                                                 ifelse(get(p$elementVar) == p$touristCode, 0,
+                                                                                                        ifelse(get(p$elementVar) == p$residualCode, 0,
+                                                                                                               NA))))))))))))),
+         by = c(p$mergeKey)]
+    
+    
+    data[, sumSupstock := sum(ifelse(is.na(Value), 0, Value) *
+                                ifelse(get(p$elementVar) == p$productionCode, 1,
+                                       ifelse(get(p$elementVar) == p$importCode, 1,
+                                              ifelse(get(p$elementVar) == p$exportCode, 0,
+                                                     ifelse(get(p$elementVar) == p$stockCode,ifelse(is.na(Value),0,ifelse(Value<0,-1,0)),
+                                                            ifelse(get(p$elementVar) == p$foodCode, 0,
+                                                                   ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                                                                          ifelse(get(p$elementVar) == p$feedCode, 0,
+                                                                                 ifelse(get(p$elementVar) == p$wasteCode, 0,
+                                                                                        ifelse(get(p$elementVar) == p$seedCode, 0,
+                                                                                               ifelse(get(p$elementVar) == p$industrialCode, 0,
+                                                                                                      ifelse(get(p$elementVar) == p$touristCode, 0,
+                                                                                                             ifelse(get(p$elementVar) == p$residualCode, 0, 
+                                                                                                                    NA))))))))))))),
+         by = c(p$mergeKey)]
+    
+    
+    # the following line added otherwise some cases were not treated at all 
+    data[is.na(ProtectedProd),ProtectedProd:="FALSE"]
+    data[is.na(ProtectedFood),ProtectedFood:="FALSE"]
+    
+    # I serparate the different blocks of data for trating them separately 
+    
     dataPrimary = data[(get(p$itemVar) %in% primaryCommodities)]
     dataNoImbP = dataPrimary[imbalance<=imbalanceThreshold&imbalance>=(-imbalanceThreshold)] # never touched
     dataNegImbP = dataPrimary[imbalance < (-imbalanceThreshold)] # never touched
@@ -157,238 +289,225 @@ suaFilling = function(data, p = p, tree=tree,
     dataNegImb = dataNoPrimary[imbalance < (-imbalanceThreshold)]
     dataPosImb = dataNoPrimary[imbalance > imbalanceThreshold]
     
-    
-
-  ## Supply < utilization (= imbalance < -imbalanceThreshold)
-########################## OLD VERSION CHANGED THE 29 NOVEMBER 17
-# if production is not official, create production
-# dataNegImb[officialProd=="FALSE" & get(p$elementVar)==p$productionCode,
-#            newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
-##########################
-
+    ########################## Supply < utilization (= imbalance < -imbalanceThreshold)
+    # if production is not official, create production
+    dataNegImb[ProtectedProd=="FALSE" & get(p$elementVar)==p$productionCode,
+               newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
+    ##########################
     
     
-# ########################### NEW VERSION CHANGED  29 NOVEMBER 17  
-# # # if production EXISTS (protected or estimated Via the sub-module), create production
-dataNegImb[get(p$elementVar)==p$productionCode & (is.na(Value)|Value==0),
-           newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
-# ###########################
-
-  ########################################################  
-  # if production is official 
-  pTolerance = 0.3
-  
-  dataNegImbOffP = dataNegImb[officialProd=="TRUE"]
-  
-  # 1. Try to reduce the present Utilizations
-  #    only if at least the 70% of each utilization remains
-  #    stock here are incremented or reduced of an amount proportional 
-  #    to their value in respect to other utilization
-
-  dataNegImb[officialProd=="TRUE"&abs(imbalance)<=(pTolerance*sumUtils),
-             newValue:= ifelse(is.na(Value),NA,
-             ifelse(get(p$elementVar)%in%eleToExclude,NA,
-             Value-abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup)))))]
-  
-  # 2. If Imbalance is too high 
-  # save this data outside 
-  
-  NoFillable=dataNegImbOffP[(abs(imbalance)>(pTolerance*sumUtils))]
-
-  # & force the reduction of utilization (up to 30% of their value) & increase production
-  dataNegImb[officialProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)&sumUtils>0,
-             newValue:= ifelse(get(p$elementVar)%in%eleToExclude[-which(eleToExclude=="production")],NA,
-                                ifelse(get(p$elementVar)==p$productionCode,(ifelse(is.na(Value),0,Value)+abs(imbalance)-pTolerance*sumUtils),
-                                       ifelse(is.na(Value),NA,Value-(abs(Value)/(sumUtils+(sumSupstock-sumSup)))
-                                              *(sumUtils*pTolerance))))]
- # & force production
-  
-  dataNegImb[officialProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)&sumUtils==0,
-            newValue:=ifelse(get(p$elementVar)==p$productionCode,
+    
+    ########################################################  
+    # if production is official 
+    pTolerance = 0.3
+    dataNegImbOffP = dataNegImb[ProtectedProd=="TRUE"]
+    # 1. Try to reduce the present Utilizations
+    #    only if at least the 70% of each utilization remains
+    #    stock here are incremented or reduced of an amount proportional 
+    #    to their value in respect to other utilization
+    
+    dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)<=(pTolerance*sumUtils),
+               newValue:= ifelse(is.na(Value),NA,
+                                 ifelse(get(p$elementVar)%in%eleToExclude,NA,
+                                        Value-abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup)))))]
+    
+    # 2. If Imbalance is too high 
+    # save this data outside 
+    
+    NoFillable=dataNegImbOffP[(abs(imbalance)>(pTolerance*sumUtils))]
+    
+    # & force the reduction of utilization (up to 30% of their value) & increase production
+    dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)&sumUtils>0,
+               newValue:= ifelse(get(p$elementVar)%in%eleToExclude[-which(eleToExclude=="production")],NA,
+                                 ifelse(get(p$elementVar)==p$productionCode,(ifelse(is.na(Value),0,Value)+abs(imbalance)-pTolerance*sumUtils),
+                                        ifelse(is.na(Value),NA,Value-(abs(Value)/(sumUtils+(sumSupstock-sumSup)))
+                                               *(sumUtils*pTolerance))))]
+    # & force production always (not just if SumUtils==0)
+    
+    # dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)&sumUtils==0,
+    dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils),
+               newValue:=ifelse(get(p$elementVar)==p$productionCode,
                                 ifelse(is.na(Value),0,Value)+abs(imbalance),NA)]
-              
-              
-  ########################################################  
-  
- if(loop1==FALSE) {
-  ## Supply > utilization (= imbalance > imbalanceThreshold)
-
-############
-### Loop fot Non Primary
-  actualCommodities = dataPosImb[,unique(measuredItemSuaFbs)]
-  
-  for (i in actualCommodities){
-    # If none of the utilization is activable based in the utilization Table
-    if(length(dataPosImb[measuredItemSuaFbs==i
-                         &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
-                         &!is.na(rank),Value])==0){
-    # conventionally put all on food (As was in the previous version of the new module)
-    # this a very rare case but can happen
-      dataPosImb[measuredItemSuaFbs==i
-                 &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
-                 get(p$elementVar)==p$foodCode,newValue:=imbalance]
-    }else{
-      # Se tutti i Value sono popolati
-    if(length(dataPosImb[measuredItemSuaFbs==i
-                         &!(get(p$elementVar)%in%eleToExclude)
-                         &!is.na(rank)&(is.na(Value)),Value])==0){
-      # distribuisci inbalance proporzionalmente ai value stessi (considerando anche quelli che non hanno 
-      # eventualmente ranking)
-      # e diminuendo lo stock negativo, se presente
-      
-      # sumV=sum(dataPosImb[measuredItemSuaFbs==i
-      #                     &!(get(p$elementVar)%in%eleToExclude)
-      #                     # &!is.na(rank)
-      #                     &Value>0,Value],na.rm=TRUE)
-      # 
-      dataPosImb[measuredItemSuaFbs==i
-                 &!(get(p$elementVar)%in%eleToExclude)
-                 &!is.na(rank)                              ############### Vhange 10/17/2017
-                 &Value>0,
-                 newValue:=ifelse(is.na(Value),NA,
-                           Value+abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup))))]
-    }else{
-      #se un valore non 'e popolato e non 'e stock
+    # ########################################################  
+    
+    ## Supply > utilization (= imbalance > imbalanceThreshold)
+    
+    ### Loop fot Non Primary
+    actualCommodities = dataPosImb[,unique(measuredItemSuaFbs)]
+    
+    for (i in actualCommodities){
+      # If none of the utilization is activable based in the utilization Table
       if(length(dataPosImb[measuredItemSuaFbs==i
                            &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
-                           &!is.na(rank)&(is.na(Value)|Value==0),Value])==1){
-        # metti tutto l' imbalance in questo elemento
-        
+                           &!is.na(rank),Value])==0){
+        # conventionally put all on food (As was in the previous version of the new module)
+        # this a very rare case but can happen
         dataPosImb[measuredItemSuaFbs==i
-                   &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&!is.na(rank)
-                   &(is.na(Value)|Value==0),
-                   newValue:=imbalance]
-        
+                   &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
+                     get(p$elementVar)==p$foodCode,newValue:=imbalance]
       }else{
-        # se c'e piu' di un elemento non popolato
+        # Se tutti i Value sono popolati
         if(length(dataPosImb[measuredItemSuaFbs==i
                              &!(get(p$elementVar)%in%eleToExclude)
-                             &!is.na(rank)&(is.na(Value)|Value==0),Value])>1){
-          # allora in base alla seguente funzione dei rank e rank inversi:
-          sumRank = sum(dataPosImb[measuredItemSuaFbs==i
-                                   &!(get(p$elementVar)%in%eleToExclude)
-                                   &!is.na(rank)&(is.na(Value)|Value==0),rankInv])
+                             &!is.na(rank)&(is.na(Value)),Value])==0){
+          # distribuisci inbalance proporzionalmente ai value stessi (considerando anche quelli che non hanno 
+          # eventualmente ranking)
+          # e diminuendo lo stock negativo, se presente
+          
+          # sumV=sum(dataPosImb[measuredItemSuaFbs==i
+          #                     &!(get(p$elementVar)%in%eleToExclude)
+          #                     # &!is.na(rank)
+          #                     &Value>0,Value],na.rm=TRUE)
+          # 
           dataPosImb[measuredItemSuaFbs==i
                      &!(get(p$elementVar)%in%eleToExclude)
-                     &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(rankInv/sumRank)]
-        }
-      }
-    }
-    
-  }
-  
-}
-############ End loop no primary
-############
-### Loop for primary
-  # the loop is reduced to the commodities for which Food is NOT PROTECTED
-  actualCommoditiesP = dataPosImbP[measuredElementSuaFbs=="food"&ProtectedFood=="FALSE",unique(measuredItemSuaFbs)]
-  # actualCommoditiesP = dataPosImbP[,unique(measuredItemSuaFbs)]
-  
-  for (i in actualCommoditiesP){
-    # If none of the utilization is activable based in the utilization Table
-    if(length(dataPosImbP[measuredItemSuaFbs==i
-                         &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
-                         &!is.na(rank),Value])==0){
-      # conventionally put all on food (As was in the previous version of the new module)
-      # this a very rare case but can happen
-      # ONLY IF FOOD IS NOT PROTECTED
-    #   if(dataPosImbP[measuredItemSuaFbs==i
-    #                  &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
-    #                  get(p$elementVar)==p$foodCode,ProtectedFood]=="FALSE"){
-    #          dataPosImbP[measuredItemSuaFbs==i
-    #              &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
-    #                get(p$elementVar)==p$foodCode,newValue:=imbalance]
-    #     } # IF FOOD IS PROTECTED THE LINE WILL REMAIN IMBALANCED
-    }else{
-    #   # Se tutti i Value sono popolati
-      if(length(dataPosImbP[measuredItemSuaFbs==i
-                           &!(get(p$elementVar)%in%eleToExclude)
-                           &!is.na(rank)&(is.na(Value)),Value])==0){
-        # AS NOW WE ARE CONSIDERING PRIMARIES, IF ALL THE VALUES ARE POPULATED
-        # DON'T DO ANYTHING
-        dataPosImbP[measuredItemSuaFbs==i
-                   &!(get(p$elementVar)%in%eleToExclude)
-                   # &!is.na(rank)
-                   &Value>0,
-                   newValue:=Value]
-      }else{
-        #se un valore non 'e popolato e non e' stock ED E' FOOD 
-        if(length(dataPosImbP[measuredItemSuaFbs==i
-                             &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
-                             &!is.na(rank)&(is.na(Value)|Value==0),Value])==1){
-          # metti tutto l'imbalance in questo elemento
-          # ONLY IF IS FOOD 
-          # what we are tring to do is not to necessary balance primary, but only create food 
-          # if this should be there and is not
-          dataPosImbP[measuredItemSuaFbs==i
-                     &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&!is.na(rank)
-                     &(is.na(Value)|Value==0)
-                     &get(p$elementVar)==p$foodCode&ProtectedFood=="FALSE",
-                     newValue:=imbalance]
-          
+                     &!is.na(rank)                              ############### Vhange 10/17/2017
+                     &Value>0,
+                     newValue:=ifelse(is.na(Value),NA,
+                                      Value+abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup))))]
         }else{
-          # se c'e piu' di un elemento non popolato e food é fra questi elementi
-          if(length(dataPosImbP[measuredItemSuaFbs==i
-                               &!(get(p$elementVar)%in%eleToExclude)
-                               &!is.na(rank)&(is.na(Value)|Value==0),Value])>1
-             &(p$foodCode %in% dataPosImbP[measuredItemSuaFbs==i
-                          &!(get(p$elementVar)%in%eleToExclude)
-                          &!is.na(rank)&(is.na(Value)|Value==0),get(p$elementVar)])
-             ){
-            # allora in base alla seguente funzione dei rank e rank inversi:
-            sumRank = sum(dataPosImbP[measuredItemSuaFbs==i
-                                     &!(get(p$elementVar)%in%eleToExclude)
-                                     &!is.na(rank)&(is.na(Value)|Value==0),rankInv])
-            dataPosImbP[measuredItemSuaFbs==i
-                       &!(get(p$elementVar)%in%eleToExclude)
-                       &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(rankInv/sumRank)]
+          #se un valore non 'e popolato e non 'e stock
+          if(length(dataPosImb[measuredItemSuaFbs==i
+                               &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
+                               &!is.na(rank)&(is.na(Value)|Value==0),Value])==1){
+            # metti tutto l' imbalance in questo elemento
+            
+            dataPosImb[measuredItemSuaFbs==i
+                       &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&!is.na(rank)
+                       &(is.na(Value)|Value==0),
+                       newValue:=imbalance]
+            
+          }else{
+            # se c'e piu' di un elemento non popolato
+            if(length(dataPosImb[measuredItemSuaFbs==i
+                                 &!(get(p$elementVar)%in%eleToExclude)
+                                 &!is.na(rank)&(is.na(Value)|Value==0),Value])>1){
+              # allora in base alla seguente funzione dei rank e rank inversi:
+              sumRank = sum(dataPosImb[measuredItemSuaFbs==i
+                                       &!(get(p$elementVar)%in%eleToExclude)
+                                       &!is.na(rank)&(is.na(Value)|Value==0),rankInv])
+              dataPosImb[measuredItemSuaFbs==i
+                         &!(get(p$elementVar)%in%eleToExclude)
+                         &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(rankInv/sumRank)]
+            }
           }
         }
+        
+      }
+      
+    }
+    ############ End loop no primary
+    ############
+    ### Loop for primary
+    # the loop is reduced to the commodities for which Food is NOT PROTECTED
+    actualCommoditiesP = dataPosImbP[measuredElementSuaFbs=="food"&ProtectedFood=="FALSE",unique(measuredItemSuaFbs)]
+    # actualCommoditiesP = dataPosImbP[,unique(measuredItemSuaFbs)]
+    
+    for (i in actualCommoditiesP){
+      # If none of the utilization is activable based in the utilization Table
+      if(length(dataPosImbP[measuredItemSuaFbs==i
+                            &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
+                            &!is.na(rank),Value])==0){
+        # conventionally put all on food (As was in the previous version of the new module)
+        # this a very rare case but can happen
+        # ONLY IF FOOD IS NOT PROTECTED
+        #   if(dataPosImbP[measuredItemSuaFbs==i
+        #                  &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
+        #                  get(p$elementVar)==p$foodCode,ProtectedFood]=="FALSE"){
+        #          dataPosImbP[measuredItemSuaFbs==i
+        #              &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
+        #                get(p$elementVar)==p$foodCode,newValue:=imbalance]
+        #     } # IF FOOD IS PROTECTED THE LINE WILL REMAIN IMBALANCED
+      }else{
+        #   # Se tutti i Value sono popolati
+        if(length(dataPosImbP[measuredItemSuaFbs==i
+                              &!(get(p$elementVar)%in%eleToExclude)
+                              &!is.na(rank)&(is.na(Value)),Value])==0){
+          # AS NOW WE ARE CONSIDERING PRIMARIES, IF ALL THE VALUES ARE POPULATED
+          # DON'T DO ANYTHING
+          dataPosImbP[measuredItemSuaFbs==i
+                      &!(get(p$elementVar)%in%eleToExclude)
+                      # &!is.na(rank)
+                      &Value>0,
+                      newValue:=Value]
+        }else{
+          #se un valore non 'e popolato e non e' stock ED E' FOOD 
+          if(length(dataPosImbP[measuredItemSuaFbs==i
+                                &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
+                                &!is.na(rank)&(is.na(Value)|Value==0),Value])==1){
+            # metti tutto l'imbalance in questo elemento
+            # ONLY IF IS FOOD 
+            # what we are tring to do is not to necessary balance primary, but only create food 
+            # if this should be there and is not
+            dataPosImbP[measuredItemSuaFbs==i
+                        &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&!is.na(rank)
+                        &(is.na(Value)|Value==0)
+                        &get(p$elementVar)==p$foodCode&ProtectedFood=="FALSE",
+                        newValue:=imbalance]
+            
+          }else{
+            # se c'e piu' di un elemento non popolato e food é fra questi elementi
+            if(length(dataPosImbP[measuredItemSuaFbs==i
+                                  &!(get(p$elementVar)%in%eleToExclude)
+                                  &!is.na(rank)&(is.na(Value)|Value==0),Value])>1
+               &(p$foodCode %in% dataPosImbP[measuredItemSuaFbs==i
+                                             &!(get(p$elementVar)%in%eleToExclude)
+                                             &!is.na(rank)&(is.na(Value)|Value==0),get(p$elementVar)])
+            ){
+              # allora in base alla seguente funzione dei rank e rank inversi:
+              sumRank = sum(dataPosImbP[measuredItemSuaFbs==i
+                                        &!(get(p$elementVar)%in%eleToExclude)
+                                        &!is.na(rank)&(is.na(Value)|Value==0),rankInv])
+              dataPosImbP[measuredItemSuaFbs==i
+                          &!(get(p$elementVar)%in%eleToExclude)
+                          &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(rankInv/sumRank)]
+            }
+          }
+        }
+        
+      }
+      
+    }
+    ############ End loop primary
+    
+    
+    
+    ###    ###    ###    ###    
+    ### EXTERNAL SAVING OF FORCED INFORMATION
+    
+    if(dim(NoFillable)[1]>0){
+      # message(paste0("There are ",dim(NoFillable)[1]," row with supply<Utilization where Official Production has been incremented"))
+      
+      NoFillable[,noF:=NULL]
+      setnames(NoFillable, "measuredItemSuaFbs", "measuredItemFbsSua")
+      # fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+      #                                                          "foodManufacturing", "imports", "loss", "production", 
+      #                                                          "seed", "stockChange", "residual","industrial", "tourist"),
+      #                                  code=c("261", "281", "271", "5910", "5520", "5141", 
+      #                                         "5023", "5610", "5016", "5510",
+      #                                         "5525", "5071", "5166","5165", "5164"))
+      # 
+      # standData = merge(NoFillable, fbs_sua_conversion, by = "measuredElementSuaFbs")
+      # standData[,`:=`(measuredElementSuaFbs = NULL)]
+      # setnames(standData, "code", "measuredElementSuaFbs")
+      standData = NoFillable
+      standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+                             Value)]
+      standData <- standData[!is.na(Value),]
+      
+      standData[, flagObservationStatus := "I"]
+      standData[, flagMethod := "x"]
+      
+      if(!is.null(debugFile)){
+        
+        saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
+                               fileName=paste0("B",batchnumber,"_10_ForcedProduction"),
+                               data=standData)
       }
       
     }
     
-  }
-  ############ End loop primary
-  
-}  #this brackets refer only at the second loop
-  
-  ###    ###    ###    ###    
-  ### EXTERNAL SAVING OF FORCED INFORMATION
-
-  if(dim(NoFillable)[1]>0){
-    # message(paste0("There are ",dim(NoFillable)[1]," row with supply<Utilization where Official Production has been incremented"))
-  
-    NoFillable[,noF:=NULL]
-    setnames(NoFillable, "measuredItemSuaFbs", "measuredItemFbsSua")
-    # fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-    #                                                          "foodManufacturing", "imports", "loss", "production", 
-    #                                                          "seed", "stockChange", "residual","industrial", "tourist"),
-    #                                  code=c("261", "281", "271", "5910", "5520", "5141", 
-    #                                         "5023", "5610", "5016", "5510",
-    #                                         "5525", "5071", "5166","5165", "5164"))
-    # 
-    # standData = merge(NoFillable, fbs_sua_conversion, by = "measuredElementSuaFbs")
-    # standData[,`:=`(measuredElementSuaFbs = NULL)]
-    # setnames(standData, "code", "measuredElementSuaFbs")
-    standData = NoFillable
-    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
-                           Value)]
-    standData <- standData[!is.na(Value),]
-    
-    standData[, flagObservationStatus := "I"]
-    standData[, flagMethod := "x"]
-    
-    if(!is.null(debugFile)){
-      
-      saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
-                             fileName=paste0("B",batchnumber,"_10_ForcedProduction"),
-                             data=standData)
-    }
-
-  }
-
+  }  #this brackets refer only at the second loop
   
   if("newValue" %in% colnames(dataPosImbP)){
     dataPosImbP[!is.na(newValue),Value:=newValue]
@@ -410,4 +529,4 @@ dataNegImb[get(p$elementVar)==p$productionCode & (is.na(Value)|Value==0),
 
 
 
-   
+

@@ -73,7 +73,7 @@
 ##' @export
 ##' 
 
-standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
+standardizationWrapper_validation = function(data, tree, fbsTree = NULL, standParams,
                                   nutrientData = NULL, printCodes = c(),
                                   debugFile= NULL,batchnumber=batchnumber,
                                   utilizationTable = utilizationTable
@@ -202,7 +202,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     data = unique(data)
     
-    data=suaFilling(data, p=p, tree=tree,
+    data=suaFilling_validation(data, p=p, tree=tree,
                     primaryCommodities = primaryEl, debugFile=p$createIntermetiateFile,
                     stockCommodities = stockCommodities,
                     utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=TRUE)
@@ -417,7 +417,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          
          data[,c("availability","updateFlag"):=NULL]
          
-         data=suaFilling(data, p=p, tree=tree,
+         data=suaFilling_validation(data, p=p, tree=tree,
                          primaryCommodities = primaryEl,
                          debugFile = params$createIntermetiateFile, stockCommodities = stockCommodities,
                          utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=FALSE)
@@ -673,8 +673,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data[, standardDeviation := Value * .1]
    
   ##Production
-  # data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .01]
-  data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .001] # Batch 119
+  data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .01]
   ##Import
   data[get(p$elementVar)==p$importCode, standardDeviation := Value * .02]
   ##Export
@@ -682,8 +681,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ##Stock
   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
   ##Food
-  # data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .001]
-  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .001] #batch 119
+  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .001]
   ##Feed
   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
   ##Seed

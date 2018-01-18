@@ -1,18 +1,37 @@
-## This module is designed to harvest the data from other tables and pull all
-## relevant FBS data into the SUA/FBS domain.  It pulls from the following
-## tables:
-## 
-## - Agriculture Production (production, stock, feed, seed, industrial)
-## - Food (food)
-## - Loss (loss)
-## - Trade (trade)
-## - Tourist (tourist)
-## 
+##' # Pull data from different domains to sua 
+##'
+##' **Author: Cristina Muschitiello**
+##'
+##' **Description:**
+##'
+##' This module is designed to harvest the data from other tables and pull all
+##' relevant FBS data into the SUA/FBS domain.  It pulls from the following
+##' 
+##' **Inputs:**
+##'
+##' * Agriculture Production (production, stock, seed, industrial)
+##' * Food (food)
+##' * Loss (loss)
+##' * feed (feed) 
+##' * Trade:
+##' in november 2017, for urgent purposes, as it was not possible to validate all the new Trade data
+##' it has been decided to use:
+##'    . Old Trade data up to 2013
+##'    . New Trade data from 2014 (Trade domain)
+##' * Tourist (tourist)
+
+##'
+##' **Flag assignment:**
+##'
+##' | Observation Status Flag | Method Flag|
+##' | --- | --- | --- |
+
 
 ## load the library
 library(faosws)
 library(data.table)
 library(faoswsUtil)
+library(sendmailR)
 
 oldProductionCode = "51"
 foodCode = "5141"
@@ -51,20 +70,35 @@ if(CheckDebug()){
 
 startYear = as.numeric(swsContext.computationParams$startYear)
 endYear = as.numeric(swsContext.computationParams$endYear)
+geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = startYear:endYear
-yearVals = as.character(2010:2015)
 
+##' Get data configuration and session
+sessionKey = swsContext.datasets[[1]]
+
+sessionCountries =
+  getQueryKey("geographicAreaM49", sessionKey)
+
+geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
+                      dimension = "geographicAreaM49")[type == "country", code]
+
+##' Select the countries based on the user input parameter
+selectedGEOCode =
+  switch(geoM49,
+         "session" = sessionCountries,
+         "all" = geoKeys)
 ################################################
 ##### Harvest from Agricultural Production #####
 ################################################
 
 message("Pulling data from Agriculture Production")
-geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
-                      dimension = "geographicAreaM49")[type == "country", code]
-#geokeys TEST 04/11/2017 6 countries
-geoKeys = c("1248","454","686","360","392","484","716")
-geoDim = Dimension(name = "geographicAreaM49", keys = geoKeys)
+
+## if the 
+
+geoDim = Dimension(name = "geographicAreaM49", keys = selectedGEOCode)
+
+
 eleKeys = GetCodeTree(domain = "agriculture", dataset = "aproduction",
                       dimension = "measuredElement")
 ## Get all children of old codes
@@ -149,7 +183,6 @@ setnames(tourData, c("tourismElement", "measuredItemCPC"),
 ################################################
 #####       Harvest from Trade Domain      #####
 ################################################
-
 # TRADE HAS TO BE PULLED:
 # - FROM OLD FAOSTAT UNTIL 2013
 # - FROM NEW DATA STARTING FROM 2010
@@ -159,101 +192,116 @@ message("Pulling data from Trade UNTIL 2013 (old FAOSTAT)")
 
 eleTradeDim = Dimension(name = "measuredElementTrade",
                        keys = c(importCode, exportCode))
-timeTradeDimUp13 = Dimension(name = "timePointYears", keys = as.character(yearVals[1]:2013))
-timeTradeDimFrom14 = Dimension(name = "timePointYears", keys = as.character(2014:yearVals[length(yearVals)]))
-
 tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")), waitTimeout = 2000000)
 
-geoKeysTrade=m492fs(geoKeys)
+geoKeysTrade=m492fs(selectedGEOCode)
 
 geokeysTrade=geoKeysTrade[!is.na(geoKeysTrade)]
 
-###### Trade UNTIL 2009 (old FAOSTAT)
-message("Trade UNTIL 2013 (old FAOSTAT)")
-tradeKeyUp13 = DatasetKey(
- domain = "faostat_one", dataset = "updated_sua",
- dimensions = list(
-   #user input except curacao,  saint martin and former germany
-   geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
-   measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
-   measuredElementFS=Dimension(name = "measuredElementFS",
-             keys = c( "61", "91")),
-   timePointYears = timeTradeDimUp13 ),
- sessionId =  slot(swsContext.datasets[[1]], "sessionId")
-)
-
-
-tradeDataUp13 = GetData(tradeKeyUp13)
-
-
-tradeDataUp13[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
-                measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
-                                         version = "latest"))]
-
-
-setnames(tradeDataUp13, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
-        c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
-
-tradeDataUp13[, flagMethod := "-"]
-
-tradeDataUp13[flagObservationStatus %in% c("P", "*", "F"), flagObservationStatus := "T"]
-
-tradeDataUp13[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
-tradeDataUp13[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
-
-###### Trade FROM 2010 (new Data)
-message("Trade FROM 2014 (new Data)")
-# Code already present in the repository to pull data fro the current trade domain
-# 
-# tradeKeyFrom14 = DatasetKey(
-#   domain = "trade", dataset = "total_trade_cpc_m49",
-#   dimensions = list(geographicAreaM49 = geoDim,
-#                     measuredElementTrade = eleTradeDim,
-#                     measuredItemCPC = itemDim,
-#                     timePointYears = timeTradeDimFrom14)
-# )
-# tradeDataFrom14 = GetData(tradeKeyFrom14)
-# setnames(tradeDataFrom14, c("measuredElementTrade", "measuredItemCPC"),
-#          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
-# tradeDataFrom14[, flagMethod := NA]
-
-
-
-GetCodeList2 <- function(dimension = NA) {
-  GetCodeList(domain='trade', dataset='total_trade_cpc_m49', dimension = dimension)
+if(2013>=endYear){
+  timeTradeDimUp13 = Dimension(name = "timePointYears", keys = as.character(yearVals))
+  
+  ###### Trade UNTIL 2013 (old FAOSTAT)
+  message("Trade UNTIL 2013 (old FAOSTAT)")
+  tradeKeyUp13 = DatasetKey(
+    domain = "faostat_one", dataset = "updated_sua",
+    dimensions = list(
+      #user input except curacao,  saint martin and former germany
+      geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
+      measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
+      measuredElementFS=Dimension(name = "measuredElementFS",
+                                  keys = c( "61", "91")),
+      timePointYears = timeTradeDimUp13 ),
+    sessionId =  slot(swsContext.datasets[[1]], "sessionId")
+  )
+  
+  
+  tradeDataUp13 = GetData(tradeKeyUp13)
+  
+  
+  tradeDataUp13[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
+                       measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
+                                                version = "latest"))]
+  
+  
+  setnames(tradeDataUp13, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
+           c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
+  
+  tradeDataUp13[, flagMethod := "-"]
+  
+  tradeDataUp13[flagObservationStatus %in% c("P", "*", "F"), flagObservationStatus := "T"]
+  
+  tradeDataUp13[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
+  tradeDataUp13[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
+  
+  tradeData=tradeDataUp13 
+  
+}else{
+  ###### Trade FROM 2014 (new Data)
+  message("Trade FROM 2014 (new Data)")
+  
+  timeTradeDimFrom14 = Dimension(name = "timePointYears", keys = as.character(2014:endYear))
+  
+  tradeKeyFrom14 = DatasetKey(
+    domain = "trade", dataset = "total_trade_cpc_m49",
+    dimensions = list(geographicAreaM49 = geoDim,
+                      measuredElementTrade = eleTradeDim,
+                      measuredItemCPC = itemDim,
+                      timePointYears = timeTradeDimFrom14)
+  )
+  tradeDataFrom14 = GetData(tradeKeyFrom14)
+  setnames(tradeDataFrom14, c("measuredElementTrade", "measuredItemCPC"),
+           c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+  
+  ###### Merging Trade Data
+  message("Merging Data")
+  if(2013<startYear){
+    tradeData=tradeDataFrom14
+  }else{
+    timeTradeDimUp13 = Dimension(name = "timePointYears", keys = as.character(startYear:2013))
+    message("Trade UNTIL 2013 (old FAOSTAT)")
+    tradeKeyUp13 = DatasetKey(
+      domain = "faostat_one", dataset = "updated_sua",
+      dimensions = list(
+        #user input except curacao,  saint martin and former germany
+        geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
+        measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
+        measuredElementFS=Dimension(name = "measuredElementFS",
+                                    keys = c( "61", "91")),
+        timePointYears = timeTradeDimUp13 ),
+      sessionId =  slot(swsContext.datasets[[1]], "sessionId")
+    )
+    
+    
+    tradeDataUp13 = GetData(tradeKeyUp13)
+    
+    
+    tradeDataUp13[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
+                         measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
+                                                  version = "latest"))]
+    
+    
+    setnames(tradeDataUp13, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
+             c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
+    
+    tradeDataUp13[, flagMethod := "-"]
+    
+    tradeDataUp13[flagObservationStatus %in% c("P", "*", "F"), flagObservationStatus := "T"]
+    
+    tradeDataUp13[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
+    tradeDataUp13[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
+    
+    tradeData=rbind(tradeDataUp13,tradeDataFrom14)  
+    
+  }
+  
 }
 
 
-Vars <- list(reporters = 'geographicAreaM49',
-             items     = 'measuredItemCPC',
-             elements  = 'measuredElementTrade',
-             years     = 'timePointYears')
-
-Keys <- list(#reporters = GetCodeList2(dimension = Vars[['reporters']])[type=='country', code],
-              reporters = c("1248","454","686","360","392","484"),
-              items     = GetCodeList2(dimension = Vars[['items']])[, code],
-             # Quantity [#], Quantity [head], Quantity [1000 head], Quantity [t], Value [1000 $]
-             elements  = c('5607', '5608', '5609', '5610', '5907', '5908', '5909', '5910'),
-             years     = as.character(2014:yearVals[length(yearVals)]))
-
-key <- DatasetKey(domain = 'trade',
-                  dataset = 'total_trade_cpc_m49',
-                  dimensions = list(
-                    Dimension(name = Vars[['reporters']], keys = Keys[['reporters']]),
-                    Dimension(name = Vars[['items']],     keys = Keys[['items']]),
-                    Dimension(name = Vars[['elements']],  keys = Keys[['elements']]),
-                    Dimension(name = Vars[['years']],     keys = Keys[['years']])))
 
 
-tradeDataFrom14 <- GetData(key = key)
 
-setnames(tradeDataFrom14, c("measuredElementTrade", "measuredItemCPC"),
-         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
-###### Merging Trade Data
-message("Merging Data")
-
-tradeData=rbind(tradeDataUp13,tradeDataFrom14)
 
 
 
@@ -267,33 +315,23 @@ out = do.call("rbind", list(agData,foodData, lossData, tradeData, tourData))
 out <- out[!is.na(Value),]
 setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
 
-# SAVE DATA TEST 10/11/2017
-data = elementCodesToNames(data = out, itemCol = "measuredItemFbsSua",
-                           elementCol = "measuredElementSuaFbs")
-data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
-# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTEST6_v02.RData")
-save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTEST6_v03.RData") # for batch 107
-
-# SAVE DATA TEST 4/11/2017
-# data = elementCodesToNames(data = out, itemCol = "measuredItemFbsSua",
-#                            elementCol = "measuredElementSuaFbs")
-# data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
-# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTEST6.RData")
-
-
-# save data with TRAde FROM faostat
-# data = elementCodesToNames(data = out, itemCol = "measuredItemFbsSua",
-#                            elementCol = "measuredElementSuaFbs")
-# 
-# setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
-# 
-# save(data,file="C:/Users/muschitiello/Documents/StandardizationFrancescaCristina/SupportFiles_Standardization/dataTradeFAOSTAT.RData")
-
-
-
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
 
-paste0(stats$inserted, " observations written, ",
-       stats$ignored, " weren't updated, ",
-       stats$discarded, " had problems.")
+  paste0(stats$inserted, " observations written, ",
+         stats$ignored, " weren't updated, ",
+         stats$discarded, " had problems.")
+
+
+################################################################
+#####  send Email with notification of correct execution   #####
+################################################################
+
+## Initiate email
+from = "sws@fao.org"
+to = swsContext.userEmail
+subject = "PullDataToSua plug-in has correctly run"
+body = "The plug-in has saved the SUAs in your session"
+
+sendmail(from = from, to = to, subject = subject, msg = body)
+paste0("Email sent to ", swsContext.userEmail)
 

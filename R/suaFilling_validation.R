@@ -45,7 +45,7 @@
 ##' @return the Value column of the passed data.table is updated 
 ##'   
 
-suaFilling_old = function(data, p = p, tree=tree,
+suaFilling_validation = function(data, p = p, tree=tree,
                       primaryCommodities = c(), stockCommodities = c(),
                       debugFile= NULL,
                       utilizationTable=c(), 
@@ -133,7 +133,7 @@ suaFilling_old = function(data, p = p, tree=tree,
   
   
   # the following line added otherwise some cases were not treated at all 
-  data[is.na(officialProd),officialProd:="FALSE"]
+  data[is.na(ProtectedProd),ProtectedProd:="FALSE"]
   data[is.na(ProtectedFood),ProtectedFood:="FALSE"]
   
   # I serparate the different blocks of data for trating them separately 
@@ -162,7 +162,7 @@ suaFilling_old = function(data, p = p, tree=tree,
   ## Supply < utilization (= imbalance < -imbalanceThreshold)
   
   # if production is not official, create production
-  dataNegImb[officialProd=="FALSE" & get(p$elementVar)==p$productionCode,
+  dataNegImb[ProtectedProd=="FALSE" & get(p$elementVar)==p$productionCode,
              newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
 
 
@@ -170,14 +170,14 @@ suaFilling_old = function(data, p = p, tree=tree,
   # if production is official 
   pTolerance = 0.3
   
-  dataNegImbOffP = dataNegImb[officialProd=="TRUE"]
+  dataNegImbOffP = dataNegImb[ProtectedProd=="TRUE"]
   
   # 1. Try to reduce the present Utilizations
   #    only if at least the 70% of each utilization remains
   #    stock here are incremented or reduced of an amount proportional 
   #    to their value in respect to other utilization
 
-  dataNegImb[officialProd=="TRUE"&abs(imbalance)<=(pTolerance*sumUtils),
+  dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)<=(pTolerance*sumUtils),
              newValue:= ifelse(is.na(Value),NA,
              ifelse(get(p$elementVar)%in%eleToExclude,NA,
              Value-abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup)))))]
@@ -188,14 +188,14 @@ suaFilling_old = function(data, p = p, tree=tree,
   NoFillable=dataNegImbOffP[(abs(imbalance)>(pTolerance*sumUtils))]
 
   # & force the reduction of utilization (up to 30% of their value) & increase production
-  dataNegImb[officialProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)&sumUtils>0,
+  dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)&sumUtils>0,
              newValue:= ifelse(get(p$elementVar)%in%eleToExclude[-which(eleToExclude=="production")],NA,
                                 ifelse(get(p$elementVar)==p$productionCode,(ifelse(is.na(Value),0,Value)+abs(imbalance)-pTolerance*sumUtils),
                                        ifelse(is.na(Value),NA,Value-(abs(Value)/(sumUtils+(sumSupstock-sumSup)))
                                               *(sumUtils*pTolerance))))]
  # & force production
   
-  dataNegImb[officialProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)&sumUtils==0,
+  dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)&sumUtils==0,
             newValue:=ifelse(get(p$elementVar)==p$productionCode,
                                 ifelse(is.na(Value),0,Value)+abs(imbalance),NA)]
               
