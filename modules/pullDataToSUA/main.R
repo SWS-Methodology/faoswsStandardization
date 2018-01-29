@@ -107,7 +107,7 @@ eleKeys = strsplit(eleKeys[parent %in% c(oldProductionCode, oldFeedCode,
                    split = ", ")
 ## Combine with single codes
 eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys),
-                                                      industrialCode, stocksCode))
+                                                      industrialCode))
 itemKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                        dimension = "measuredItemCPC")[, code]
 itemDim = Dimension(name = "measuredItemCPC", keys = itemKeys)
@@ -122,6 +122,26 @@ agKey = DatasetKey(domain = "agriculture", dataset = "aproduction",
 agData = GetData(agKey)
 setnames(agData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+
+################################################
+#####        Harvest from stockdata        #####
+################################################
+
+message("Pulling data from Stock domain")
+stockEleDim = Dimension(name = "measuredElement",
+                        keys = stocksCode)
+
+stokKey = DatasetKey(domain = "Stock", dataset = "stocksdata",
+                     dimensions = list(
+                       geographicAreaM49 = geoDim,
+                       measuredElement = stockEleDim,
+                       measuredItemCPC = itemDim,
+                       timePointYears = timeDim)
+)
+stockData = GetData(stokKey)
+setnames(stockData, c("measuredElement", "measuredItemCPC"),
+         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+
 
 
 ################################################
@@ -311,7 +331,7 @@ if(2013>=endYear){
 ################################################
 
 message("Merging data files together and saving")
-out = do.call("rbind", list(agData,foodData, lossData, tradeData, tourData))
+out = do.call("rbind", list(agData, stockData,foodData, lossData, tradeData, tourData))
 out <- out[!is.na(Value),]
 setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
 
