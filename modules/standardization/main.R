@@ -92,12 +92,18 @@ areaKeys = selectedGEOCode
 ############ DOWNLOAD AND VALIDATE TREE ######################
 ##############################################################
 
-tree=getCommodityTreeNewMethod(areaKeys,yearVals)
+# load("C://Users/muschitiello/Desktop/tree.RData")
+# 
+# tree=tree[geographicAreaM49 %in% areaKeys & timePointYears %in% yearVals]
 
-tree2=tree[measuredElementSuaFbs=="extractionRate"&measuredItemParentCPC=="0111",Value:=100]
+ptm <- proc.time()
+tree3=getCommodityTreeNewMethod(areaKeys,yearVals)
+message((proc.time() - ptm)[3])
 
-validateTree(tree2)
 
+validateTree(tree)
+
+# stop("prova")
 
 # NA ExtractionRates are recorded in the sws dataset as 0
 # for the standardization, we nee them to be treated as NA
@@ -128,6 +134,8 @@ tree[(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),oi
 
 ##'(E,f) have to be kept
 ##'any other has to ve cleaned except the oils 
+tree[,checkFlags:=paste0("(",flagObservationStatus,",",flagMethod,")")]
+
 
 tree[measuredElementSuaFbs=="share"&(checkFlags=="(E,f)"|oil==TRUE),keep:=TRUE]
 tree[measuredElementSuaFbs=="share"&is.na(keep),Value:=NA]
@@ -135,34 +143,6 @@ tree[measuredElementSuaFbs=="share"&is.na(keep),Value:=NA]
 tree[,checkFlags:=NULL]
 tree[,oil:=NULL]
 tree[,keep:=NULL]
-
-##############################################################
-################ CHANGE TREE SHAPE & SAVE  ###################
-################  TREE TO BE RE-EXPORTED   ###################
-##############################################################
-
-# This Tree is saved with a different name with all the flags. 
-# From now on Flags will be removed and the tree will be used as usual, but using 
-# eventual manually corrected extraction rates and Shares. 
-
-# This is done because the tree has been modifyed in a very subsequent moment from the 
-# time the module was created, therefore functions are designed to be used with a structure of the 
-# tree different from the one of the Dataset Commodity tree
-
-# is therefore, very important that this order of the things is not changed
-tree2beReExported = data.table(data.frame(tree))
-
-tree[,c("flagObservationStatus","flagMethod"):=NULL]
-tree=data.table(dcast(tree,geographicAreaM49 + measuredItemParentCPC + measuredItemChildCPC + timePointYears
-                      ~ measuredElementSuaFbs,value.var = "Value"))
-
-##############################################################
-##################  LAST FIXES ON TREE   #####################
-##############################################################
-
-tree=tree[!is.na(extractionRate)]
-tree=tree[!is.na(measuredItemChildCPC)]
-
 
 
 ##############################################################
@@ -270,7 +250,142 @@ data[!(get(params$protected)=="TRUE"|(flagObservationStatus=="I"&flagMethod=="e"
      &get(params$elementVar)==params$productionCode
      &!(get(params$itemVar) %in% primaryEl),Value:=NA]
 
+##############################################################
+##################   RECALCULATE SHARE   #####################
+##########   FOR COMMODITIES MANUALLY ENTERED   ##############
+##############################################################
 
+p=params
+
+### Compute availability and SHARE  
+
+data[, availability := sum(ifelse(is.na(Value), 0, Value) *
+                             ifelse(get(p$elementVar) == p$productionCode, 1,
+                                    ifelse(get(p$elementVar) == p$importCode, 1,
+                                           ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                  ifelse(get(p$elementVar) == p$stockCode, 0,
+                                                         ifelse(get(p$elementVar) == p$foodCode, 0,
+                                                                ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                                                                       ifelse(get(p$elementVar) == p$feedCode, 0,
+                                                                              ifelse(get(p$elementVar) == p$wasteCode, 0,
+                                                                                     ifelse(get(p$elementVar) == p$seedCode, 0,
+                                                                                            ifelse(get(p$elementVar) == p$industrialCode, 0,
+                                                                                                   ifelse(get(p$elementVar) == p$touristCode, 0,
+                                                                                                          ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
+     by = c(p$mergeKey)]
+
+
+
+mergeToTree = data[, list(availability = mean(availability)),
+                   by = c(p$itemVar)]
+setnames(mergeToTree, p$itemVar, p$parentVar)
+plotTree = copy(tree)
+
+tree2=copy(plotTree)
+
+tree2shares=tree[measuredElementSuaFbs=="share"]
+tree2shares[,share:=Value]
+tree2shares[,c("measuredElementSuaFbs","Value"):=NULL]
+
+tree2exRa=tree[measuredElementSuaFbs=="extractionRate"]
+tree2exRa[,extractionRate:=Value]
+tree2exRa[,c("measuredElementSuaFbs","Value"):=NULL]
+
+
+tree2=data.table(left_join(tree2shares,tree2exRa[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
+                                                    "timePointYears","extractionRate"),with=FALSE],by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
+                                                      "timePointYears")))
+
+tree2=tree2[!is.na(extractionRate)]
+tree2 = merge(tree2, mergeToTree, by = p$parentVar, all.x = TRUE)
+
+
+#### SHAREs 1 
+# share are the proportion of availability of each parent
+# on the total availability by child
+# Function checkShareValue() checks the validity of the shares,
+# change wrong values
+# return a severity table 
+# and the values to be saved back in the session of the TRee
+
+tree2[,checkFlags:=paste0("(",flagObservationStatus,",",flagMethod,")")]
+
+tree2[,availability.child:=availability*get(p$extractVar)]
+
+tree2[,shareSum:=sum(share),by=c("measuredItemChildCPC", "timePointYears")]
+
+# Create eventual Errors HEre for testing the checkshares function 
+
+uniqueShares2change = tree2[checkFlags=="(E,f)"&(round(shareSum,3)!=1|is.na(shareSum)), .N, by = c("measuredItemChildCPC", "timePointYears")]
+uniqueShares2change[, N := NULL]
+
+
+tree2[,newShare:=NA]
+tree2[,severity:=NA]
+tree2[,message:=NA]
+tree2[,newShare:=as.numeric(newShare)]
+tree2[,severity:=as.integer(severity)]
+tree2[,message:=as.character(message)]
+
+tree2change = vector(mode = "list", length = nrow(uniqueShares2change))
+
+
+for (i in seq_len(nrow(uniqueShares2change))) {
+  filter = uniqueShares2change[i, ]
+  tree2Subset = tree2[filter, , on = c("measuredItemChildCPC", "timePointYears")]
+
+  tree2change[[i]] = checkShareValue(tree2Subset)
+
+  }
+
+tree2change = rbindlist(tree2change)
+
+sendMail4shares(tree2change)
+
+if(nrow(tree2change)){
+  
+  invalidTable=copy(tree2change[,c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", 
+                                   "timePointYears","message","severity"),with=FALSE])
+  invalidTable[,measuredElementSuaFbs:="share"]
+  
+  setcolorder(invalidTable,c("geographicAreaM49","measuredElementSuaFbs", "measuredItemParentCPC", "measuredItemChildCPC", 
+                             "timePointYears","message","severity"))
+  
+  setnames(invalidTable,c("message","severity"),c("Description","Severity"))
+}
+
+stop()
+##############################################################
+################ CHANGE TREE SHAPE & SAVE  ###################
+################  TREE TO BE RE-EXPORTED   ###################
+##############################################################
+
+# This Tree is saved with a different name with all the flags. 
+# From now on Flags will be removed and the tree will be used as usual, but using 
+# eventual manually corrected extraction rates and Shares. 
+
+# This is done because the tree has been modifyed in a very subsequent moment from the 
+# time the module was created, therefore functions are designed to be used with a structure of the 
+# tree different from the one of the Dataset Commodity tree
+
+# is therefore, very important that this order of the things is not changed
+tree2beReExported = data.table(data.frame(tree))
+
+tree[,c("flagObservationStatus","flagMethod"):=NULL]
+tree=data.table(dcast(tree,geographicAreaM49 + measuredItemParentCPC + measuredItemChildCPC + timePointYears
+                      ~ measuredElementSuaFbs,value.var = "Value"))
+
+##############################################################
+##################  LAST FIXES ON TREE   #####################
+##############################################################
+
+tree=tree[!is.na(extractionRate)]
+tree=tree[!is.na(measuredItemChildCPC)]
+
+
+##############################################################
+##############################################################
+##############################################################
 #######################################################################################
 ## Update tree by setting some edges to "F", computing average extraction rates
 ## when missing, and bringing in extreme extraction rates
@@ -414,24 +529,28 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
-
-# TEMPFILE HAVE TO BE CREATED
+# Create Local Temporary File for Intermediate Savings
+if(CheckDebug){
+  basedir=getwd()
+}else{
+basedir <- tempfile()
+}
 
 if(params$createIntermetiateFile){
-  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
-    file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))
+  if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
+    file.remove(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_00a_AfterSuaFilling1.csv"))
   }
-  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))){
-    file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))
+  if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_00b_AfterFoodProc.csv"))){
+    file.remove(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_00b_AfterFoodProc.csv"))
   }
-  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))){
-    file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))
+  if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))){
+    file.remove(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))
   }
-  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))){
-    file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))
+  if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))){
+    file.remove(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))
   }
-  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
-    file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))
+  if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_10_ForcedProduction.csv"))){
+    file.remove(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_10_ForcedProduction.csv"))
   }
 }
 
@@ -482,8 +601,8 @@ if(CheckDebug()){
 ## AFTER SUA FILLING 1 (No intermediate saving)
 if(CheckDebug()){
   ptm <- proc.time()
-  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
-    AfterSuaFilling1 = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"),
+  if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
+    AfterSuaFilling1 = read.table(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_00a_AfterSuaFilling1.csv"),
                                   header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
                                                                    "timePointYears","Value","flagObservationStatus","flagMethod"),
                                   colClasses = c("character","character","character","character","character","character","character"))
@@ -503,8 +622,8 @@ if(CheckDebug()){
 ## AFTER FOOD PROCESSING (No intermediate saving)
 if(CheckDebug()){
   ptm <- proc.time()
-  if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))){
-    AfterFoodProc = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"),
+  if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_00b_AfterFoodProc.csv"))){
+    AfterFoodProc = read.table(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_00b_AfterFoodProc.csv"),
                                header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
                                                                 "timePointYears","Value","flagObservationStatus","flagMethod"),
                                colClasses = c("character","character","character","character","character","character","character"))
@@ -513,7 +632,7 @@ if(CheckDebug()){
     
     # Save these data LOCALLY
     if(CheckDebug()){
-      save(AfterFoodProc,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.RData"))
+      save(AfterFoodProc,file=paste0(PARAMS$debugFolder,"\\Batch_",batchnumber,"\\B",batchnumber,"_00b_AfterFoodProc.RData"))
     }
   }
 }
@@ -523,8 +642,8 @@ if(CheckDebug()){
 ## FORCED COMMODITIES IN THE SUA FILLING PROCESS (to be sent by mail)
 
 ptm <- proc.time()
-if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
-  FORCED_PROD = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"),
+if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_10_ForcedProduction.csv"))){
+  FORCED_PROD = read.table(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_10_ForcedProduction.csv"),
                            header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
                                                             "timePointYears","Value","flagObservationStatus","flagMethod"),
                            colClasses = c("character","character","character","character","character","character","character"))
@@ -546,7 +665,7 @@ if(file.exists(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_Force
 ### FIRST INTERMEDIATE SAVE
 
 ptm <- proc.time()
-AfterSuaFilling = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"),
+AfterSuaFilling = read.table(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"),
                              header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
                                                               "timePointYears","Value","flagObservationStatus","flagMethod"),
                              colClasses = c("character","character","character","character","character","character","character"))
@@ -563,7 +682,7 @@ if(CheckDebug()){
 ## IMBALANCE ANALYSIS SAVE 3
 ### SECOND INTERMEDIATE SAVE
 ptm <- proc.time()
-AfterST_BeforeFBSbal = read.table(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"),
+AfterST_BeforeFBSbal = read.table(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"),
                                   header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
                                                                    "timePointYears","Value","flagObservationStatus","flagMethod"),
                                   colClasses = c("character","character","character","character","character","character","character"))
@@ -575,6 +694,47 @@ message((proc.time() - ptm)[3])
 if(CheckDebug()){
   save(AfterST_BeforeFBSbal,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.RData"))
 }
+
+
+# Remove all intermediate Files Create in Temp Folder
+if(!CheckDebug){
+  unlink(basedir)
+}else{
+  unlink(paste0(basedir,"\\debugFile\\Batch_",batchnumber))
+}
+
+
+###################################
+# TREE TO BE RESAVED
+
+###  Merge the Tree with the new Values
+
+tree=tree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","extractionRate","share"),with=FALSE]
+
+tree2melt=melt(tree,id.vars = c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears"),
+     variable.name = "measuredElementSuaFbs",value.name = "Value")
+
+tree2beReExported2=tree2beReExported[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs","flagObservationStatus","flagMethod"),with=FALSE]
+# newTree=data.table(left_join(tree2beReExported2,tree2melt,by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs")))
+
+newTree=merge(tree2beReExported2,tree2melt,
+      by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
+           "timePointYears","measuredElementSuaFbs"),all = TRUE)
+
+###  Change Flags of Recalculated Shares in the Commodity Tree
+# Combination not to be touched are 
+newTree[measuredElementSuaFbs=="share"&(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),flagFix:=T]
+newTree[flagObservationStatus=="E"&flagMethod=="f",flagFix:=T]
+# Flags to be assigned are those of the Shares which have been calculated during the Standardization
+newTree[measuredElementSuaFbs=="share"&is.na(flagFix),flagObservationStatus:="I"]
+newTree[measuredElementSuaFbs=="share"&is.na(flagFix),flagMethod:="i"]
+
+tree2saveBack=newTree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
+                         "timePointYears","measuredElementSuaFbs","flagObservationStatus",
+                         "flagMethod","Value"),with=FALSE]
+
+### Before Saving Bach NA have to be changed to zero 
+tree2saveBack[is.na(Value),Value:=0]
 
 # ###################################
 # ### FINAL SAVE

@@ -503,7 +503,7 @@ suaFilling = function(data, p = p, tree=tree,
       
       if(!is.null(debugFile)){
         
-        saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
+        saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
                                fileName=paste0("B",batchnumber,"_10_ForcedProduction"),
                                data=standData)
       }
