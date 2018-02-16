@@ -10,20 +10,35 @@
 ##' 
 ##' @export
 
-sendMail4shares=function(tree2change){
+sendMail4shares=function(tree){
   
-  if(dim(tree2change)[1]>0){
+  if(dim(tree)[1]>0){
     
-    if(any(tree2change[,share]==0)){
+    if(any(tree[,share]==0)){
       messageSH=paste("Some manually changed shares might have been recaluclated",
                       "because of inconsistencies",
                       " ",
+                      "Moreover:",
                       "There are shares = 0",
                       "Consider deleting ER for deleting connections",
+                      " ",
+                      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+                      "THE ACCHACHED FILE IS JUST FOR EASY CONSULTATION",
+                      "DO NOT TRY TO UPLOAD IT IN THE SWS",
+                      "GO TO YOUR SESSION AND MAKE CHANGES THERE",
+                      "YOU WILL FIND IN THE SESSION ALL THE VALUE CHANGED",
+                      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
                       sep='\n')
     }else{
       messageSH=paste("Some manually changed shares might have been recaluclated",
                       "because of inconsistencies",
+                      " ",
+                      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+                      "THE ACCHACHED FILE IS JUST FOR EASY CONSULTATION",
+                      "DO NOT TRY TO UPLOAD IT IN THE SWS",
+                      "GO TO YOUR SESSION AND MAKE CHANGES THERE",
+                      "YOU WILL FIND IN THE SESSION ALL THE VALUE CHANGED",
+                      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
                       sep='\n')
     }
     
@@ -44,7 +59,7 @@ sendMail4shares=function(tree2change){
       destfile <- file.path(basedir, paste0(basename, FILETYPE))
       
       # create the csv in a temporary foldes   
-      write.csv(tree2change, destfile, row.names = FALSE)  
+      write.csv(tree, destfile, row.names = FALSE)  
       # define on exit strategy
       on.exit(file.remove(destfile))    
       zipfile <- paste0(destfile, ".zip")
@@ -60,7 +75,7 @@ sendMail4shares=function(tree2change){
                    " ",
                    messageSH,
                    " ",
-                   "Changed Shares are highlighted in your commodity Tree Session",
+                   "Changed Shares are highlighted in your commodity Tree Session"
                    ,sep='\n')
       
       sendmailR::sendmail(from = "sws@fao.org",
@@ -77,8 +92,8 @@ sendMail4shares=function(tree2change){
         file.remove(paste0("debugFile/Batch_",batchnumber,"/B",batchnumber,"__0_shareCorrections.csv"))
       }
       dir.create(paste0(PARAMS$debugFolder,"/Batch_",batchnumber), showWarnings = FALSE,recursive=TRUE)
-      write.csv(ShareCorrections, paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"__0_shareCorrections.csv"), row.names = FALSE)  
-      return(tree2change)
+      write.csv(tree, paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"__0_shareCorrections.csv"), row.names = FALSE)  
+      return(message(paste0(dim(tree[severity>0])[1]," shares changed")))
     }
     
   }else{  # End of case for which flags and/or figures are invalid

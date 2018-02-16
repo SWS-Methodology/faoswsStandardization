@@ -92,12 +92,12 @@ areaKeys = selectedGEOCode
 ############ DOWNLOAD AND VALIDATE TREE ######################
 ##############################################################
 
-# load("C://Users/muschitiello/Desktop/tree.RData")
+load("C://Users/muschitiello/Desktop/tree.RData")
 # 
-# tree=tree[geographicAreaM49 %in% areaKeys & timePointYears %in% yearVals]
+tree=tree[geographicAreaM49 %in% areaKeys & timePointYears %in% yearVals]
 
 ptm <- proc.time()
-tree3=getCommodityTreeNewMethod(areaKeys,yearVals)
+# tree3=getCommodityTreeNewMethod(areaKeys,yearVals)
 message((proc.time() - ptm)[3])
 
 
@@ -216,8 +216,10 @@ message("Reading SUA data...")
 ##############################################################
 ########## DOWNLOAD AND FIX DATA FOR SUGAR CODES #############
 ##############################################################
+load(file.path(PARAMS$localFiles, "dataTESTNewStand.RData")) 
 
-data=suppressWarnings(dataDownloadFix(key=key,p=params))
+data=data[geographicAreaM49=="1248"&timePointYears%in%yearVals]
+# data=suppressWarnings(dataDownloadFix(key=key,p=params))
 
 ##############################################################
 
@@ -340,21 +342,66 @@ for (i in seq_len(nrow(uniqueShares2change))) {
 
 tree2change = rbindlist(tree2change)
 
-sendMail4shares(tree2change)
+tree2merge=copy(tree2change)
 
-if(nrow(tree2change)){
-  
-  invalidTable=copy(tree2change[,c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", 
-                                   "timePointYears","message","severity"),with=FALSE])
-  invalidTable[,measuredElementSuaFbs:="share"]
-  
-  setcolorder(invalidTable,c("geographicAreaM49","measuredElementSuaFbs", "measuredItemParentCPC", "measuredItemChildCPC", 
-                             "timePointYears","message","severity"))
-  
-  setnames(invalidTable,c("message","severity"),c("Description","Severity"))
+# Before sending it via email, change flags
+
+if(dim(tree2merge)[1]>0){
+tree2merge[checkFlags!="(E,f)",flagObservationStatus:="I"]
+tree2merge[checkFlags!="(E,f)",flagMethod:="i"]
+tree2merge[,c("checkFlags","availability.child","shareSum","availability","extractionRate"):=NULL]
 }
 
-stop()
+sendMail4shares(tree2merge)
+
+##############################################################
+# The following rows were constructed as an attempt of creating a table to be later put in 
+#  inside a save Validation function. Unfortunately the saveValidation does not allow to save on a different
+#  dataset in a different session.
+#  As I don't have the possibility to develop such a function in this moment. These rows are unuseful.
+# If in the future, there will be time fot his, The saveValidation can start from here.
+
+# if(nrow(tree2change)){
+#   
+#   invalidTable=copy(tree2change[,c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", 
+#                                    "timePointYears","message","severity"),with=FALSE])
+#   invalidTable[,measuredElementSuaFbs:="share"]
+#   
+#   setcolorder(invalidTable,c("geographicAreaM49","measuredElementSuaFbs", "measuredItemParentCPC", "measuredItemChildCPC", 
+#                              "timePointYears","message","severity"))
+#   
+#   setnames(invalidTable,c("message","severity"),c("Description","Severity"))
+# }
+
+# stop()
+##############################################################
+
+##############################################################
+
+# IF SHARES ARE VALID ( and Tree2change does not exists), The " tree" is the one to use 
+# onwards
+
+# nothing has to be done in this case
+
+# IF THERE IS A tree2change, after it has been sent, it has to be integrated in the tree
+# before going on
+
+if(dim(tree2merge)[1]>0){
+  setnames(tree2merge,"share","Value")
+  tree2merge[,c("severity","message"):=NULL]
+  tree2merge[,measuredElementSuaFbs:="share"]
+  setcolorder(tree2merge,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
+                           "measuredItemChildCPC", "timePointYears", "Value", "flagObservationStatus", 
+                           "flagMethod"))
+  uniquecomb = tree2merge[, .N, by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
+                                       "measuredItemChildCPC", "timePointYears")]
+  uniquecomb[,N := NULL]
+
+  tree=rbind(tree[!uniquecomb, ,on=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
+                         "measuredItemChildCPC", "timePointYears")],tree2merge)
+
+}
+
 ##############################################################
 ################ CHANGE TREE SHAPE & SAVE  ###################
 ################  TREE TO BE RE-EXPORTED   ###################
@@ -369,7 +416,7 @@ stop()
 # tree different from the one of the Dataset Commodity tree
 
 # is therefore, very important that this order of the things is not changed
-tree2beReExported = data.table(data.frame(tree))
+tree2beReExported = copy(tree)
 
 tree[,c("flagObservationStatus","flagMethod"):=NULL]
 tree=data.table(dcast(tree,geographicAreaM49 + measuredItemParentCPC + measuredItemChildCPC + timePointYears
@@ -530,7 +577,7 @@ aggFun = function(x) {
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
 # Create Local Temporary File for Intermediate Savings
-if(CheckDebug){
+if(CheckDebug()){
   basedir=getwd()
 }else{
 basedir <- tempfile()
@@ -641,15 +688,17 @@ if(CheckDebug()){
 ###################################
 ## FORCED COMMODITIES IN THE SUA FILLING PROCESS (to be sent by mail)
 
-ptm <- proc.time()
 if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_10_ForcedProduction.csv"))){
   FORCED_PROD = read.table(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumber,"_10_ForcedProduction.csv"),
                            header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
                                                             "timePointYears","Value","flagObservationStatus","flagMethod"),
                            colClasses = c("character","character","character","character","character","character","character"))
   FORCED_PROD = data.table(FORCED_PROD)
-  message((proc.time() - ptm)[3])
   message=(paste0( length(FORCED_PROD[,unique(measuredItemFbsSua)])," commodities have a FORCED Official Production"))
+  
+  
+  
+  
   
   
   
@@ -723,6 +772,7 @@ newTree=merge(tree2beReExported2,tree2melt,
 
 ###  Change Flags of Recalculated Shares in the Commodity Tree
 # Combination not to be touched are 
+
 newTree[measuredElementSuaFbs=="share"&(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),flagFix:=T]
 newTree[flagObservationStatus=="E"&flagMethod=="f",flagFix:=T]
 # Flags to be assigned are those of the Shares which have been calculated during the Standardization
@@ -735,6 +785,17 @@ tree2saveBack=newTree[,c("geographicAreaM49","measuredItemParentCPC","measuredIt
 
 ### Before Saving Bach NA have to be changed to zero 
 tree2saveBack[is.na(Value),Value:=0]
+
+
+
+tree2saveBack[measuredElementSuaFbs=="extractionRate",measuredElementSuaFbs:="5423",]
+tree2saveBack[measuredElementSuaFbs=="share",measuredElementSuaFbs:="5431"]
+
+ptm <- proc.time()
+SaveData(domain = "suafbs", dataset = "ess_fbs_commodity_tree", data = tree2saveBack, waitTimeout = 20000)
+message((proc.time() - ptm)[3])
+
+
 
 # ###################################
 # ### FINAL SAVE
