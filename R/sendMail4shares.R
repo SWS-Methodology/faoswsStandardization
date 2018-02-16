@@ -3,7 +3,7 @@
 ##' This function simply snd email to the user, 
 ##' with the result of the check on shares
 ##' 
-##' @param tree2Subset single subset of the Tree, which means, a subset having all the parent of a single child
+##' @param tree single subset of the Tree, which means, a subset having all the parent of a single child
 ##' where the child is an official one. The subset has the characteristis of having shares not summing at 1
 ##' 
 ##' @return The function doesn't return anything, but send mail 

@@ -221,6 +221,10 @@ load(file.path(PARAMS$localFiles, "dataTESTNewStand.RData"))
 data=data[geographicAreaM49=="1248"&timePointYears%in%yearVals]
 # data=suppressWarnings(dataDownloadFix(key=key,p=params))
 
+# I save a copy of the data with the flag. I'll need this for saving the 
+# Forced production lines at the end of the process.
+# 
+dataFlags = copy(data)
 ##############################################################
 
 #protected data
@@ -296,7 +300,7 @@ tree2exRa[,c("measuredElementSuaFbs","Value"):=NULL]
 
 tree2=data.table(left_join(tree2shares,tree2exRa[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
                                                     "timePointYears","extractionRate"),with=FALSE],by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-                                                      "timePointYears")))
+                                                                                                        "timePointYears")))
 
 tree2=tree2[!is.na(extractionRate)]
 tree2 = merge(tree2, mergeToTree, by = p$parentVar, all.x = TRUE)
@@ -335,10 +339,10 @@ tree2change = vector(mode = "list", length = nrow(uniqueShares2change))
 for (i in seq_len(nrow(uniqueShares2change))) {
   filter = uniqueShares2change[i, ]
   tree2Subset = tree2[filter, , on = c("measuredItemChildCPC", "timePointYears")]
-
+  
   tree2change[[i]] = checkShareValue(tree2Subset)
-
-  }
+  
+}
 
 tree2change = rbindlist(tree2change)
 
@@ -347,9 +351,9 @@ tree2merge=copy(tree2change)
 # Before sending it via email, change flags
 
 if(dim(tree2merge)[1]>0){
-tree2merge[checkFlags!="(E,f)",flagObservationStatus:="I"]
-tree2merge[checkFlags!="(E,f)",flagMethod:="i"]
-tree2merge[,c("checkFlags","availability.child","shareSum","availability","extractionRate"):=NULL]
+  tree2merge[checkFlags!="(E,f)",flagObservationStatus:="I"]
+  tree2merge[checkFlags!="(E,f)",flagMethod:="i"]
+  tree2merge[,c("checkFlags","availability.child","shareSum","availability","extractionRate"):=NULL]
 }
 
 sendMail4shares(tree2merge)
@@ -396,10 +400,10 @@ if(dim(tree2merge)[1]>0){
   uniquecomb = tree2merge[, .N, by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
                                        "measuredItemChildCPC", "timePointYears")]
   uniquecomb[,N := NULL]
-
+  
   tree=rbind(tree[!uniquecomb, ,on=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
-                         "measuredItemChildCPC", "timePointYears")],tree2merge)
-
+                                     "measuredItemChildCPC", "timePointYears")],tree2merge)
+  
 }
 
 ##############################################################
@@ -580,7 +584,7 @@ standData = vector(mode = "list", length = nrow(uniqueLevels))
 if(CheckDebug()){
   basedir=getwd()
 }else{
-basedir <- tempfile()
+  basedir <- tempfile()
 }
 
 if(params$createIntermetiateFile){
@@ -697,15 +701,29 @@ if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumbe
   message=(paste0( length(FORCED_PROD[,unique(measuredItemFbsSua)])," commodities have a FORCED Official Production"))
   
   
+  setnames(FORCED_PROD,"measuredItemFbsSua","measuredItemSuaFbs")
+  setnames(dataFlags,"Value","ValueOld")
+  setnames(FORCED_PROD,"Value","ValueForced")
   
+  ForcedProd2send=data.table(left_join(FORCED_PROD[,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs",
+                                                         "timePointYears","ValueForced"),with=FALSE],dataFlags,by=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs",
+                                                                                                              "timePointYears")))
   
-  
+  ForcedProd2send[measuredElementSuaFbs!=params$productionCode,ValueForced:="-"]
+  ForcedProd2send[Official==TRUE]
   
   
   # Save these data LOCALLY
   if(CheckDebug()){
     save(FORCED_PROD,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.RData"))
+  }else{
+    # or send them by email
+    
   }
+  
+  
+  
+  
 }
 
 
@@ -761,14 +779,14 @@ if(!CheckDebug){
 tree=tree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","extractionRate","share"),with=FALSE]
 
 tree2melt=melt(tree,id.vars = c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears"),
-     variable.name = "measuredElementSuaFbs",value.name = "Value")
+               variable.name = "measuredElementSuaFbs",value.name = "Value")
 
 tree2beReExported2=tree2beReExported[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs","flagObservationStatus","flagMethod"),with=FALSE]
 # newTree=data.table(left_join(tree2beReExported2,tree2melt,by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs")))
 
 newTree=merge(tree2beReExported2,tree2melt,
-      by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-           "timePointYears","measuredElementSuaFbs"),all = TRUE)
+              by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
+                   "timePointYears","measuredElementSuaFbs"),all = TRUE)
 
 ###  Change Flags of Recalculated Shares in the Commodity Tree
 # Combination not to be touched are 

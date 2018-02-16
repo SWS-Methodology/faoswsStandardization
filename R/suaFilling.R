@@ -478,21 +478,15 @@ suaFilling = function(data, p = p, tree=tree,
     ###    ###    ###    ###    
     ### EXTERNAL SAVING OF FORCED INFORMATION
     
-    if(dim(NoFillable)[1]>0){
-      # message(paste0("There are ",dim(NoFillable)[1]," row with supply<Utilization where Official Production has been incremented"))
+     if(dim(dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)])[1]>0){
       
-      NoFillable[,noF:=NULL]
+      NoFillable= dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)]
+      
+      if("newValue" %in% colnames(NoFillable)){
+        NoFillable[!is.na(newValue),Value:=newValue]
+        NoFillable=NoFillable[,c(3,2,1,4,5,6,7,16),with=FALSE]
+      }
       setnames(NoFillable, "measuredItemSuaFbs", "measuredItemFbsSua")
-      # fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-      #                                                          "foodManufacturing", "imports", "loss", "production", 
-      #                                                          "seed", "stockChange", "residual","industrial", "tourist"),
-      #                                  code=c("261", "281", "271", "5910", "5520", "5141", 
-      #                                         "5023", "5610", "5016", "5510",
-      #                                         "5525", "5071", "5166","5165", "5164"))
-      # 
-      # standData = merge(NoFillable, fbs_sua_conversion, by = "measuredElementSuaFbs")
-      # standData[,`:=`(measuredElementSuaFbs = NULL)]
-      # setnames(standData, "code", "measuredElementSuaFbs")
       standData = NoFillable
       standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
                              Value)]
