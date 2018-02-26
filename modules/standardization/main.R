@@ -88,16 +88,21 @@ selectedGEOCode =
          "all" = geoKeys)
 areaKeys = selectedGEOCode
 
+
 ##############################################################
 ############ DOWNLOAD AND VALIDATE TREE ######################
 ##############################################################
 
-load("C://Users/muschitiello/Desktop/tree.RData")
+# load("C://Users/muschitiello/Desktop/tree.RData")
 # 
-tree=tree[geographicAreaM49 %in% areaKeys & timePointYears %in% yearVals]
+# tree=tree[geographicAreaM49 %in% areaKeys & timePointYears %in% yearVals]
+
+# ptm <- proc.time()
+# tree3=getCommodityTreeNewMethod(areaKeys,yearVals)
+# message((proc.time() - ptm)[3])
 
 ptm <- proc.time()
-# tree3=getCommodityTreeNewMethod(areaKeys,yearVals)
+tree=getCommodityTreeNewMethod(areaKeys,yearVals)
 message((proc.time() - ptm)[3])
 
 
@@ -216,10 +221,10 @@ message("Reading SUA data...")
 ##############################################################
 ########## DOWNLOAD AND FIX DATA FOR SUGAR CODES #############
 ##############################################################
-load(file.path(PARAMS$localFiles, "dataTESTNewStand.RData")) 
+# load(file.path(PARAMS$localFiles, "dataTESTNewStand.RData")) 
 
-data=data[geographicAreaM49=="1248"&timePointYears%in%yearVals]
-# data=suppressWarnings(dataDownloadFix(key=key,p=params))
+# data=data[geographicAreaM49=="1248"&timePointYears%in%yearVals]
+data=suppressWarnings(dataDownloadFix(key=key,p=params))
 
 # I save a copy of the data with the flag. I'll need this for saving the 
 # Forced production lines at the end of the process.
@@ -642,7 +647,6 @@ message("Combining standardized data...")
 standData = rbindlist(standData)
 
 
-
 ##' Save the StandData LOCALLY
 if(CheckDebug()){
   save(standData,file=paste0(PARAMS$temporaryStandData,"/standDatabatch",batchnumber,".RData"))
@@ -710,20 +714,16 @@ if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumbe
                                                                                                               "timePointYears")))
   
   ForcedProd2send[measuredElementSuaFbs!=params$productionCode,ValueForced:="-"]
-  ForcedProd2send[Official==TRUE]
-  
-  
+
   # Save these data LOCALLY
   if(CheckDebug()){
     save(FORCED_PROD,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.RData"))
   }else{
     # or send them by email
-    
+    if(dim(ForcedProd2send)[1]>0){
+    sendMail4forced(ForcedProd2send)
+    }
   }
-  
-  
-  
-  
 }
 
 
@@ -810,61 +810,55 @@ tree2saveBack[measuredElementSuaFbs=="extractionRate",measuredElementSuaFbs:="54
 tree2saveBack[measuredElementSuaFbs=="share",measuredElementSuaFbs:="5431"]
 
 ptm <- proc.time()
-SaveData(domain = "suafbs", dataset = "ess_fbs_commodity_tree", data = tree2saveBack, waitTimeout = 20000)
+SaveData(domain = "suafbs", dataset = "ess_fbs_commodity_tree2", data = tree2saveBack, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
 
 
-# ###################################
-# ### FINAL SAVE
-# 
-# warning("The below is a rough hack to convert codes back. In truth, I'm almost
-#         certain that the units are not the same. A unit conversion needs to happen at
-#         the beginning and at this step.")
-# 
-# fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food",
-#                                                          "foodManufacturing", "imports", "loss", "production",
-#                                                          "seed", "stockChange", "residual","industrial", "tourist",
-#                                                          "DES_calories","DES_proteins","DES_fats", "population"),
-#                                  code=c("261", "281", "271", "5910", "5520", "5141",
-#                                         "5023", "5610", "5016", "5510",
-#                                         "5525", "5071", "5166","5165", "5164","664","674","684","5215"))
-# 
-# ##standData[measuredElementSuaFbs %in% c(params$touristCode, params$industrialCode),
-# ##  `:=`(measuredElementSuaFbs = "other",
-# ##       Value = sum(Value, na.rm=TRUE)),
-# ##  by=c(params$mergeKey)]
-# 
-# standData = merge(standData, fbs_sua_conversion, by = "measuredElementSuaFbs")
-# standData[,`:=`(measuredElementSuaFbs = NULL)]
-# setnames(standData, "code", "measuredElementSuaFbs")
-# 
-# standData[, standardDeviation := NULL]
-# 
-# ## Assign flags: I for imputed (as we're estimating/standardizing) and s for
-# ## "sum" (aggregate)
-# standData[, flagObservationStatus := "I"]
-# standData[, flagMethod := "s"]
-# 
-# setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears",
-# "Value", "flagObservationStatus", "flagMethod"))
-# 
-# # Remove NA Values
-# standData <- standData[!is.na(Value),]
-# 
-# message("Attempting to save standardized data...")
-# 
-# 
-# setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
-# 
-# ptm <- proc.time()
-# out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData, waitTimeout = 2000000)
-# cat(out$inserted + out$ignored, " observations written and problems with ",
-#     out$discarded, sep = "")
-# paste0(out$inserted + out$ignored, " observations written and problems with ",
-#        out$discarded)
-# message((proc.time() - ptm)[3])
-# 
-# 
+###################################
+### FINAL SAVE
+fbs_sua_conversion2 <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins","DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "exports", "feed", "food",
+                                                          "foodManufacturing", "imports", "loss", "production",
+                                                          "seed", "stockChange", "residual","industrial", "tourist"),
+                                  code=c("261", "281", "271","664","674","684","5910", "5520", "5141",
+                                         "5023", "5610", "5016", "5510",
+                                         "5525", "5071", "5166","5165", "5164"))
+
+
+standData = merge(standData, fbs_sua_conversion2, by = "measuredElementSuaFbs")
+standData[,`:=`(measuredElementSuaFbs = NULL)]
+setnames(standData, "code", "measuredElementSuaFbs")
+
+standData[, standardDeviation := NULL]
+
+## Assign flags: I for imputed (as we're estimating/standardizing) and s for
+## "sum" (aggregate)
+standData[, flagObservationStatus := "I"]
+standData[, flagMethod := "s"]
+
+setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears",
+"Value", "flagObservationStatus", "flagMethod"))
+
+# Remove NA Values
+standData <- standData[!is.na(Value),]
+
+
+
+
+
+
+message("Attempting to save standardized data...")
+
+setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
+
+ptm <- proc.time()
+out = SaveData(domain = "suafbs", dataset = "fbs_balanced", data = standData, waitTimeout = 2000000)
+cat(out$inserted + out$ignored, " observations written and problems with ",
+    out$discarded, sep = "")
+paste0(out$inserted + out$ignored, " observations written and problems with ",
+       out$discarded)
+message((proc.time() - ptm)[3])
+
+
 
 

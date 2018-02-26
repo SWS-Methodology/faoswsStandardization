@@ -211,10 +211,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     standData[, flagObservationStatus := "I"]
     standData[, flagMethod := "e"]
     
-    ##ptm <- proc.time()
-    ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
-    ##message((proc.time() - ptm)[3])
-    
     if(!is.null(debugFile)){
       
       saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
@@ -375,6 +371,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          standData[, flagObservationStatus := "I"]
          standData[, flagMethod := "e"]
 
+         
          if(!is.null(debugFile)){
            
            saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
@@ -494,38 +491,38 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
  
     ### first intermediate SAVE 
     # message("Attempting to save balanced SUA data...")
-    setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
-    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-                                                             "foodManufacturing", "imports", "loss", "production", 
-                                                             "seed", "stockChange", "residual","industrial", "tourist"),
-                                     code=c("261", "281", "271", "5910", "5520", "5141", 
-                                            "5023", "5610", "5016", "5510",
-                                            "5525", "5071", "5166","5165", "5164"))
+    # setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+    # fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+    #                                                          "foodManufacturing", "imports", "loss", "production", 
+    #                                                          "seed", "stockChange", "residual","industrial", "tourist"),
+    #                                  code=c("261", "281", "271", "5910", "5520", "5141", 
+    #                                         "5023", "5610", "5016", "5510",
+    #                                         "5525", "5071", "5166","5165", "5164"))
+    # 
+    # standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    # standData[,`:=`(measuredElementSuaFbs = NULL)]
+    # setnames(standData, "code", "measuredElementSuaFbs")
+    # 
+    # standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+    #                        Value)]
+    # standData <- standData[!is.na(Value),]
+    # 
+    # standData[, flagObservationStatus := "I"]
+    # standData[, flagMethod := "e"]
+
+    # 
+    # standData = calculateFoodAggregates(standData,p) ####
+    # 
+    # 
+    # 
+    # if(!is.null(debugFile)){
+    #   
+    #   saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
+    #                          fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST"),
+    #                          data=standData)
+    # }
+    # ### 
     
-    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
-    standData[,`:=`(measuredElementSuaFbs = NULL)]
-    setnames(standData, "code", "measuredElementSuaFbs")
-    
-    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
-                           Value)]
-    standData <- standData[!is.na(Value),]
-    
-    standData[, flagObservationStatus := "I"]
-    standData[, flagMethod := "e"]
-    
-    ##ptm <- proc.time()
-    ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
-    ##message((proc.time() - ptm)[3])
-    
-    if(!is.null(debugFile)){
-      
-      saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
-                             fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST"),
-                             data=standData)
-    }
-    
-    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-    ###    
     
     ## STEP 2.1 Compute calories
     if(!is.null(nutrientData)){
@@ -546,7 +543,69 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       })
     }
 
+  ### first intermediate SAVE
+message("Attempting to save balanced SUA data...")
+setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food",
+                                                         "foodManufacturing", "imports", "loss", "production",
+                                                         "seed", "stockChange", "residual","industrial", "tourist"),
+                                 code=c("261", "281", "271","5910", "5520", "5141",
+                                        "5023", "5610", "5016", "5510",
+                                        "5525", "5071", "5166","5165", "5164"))
 
+standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+standData[,`:=`(measuredElementSuaFbs = NULL)]
+setnames(standData, "code", "measuredElementSuaFbs")
+
+standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
+Value,Calories,Proteins,Fats)]
+
+
+
+standData = calculateFoodAggregates(standData,p,yearVals) ####
+
+setnames(standData,"measuredElementSuaFbs", "code")
+standData = merge(standData, fbs_sua_conversion, by = "code")
+
+standData[,`:=`(code = NULL)]
+
+standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua + 
+                        Calories + Proteins + Fats +
+                        DESfoodSupply_kCd  + proteinSupplyQt_gCd + fatSupplyQt_gCd ~ measuredElementSuaFbs,value.var = "Value")
+
+standDataLong = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua"),variable.name = "measuredElementSuaFbs", value.name = "Value")
+
+fbs_sua_conversion2 <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins","DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "exports", "feed", "food",
+                                                         "foodManufacturing", "imports", "loss", "production",
+                                                         "seed", "stockChange", "residual","industrial", "tourist"),
+                                 code=c("261", "281", "271","664","674","684","5910", "5520", "5141",
+                                        "5023", "5610", "5016", "5510",
+                                        "5525", "5071", "5166","5165", "5164"))
+
+
+standData = merge(standDataLong, fbs_sua_conversion2, by = "measuredElementSuaFbs")
+standData[,`:=`(measuredElementSuaFbs = NULL)]
+setnames(standData, "code", "measuredElementSuaFbs")
+
+standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
+                       Value)]
+standData <- standData[!is.na(Value),]
+
+standData[, flagObservationStatus := "I"]
+standData[, flagMethod := "e"]
+
+if(!is.null(debugFile)){
+
+  saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
+                         fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST"),
+                         data=standData)
+}
+###
+
+    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    ###
+    
+    
    
     ## STEP 4: Standardize commodities to balancing level
     data = finalStandardizationToPrimary(data = data, tree = tree,
@@ -573,25 +632,59 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     
     ### Second intermediate Save  
-    ## message("Attempting to save unbalanced FBS data...")
+    message("Attempting to save unbalanced FBS data...")
+    
     setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
-    ##
-    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-                                                             "foodManufacturing", "imports", "loss", "production", 
+    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food",
+                                                             "foodManufacturing", "imports", "loss", "production",
                                                              "seed", "stockChange", "residual","industrial", "tourist"),
-                                     code=c("261", "281", "271", "5910", "5520", "5141", 
+                                     code=c("261", "281", "271","5910", "5520", "5141",
                                             "5023", "5610", "5016", "5510",
                                             "5525", "5071", "5166","5165", "5164"))
     
-    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    # standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    # standData[,`:=`(measuredElementSuaFbs = NULL)]
+    # setnames(standData, "code", "measuredElementSuaFbs")
+    
+    standData=copy(data)
+    
+    standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua 
+                             ~ measuredElementSuaFbs,value.var = "Value")
+    
+    standData = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua","Calories", "Proteins","Fats"),variable.name = "measuredElementSuaFbs", value.name = "Value")
+    
+    
+    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
+                           Value,Calories,Proteins,Fats)]
+    
+    
+    standData = calculateFoodAggregates(standData,p,yearVals) ####
+
+    standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua + 
+                            Calories + Proteins + Fats +
+                            DESfoodSupply_kCd  + proteinSupplyQt_gCd + fatSupplyQt_gCd ~ measuredElementSuaFbs,value.var = "Value")
+    
+    standDataLong = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua"),variable.name = "measuredElementSuaFbs", value.name = "Value")
+    
+    
+    
+    fbs_sua_conversion2 <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins","DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "exports", "feed", "food",
+                                                              "foodManufacturing", "imports", "loss", "production",
+                                                              "seed", "stockChange", "residual","industrial", "tourist"),
+                                      code=c("261", "281", "271","664","674","684","5910", "5520", "5141",
+                                             "5023", "5610", "5016", "5510",
+                                             "5525", "5071", "5166","5165", "5164"))
+    
+    
+    standData = merge(standDataLong, fbs_sua_conversion2, by = "measuredElementSuaFbs")
     standData[,`:=`(measuredElementSuaFbs = NULL)]
     setnames(standData, "code", "measuredElementSuaFbs")
     
-    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
                            Value)]
     standData <- standData[!is.na(Value),]
     
-    
+
     ### Cristina Merge with FbsTree for saving only the PrimaryEquivalent CPC codes
     standData=merge(standData,fbsTree,by.x="measuredItemFbsSua",by.y="measuredItemSuaFbs")
     ###
@@ -601,10 +694,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                            Value)]
     standData[, flagObservationStatus := "I"]
     standData[, flagMethod := "s"]
-    ##ptm <- proc.time()
-    ##SaveData(domain = "suafbs", dataset = "fbs_standardized", data = standData)
-    ##message((proc.time() - ptm)[3])
-    
+
+
     if(!is.null(debugFile)){
       
       saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),

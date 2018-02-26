@@ -89,6 +89,7 @@ selectedGEOCode =
   switch(geoM49,
          "session" = sessionCountries,
          "all" = geoKeys)
+
 ################################################
 ##### Harvest from Agricultural Production #####
 ################################################
@@ -107,8 +108,9 @@ eleKeys = strsplit(eleKeys[parent %in% c(oldProductionCode, oldFeedCode,
                                          oldSeedCode), children],
                    split = ", ")
 ## Combine with single codes
-eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys),
-                                                      industrialCode))
+eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys)
+                                                      # ,industrialCode
+                                                      ))
 itemKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                        dimension = "measuredItemCPC")[, code]
 itemDim = Dimension(name = "measuredItemCPC", keys = itemKeys)
@@ -123,6 +125,27 @@ agKey = DatasetKey(domain = "agriculture", dataset = "aproduction",
 agData = GetData(agKey)
 setnames(agData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+
+################################################
+#####        Harvest from Industrial       #####
+################################################
+# temporary solution til codes will be updated
+message("Pulling data from industrial domain")
+indEleDim = Dimension(name = "measuredElement",
+                        keys = industrialCode)
+
+indKey = DatasetKey(domain = "industrialUse", dataset = "industrialusedata",
+                     dimensions = list(
+                       geographicAreaM49 = geoDim,
+                       measuredElement = indEleDim,
+                       measuredItemCPC = itemDim,
+                       timePointYears = timeDim)
+)
+indData = GetData(indKey)
+setnames(indData, c("measuredElement", "measuredItemCPC"),
+         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+
+
 
 ################################################
 #####        Harvest from stockdata        #####
@@ -332,7 +355,7 @@ if(2013>=endYear){
 ################################################
 
 message("Merging data files together and saving")
-out = do.call("rbind", list(agData, stockData,foodData, lossData, tradeData, tourData))
+out = do.call("rbind", list(agData, stockData,foodData, lossData, tradeData, tourData,indData))
 out <- out[!is.na(Value),]
 setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
 
