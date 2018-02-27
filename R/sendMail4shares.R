@@ -8,7 +8,6 @@
 ##' 
 ##' @return The function doesn't return anything, but send mail 
 ##' 
-##' @export
 
 sendMail4shares=function(tree){
   
