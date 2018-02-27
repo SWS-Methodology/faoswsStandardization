@@ -5,8 +5,8 @@ Title: Package to perform standardization of SUA (supply utilization
 Version: 0.2.1
 Date: 2018-02-27
 Authors@R: c(person("Joshua", "Browning", role = "aut", email =
-        "joshua.browning@fao.org"), person("Sebastian", "Campbell", role =
-        "cre", email = "sebastian.campbell@fao.org"))
+        "joshua.browning@fao.org"), person("Cristina", "Muschitiello", role =
+        "cre", email = "cristina.muschitiello@fao.org"))
 Description: The package implements standardization of SUA data according to
         provided commodity trees. Essentially, this is the process of
         converting processed products into primary equivalents. This
