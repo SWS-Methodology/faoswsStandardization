@@ -77,20 +77,6 @@ yearVals = startYear:endYear
 
 ##' Get data configuration and session
 sessionKey = swsContext.datasets[[1]]
-<<<<<<< HEAD
-
-sessionCountries =
-  getQueryKey("geographicAreaM49", sessionKey)
-
-geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
-                      dimension = "geographicAreaM49")[type == "country", code]
-
-##' Select the countries based on the user input parameter
-selectedGEOCode =
-  switch(geoM49,
-         "session" = sessionCountries,
-         "all" = geoKeys)
-=======
 
 sessionCountries =
   getQueryKey("geographicAreaM49", sessionKey)
@@ -104,7 +90,6 @@ selectedGEOCode =
          "session" = sessionCountries,
          "all" = geoKeys)
 
->>>>>>> treeValidation
 ################################################
 ##### Harvest from Agricultural Production #####
 ################################################
@@ -123,14 +108,9 @@ eleKeys = strsplit(eleKeys[parent %in% c(oldProductionCode, oldFeedCode,
                                          oldSeedCode), children],
                    split = ", ")
 ## Combine with single codes
-<<<<<<< HEAD
-eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys),
-                                                      industrialCode))
-=======
 eleDim = Dimension(name = "measuredElement", keys = c(do.call("c", eleKeys)
                                                       # ,industrialCode
-                                                      ))
->>>>>>> treeValidation
+))
 itemKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                        dimension = "measuredItemCPC")[, code]
 itemDim = Dimension(name = "measuredItemCPC", keys = itemKeys)
@@ -147,27 +127,19 @@ setnames(agData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
 ################################################
-<<<<<<< HEAD
-#####        Harvest from stockdata        #####
-################################################
-
-message("Pulling data from Stock domain")
-stockEleDim = Dimension(name = "measuredElement",
-                        keys = stocksCode)
-=======
 #####        Harvest from Industrial       #####
 ################################################
 # temporary solution til codes will be updated
 message("Pulling data from industrial domain")
 indEleDim = Dimension(name = "measuredElement",
-                        keys = industrialCode)
+                      keys = industrialCode)
 
 indKey = DatasetKey(domain = "industrialUse", dataset = "industrialusedata",
-                     dimensions = list(
-                       geographicAreaM49 = geoDim,
-                       measuredElement = indEleDim,
-                       measuredItemCPC = itemDim,
-                       timePointYears = timeDim)
+                    dimensions = list(
+                      geographicAreaM49 = geoDim,
+                      measuredElement = indEleDim,
+                      measuredItemCPC = itemDim,
+                      timePointYears = timeDim)
 )
 indData = GetData(indKey)
 setnames(indData, c("measuredElement", "measuredItemCPC"),
@@ -193,24 +165,9 @@ stokKey = DatasetKey(domain = "Stock", dataset = "stocksdata",
 stockData = GetData(stokKey)
 setnames(stockData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
->>>>>>> treeValidation
-
-stokKey = DatasetKey(domain = "Stock", dataset = "stocksdata",
-                     dimensions = list(
-                       geographicAreaM49 = geoDim,
-                       measuredElement = stockEleDim,
-                       measuredItemCPC = itemDim,
-                       timePointYears = timeDim)
-)
-stockData = GetData(stokKey)
-setnames(stockData, c("measuredElement", "measuredItemCPC"),
-         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
 
-<<<<<<< HEAD
 
-=======
->>>>>>> treeValidation
 ################################################
 #####       Harvest from Food Domain       #####
 ################################################
@@ -245,19 +202,11 @@ lossKey = DatasetKey(domain = "lossWaste", dataset = "loss",
                        timePointYears = timeDim)
 )
 lossData = GetData(lossKey)
-<<<<<<< HEAD
 
 ################################################
 #####      Harvest from Tourism Domain     #####
 ################################################
 
-=======
-
-################################################
-#####      Harvest from Tourism Domain     #####
-################################################
-
->>>>>>> treeValidation
 message("Pulling data from Tourist")
 eleTourDim = Dimension(name = "tourismElement",
                        keys = touristCode)
@@ -286,7 +235,6 @@ setnames(tourData, c("tourismElement", "measuredItemCPC"),
 message("Pulling data from Trade UNTIL 2013 (old FAOSTAT)")
 
 eleTradeDim = Dimension(name = "measuredElementTrade",
-<<<<<<< HEAD
                         keys = c(importCode, exportCode))
 tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")), waitTimeout = 2000000)
 
@@ -393,114 +341,6 @@ if(2013>=endYear){
   
 }
 
-=======
-                       keys = c(importCode, exportCode))
-tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")), waitTimeout = 2000000)
-
-geoKeysTrade=m492fs(selectedGEOCode)
-
-geokeysTrade=geoKeysTrade[!is.na(geoKeysTrade)]
-
-if(2013>=endYear){
-  timeTradeDimUp13 = Dimension(name = "timePointYears", keys = as.character(yearVals))
-  
-  ###### Trade UNTIL 2013 (old FAOSTAT)
-  message("Trade UNTIL 2013 (old FAOSTAT)")
-  tradeKeyUp13 = DatasetKey(
-    domain = "faostat_one", dataset = "updated_sua",
-    dimensions = list(
-      #user input except curacao,  saint martin and former germany
-      geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
-      measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
-      measuredElementFS=Dimension(name = "measuredElementFS",
-                                  keys = c( "61", "91")),
-      timePointYears = timeTradeDimUp13 ),
-    sessionId =  slot(swsContext.datasets[[1]], "sessionId")
-  )
-  
-  
-  tradeDataUp13 = GetData(tradeKeyUp13)
-  
-  
-  tradeDataUp13[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
-                       measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
-                                                version = "latest"))]
-  
-  
-  setnames(tradeDataUp13, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
-           c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
-  
-  tradeDataUp13[, flagMethod := "-"]
-  
-  tradeDataUp13[flagObservationStatus %in% c("P", "*", "F"), flagObservationStatus := "T"]
-  
-  tradeDataUp13[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
-  tradeDataUp13[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
-  
-  tradeData=tradeDataUp13 
-  
-}else{
-  ###### Trade FROM 2014 (new Data)
-  message("Trade FROM 2014 (new Data)")
-  
-  timeTradeDimFrom14 = Dimension(name = "timePointYears", keys = as.character(2014:endYear))
-  
-  tradeKeyFrom14 = DatasetKey(
-    domain = "trade", dataset = "total_trade_cpc_m49",
-    dimensions = list(geographicAreaM49 = geoDim,
-                      measuredElementTrade = eleTradeDim,
-                      measuredItemCPC = itemDim,
-                      timePointYears = timeTradeDimFrom14)
-  )
-  tradeDataFrom14 = GetData(tradeKeyFrom14)
-  setnames(tradeDataFrom14, c("measuredElementTrade", "measuredItemCPC"),
-           c("measuredElementSuaFbs", "measuredItemSuaFbs"))
-  
-  ###### Merging Trade Data
-  message("Merging Data")
-  if(2013<startYear){
-    tradeData=tradeDataFrom14
-  }else{
-    timeTradeDimUp13 = Dimension(name = "timePointYears", keys = as.character(startYear:2013))
-    message("Trade UNTIL 2013 (old FAOSTAT)")
-    tradeKeyUp13 = DatasetKey(
-      domain = "faostat_one", dataset = "updated_sua",
-      dimensions = list(
-        #user input except curacao,  saint martin and former germany
-        geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
-        measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
-        measuredElementFS=Dimension(name = "measuredElementFS",
-                                    keys = c( "61", "91")),
-        timePointYears = timeTradeDimUp13 ),
-      sessionId =  slot(swsContext.datasets[[1]], "sessionId")
-    )
-    
-    
-    tradeDataUp13 = GetData(tradeKeyUp13)
-    
-    
-    tradeDataUp13[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
-                         measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
-                                                  version = "latest"))]
-    
-    
-    setnames(tradeDataUp13, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
-             c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
-    
-    tradeDataUp13[, flagMethod := "-"]
-    
-    tradeDataUp13[flagObservationStatus %in% c("P", "*", "F"), flagObservationStatus := "T"]
-    
-    tradeDataUp13[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
-    tradeDataUp13[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
-    
-    tradeData=rbind(tradeDataUp13,tradeDataFrom14)  
-    
-  }
-  
-}
-
->>>>>>> treeValidation
 
 
 
@@ -515,36 +355,15 @@ if(2013>=endYear){
 ################################################
 
 message("Merging data files together and saving")
-<<<<<<< HEAD
-out = do.call("rbind", list(agData, stockData,foodData, lossData, tradeData, tourData))
-=======
 out = do.call("rbind", list(agData, stockData,foodData, lossData, tradeData, tourData,indData))
->>>>>>> treeValidation
 out <- out[!is.na(Value),]
 setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
 
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
-<<<<<<< HEAD
-=======
 
-  paste0(stats$inserted, " observations written, ",
-         stats$ignored, " weren't updated, ",
-         stats$discarded, " had problems.")
-
-
-################################################################
-#####  send Email with notification of correct execution   #####
-################################################################
-
-## Initiate email
-from = "sws@fao.org"
-to = swsContext.userEmail
-subject = "PullDataToSua plug-in has correctly run"
-body = "The plug-in has saved the SUAs in your session"
->>>>>>> treeValidation
-
-sendmail(from = from, to = to, subject = subject, msg = body)
-paste0("Email sent to ", swsContext.userEmail)
+paste0(stats$inserted, " observations written, ",
+       stats$ignored, " weren't updated, ",
+       stats$discarded, " had problems.")
 
 
 ################################################################

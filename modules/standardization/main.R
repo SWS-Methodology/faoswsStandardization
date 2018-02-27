@@ -47,6 +47,28 @@ if (CheckDebug()) {
   batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
   
 } else {
+  
+  
+  # Remove domain from username
+  USER <- regmatches(
+    swsContext.username,
+    regexpr("(?<=/).+$", swsContext.username, perl = TRUE)
+  )
+
+  options(error = function(){
+    dump.frames()
+
+    filename <- file.path(Sys.getenv("R_SWS_SHARE_PATH"),
+                          USER,
+                          "standard_error")
+
+    dir.create(filename, showWarnings = FALSE, recursive = TRUE)
+
+    save(last.dump, file = file.path(filename, "last.dump.RData"))
+  })
+  
+  
+  
   batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
   message("Running on server, no need to call GetTestEnvironment...")
   
@@ -572,12 +594,6 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
 ## Split data based on the two factors we need to loop over
 uniqueLevels = data[, .N, by = c("geographicAreaM49", "timePointYears")]
 uniqueLevels[, N := NULL]
-<<<<<<< HEAD
-elementGroup = ReadDatatable("element_codes")
-
-=======
->>>>>>> treeValidation
-
 parentNodes = getCommodityLevel(tree, parentColname = "measuredItemParentCPC",
                                 childColname = "measuredItemChildCPC")
 
