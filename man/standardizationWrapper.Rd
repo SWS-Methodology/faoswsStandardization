@@ -5,14 +5,8 @@
 \title{FULL STANDARDIZATION PROCESS}
 \usage{
 standardizationWrapper(data, tree, fbsTree = NULL, standParams,
-<<<<<<< HEAD
-  nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
-  debugFile = NULL, protected = NULL, batchnumber = batchnumber,
-  utilizationTable = utilizationTable)
-=======
   nutrientData = NULL, printCodes = c(), debugFile = NULL,
   batchnumber = batchnumber, utilizationTable = utilizationTable)
->>>>>>> treeValidation
 }
 \arguments{
 \item{data}{The data.table containing the full dataset for standardization. 
@@ -51,11 +45,6 @@ step to show the progress of the algorithm.}
 
 \item{debugFile}{folder for saving the intermediate files.}
 
-<<<<<<< HEAD
-\item{protected}{protected primary Equivalent Items.}
-
-=======
->>>>>>> treeValidation
 \item{batchnumber}{Number of batch running.}
 
 \item{utilizationTable}{Table of utilization for suaFilling}

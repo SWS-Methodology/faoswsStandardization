@@ -6,6 +6,8 @@ library(faoswsBalancing)
 library(faoswsStandardization)
 library(faoswsFlag)
 
+message("libraries loaded")
+
 library(data.table)
 library(igraph)
 library(stringr)
@@ -13,6 +15,7 @@ library(dplyr)
 library(MASS) 
 library(lattice)
 library(reshape2)
+library(sendmailR)
 
 if(packageVersion("faoswsStandardization") < package_version('0.1.0')){
   stop("faoswsStandardization is out of date")
@@ -857,7 +860,7 @@ message("Attempting to save standardized data...")
 setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
 
 ptm <- proc.time()
-out = SaveData(domain = "suafbs", dataset = "fbs_balanced", data = standData, waitTimeout = 2000000)
+out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData, waitTimeout = 2000000)
 cat(out$inserted + out$ignored, " observations written and problems with ",
     out$discarded, sep = "")
 paste0(out$inserted + out$ignored, " observations written and problems with ",

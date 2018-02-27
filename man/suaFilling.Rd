@@ -57,11 +57,8 @@ Uitlizazions for each combination of country/commodity.
   * if one is empty, imbalance goes to this commodity
   * if more than one is empty, Utilization are created based on a ranking of possible Utilization 
     coming from an external source.
-Trade and Food Processing is never created in this function:
-- trade is supposed to be "protected", 
-- food processing is created outside this function 
-  using a specific function and is not replaced here
     The approach used id the "Inverse Ranking Rule"
+  
 - If supply < utilization
   * All utilization are reduced by 30%
   * if this is not enought to cover the imbalance, production is incremented if is not official,
