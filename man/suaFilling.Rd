@@ -51,24 +51,17 @@ Uitlizazions for each combination of country/commodity.
    with all productions, food processing is created for all parent commoditeis
 
 3. ALL OTHER ELEMENTS ARE FILLED, IF NEEDED
->>>>>>> treeValidation
 - if supply > utilization a Multiple filler approach is used: 
   * If all the ranked utilizations are present 
     these are proportionally incremented
   * if one is empty, imbalance goes to this commodity
   * if more than one is empty, Utilization are created based on a ranking of possible Utilization 
     coming from an external source.
-<<<<<<< HEAD
-    The approach used is of the Inverse Ranking. 
-    (CRISTINA: for the moment we are trying with the Approach2: using old SUA)
-
 Trade and Food Processing is never created in this function:
 - trade is supposed to be "protected", 
 - food processing is created outside this function 
   using a specific function and is not replaced here
-=======
     The approach used id the "Inverse Ranking Rule"
-  
 - If supply < utilization
   * All utilization are reduced by 30%
   * if this is not enought to cover the imbalance, production is incremented if is not official,
@@ -77,5 +70,4 @@ Trade and Food Processing is never created in this function:
 If OFFICIAL PRODUCTION is CHANGED, changed rows go in an external file
 
 Trade is never touched
->>>>>>> treeValidation
 }
