@@ -105,7 +105,7 @@ sendMail4shares=function(tree){
                           msg = strsplit(body,"\n")[[1]])
       
     }
-    message("Valid Shares")
+    return(message("Valid Shares"))
   }
 
 }

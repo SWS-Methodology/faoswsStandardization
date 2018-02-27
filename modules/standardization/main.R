@@ -72,7 +72,7 @@ geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = as.character(startYear:endYear)
 
-##' Get data configuration and session
+##  Get data configuration and session
 sessionKey = swsContext.datasets[[1]]
 
 sessionCountries =
@@ -81,7 +81,7 @@ sessionCountries =
 geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "geographicAreaM49")[type == "country", code]
 
-##' Select the countries based on the user input parameter
+# Select the countries based on the user input parameter
 selectedGEOCode =
   switch(geoM49,
          "session" = sessionCountries,
@@ -137,8 +137,8 @@ tree[(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),oi
 ################   & SHARES EXCEPT  OILS   ###################
 ##############################################################
 
-##'(E,f) have to be kept
-##'any other has to ve cleaned except the oils 
+## (E,f) have to be kept
+## any other has to ve cleaned except the oils 
 tree[,checkFlags:=paste0("(",flagObservationStatus,",",flagMethod,")")]
 
 
@@ -153,7 +153,7 @@ tree[,keep:=NULL]
 ##############################################################
 ############ Update params for specific dataset ##############
 ##############################################################
-## 
+
 params = defaultStandardizationParameters()
 params$itemVar = "measuredItemSuaFbs"
 params$mergeKey[params$mergeKey == "measuredItemCPC"] = "measuredItemSuaFbs"
@@ -611,7 +611,7 @@ if(params$createIntermetiateFile){
 }
 
 
-##' Run all the standardization and balancig for combination of country/year
+##  Run all the standardization and balancig for combination of country/year
 ptm <- proc.time()
 for (i in seq_len(nrow(uniqueLevels))) {
   filter = uniqueLevels[i, ]
@@ -647,7 +647,7 @@ message("Combining standardized data...")
 standData = rbindlist(standData)
 
 
-##' Save the StandData LOCALLY
+##  Save the StandData LOCALLY
 if(CheckDebug()){
   save(standData,file=paste0(PARAMS$temporaryStandData,"/standDatabatch",batchnumber,".RData"))
 }
