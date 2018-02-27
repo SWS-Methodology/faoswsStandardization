@@ -1,5 +1,5 @@
 
-##' Full Standardization Process
+##' FULL STANDARDIZATION PROCESS 
 ##' 
 ##' This function implements the new standardization process.  The algorithm is 
 ##' as follows:
@@ -60,14 +60,9 @@
 ##'   proteins, and fats columns there should be numeric values representing 
 ##'   multipliers to convert kilograms of the item into calories/proteins/fats. 
 ##'   If NULL, nothing is done with nutrients.
-##' @param crudeBalEl A data.table containing one column with the item codes 
-##'   (and this column's name must match standParams$itemVar) and additional 
-##'   columns representing, for each commodity the corresponding balancing element
-##'   from the old system, converted in new element.   
 ##' @param printCodes A list of the item codes which should be printed at each 
 ##'   step to show the progress of the algorithm.
 ##' @param debugFile folder for saving the intermediate files.
-##' @param protected protected primary Equivalent Items.
 ##' @param batchnumber Number of batch running.
 ##' @param utilizationTable Table of utilization for suaFilling
 ##' @return A data.table containing the final balanced and standardized SUA 
@@ -79,9 +74,8 @@
 ##' 
 
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
-                                  nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
-                                  debugFile= NULL
-                                  , protected = NULL,batchnumber=batchnumber,
+                                  nutrientData = NULL, printCodes = c(),
+                                  debugFile= NULL,batchnumber=batchnumber,
                                   utilizationTable = utilizationTable
                                   ){
     
@@ -145,10 +139,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
         nutrientElements = c()
     }
 
-    
-    
-    
-    ## STEP 0.1: Add missing element codes for commodities that are in the data
+    ## STEP 1: Add missing element codes for commodities that are in the data
     ## (so that we can print it).  Then, print the table!
     ## Note that this function has been repeted juast after the processForward
     ## because missingElements have to be created for those children which were not in 
@@ -161,45 +152,25 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       printSUATable(data = data, standParams = p, printCodes = printCodes)
     }
     
-    ## STEP 1: Process forward.
-    data = processForward(data = data, tree = tree,
-                          standParams = p)$data
-    
-    ## As already anticipated, missing elements are added after the processForward
     data = addMissingElements(data, p)
-    
-    ## Delete nodes processed forward
-    forwardParents = tree[get(p$targetVar) == "F", unique(get(p$parentVar))]
-    tree = tree[!get(p$parentVar) %in% forwardParents, ]
-    
-    FPCommodities <- c( "01499.06", "01921.01")
-    if (length(which(FPCommodities%in%printCodes))>0)
-    {
-        if(length(printCodes) > 0){
-        cat("\nSUA table after processing forward:")
-        data = markUpdated(new = data, old = old, standParams = p)
-        old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
-        printSUATable(data = data, standParams = p, printCodes = printCodes)
-        }
-      data[,updateFlag:=NULL]
-    }
-    
+
     ### STEP2 Initial Sua Filling 
+    
+    if(dim(tree)[1]!=0){
     level = findProcessingLevel(tree, from = p$parentVar,
                                 to = p$childVar, aupusParam = p)
     primaryEl = level[processingLevel == 0, get(p$itemVar)]
-    ## Add in elements not in the tree, as they are essentially parents
-    nonTreeEl = data[[p$itemVar]]
-    nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
-    # primaryEl = c(primaryEl, nonTreeEl)
-    data[, officialProd := any(get(standParams$elementVar) == standParams$productionCode &
+    }else{
+    primaryEl=c()
+    }
+    data[, ProtectedProd := any(get(standParams$elementVar) == standParams$productionCode &
                                  Official==TRUE),
          by = c(standParams$itemVar)]
     data[, ProtectedFood := any(get(standParams$elementVar) == standParams$foodCode &
                                  Official==TRUE),
          by = c(standParams$itemVar)]
     
-    data[is.na(officialProd), officialProd :=FALSE]
+    data[is.na(ProtectedProd), ProtectedProd :=FALSE]
     data[is.na(ProtectedFood), ProtectedFood :=FALSE]
 
     data=data.table(left_join(data,utilizationTable,by=c("geographicAreaM49","measuredElementSuaFbs","measuredItemSuaFbs")))
@@ -238,15 +209,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     standData <- standData[!is.na(Value),]
     
     standData[, flagObservationStatus := "I"]
-    standData[, flagMethod := "b"]
-    
-    ##ptm <- proc.time()
-    ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
-    ##message((proc.time() - ptm)[3])
+    standData[, flagMethod := "e"]
     
     if(!is.null(debugFile)){
       
-      saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
+      saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
                              fileName=paste0("B",batchnumber,"_00a_AfterSuaFilling1"),
                              data=standData)
     }
@@ -290,8 +257,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          tree[, newShare := availability.child / sum(availability.child, na.rm = TRUE),
               by = c(params$childVar)]         
          tree[, c(params$shareVar) :=
-                ifelse(is.na(newShare), get(params$shareVar), newShare)]
-         # tree[, c("newShare","availability.child", "availability") := NULL]
+        ifelse(is.na(newShare), get(params$shareVar), newShare)]
+# tree[, c("newShare","availability.child", "availability") := NULL]
          tree[, c("newShare") := NULL]
          
          # share are the proportion of availability of each parent
@@ -299,10 +266,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          # if availability is negative
          # shares are  a proportion of the number of child of each parent
          
+         if(dim(tree)[1]!=0){
          freqChild= data.table(table(tree[, get(params$childVar)]))
          setnames(freqChild, c("V1","N"), c(params$childVar, "freq"))
          tree=merge(tree, freqChild , by=params$childVar)
-         
+         }
          ### CRISTINA this function has to be used also when availability is NA
          
          tree[availability.child<=0|is.na(availability.child), negShare:=1/freq]
@@ -316,8 +284,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          
          tree[,tempAvailability:=ifelse(availability.child<=0|is.na(availability.child),negShare*sumPositiveAvail,availability)]
          
-         
-         # CRISTINA last change in availability calculation for RICE SaintKitts
          tree[, newShare := ifelse(tempAvailability==0,negShare, tempAvailability / sum(tempAvailability, na.rm = TRUE)),
               by = c(params$childVar)]
          tree[,availability.child:=tempAvailability]
@@ -330,41 +296,33 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          
          # weight
          
+         treeShares=plotTree
+         treeShares=treeShares[!is.na(get(p$shareVar))]
+         setnames(treeShares,"share","oldShare")
+         tree=data.table(left_join(tree,treeShares,by=colnames(treeShares)[c(1:3,5:7)]))
+         tree[, c(params$shareVar) :=
+                ifelse(is.na(oldShare), get(params$shareVar), oldShare)]
+         tree[, oldShare := NULL]
+         
+         
          tree[,weight:=1]
          tree[measuredItemChildCPC %in% zeroWeight , weight:=0]
-         
-         ### CRISTINA 
-         # here I deactivate this steps because shares are used in their level
-         
-         # zeroWeightChildren=list()
-         # for(i in seq_len(length(zeroWeight)))
-         # { 
-         #   zeroWeightChildren[[i]]=data.table(getChildren( commodityTree = tree,
-         #                                                   parentColname =params$parentVar,
-         #                                                   childColname = params$childVar,
-         #                                                   topNodes =zeroWeight[i] ))
-         #  }
-         # 
-         # zeroWeightDescendants= rbindlist(zeroWeightChildren)
-         # zeroWeightDescendants= unique(unlist(zeroWeightDescendants))
-         # 
-         # tree[measuredItemChildCPC %in% zeroWeightDescendants , weight:=0]
-# 
-#          if(length(printCodes) > 0){
-#            cat("\nAvailability of children and shares:\n\n")
-#            print(knitr::kable(tree[get(p$childVar) %in% printCodes,
-#                                    c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
-#          with = FALSE]))
-#            # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-#            #                       get(p$childVar) %in% printCodes, ]
-#            # if(nrow(plotTree) > 0){
-#            #   plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-#            #                  childColname = p$childVar,
-#            #                  extractionColname = p$extractVar, box.size = .06,
-#            #                  box.type = "circle", cex.txt = 1, box.prop = .5,
-#            #                  box.cex = 1)
-#            # }
-#          }
+
+         if(length(printCodes) > 0){
+           cat("\nAvailability of children and shares:\n\n")
+           print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+                                   c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
+         with = FALSE]))
+           # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+           #                       get(p$childVar) %in% printCodes, ]
+           # if(nrow(plotTree) > 0){
+           #   plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+           #                  childColname = p$childVar,
+           #                  extractionColname = p$extractVar, box.size = .06,
+           #                  box.type = "circle", cex.txt = 1, box.prop = .5,
+           #                  box.cex = 1)
+           # }
+         }
          
          
          
@@ -411,11 +369,12 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          standData <- standData[!is.na(Value),]
          
          standData[, flagObservationStatus := "I"]
-         standData[, flagMethod := "b"]
+         standData[, flagMethod := "e"]
 
+         
          if(!is.null(debugFile)){
            
-           saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
+           saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
                                   fileName=paste0("B",batchnumber,"_00b_AfterFoodProc"),
                                   data=standData)
          }
@@ -445,31 +404,13 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
          
          
          
-         ### STEP 3: Compute availability and SHARE 2 
-         
-         # data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-         #                            ifelse(get(p$elementVar) == p$productionCode, 1,
-         #                            ifelse(get(p$elementVar) == p$importCode, 1,
-         #                            ifelse(get(p$elementVar) == p$exportCode, -1,
-         #                            ifelse(get(p$elementVar) == p$stockCode, -1,
-         #                            ifelse(get(p$elementVar) == p$foodCode, -1,
-         #                            ifelse(get(p$elementVar) == p$foodProcCode, 0,
-         #                            ifelse(get(p$elementVar) == p$feedCode, -1,
-         #                            ifelse(get(p$elementVar) == p$wasteCode, -1,
-         #                            ifelse(get(p$elementVar) == p$seedCode, -1,
-         #                            ifelse(get(p$elementVar) == p$industrialCode, -1,
-         #                            ifelse(get(p$elementVar) == p$touristCode, -1,
-         #                            ifelse(get(p$elementVar) == p$residualCode, -1, 0))))))))))))),
-         #      by = c(p$mergeKey)]
-         # 
+    ### STEP 3: Compute availability and SHARE 2 
 
+   data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
          
-         data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
-         
-         setnames(data,"foodProcElement","availability")
+  setnames(data,"foodProcElement","availability")
 
-         
-         
+  if(dim(tree)[1]!=0){
          
     # There's only one availability value per group, but we need an aggregation
     # function so we use mean.
@@ -479,148 +420,108 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     # plotTree = copy(tree)
     tree = merge(tree, mergeToTree, by = p$parentVar, all.x = TRUE)
     # tree[, availability := NULL]
-    
-    
-    
-    ## The trees that have not to be standardized back are cut changing their codes 
-    ## in the child column (both in tree and in availability)
   
-    # ############ CRISTINA: 
-    # ## I will try to delete this after the calculation of shares, because, for the 
-    # ## calculation of food processing, cuts have to treated as children
-    # 
-    # tree[,tempChild:=get(standParams$childVar)]
-    # # availability[,tempChild:=get(standParams$childVar)]
-    # 
-    tree[get(standParams$childVar) %in% cutItems,
+    
+       tree[get(standParams$childVar) %in% cutItems,
        c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
 
+       
+       
     availability = calculateAvailability(tree, p)
-    
-    # availability[get(standParams$childVar) %in% cutItems,
-    #      c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    # 
-    # ## also I have created the function calculateShares and changed filterOut
-    # 
-    # 
-    # 
-    ### CRISTINA calculate shares
-    # tree=calculateShares(data=data, params=p, tree=tree, zeroWeight=zeroWeight)
-    # 
-    # ### now remove the f???_ prefix for cuts in order to include them in the calculation of food processing
-    # tree[,standParams$childVar:=tempChild]
-    # tree[,tempChild:=NULL]
-    # 
-    # ##STEP to filter out from the TOT availability of each commodity the portion that must be allocated to the FOOD processing.
-    # 
-    # # standardization of the production to obtain foodProc
-    # #### CRISTINA: FilterOut have been changed
-    # foodProc=filterOutFoodProc(data=data, params=p, tree=tree, availability=availability,zeroWeight=zeroWeight)
-    # 
-    # data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
-    # 
-    # 
-    # tree[, availability:=NULL]
-    # 
-    # 
-    # 
-    # ### now indicate cuts again
-    # 
-    # tree[get(standParams$childVar) %in% cutItems,
-    #      c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    # 
-    # availability[get(standParams$childVar) %in% cutItems,
-    #              c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
-    # 
-    
-    #######
-    
+
     tree[, availability := NULL]
     
     tree = collapseEdges(edges = tree, parentName = p$parentVar,
                          childName = p$childVar,
                          extractionName = p$extractVar,
                          keyCols = NULL)
+    #####
+    #### CRISTINA adding steps to avoiding multiple lines for each 
+    # combination fo parent child due to the fact that
+    # the same combination can happen because a child can be
+    # also a nephew of a commodity
+    # I'm taking mean share, mean ER and only one type
+    tree[,p$extractVar:=mean(get(p$extractVar),na.rm=TRUE),by=c(p$parentVar,p$childVar)]
+    tree[,share:=mean(share,na.rm=TRUE),by=c(p$parentVar,p$childVar)]
+    tree = tree[,c(1:4),with=FALSE]
+    tree=unique(tree)
+    tree[, target := ifelse(get(p$parentVar) %in% FPCommodities,
+                            "F", "B")]
+    tree = merge(tree, itemMap, by = "measuredItemParentCPC")
+    tree[,standParentID:=NA]
+    tree[,weight:=1]
+    tree[get(p$childVar) %in% zeroWeight , weight:=0]
+    #####
+    
+    
     tree = merge(tree, availability,
                       by = c(p$childVar, p$parentVar))
     
     tree=calculateShares(data=data, params=p, tree=tree, zeroWeight=zeroWeight)
     
-    ## The structure of the tree may cause certain edges to be duplicated (for 
-    ## example, if one product can be created via several different paths of a 
-    ## tree).  Remove those duplicated edges here.  Availability of the parent
-    ## should not increase.  All availability values within each group should be
-    ## the same, so taking the max shouldn't do anything/cause any problems. 
-    ## For shares, we may have different default shares to different processes. 
-    ## Without having a specific way of how to aggregate these shares, we add
-    ## them (which is somewhat reasonable).
-    # tree = tree[, list(share = sum(share),
-    #                    availability = max(availability)),
-    #             by = c(p$childVar, p$parentVar, p$extractVar, 
-    #                    p$targetVar, p$standParentVar)]
-    # setnames(tree, "share", p$shareVar)
-    ## Calculate the share using proportions of availability, but default to the
-    ## old value if no "by-availability" shares are available.
+    
+    treeShares[get(standParams$childVar) %in% cutItems,
+               c(standParams$childVar) := paste0("f???_", get(standParams$childVar))]
+    
+    # treeShares=treeShares[,c(2,1,3,5,7,4),with=FALSE]
+    treeShares=treeShares[,mget(c("measuredItemChildCPC","measuredItemParentCPC","extractionRate",
+                                  "target","standParentID","oldShare"))]
+    tree=data.table(left_join(tree,treeShares,by=colnames(treeShares)[c(1:5)]))
+    tree[, c(params$shareVar) :=
+           ifelse(is.na(oldShare), get(params$shareVar), oldShare)]
+    tree[, oldShare := NULL]
     
 
-    
-    #    if(length(printCodes) > 0){
-    #     cat("\nAvailability of parents/children 2:\n\n")
-    #     print(knitr::kable(tree[get(p$childVar) %in% printCodes,
-    #                c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
-    #                with = FALSE]))
-    #     # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
-    #     #                         get(p$childVar) %in% printCodes, ]
-    #     # if(nrow(plotTree) > 0){
-    #     #     plotSingleTree(edges = plotTree, parentColname = p$parentVar,
-    #     #                    childColname = p$childVar,
-    #     #                    extractionColname = p$extractVar, box.size = .06,
-    #     #                    box.type = "circle", cex.txt = 1, box.prop = .5,
-    #     #                    box.cex = 1)
-    #     # }
-    # }
-    
+       if(length(printCodes) > 0){
+        cat("\nAvailability of parents/children 2:\n\n")
+        print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+                   c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
+                   with = FALSE]))
+        # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
+        #                         get(p$childVar) %in% printCodes, ]
+        # if(nrow(plotTree) > 0){
+        #     plotSingleTree(edges = plotTree, parentColname = p$parentVar,
+        #                    childColname = p$childVar,
+        #                    extractionColname = p$extractVar, box.size = .06,
+        #                    box.type = "circle", cex.txt = 1, box.prop = .5,
+        #                    box.cex = 1)
+        # }
+    }
+  }    
  
     ### first intermediate SAVE 
     # message("Attempting to save balanced SUA data...")
-    setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
-    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-                                                             "foodManufacturing", "imports", "loss", "production", 
-                                                             "seed", "stockChange", "residual","industrial", "tourist"),
-                                     code=c("261", "281", "271", "5910", "5520", "5141", 
-                                            "5023", "5610", "5016", "5510",
-                                            "5525", "5071", "5166","5165", "5164"))
-    
-    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
-    standData[,`:=`(measuredElementSuaFbs = NULL)]
-    setnames(standData, "code", "measuredElementSuaFbs")
-    
-    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
-                           Value)]
-    standData <- standData[!is.na(Value),]
-    
-    standData[, flagObservationStatus := "I"]
-    standData[, flagMethod := "b"]
-    
-    ##ptm <- proc.time()
-    ##SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData)
-    ##message((proc.time() - ptm)[3])
-    
-    if(!is.null(debugFile)){
-      
-      saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
-                             fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST"),
-                             data=standData)
-    }
-    
-    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-    ###    
-    
-    
-    
-    
-    
-        
+    # setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+    # fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
+    #                                                          "foodManufacturing", "imports", "loss", "production", 
+    #                                                          "seed", "stockChange", "residual","industrial", "tourist"),
+    #                                  code=c("261", "281", "271", "5910", "5520", "5141", 
+    #                                         "5023", "5610", "5016", "5510",
+    #                                         "5525", "5071", "5166","5165", "5164"))
+    # 
+    # standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    # standData[,`:=`(measuredElementSuaFbs = NULL)]
+    # setnames(standData, "code", "measuredElementSuaFbs")
+    # 
+    # standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+    #                        Value)]
+    # standData <- standData[!is.na(Value),]
+    # 
+    # standData[, flagObservationStatus := "I"]
+    # standData[, flagMethod := "e"]
+
+    # 
+    # standData = calculateFoodAggregates(standData,p) ####
+    # 
+    # 
+    # 
+    # if(!is.null(debugFile)){
+    #   
+    #   saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
+    #                          fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST"),
+    #                          data=standData)
+    # }
+    # ### 
     
     
     ## STEP 2.1 Compute calories
@@ -642,14 +543,68 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       })
     }
 
+  ### first intermediate SAVE
+message("Attempting to save balanced SUA data...")
+setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
+fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food",
+                                                         "foodManufacturing", "imports", "loss", "production",
+                                                         "seed", "stockChange", "residual","industrial", "tourist"),
+                                 code=c("261", "281", "271","5910", "5520", "5141",
+                                        "5023", "5610", "5016", "5510",
+                                        "5525", "5071", "5166","5165", "5164"))
 
-    
-    
-    
-    
-    
-    
+standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+standData[,`:=`(measuredElementSuaFbs = NULL)]
+setnames(standData, "code", "measuredElementSuaFbs")
 
+standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
+Value,Calories,Proteins,Fats)]
+
+
+
+standData = calculateFoodAggregates(standData,p,yearVals) ####
+
+setnames(standData,"measuredElementSuaFbs", "code")
+standData = merge(standData, fbs_sua_conversion, by = "code")
+
+standData[,`:=`(code = NULL)]
+
+standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua + 
+                        Calories + Proteins + Fats +
+                        DESfoodSupply_kCd  + proteinSupplyQt_gCd + fatSupplyQt_gCd ~ measuredElementSuaFbs,value.var = "Value")
+
+standDataLong = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua"),variable.name = "measuredElementSuaFbs", value.name = "Value")
+
+fbs_sua_conversion2 <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins","DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "exports", "feed", "food",
+                                                         "foodManufacturing", "imports", "loss", "production",
+                                                         "seed", "stockChange", "residual","industrial", "tourist"),
+                                 code=c("261", "281", "271","664","674","684","5910", "5520", "5141",
+                                        "5023", "5610", "5016", "5510",
+                                        "5525", "5071", "5166","5165", "5164"))
+
+
+standData = merge(standDataLong, fbs_sua_conversion2, by = "measuredElementSuaFbs")
+standData[,`:=`(measuredElementSuaFbs = NULL)]
+setnames(standData, "code", "measuredElementSuaFbs")
+
+standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
+                       Value)]
+standData <- standData[!is.na(Value),]
+
+standData[, flagObservationStatus := "I"]
+standData[, flagMethod := "e"]
+
+if(!is.null(debugFile)){
+
+  saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
+                         fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST"),
+                         data=standData)
+}
+###
+
+    setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+    ###
+    
     
    
     ## STEP 4: Standardize commodities to balancing level
@@ -677,25 +632,59 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     
     ### Second intermediate Save  
-    ## message("Attempting to save unbalanced FBS data...")
+    message("Attempting to save unbalanced FBS data...")
+    
     setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
-    ##
-    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food", 
-                                                             "foodManufacturing", "imports", "loss", "production", 
+    fbs_sua_conversion <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins", "exports", "feed", "food",
+                                                             "foodManufacturing", "imports", "loss", "production",
                                                              "seed", "stockChange", "residual","industrial", "tourist"),
-                                     code=c("261", "281", "271", "5910", "5520", "5141", 
+                                     code=c("261", "281", "271","5910", "5520", "5141",
                                             "5023", "5610", "5016", "5510",
                                             "5525", "5071", "5166","5165", "5164"))
     
-    standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    # standData = merge(data, fbs_sua_conversion, by = "measuredElementSuaFbs")
+    # standData[,`:=`(measuredElementSuaFbs = NULL)]
+    # setnames(standData, "code", "measuredElementSuaFbs")
+    
+    standData=copy(data)
+    
+    standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua 
+                             ~ measuredElementSuaFbs,value.var = "Value")
+    
+    standData = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua","Calories", "Proteins","Fats"),variable.name = "measuredElementSuaFbs", value.name = "Value")
+    
+    
+    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
+                           Value,Calories,Proteins,Fats)]
+    
+    
+    standData = calculateFoodAggregates(standData,p,yearVals) ####
+
+    standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua + 
+                            Calories + Proteins + Fats +
+                            DESfoodSupply_kCd  + proteinSupplyQt_gCd + fatSupplyQt_gCd ~ measuredElementSuaFbs,value.var = "Value")
+    
+    standDataLong = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua"),variable.name = "measuredElementSuaFbs", value.name = "Value")
+    
+    
+    
+    fbs_sua_conversion2 <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins","DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "exports", "feed", "food",
+                                                              "foodManufacturing", "imports", "loss", "production",
+                                                              "seed", "stockChange", "residual","industrial", "tourist"),
+                                      code=c("261", "281", "271","664","674","684","5910", "5520", "5141",
+                                             "5023", "5610", "5016", "5510",
+                                             "5525", "5071", "5166","5165", "5164"))
+    
+    
+    standData = merge(standDataLong, fbs_sua_conversion2, by = "measuredElementSuaFbs")
     standData[,`:=`(measuredElementSuaFbs = NULL)]
     setnames(standData, "code", "measuredElementSuaFbs")
     
-    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+    standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
                            Value)]
     standData <- standData[!is.na(Value),]
     
-    
+
     ### Cristina Merge with FbsTree for saving only the PrimaryEquivalent CPC codes
     standData=merge(standData,fbsTree,by.x="measuredItemFbsSua",by.y="measuredItemSuaFbs")
     ###
@@ -705,13 +694,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                            Value)]
     standData[, flagObservationStatus := "I"]
     standData[, flagMethod := "s"]
-    ##ptm <- proc.time()
-    ##SaveData(domain = "suafbs", dataset = "fbs_standardized", data = standData)
-    ##message((proc.time() - ptm)[3])
-    
+
+
     if(!is.null(debugFile)){
       
-      saveFBSItermediateStep(directory=paste0("debugFile/Batch_",batchnumber),
+      saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
                              fileName=paste0("B",batchnumber,"_03_AfterST_BeforeFBSbal"),
                              data=standData)
     }
@@ -722,9 +709,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
 
     ########################################    
-    ##Rice Natalia and Rachele
-    
-
+    # ##Rice Natalia and Rachele
+    # 
+    # 
     # data[measuredItemSuaFbs=="0113" & !(measuredElementSuaFbs %in% nutrientElements), Value:=Value*0.667]
     # foodValue=data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="food", Value]
     # calories=nutrientData$Calories[nutrientData$measuredItemSuaFbs=="0113"]
@@ -734,8 +721,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     # data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Calories", Value:=foodValue*calories*10000]
     # data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Proteins", Value:=foodValue* proteins*10000]
     # data[measuredItemSuaFbs=="0113" & measuredElementSuaFbs=="Fats", Value:=foodValue*fats*10000]
-    # 
-    ########################################
+
+    #######################################
     
     
    ## STEP 5: Balance at the balancing level.
@@ -750,7 +737,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data[, standardDeviation := Value * .1]
    
   ##Production
-  data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .02]
+  # data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .01]
+  data[get(p$elementVar)==p$productionCode, standardDeviation := Value * .001] # Batch 119
   ##Import
   data[get(p$elementVar)==p$importCode, standardDeviation := Value * .02]
   ##Export
@@ -758,7 +746,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ##Stock
   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
   ##Food
-  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .01]
+  # data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .001]
+  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .001] #batch 119
   ##Feed
   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
   ##Seed
@@ -805,7 +794,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
    }
    ## STEP 6: Update calories of processed products proportionally based on
    ## updated food element values.
-   data[(nutrientElement), Value := Value * foodAdjRatio]
+   # data[(nutrientElement), Value := Value * foodAdjRatio]
+   
+   
+   data[(nutrientElement), Value := ifelse(((!is.na(Value))&is.na(foodAdjRatio)),Value, Value * foodAdjRatio)]
+   
    if(length(printCodes) > 0){
      cat("\nSUA table with updated nutrient values:")
      data = markUpdated(new = data, old = old, standParams = p)

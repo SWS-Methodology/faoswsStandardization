@@ -2,12 +2,17 @@
 % Please edit documentation in R/standardizationWrapper.R
 \name{standardizationWrapper}
 \alias{standardizationWrapper}
-\title{Full Standardization Process}
+\title{FULL STANDARDIZATION PROCESS}
 \usage{
 standardizationWrapper(data, tree, fbsTree = NULL, standParams,
+<<<<<<< HEAD
   nutrientData = NULL, crudeBalEl = NULL, printCodes = c(),
   debugFile = NULL, protected = NULL, batchnumber = batchnumber,
   utilizationTable = utilizationTable)
+=======
+  nutrientData = NULL, printCodes = c(), debugFile = NULL,
+  batchnumber = batchnumber, utilizationTable = utilizationTable)
+>>>>>>> treeValidation
 }
 \arguments{
 \item{data}{The data.table containing the full dataset for standardization. 
@@ -41,18 +46,16 @@ proteins, and fats columns there should be numeric values representing
 multipliers to convert kilograms of the item into calories/proteins/fats. 
 If NULL, nothing is done with nutrients.}
 
-\item{crudeBalEl}{A data.table containing one column with the item codes 
-(and this column's name must match standParams$itemVar) and additional 
-columns representing, for each commodity the corresponding balancing element
-from the old system, converted in new element.}
-
 \item{printCodes}{A list of the item codes which should be printed at each 
 step to show the progress of the algorithm.}
 
 \item{debugFile}{folder for saving the intermediate files.}
 
+<<<<<<< HEAD
 \item{protected}{protected primary Equivalent Items.}
 
+=======
+>>>>>>> treeValidation
 \item{batchnumber}{Number of batch running.}
 
 \item{utilizationTable}{Table of utilization for suaFilling}

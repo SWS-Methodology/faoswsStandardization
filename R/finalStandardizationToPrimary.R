@@ -69,10 +69,15 @@ finalStandardizationToPrimary = function(data, tree, standParams,
         tree[, c(standParams$yearVar) := data[, get(standParams$yearVar)][1]]
         tree[, c(standParams$geoVar) := data[, get(standParams$geoVar)][1]]
     }
+    if(dim(tree)[1]!=0){
     standTree = collapseEdges(edges = tree, keyCols = keyCols,
                               parentName = standParams$parentVar,
                               childName = standParams$childVar,
                               extractionName = standParams$extractVar)
+    }else{
+      standTree = tree
+    }
+    
     localParams = standParams
     localParams$elementPrefix = ""
     

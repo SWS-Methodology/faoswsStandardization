@@ -57,6 +57,12 @@ collapseEdges = function(edges, parentName = "parentID",
         finalEdges = rbind(finalEdges, currEdges[get(parentName) %in% targetNodes, ])
         currEdges = currEdges[!get(parentName) %in% targetNodes, ]
     }
+<<<<<<< HEAD
     finalEdges = unique(finalEdges,by=colnames(finalEdges))
+=======
+
+    finalEdges = unique(finalEdges,by=colnames(finalEdges))
+    
+>>>>>>> treeValidation
     return(finalEdges)
 }

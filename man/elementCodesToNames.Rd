@@ -26,9 +26,9 @@ The passed data.table "data" but with an updated element column
 \description{
 This function converts element codes (such as 5510, 5421, ...) into 
 meaningful names (such as "production", "yield", etc.).  It only works with 
-the codes defined in this file on the share drive: 
-paste0(R_SWS_SHARE_PATH,"/browningj/") (which will 
-eventually become an adhoc table).  The tricky part of this function is that
+the codes defined in a file called elementCodes, which was om the Share drive
+paste0(R_SWS_SHARE_PATH,"/browningj/") but now is an ad hoc dataTable in the SWS
+in the AgricultureProduction domain.  The tricky part of this function is that
 the commodity type must be used to correctly choose the element code, as 
 different commodities may use different codes for production, yield, ...
 }
