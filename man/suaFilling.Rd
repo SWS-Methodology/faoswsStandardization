@@ -40,19 +40,6 @@ the Value column of the passed data.table is updated
 \description{
 This function forces a the filling of empty elements in the pulled SUA
 by allocating the "imbalance" according to a Ranking of the possible 
-<<<<<<< HEAD
-Uitlizazions for each combination of country/commodity
-}
-\details{
-- If supply < utilization
-  * the imbalance is assigned to production, if it is not official
-  * if is official it is checked if the commodity is a stock commodity
-    i.e. if it does make sense to allocate stock. If it is so, stock is created (negative)
-  * if production is official and is not a stocj comodity, 
-    Utilizations are proportionally reduced,if the difference S-U <=10% Utilizations
-  * if none of these operations is possible, a manual check of the data is needed
-    (for the moment production is increased anyway and an external file is produced for check)
-=======
 Uitlizazions for each combination of country/commodity.
 }
 \details{

@@ -71,11 +71,8 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
     # 3:     2351              Raw cane or beet sugar
     
     ## Map element codes to names
-<<<<<<< HEAD
-    warning("This map should eventually be updated as an Datatable! Issue #12")
-    # itemCodeKey = fread(paste0(R_SWS_SHARE_PATH,"/browningj/elementCodes.csv"))
-=======
->>>>>>> treeValidation
+
+    
     itemCodeKey = ReadDatatable("element_codes")
     itemCodeKey[, c("description", "factor") := NULL]
     ## Cheap duct-taped on method for removing all the indigenous and biological
