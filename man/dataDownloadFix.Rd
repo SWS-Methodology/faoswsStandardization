@@ -14,6 +14,9 @@ provide information about the columns of data and tree, specifying (for
 example) which columns should be standardized, which columns represent 
 parents/children, etc.}
 }
+\value{
+A data.table with the data fixed for sugar
+}
 \description{
 This function download the data from sua_unbalanced dataset, then harmonize sugar codes. 
 Raw cane and beet sugar are considered as separate codes in some domain, like trade, because sugar raw can be traded
