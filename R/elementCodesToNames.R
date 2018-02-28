@@ -47,6 +47,8 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
     ## Get the mapping from item code to item type.
     elementMap = GetCodeList("agriculture", "aproduction", "measuredItemCPC")
     
+    message("Get Code List ok")
+    
     #### ADDED for solving the problem of cassava code: CRISTINA 
     elementMap[code=="01520.02",type:="CRPR"]
     elementMap[code=="39120.18",type:="CRNP"]

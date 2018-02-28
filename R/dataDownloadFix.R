@@ -20,7 +20,7 @@
 ##'  
 
 
-dataDownloadFix = function(key=key, p = params ){
+dataDownloadFix = function(key=c(), p = c() ){
 
 data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
                            elementCol = "measuredElementSuaFbs")

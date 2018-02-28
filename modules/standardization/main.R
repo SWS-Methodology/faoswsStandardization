@@ -57,7 +57,7 @@ if (CheckDebug()) {
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
 
-data# instead of replace the existing 
+# instead of replace the existing 
 # (for example save example files for different batches)
 # put the name in the .yml file
 # default is NULL
@@ -226,7 +226,62 @@ message("Reading SUA data...")
 # load(file.path(PARAMS$localFiles, "dataTESTNewStand.RData")) 
 
 # data=data[geographicAreaM49=="1248"&timePointYears%in%yearVals]
-data=suppressWarnings(dataDownloadFix(key=key,p=params))
+# data=suppressWarnings(dataDownloadFix(key=key,p=params))
+
+
+data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
+                           elementCol = "measuredElementSuaFbs")
+
+message("elementCodesToNames ok")
+
+setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
+data[measuredElementSuaFbs=="stock_change",measuredElementSuaFbs:="stockChange"]
+data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
+
+data=data[timePointYears%in%yearVals]
+data=data[!is.na(measuredElementSuaFbs)]
+
+##############################################################
+######### SUGAR RAW CODES TO BE CONVERTED IN 2351F ###########
+##############################################################
+datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
+datas[measuredElementSuaFbs=="tourist",measuredItemSuaFbs:="2351f"]
+datas[measuredElementSuaFbs=="stockChange"&geographicAreaM49=="705",measuredItemSuaFbs:="2351f"]
+datas[measuredElementSuaFbs=="food"&geographicAreaM49%in%c("422","28","308"),measuredItemSuaFbs:="2351f"]
+datas[,s2351f:=sum(Value*
+                     ifelse(measuredElementSuaFbs == "production"&measuredItemSuaFbs=="2351f",1,0),na.rm = TRUE),
+      by=c("geographicAreaM49","timePointYears")]
+dataTorBind = unique(datas[measuredElementSuaFbs=="production",list(geographicAreaM49,timePointYears,measuredElementSuaFbs,s2351f,flagObservationStatus,flagMethod)])
+datas[,s2351f:=NULL]
+datas=datas[!(measuredItemSuaFbs%in%c("23511.01","23512"))]
+dataTorBind = dataTorBind[,measuredItemSuaFbs:="2351f"]
+
+setnames(dataTorBind,"s2351f","Value")
+dataTorBind=dataTorBind[,c(7,3,1,2,4:6),with=FALSE]
+
+datas=rbind(datas[!measuredElementSuaFbs=="production"],dataTorBind)
+data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
+
+data=rbind(data,datas)
+
+
+
+
+
+data=data[, list(Value = sum(Value, na.rm = TRUE)),
+          by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
+data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
+  data.table
+
+data[flagObservationStatus%in%c("","T"),Official:=TRUE]
+data[is.na(Official),Official:=FALSE]
+
+
+
+
+
+
+
 
 # I save a copy of the data with the flag. I'll need this for saving the 
 # Forced production lines at the end of the process.
@@ -250,6 +305,10 @@ data[geographicAreaM49=="392"&get(params$elementVar)==params$foodCode&get(params
 #########################
 
 # For DERIVED select only the protected and the estimation (coming from the submodule)
+
+message("data chenged ok")
+
+
 
 level = findProcessingLevel(tree, from = params$parentVar,
                             to = params$childVar, aupusParam = params)
