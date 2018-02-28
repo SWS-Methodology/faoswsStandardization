@@ -47,29 +47,7 @@ if (CheckDebug()) {
   batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
   
 } else {
-  
-  
-  # Remove domain from username
-  USER <- regmatches(
-    swsContext.username,
-    regexpr("(?<=/).+$", swsContext.username, perl = TRUE)
-  )
-
-  options(error = function(){
-    dump.frames()
-
-    filename <- file.path(Sys.getenv("R_SWS_SHARE_PATH"),
-                          USER,
-                          "standard_error")
-
-    dir.create(filename, showWarnings = FALSE, recursive = TRUE)
-
-    save(last.dump, file = file.path(filename, "last.dump.RData"))
-  })
-  
-  
-  
-  batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+   batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
   message("Running on server, no need to call GetTestEnvironment...")
   
 }
@@ -79,8 +57,7 @@ if (CheckDebug()) {
 SWS_USER = regmatches(swsContext.username, 
                       regexpr("(?<=/).+$", swsContext.username, perl = TRUE))
 
-# If one want to create sub-folder in the share drive,
-# instead of replace the existing 
+data# instead of replace the existing 
 # (for example save example files for different batches)
 # put the name in the .yml file
 # default is NULL
