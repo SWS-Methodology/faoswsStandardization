@@ -37,18 +37,20 @@ computeSupplyComponents= function(data, standParams, loop){
   areaKeys = areaKeys[type == "country", code]
   
   
-  elemKeys="21"
+  # elemKeys="21"
+  # key = DatasetKey(domain = "population", dataset = "population", dimensions = list(
+  #   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+  #   measuredElementSuaFbs = Dimension(name = "measuredElementPopulation", keys = elemKeys),
+  #   timePointYears = Dimension(name = "timePointYears", keys = yearVals)
+  # ))
   
-  
-  
-  
-  
-  key = DatasetKey(domain = "population", dataset = "population", dimensions = list(
+  # areaKeys=standData[,unique(geographicAreaM49)]
+  elemKeys="511"
+  key = DatasetKey(domain = "population", dataset = "population_unpd", dimensions = list(
     geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
-    measuredElementSuaFbs = Dimension(name = "measuredElementPopulation", keys = elemKeys),
-    timePointYears = Dimension(name = "timePointYears", keys = yearVals)
+    measuredElementSuaFbs = Dimension(name = "measuredElement", keys = elemKeys),
+    timePointYears = Dimension(name = "timePointYears", keys = as.character(yearVals))
   ))
-  
   
   pop=GetData(key)
 
