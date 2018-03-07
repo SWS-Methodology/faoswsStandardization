@@ -43,7 +43,7 @@ calculateFoodAggregates=function(standData=standData, params=c(),yearVals=yearVa
   
   popSWS=GetData(key)
   # popSWS=popSWS[,mget(c("geographicAreaM49","measuredElement","timePointYears","Value"))]
-  popSWS=popSWS[,mget(c("geographicAreaM49","measuredElementPopulation","timePointYears","Value"))]
+  popSWS=popSWS[,mget(c("geographicAreaM49","measuredElement","timePointYears","Value"))]
   setnames(popSWS,"Value","population")
   
   standData= merge(standData,popSWS,by=c("geographicAreaM49","timePointYears"),all=TRUE)
