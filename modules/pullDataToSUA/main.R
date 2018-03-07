@@ -330,7 +330,9 @@ if(2013>=endYear){
     
     tradeDataUp13[, flagMethod := "-"]
     
-    tradeDataUp13[flagObservationStatus %in% c("P", "*", "F"), flagObservationStatus := "T"]
+    tradeDataUp13[flagObservationStatus %in% c("P", "*", "X"), flagObservationStatus := "T"]
+    tradeDataUp13[flagObservationStatus %in% c("T", "F"), flagObservationStatus := "E"]
+    tradeDataUp13[flagObservationStatus %in% c("B", "C", "E"), flagObservationStatus := "I"]
     
     tradeDataUp13[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
     tradeDataUp13[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
