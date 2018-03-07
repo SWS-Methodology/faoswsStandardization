@@ -23,22 +23,23 @@ calculateFoodAggregates=function(standData=standData, params=c(),yearVals=yearVa
 
   # first the population dataset has to be downloaded
 
-  # #SWS POPULATION
-  # areaKeys=standData[,unique(geographicAreaM49)]
-  # elemKeys="511"
-  # key = DatasetKey(domain = "population", dataset = "population_unpd", dimensions = list(
-  #   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
-  #   measuredElementSuaFbs = Dimension(name = "measuredElement", keys = elemKeys),
-  #   timePointYears = Dimension(name = "timePointYears", keys = as.character(yearVals))
-  # ))
-
+  # #SWS POPULATION NEW
   areaKeys=standData[,unique(geographicAreaM49)]
-  elemKeys="21"
-  key = DatasetKey(domain = "population", dataset = "population", dimensions = list(
+  elemKeys="511"
+  key = DatasetKey(domain = "population", dataset = "population_unpd", dimensions = list(
     geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
-    measuredElementSuaFbs = Dimension(name = "measuredElementPopulation", keys = elemKeys),
+    measuredElementSuaFbs = Dimension(name = "measuredElement", keys = elemKeys),
     timePointYears = Dimension(name = "timePointYears", keys = as.character(yearVals))
   ))
+  # #SWS POPULATION OLD
+  
+  # areaKeys=standData[,unique(geographicAreaM49)]
+  # elemKeys="21"
+  # key = DatasetKey(domain = "population", dataset = "population", dimensions = list(
+  #   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+  #   measuredElementSuaFbs = Dimension(name = "measuredElementPopulation", keys = elemKeys),
+  #   timePointYears = Dimension(name = "timePointYears", keys = as.character(yearVals))
+  # ))
   
   popSWS=GetData(key)
   # popSWS=popSWS[,mget(c("geographicAreaM49","measuredElement","timePointYears","Value"))]

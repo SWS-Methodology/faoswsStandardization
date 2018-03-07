@@ -75,10 +75,11 @@ stopifnot(startYear <= endYear)
 yearVals = as.character(startYear:endYear)
 
 ##  Get data configuration and session
-sessionKey = swsContext.datasets[[1]]
+sessionKey_fbsBal = swsContext.datasets[[1]]
+sessionKey_suaUnb = swsContext.datasets[[3]]
 
 sessionCountries =
-  getQueryKey("geographicAreaM49", sessionKey)
+  getQueryKey("geographicAreaM49", sessionKey_fbsBal)
 
 geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "geographicAreaM49")[type == "country", code]
