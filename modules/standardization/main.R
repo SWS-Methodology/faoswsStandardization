@@ -76,7 +76,11 @@ yearVals = as.character(startYear:endYear)
 
 ##  Get data configuration and session
 sessionKey_fbsBal = swsContext.datasets[[1]]
+sessionKey_tree = swsContext.datasets[[2]]
 sessionKey_suaUnb = swsContext.datasets[[3]]
+sessionKey_suabal = swsContext.datasets[[4]]
+sessionKey_fbsStand = swsContext.datasets[[5]]
+
 
 sessionCountries =
   getQueryKey("geographicAreaM49", sessionKey_fbsBal)
@@ -174,32 +178,47 @@ params$official = "Official"
 ##############################################################
 #################### SET KEYS FOR DATA #######################
 ##############################################################
-elemKeys = GetCodeTree(domain = "suafbs", dataset = "sua_unbalanced", "measuredElementSuaFbs")
 
-#    code              description
-# 1:   51                   Output
-# 2:   61              Inflow (Qt)
-# 3:   71 Variation Intial Exstenc
-# 4:   91             Outflow (Qt)
-# 5:  101     Use For Animals (Qt)
-# 6:  111     Use For Same Product
-# 7:  121                   Losses
-# 8:  131 Reemployment Same Sector  (remove it)
+elemKeys=c("5510", "5610", "5071", "5023", "5910", "5016", "5165", "5520","5525","5164","5166","5141")
 
-fs_elements <- c("51", "61", "71", "91", "101", "111", "121", "131")
+desKeys = c("664","674","684")
 
-elemKeys = elemKeys[parent %in% fs_elements,
-                    paste0(children, collapse = ", ")]
-
-# code                  description
-# 1: 5141                     Food [t]
-# 2: 5164 Tourist consumption [1000 t]
-# 3: 5165     Industrial uses [1000 t]
+# 5510 Production[t]
+# 5610 Import Quantity [t]
+# 5071 Stock Variation [t]
+# 5023 Export Quantity [t]
+# 5910 Loss [t]
+# 5016 Industrial uses [t]
+# 5165 Feed [t]
+# 5520 Seed [t]
+# 5525 Tourist Consumption [t]
+# 5164 Residual other uses [t]
+# 5166 Food [t]
+# 5141 Food Supply (/capita/day) [Kcal]
 
 
-sws_elements <- c("5141", "5164", "5165")
 
-elemKeys = unique(c(strsplit(elemKeys, ", ")[[1]], sws_elements))
+##### First of all the session data have to be cleaned
+## CLEAN sua_balanced
+
+CONFIG <- GetDatasetConfig(swsContext.datasets[[4]]@domain, swsContext.datasets[[4]]@dataset)
+
+sua_bal_toClean=GetData(sessionKey_suabal)
+sua_bal_toClean[, Value := NA_real_]
+sua_bal_toClean[, CONFIG$flags := NA_character_]
+
+SaveData("suafbs", "sua_balanced" , data = sua_bal_toClean, waitTimeout = Inf)
+
+
+## CLEAN fbs_standardized
+
+
+## CLEAN fbs_balanced
+
+
+
+
+
 itemKeys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", "measuredItemFbsSua")
 itemKeys = itemKeys[, code]
 
@@ -707,6 +726,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
 }
 
 
+
 message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
@@ -792,6 +812,8 @@ if(file.exists(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\B",batchnumbe
   }
 }
 
+###################################
+### DOWNLOAD POPOULATION FOR INTERMEDIATE SAVINGS
 
 
 ###################################
@@ -803,6 +825,9 @@ AfterSuaFilling = read.table(paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\
                                                               "timePointYears","Value","flagObservationStatus","flagMethod"),
                              colClasses = c("character","character","character","character","character","character","character"))
 AfterSuaFilling = data.table(AfterSuaFilling)
+
+## As per Team B/C request (TOMASZ) I'm saving back only the DES (684)
+
 SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterSuaFilling, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
@@ -820,6 +845,8 @@ AfterST_BeforeFBSbal = read.table(paste0(basedir,"\\debugFile\\Batch_",batchnumb
                                                                    "timePointYears","Value","flagObservationStatus","flagMethod"),
                                   colClasses = c("character","character","character","character","character","character","character"))
 AfterST_BeforeFBSbal = data.table(AfterST_BeforeFBSbal)
+
+AfterST_BeforeFBSbal=AfterST_BeforeFBSbal[measuredElementSuaFbs%in%c(elemKeys,"664")]
 SaveData(domain = "suafbs", dataset = "fbs_standardized", data = AfterST_BeforeFBSbal, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
 
@@ -830,7 +857,7 @@ if(CheckDebug()){
 
 
 # Remove all intermediate Files Create in Temp Folder
-if(!CheckDebug){
+if(!CheckDebug()){
   unlink(basedir)
 }else{
   unlink(paste0(basedir,"\\debugFile\\Batch_",batchnumber))
@@ -874,6 +901,12 @@ tree2saveBack[is.na(Value),Value:=0]
 
 tree2saveBack[measuredElementSuaFbs=="extractionRate",measuredElementSuaFbs:="5423",]
 tree2saveBack[measuredElementSuaFbs=="share",measuredElementSuaFbs:="5431"]
+tree2saveBack[,measuredElementSuaFbs:=as.character(measuredElementSuaFbs)]
+setcolorder(tree2saveBack,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
+                               "measuredItemChildCPC", "timePointYears", "Value", "flagObservationStatus", 
+                               "flagMethod"))
+
+setnames(tree2saveBack,c("measuredItemParentCPC","measuredItemChildCPC"),c("measuredItemParentCPC_tree","measuredItemChildCPC_tree"))
 
 ptm <- proc.time()
 SaveData(domain = "suafbs", dataset = "ess_fbs_commodity_tree2", data = tree2saveBack, waitTimeout = 20000)
@@ -895,8 +928,6 @@ standData = merge(standData, fbs_sua_conversion2, by = "measuredElementSuaFbs")
 standData[,`:=`(measuredElementSuaFbs = NULL)]
 setnames(standData, "code", "measuredElementSuaFbs")
 
-standData[, standardDeviation := NULL]
-
 ## Assign flags: I for imputed (as we're estimating/standardizing) and s for
 ## "sum" (aggregate)
 standData[, flagObservationStatus := "I"]
@@ -907,6 +938,7 @@ setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measured
 
 # Remove NA Values
 standData <- standData[!is.na(Value),]
+standData=standData[measuredElementSuaFbs%in%c(elemKeys,"664","674","684")]
 
 
 

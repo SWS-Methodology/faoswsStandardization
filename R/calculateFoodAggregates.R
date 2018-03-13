@@ -25,12 +25,17 @@ calculateFoodAggregates=function(standData=standData, params=c(),yearVals=yearVa
 
   # #SWS POPULATION NEW
   areaKeys=standData[,unique(geographicAreaM49)]
+  if("1248"%in%areaKeys){
+    areaKeys=c(areaKeys,"156")
+  }
   elemKeys="511"
   key = DatasetKey(domain = "population", dataset = "population_unpd", dimensions = list(
     geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
     measuredElementSuaFbs = Dimension(name = "measuredElement", keys = elemKeys),
     timePointYears = Dimension(name = "timePointYears", keys = as.character(yearVals))
   ))
+  
+
   # #SWS POPULATION OLD
   
   # areaKeys=standData[,unique(geographicAreaM49)]

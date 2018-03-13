@@ -67,12 +67,12 @@ computeSupplyComponents= function(data, standParams, loop){
   
 ##   
   
-  data[measuredElementSuaFbs=="Calories",DES_calories:=(Value/365)/(population*1000)]
-  data[measuredElementSuaFbs=="Proteins",DES_proteins:=(Value/365)/(population*1000)]
-  data[measuredElementSuaFbs=="Fats",DES_fats:=(Value/365)/(population*1000)]
+  data[measuredElementSuaFbs=="Calories",DESfoodSupply_kCd:=(Value/365)/(population*1000)]
+  data[measuredElementSuaFbs=="Proteins",proteinSupplyQt_gCd:=(Value/365)/(population*1000)]
+  data[measuredElementSuaFbs=="Fats",fatSupplyQt_gCd:=(Value/365)/(population*1000)]
   
   
-  elementsToCreate=c("DES_calories","DES_proteins","DES_fats", "population")
+  elementsToCreate=c("DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "population")
 
   
   nutrients = lapply(elementsToCreate, function(x){
@@ -88,7 +88,7 @@ computeSupplyComponents= function(data, standParams, loop){
   
   nutrients=nutrients[!is.na(Value),]
   
-  data[, c("DES_calories","DES_proteins","DES_fats", "population"):=NULL]
+  data[, c("DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "population"):=NULL]
   
   nutrients=nutrients[,mget(c("geographicAreaM49","timePointYears","measuredElementSuaFbs",paste0("fbsID", 4-loop+1),"Value"))]
   

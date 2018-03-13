@@ -4,7 +4,7 @@
 \alias{dataDownloadFix}
 \title{Data Download and Fix of sugar Values}
 \usage{
-dataDownloadFix(key = key, p = params)
+dataDownloadFix(key = c(), p = c())
 }
 \arguments{
 \item{key}{Key with dimensions for data download.}
