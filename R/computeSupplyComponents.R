@@ -54,6 +54,7 @@ computeSupplyComponents= function(data, standParams, loop){
   
   pop=GetData(key)
 
+  pop[geographicAreaM49=="156",geographicAreaM49:="1248"]
   
   setnames(pop, "Value", "population")
   pop=pop[,.(geographicAreaM49,timePointYears, population)]

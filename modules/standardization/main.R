@@ -96,14 +96,6 @@ areaKeys = selectedGEOCode
 ############ DOWNLOAD AND VALIDATE TREE ######################
 ##############################################################
 
-# load("C://Users/muschitiello/Desktop/tree.RData")
-# 
-# tree=tree[geographicAreaM49 %in% areaKeys & timePointYears %in% yearVals]
-
-# ptm <- proc.time()
-# tree3=getCommodityTreeNewMethod(areaKeys,yearVals)
-# message((proc.time() - ptm)[3])
-
 ptm <- proc.time()
 tree=getCommodityTreeNewMethod(areaKeys,yearVals)
 message((proc.time() - ptm)[3])
@@ -245,48 +237,61 @@ data=data[!is.na(measuredElementSuaFbs)]
 ##############################################################
 ######### SUGAR RAW CODES TO BE CONVERTED IN 2351F ###########
 ##############################################################
+#######################################
 datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
-datas[measuredElementSuaFbs=="tourist",measuredItemSuaFbs:="2351f"]
-datas[measuredElementSuaFbs=="stockChange"&geographicAreaM49=="705",measuredItemSuaFbs:="2351f"]
-datas[measuredElementSuaFbs=="food"&geographicAreaM49%in%c("422","28","308"),measuredItemSuaFbs:="2351f"]
-datas[,s2351f:=sum(Value*
-                     ifelse(measuredElementSuaFbs == "production"&measuredItemSuaFbs=="2351f",1,0),na.rm = TRUE),
-      by=c("geographicAreaM49","timePointYears")]
-dataTorBind = unique(datas[measuredElementSuaFbs=="production",list(geographicAreaM49,timePointYears,measuredElementSuaFbs,s2351f,flagObservationStatus,flagMethod)])
-datas[,s2351f:=NULL]
-datas=datas[!(measuredItemSuaFbs%in%c("23511.01","23512"))]
-dataTorBind = dataTorBind[,measuredItemSuaFbs:="2351f"]
+datas[,Value2:=sum(Value*ifelse(measuredItemSuaFbs=="2351f",0,1)),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
+sugarComb = datas[, .N, by = c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
 
-setnames(dataTorBind,"s2351f","Value")
-dataTorBind=dataTorBind[,c(7,3,1,2,4:6),with=FALSE]
+# Filter all the rows for which only one row exists
+filterA=sugarComb[N==1]
+filterA=filterA[,N:=NULL]
+datasA=datas[filterA, ,on=c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
+# check if some of this rows are not 2351f and change the flag, in that case
+datasA[measuredItemSuaFbs!="2351f",flagObservationStatus:=ifelse(flagObservationStatus!="I","I",flagObservationStatus)]
+datasA[measuredItemSuaFbs!="2351f",flagMethod:=ifelse(!(flagMethod%in%c("e","s")),"s",flagMethod)]
+datasA[,measuredItemSuaFbs:="2351f"]
+datasA[,Value2:=NULL]
 
-datas=rbind(datas[!measuredElementSuaFbs=="production"],dataTorBind)
+
+
+filterB=sugarComb[N>1]
+filterB=filterB[,N:=NULL]
+datasC=datas[filterB, ,on=c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
+datasC[,s2351f:=max(Value2,Value),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
+
+datasC[,c("Value","Value2"):=NULL]
+datasC[,Value:=s2351f*ifelse(measuredItemSuaFbs=="2351f",1,0),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
+datasB=datasC[Value!=0]
+
+sugarComb2=datasB[,.N,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")][,N:=NULL]
+datasD=datasC[sugarComb2,,on=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
+
+datasD=setdiff(datasC,datasD)
+
+datasD[,Value:=sum(s2351f*ifelse(measuredItemSuaFbs=="2351f",0,1)),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
+datasD=unique(datasD,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs"))
+datasD[,measuredItemSuaFbs:="2351f"]
+
+datasB=datasB[,colnames(datasA),with=FALSE]
+datasD=datasD[,colnames(datasA),with=FALSE]
+dataTorBind=rbind(datasA,datasB,datasD)
+
 data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
+data=rbind(data,dataTorBind)
 
-data=rbind(data,datas)
-
-
-
-
-
-data=data[, list(Value = sum(Value, na.rm = TRUE)),
-          by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
+# ########################################
+#
+# data=data[, list(Value = sum(Value, na.rm = TRUE)),
+#           by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 
 data[flagObservationStatus%in%c("","T"),Official:=TRUE]
+# data[flagObservationStatus%in%c(""),Official:=TRUE]
 data[is.na(Official),Official:=FALSE]
-
-
-
-
-
-
-
-
-# I save a copy of the data with the flag. I'll need this for saving the 
-# Forced production lines at the end of the process.
-# 
+# data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official"))]
+# ######### ######### #########
+#######################################
 dataFlags = copy(data)
 ##############################################################
 

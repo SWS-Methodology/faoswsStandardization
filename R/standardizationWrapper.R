@@ -145,6 +145,11 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     ## because missingElements have to be created for those children which were not in 
     ## dataset previuosly
     
+    #for saving the TREE
+    yearT=data[,unique(timePointYears)]
+    
+    
+    
     data = addMissingElements(data, p)
     if(length(printCodes) > 0){
         cat("Initial SUA table:")
@@ -706,7 +711,8 @@ if(!is.null(debugFile)){
     setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
     ####
     
-    
+    coutryT=uniqueLevels[i,geographicAreaM49]
+    save(tree,file=paste0(basedir,"/debugFile/Batch_",batchnumber,"/_tree_",coutryT,"_",yearT,".RData"))
 
     ########################################    
     # ##Rice Natalia and Rachele

@@ -7,6 +7,7 @@
 ##' where the child is an official one. The subset has the characteristis of having shares not summing at 1
 ##' 
 ##' @return The function doesn't return anything, but send mail 
+##' @export
 ##' 
 
 sendMail4shares=function(tree){
