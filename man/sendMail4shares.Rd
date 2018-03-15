@@ -11,7 +11,7 @@ sendMail4shares(tree)
 where the child is an official one. The subset has the characteristis of having shares not summing at 1}
 }
 \value{
-The function doesn't return anything, but send mail
+message with the status of shares
 }
 \description{
 This function simply snd email to the user, 
