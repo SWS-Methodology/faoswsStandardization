@@ -15,10 +15,10 @@ saveFBSItermediateStep=function(directory, fileName, data){
   ## Check if the directory specifed in the arguments of the function exists
   
   
-  if(!dir.exists(directory)){
+  # if(!dir.exists(directory)){
     dir.create(directory, recursive = TRUE)
                
-  } 
+  # } 
 
  
   write.table(data, paste0(directory, "/", fileName,".csv"), sep=";", append=T, col.names = F ,row.names = F)

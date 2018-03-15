@@ -478,7 +478,7 @@ suaFilling = function(data, p = p, tree=tree,
     ###    ###    ###    ###    
     ### EXTERNAL SAVING OF FORCED INFORMATION
     
-     if(dim(dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)])[1]>0){
+    if(dim(dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)])[1]>0){
       
       NoFillable= dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)]
       
@@ -508,14 +508,17 @@ suaFilling = function(data, p = p, tree=tree,
   
   if("newValue" %in% colnames(dataPosImbP)){
     dataPosImbP[!is.na(newValue),Value:=newValue]
+    # dataPosImbP[,newValue:=NULL]
     dataPosImbP=dataPosImbP[,1:17,with=FALSE]
   }
   if("newValue" %in% colnames(dataNegImb)){
     dataNegImb[!is.na(newValue),Value:=newValue]
+    # dataPosImbP[,newValue:=NULL]
     dataNegImb=dataNegImb[,1:17,with=FALSE]
   }
   if("newValue" %in% colnames(dataPosImb)){
     dataPosImb[!is.na(newValue),Value:=newValue]
+    # dataPosImbP[,newValue:=NULL]
     dataPosImb=dataPosImb[,1:17,with=FALSE]
   }
   data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
@@ -523,7 +526,3 @@ suaFilling = function(data, p = p, tree=tree,
   data[, c("imbalance","sumUtils","sumSup") := NULL]   
   
 }
-
-
-
-

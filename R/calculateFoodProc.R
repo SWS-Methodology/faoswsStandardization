@@ -52,6 +52,7 @@ calculateFoodProc=function(data=data, params=c(), tree=tree,zeroWeight= zeroWeig
     
     
   tree[, foodProcElement:= ((Value/extractionRate)*share)*weight]
+
   mergeToData=tree[,.(measuredItemSuaFbs=get(params$parentVar), foodProcElement)]
 
   if(nrow(mergeToData[!is.na(foodProcElement),])>0){
