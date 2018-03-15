@@ -16,7 +16,7 @@ BugReports: https://github.com/SWS-Methodology/faoswsStandardization/issues
 LazyData: yes
 Depends: R (>= 2.10)
 Imports: faosws (>= 0.3.2), faoswsUtil (>= 0.2.0), data.table (>= 1.9.2), 
-diagram (>=1.6.3), faoswsBalancing (>= 0.0.1), igraph (>= 0.7.1), dplyr, lattice, MASS
+         diagram (>=1.6.3), faoswsBalancing (>= 0.0.1), igraph (>= 0.7.1), dplyr, lattice, MASS
          (>= 7.3.35), reshape2 (>= 1.4.1)
 Suggests: knitr, ggplot2, testthat
 swsDatasetDepends: agriculture:aproduction, trade:total_trade_CPC,
