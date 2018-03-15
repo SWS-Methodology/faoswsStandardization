@@ -6,7 +6,7 @@
 ##' @param tree single subset of the Tree, which means, a subset having all the parent of a single child
 ##' where the child is an official one. The subset has the characteristis of having shares not summing at 1
 ##' 
-##' @return The function doesn't return anything, but send mail 
+##' @return message with the status of shares
 ##' 
 ##' @export
 ##' 
@@ -99,7 +99,7 @@ sendMail4shares=function(tree){
     
   }else{  # End of case for which flags and/or figures are invalid
     if(!CheckDebug()){
-      body = paste("No changes in shares")
+      body = paste("Valid shares")
       sendmailR::sendmail(from = "sws@fao.org",
                           to = swsContext.userEmail,
                           subject = sprintf("Share successfully checked and saved in the session"),
