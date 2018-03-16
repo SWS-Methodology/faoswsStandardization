@@ -29,7 +29,7 @@ sendMail4forced=function(forcedData){
       destfile <- file.path(basedir, paste0(basename, FILETYPE))
       
       # create the csv in a temporary foldes   
-      write.csv(tree, destfile, row.names = FALSE)  
+      write.csv(forcedData, destfile, row.names = FALSE)  
       # define on exit strategy
       on.exit(file.remove(destfile))    
       zipfile <- paste0(destfile, ".zip")
