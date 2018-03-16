@@ -49,6 +49,8 @@ step to show the progress of the algorithm.}
 \item{batchnumber}{Number of batch running.}
 
 \item{utilizationTable}{Table of utilization for suaFilling}
+
+\item{cutItems}{tree's cuts}
 }
 \value{
 A data.table containing the final balanced and standardized SUA 
