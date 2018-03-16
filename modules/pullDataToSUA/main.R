@@ -227,125 +227,147 @@ setnames(tourData, c("tourismElement", "measuredItemCPC"),
 ################################################
 #####       Harvest from Trade Domain      #####
 ################################################
+# Before old data until 2013 were copied in the total trade dataset
+# Data had to be taken from 2 different sources
+# These lines are now hided because the total trade data are all on 1 dataset.
 # TRADE HAS TO BE PULLED:
 # - FROM OLD FAOSTAT UNTIL 2013
 # - FROM NEW DATA STARTING FROM 2010
 ################################################
 
-message("Pulling data from Trade UNTIL 2013 (old FAOSTAT)")
+# message("Pulling data from Trade UNTIL 2013 (old FAOSTAT)")
+# 
+# eleTradeDim = Dimension(name = "measuredElementTrade",
+#                         keys = c(importCode, exportCode))
+# tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")), waitTimeout = 2000000)
+# 
+# geoKeysTrade=m492fs(selectedGEOCode)
+# 
+# geokeysTrade=geoKeysTrade[!is.na(geoKeysTrade)]
+# 
+# if(2013>=endYear){
+#   timeTradeDimUp13 = Dimension(name = "timePointYears", keys = as.character(yearVals))
+#   
+#   ###### Trade UNTIL 2013 (old FAOSTAT)
+#   message("Trade UNTIL 2013 (old FAOSTAT)")
+#   tradeKeyUp13 = DatasetKey(
+#     domain = "faostat_one", dataset = "updated_sua",
+#     dimensions = list(
+#       #user input except curacao,  saint martin and former germany
+#       geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
+#       measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
+#       measuredElementFS=Dimension(name = "measuredElementFS",
+#                                   keys = c( "61", "91")),
+#       timePointYears = timeTradeDimUp13 ),
+#     sessionId =  slot(swsContext.datasets[[1]], "sessionId")
+#   )
+#   
+#   
+#   tradeDataUp13 = GetData(tradeKeyUp13)
+#   
+#   
+#   tradeDataUp13[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
+#                        measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
+#                                                 version = "latest"))]
+#   
+#   
+#   setnames(tradeDataUp13, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
+#            c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
+#   
+#   tradeDataUp13[, flagMethod := "-"]
+#   
+#   tradeDataUp13[flagObservationStatus %in% c("P", "*", "X"), flagObservationStatus := "T"]
+#   tradeDataUp13[flagObservationStatus %in% c("T", "F"), flagObservationStatus := "E"]
+#   tradeDataUp13[flagObservationStatus %in% c("B", "C", "E"), flagObservationStatus := "I"]
+#   
+#   tradeDataUp13[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
+#   tradeDataUp13[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
+#   
+#   tradeData=tradeDataUp13 
+#   
+# }else{
+#   ###### Trade FROM 2014 (new Data)
+#   message("Trade FROM 2014 (new Data)")
+#   
+#   timeTradeDimFrom14 = Dimension(name = "timePointYears", keys = as.character(2014:endYear))
+#   
+#   tradeKeyFrom14 = DatasetKey(
+#     domain = "trade", dataset = "total_trade_cpc_m49",
+#     dimensions = list(geographicAreaM49 = geoDim,
+#                       measuredElementTrade = eleTradeDim,
+#                       measuredItemCPC = itemDim,
+#                       timePointYears = timeTradeDimFrom14)
+#   )
+#   tradeDataFrom14 = GetData(tradeKeyFrom14)
+#   setnames(tradeDataFrom14, c("measuredElementTrade", "measuredItemCPC"),
+#            c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+#   
+#   ###### Merging Trade Data
+#   message("Merging Data")
+#   if(2013<startYear){
+#     tradeData=tradeDataFrom14
+#   }else{
+#     timeTradeDimUp13 = Dimension(name = "timePointYears", keys = as.character(startYear:2013))
+#     message("Trade UNTIL 2013 (old FAOSTAT)")
+#     tradeKeyUp13 = DatasetKey(
+#       domain = "faostat_one", dataset = "updated_sua",
+#       dimensions = list(
+#         #user input except curacao,  saint martin and former germany
+#         geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
+#         measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
+#         measuredElementFS=Dimension(name = "measuredElementFS",
+#                                     keys = c( "61", "91")),
+#         timePointYears = timeTradeDimUp13 ),
+#       sessionId =  slot(swsContext.datasets[[1]], "sessionId")
+#     )
+#     
+#     
+#     tradeDataUp13 = GetData(tradeKeyUp13)
+#     
+#     
+#     tradeDataUp13[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
+#                          measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
+#                                                   version = "latest"))]
+#     
+#     
+#     setnames(tradeDataUp13, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
+#              c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
+#     
+#     tradeDataUp13[, flagMethod := "-"]
+#     
+#     tradeDataUp13[flagObservationStatus %in% c("P", "*", "X"), flagObservationStatus := "T"]
+#     tradeDataUp13[flagObservationStatus %in% c("T", "F"), flagObservationStatus := "E"]
+#     tradeDataUp13[flagObservationStatus %in% c("B", "C", "E"), flagObservationStatus := "I"]
+#     
+#     tradeDataUp13[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
+#     tradeDataUp13[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
+#     
+#     tradeData=rbind(tradeDataUp13,tradeDataFrom14)  
+#     
+#   }
+#   
+# }
+
+### TRADE DATA FROM SINGLE SOURCE
+
+message("Pulling data from Trade")
 
 eleTradeDim = Dimension(name = "measuredElementTrade",
                         keys = c(importCode, exportCode))
 tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")), waitTimeout = 2000000)
 
-geoKeysTrade=m492fs(selectedGEOCode)
+timeTradeDim = Dimension(name = "timePointYears", keys = as.character(yearvals))
 
-geokeysTrade=geoKeysTrade[!is.na(geoKeysTrade)]
-
-if(2013>=endYear){
-  timeTradeDimUp13 = Dimension(name = "timePointYears", keys = as.character(yearVals))
-  
-  ###### Trade UNTIL 2013 (old FAOSTAT)
-  message("Trade UNTIL 2013 (old FAOSTAT)")
-  tradeKeyUp13 = DatasetKey(
-    domain = "faostat_one", dataset = "updated_sua",
-    dimensions = list(
-      #user input except curacao,  saint martin and former germany
-      geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
-      measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
-      measuredElementFS=Dimension(name = "measuredElementFS",
-                                  keys = c( "61", "91")),
-      timePointYears = timeTradeDimUp13 ),
-    sessionId =  slot(swsContext.datasets[[1]], "sessionId")
-  )
-  
-  
-  tradeDataUp13 = GetData(tradeKeyUp13)
-  
-  
-  tradeDataUp13[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
-                       measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
-                                                version = "latest"))]
-  
-  
-  setnames(tradeDataUp13, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
-           c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
-  
-  tradeDataUp13[, flagMethod := "-"]
-  
-  tradeDataUp13[flagObservationStatus %in% c("P", "*", "X"), flagObservationStatus := "T"]
-  tradeDataUp13[flagObservationStatus %in% c("T", "F"), flagObservationStatus := "E"]
-  tradeDataUp13[flagObservationStatus %in% c("B", "C", "E"), flagObservationStatus := "I"]
-  
-  tradeDataUp13[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
-  tradeDataUp13[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
-  
-  tradeData=tradeDataUp13 
-  
-}else{
-  ###### Trade FROM 2014 (new Data)
-  message("Trade FROM 2014 (new Data)")
-  
-  timeTradeDimFrom14 = Dimension(name = "timePointYears", keys = as.character(2014:endYear))
-  
-  tradeKeyFrom14 = DatasetKey(
-    domain = "trade", dataset = "total_trade_cpc_m49",
-    dimensions = list(geographicAreaM49 = geoDim,
-                      measuredElementTrade = eleTradeDim,
-                      measuredItemCPC = itemDim,
-                      timePointYears = timeTradeDimFrom14)
-  )
-  tradeDataFrom14 = GetData(tradeKeyFrom14)
-  setnames(tradeDataFrom14, c("measuredElementTrade", "measuredItemCPC"),
-           c("measuredElementSuaFbs", "measuredItemSuaFbs"))
-  
-  ###### Merging Trade Data
-  message("Merging Data")
-  if(2013<startYear){
-    tradeData=tradeDataFrom14
-  }else{
-    timeTradeDimUp13 = Dimension(name = "timePointYears", keys = as.character(startYear:2013))
-    message("Trade UNTIL 2013 (old FAOSTAT)")
-    tradeKeyUp13 = DatasetKey(
-      domain = "faostat_one", dataset = "updated_sua",
-      dimensions = list(
-        #user input except curacao,  saint martin and former germany
-        geographicAreaFS= Dimension(name = "geographicAreaFS", keys = setdiff(geokeysTrade, c("279", "534", "280","274","283"))),
-        measuredItemFS=Dimension(name = "measuredItemFS", keys = tradeItems),
-        measuredElementFS=Dimension(name = "measuredElementFS",
-                                    keys = c( "61", "91")),
-        timePointYears = timeTradeDimUp13 ),
-      sessionId =  slot(swsContext.datasets[[1]], "sessionId")
-    )
-    
-    
-    tradeDataUp13 = GetData(tradeKeyUp13)
-    
-    
-    tradeDataUp13[, `:=`(geographicAreaFS = fs2m49(geographicAreaFS),
-                         measuredItemFS = fcl2cpc(sprintf("%04d", as.numeric(measuredItemFS)),
-                                                  version = "latest"))]
-    
-    
-    setnames(tradeDataUp13, c("geographicAreaFS","measuredItemFS","measuredElementFS","flagFaostat" ),
-             c("geographicAreaM49", "measuredItemSuaFbs","measuredElementSuaFbs","flagObservationStatus"))
-    
-    tradeDataUp13[, flagMethod := "-"]
-    
-    tradeDataUp13[flagObservationStatus %in% c("P", "*", "X"), flagObservationStatus := "T"]
-    tradeDataUp13[flagObservationStatus %in% c("T", "F"), flagObservationStatus := "E"]
-    tradeDataUp13[flagObservationStatus %in% c("B", "C", "E"), flagObservationStatus := "I"]
-    
-    tradeDataUp13[measuredElementSuaFbs=="91",measuredElementSuaFbs:="5910"]
-    tradeDataUp13[measuredElementSuaFbs=="61",measuredElementSuaFbs:="5610"]
-    
-    tradeData=rbind(tradeDataUp13,tradeDataFrom14)  
-    
-  }
-  
-}
-
-
+tradeKey = DatasetKey(
+  domain = "trade", dataset = "total_trade_cpc_m49",
+  dimensions = list(geographicAreaM49 = geoDim,
+                    measuredElementTrade = eleTradeDim,
+                    measuredItemCPC = itemDim,
+                    timePointYears = timeTradeDim)
+)
+tradeData = GetData(tradeKey)
+setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
+         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
 
 
