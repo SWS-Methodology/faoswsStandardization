@@ -65,6 +65,7 @@
 ##' @param debugFile folder for saving the intermediate files.
 ##' @param batchnumber Number of batch running.
 ##' @param utilizationTable Table of utilization for suaFilling
+##' @param cutItems tree's cuts
 ##' @return A data.table containing the final balanced and standardized SUA 
 ##'   data.  Additionally, this table will have new elements in it if 
 ##'   nutrientData was provided.

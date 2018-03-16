@@ -714,7 +714,7 @@ uniqueLevels[, N := NULL]
 parentNodes = getCommodityLevel(tree, parentColname = "measuredItemParentCPC",
                                 childColname = "measuredItemChildCPC")
 
-parentNodes = parentNodes[level == 0, node]
+parentNodes = parentNodes[level == 0, node] 
 
 aggFun = function(x) {
   if (length(x) > 1)
