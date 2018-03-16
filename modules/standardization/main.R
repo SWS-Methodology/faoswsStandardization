@@ -772,7 +772,8 @@ for (i in seq_len(nrow(uniqueLevels))) {
                                              tree = treeSubset,
                                              nutrientData = subNutrientData,
                                              batchnumber = batchnumber,
-                                             utilizationTable = utilizationTableSubset
+                                             utilizationTable = utilizationTableSubset,
+                                             fbsTree=fbsTree
   )
   
   standData[[i]] <- rbindlist(standData[[i]])
