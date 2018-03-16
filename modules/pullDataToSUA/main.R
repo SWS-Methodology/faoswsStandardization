@@ -356,7 +356,7 @@ eleTradeDim = Dimension(name = "measuredElementTrade",
                         keys = c(importCode, exportCode))
 tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")), waitTimeout = 2000000)
 
-timeTradeDim = Dimension(name = "timePointYears", keys = as.character(yearvals))
+timeTradeDim = Dimension(name = "timePointYears", keys = as.character(yearVals))
 
 tradeKey = DatasetKey(
   domain = "trade", dataset = "total_trade_cpc_m49",
