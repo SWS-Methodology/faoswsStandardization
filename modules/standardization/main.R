@@ -206,9 +206,9 @@ if(!CheckDebug()){
   CONFIG <- GetDatasetConfig(swsContext.datasets[[4]]@domain, swsContext.datasets[[4]]@dataset)
   
   datatoClean=GetData(sessionKey_suabal)
-  if(yearVals[1]>2013){
-    datatoClean=datatoClean[!(timePointYears%in%c(yearVals[1]:2013))]
-  }
+
+  datatoClean=datatoClean[timePointYears%in%yearVals]
+
   datatoClean[, Value := NA_real_]
   datatoClean[, CONFIG$flags := NA_character_]
   
@@ -220,9 +220,8 @@ if(!CheckDebug()){
   CONFIG <- GetDatasetConfig(swsContext.datasets[[5]]@domain, swsContext.datasets[[5]]@dataset)
   
   datatoClean=GetData(sessionKey_fbsStand)
-  if(yearVals[1]>2013){
-    datatoClean=datatoClean[!(timePointYears%in%c(yearVals[1]:2013))]
-  }
+  datatoClean=datatoClean[timePointYears%in%yearVals]
+  
   datatoClean[, Value := NA_real_]
   datatoClean[, CONFIG$flags := NA_character_]
   
@@ -235,9 +234,8 @@ if(!CheckDebug()){
   CONFIG <- GetDatasetConfig(swsContext.datasets[[1]]@domain, swsContext.datasets[[1]]@dataset)
   
   datatoClean=GetData(sessionKey_fbsBal)
-  if(yearVals[1]>2013){
-  datatoClean=datatoClean[!(timePointYears%in%c(yearVals[1]:2013))]
-  }
+  datatoClean=datatoClean[timePointYears%in%yearVals]
+  
   datatoClean[, Value := NA_real_]
   datatoClean[, CONFIG$flags := NA_character_]
   
