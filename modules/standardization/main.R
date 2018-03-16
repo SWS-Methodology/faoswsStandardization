@@ -626,11 +626,35 @@ nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElemen
 #################################################################
 #################################################################
 #################################################################
+message("Download Utilization Table from SWS...")
+
+utilizationTable=ReadDatatable("utilization_table")
+utilizationTable=data.table(utilizationTable)
+
+setnames(utilizationTable,colnames(utilizationTable),c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", 
+                                                       "rank", "rankInv"))
+
+message("Download zero Weight from SWS...")
+
+zeroWeight=ReadDatatable("zero_weight")[,item_code]
+zeroWeight=data.table(zeroWeight)
+
+message("Download cutItems from SWS...")
+
+cutItems=ReadDatatable("cut_items2")[,cpc_code]
+cutItems=data.table(cutItems)
+
+message("Download fbsTree from SWS...")
+
+fbsTree=ReadDatatable("fbs_tree")
+fbsTree=data.table(fbsTree)
+setnames(fbsTree,colnames(fbsTree),c( "fbsID1", "fbsID2", "fbsID3","fbsID4", "measuredItemSuaFbs"))
+setcolorder(fbsTree,c("fbsID4", "measuredItemSuaFbs", "fbsID1", "fbsID2", "fbsID3"))
 
 message("Defining vectorized standardization function...")
 
 standardizationVectorized = function(data, tree, nutrientData,batchnumber,
-                                     utilizationTable){
+                                     utilizationTable,cutItems,fbsTree){
   
   # record if output is being sunk and at what level
   sinkNumber <- sink.number()
@@ -679,7 +703,8 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
                                nutrientData = nutrientData,
                                debugFile = params$createIntermetiateFile
                                ,batchnumber = batchnumber,
-                               utilizationTable = utilizationTable)
+                               utilizationTable = utilizationTable,
+                               cutItems=cutItems)
   return(out)
 }
 
@@ -690,8 +715,6 @@ parentNodes = getCommodityLevel(tree, parentColname = "measuredItemParentCPC",
                                 childColname = "measuredItemChildCPC")
 
 parentNodes = parentNodes[level == 0, node]
-
-message("Beginning actual standardization process...")
 
 aggFun = function(x) {
   if (length(x) > 1)
@@ -727,6 +750,7 @@ if(params$createIntermetiateFile){
 }
 
 
+message("Beginning actual standardization process...")
 
 ##  Run all the standardization and balancig for combination of country/year
 ptm <- proc.time()
@@ -956,6 +980,9 @@ setcolorder(tree2saveBack,c("geographicAreaM49", "measuredElementSuaFbs", "measu
 
 setnames(tree2saveBack,c("measuredItemParentCPC","measuredItemChildCPC"),c("measuredItemParentCPC_tree","measuredItemChildCPC_tree"))
 
+
+message("Save Commodity tree...")
+
 ptm <- proc.time()
 SaveData(domain = "suafbs", dataset = "ess_fbs_commodity_tree2", data = tree2saveBack, waitTimeout = 20000)
 message((proc.time() - ptm)[3])
@@ -987,10 +1014,6 @@ setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measured
 # Remove NA Values
 standData <- standData[!is.na(Value),]
 standData=standData[measuredElementSuaFbs%in%c(elemKeys,"664","674","684")]
-
-
-
-
 
 
 message("Attempting to save standardized data...")

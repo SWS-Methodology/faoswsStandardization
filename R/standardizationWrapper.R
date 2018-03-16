@@ -76,7 +76,7 @@
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                   nutrientData = NULL, printCodes = c(),
                                   debugFile= NULL,batchnumber=batchnumber,
-                                  utilizationTable = utilizationTable
+                                  utilizationTable = utilizationTable,cutItems=cutItems
 ){
   
   dataFlags=data.table(data.frame(data))
@@ -143,6 +143,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     cat("No nutrient information provided, hence no nutrients are computed.")
     nutrientElements = c()
   }
+  
+  message("Download cut Items from SWS...")
+  
+  cutItems=ReadDatatable("cut_items2")[,cpc_code]
   
   ## STEP 1: Add missing element codes for commodities that are in the data
   ## (so that we can print it).  Then, print the table!
