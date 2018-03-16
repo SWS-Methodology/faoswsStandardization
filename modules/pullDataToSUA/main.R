@@ -369,13 +369,6 @@ tradeData = GetData(tradeKey)
 setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
-
-
-
-
-
-
-
 ################################################
 #####       Merging data files together    #####
 ################################################
