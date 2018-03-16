@@ -6,7 +6,8 @@
 \usage{
 standardizationWrapper(data, tree, fbsTree = NULL, standParams,
   nutrientData = NULL, printCodes = c(), debugFile = NULL,
-  batchnumber = batchnumber, utilizationTable = utilizationTable)
+  batchnumber = batchnumber, utilizationTable = utilizationTable,
+  cutItems = cutItems)
 }
 \arguments{
 \item{data}{The data.table containing the full dataset for standardization. 
