@@ -199,7 +199,7 @@ desKeys = c("664","674","684")
 ##### First of all the session data have to be cleaned
 ## CLEAN sua_balanced
 if(!CheckDebug()){
-  CONFIG <- GetDatasetConfig(swsContext.datasets[[4]]@domain, swsContext.datasets[[4]]@dataset)
+  CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
   
   datatoClean=GetData(sessionKey_suabal)
 
@@ -213,7 +213,7 @@ if(!CheckDebug()){
   
   ## CLEAN fbs_standardized
   
-  CONFIG <- GetDatasetConfig(swsContext.datasets[[5]]@domain, swsContext.datasets[[5]]@dataset)
+  CONFIG <- GetDatasetConfig(sessionKey_fbsStand@domain, sessionKey_fbsStand@dataset)
   
   datatoClean=GetData(sessionKey_fbsStand)
   datatoClean=datatoClean[timePointYears%in%yearVals]
@@ -227,7 +227,7 @@ if(!CheckDebug()){
   
   ## CLEAN fbs_balanced
   
-  CONFIG <- GetDatasetConfig(swsContext.datasets[[1]]@domain, swsContext.datasets[[1]]@dataset)
+  CONFIG <- GetDatasetConfig(sessionKey_fbsBal@domain, sessionKey_fbsBal@dataset)
   
   datatoClean=GetData(sessionKey_fbsBal)
   datatoClean=datatoClean[timePointYears%in%yearVals]
