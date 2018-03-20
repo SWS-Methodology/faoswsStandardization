@@ -78,10 +78,9 @@ yearVals = as.character(startYear:endYear)
 
 ##  Get data configuration and session
 sessionKey_fbsBal = swsContext.datasets[[1]]
-sessionKey_tree = swsContext.datasets[[2]]
-sessionKey_suaUnb = swsContext.datasets[[3]]
-sessionKey_suabal = swsContext.datasets[[4]]
-sessionKey_fbsStand = swsContext.datasets[[5]]
+sessionKey_suaUnb = swsContext.datasets[[2]]
+sessionKey_suabal = swsContext.datasets[[3]]
+sessionKey_fbsStand = swsContext.datasets[[4]]
 
 
 sessionCountries =
@@ -525,7 +524,7 @@ if(dim(tree2merge)[1]>0){
 # tree different from the one of the Dataset Commodity tree
 
 # is therefore, very important that this order of the things is not changed
-tree2beReExported = copy(tree)
+# tree2beReExported = copy(tree)
 
 tree[,c("flagObservationStatus","flagMethod"):=NULL]
 tree=data.table(dcast(tree,geographicAreaM49 + measuredItemParentCPC + measuredItemChildCPC + timePointYears
@@ -937,60 +936,60 @@ if(!CheckDebug()){
 }
 
 
-###################################
-# TREE TO BE RESAVED
-
-###  Merge the Tree with the new Values
-
-tree=tree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","extractionRate","share"),with=FALSE]
-
-tree2melt=melt(tree,id.vars = c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears"),
-               variable.name = "measuredElementSuaFbs",value.name = "Value")
-
-tree2beReExported2=tree2beReExported[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs","flagObservationStatus","flagMethod"),with=FALSE]
-# newTree=data.table(left_join(tree2beReExported2,tree2melt,by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs")))
-
-newTree=merge(tree2beReExported2,tree2melt,
-              by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-                   "timePointYears","measuredElementSuaFbs"),all = TRUE)
-
-###  Change Flags of Recalculated Shares in the Commodity Tree
-# Combination not to be touched are 
-
-newTree[measuredElementSuaFbs=="share"&(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),flagFix:=T]
-newTree[flagObservationStatus=="E"&flagMethod=="f",flagFix:=T]
-# Flags to be assigned are those of the Shares which have been calculated during the Standardization
-newTree[measuredElementSuaFbs=="share"&is.na(flagFix),flagObservationStatus:="I"]
-newTree[measuredElementSuaFbs=="share"&is.na(flagFix),flagMethod:="i"]
-
-tree2saveBack=newTree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-                         "timePointYears","measuredElementSuaFbs","flagObservationStatus",
-                         "flagMethod","Value"),with=FALSE]
-
-### Before Saving Bach NA have to be changed to zero 
-tree2saveBack[is.na(Value),Value:=0]
-
-
-
-tree2saveBack[measuredElementSuaFbs=="extractionRate",measuredElementSuaFbs:="5423",]
-tree2saveBack[measuredElementSuaFbs=="share",measuredElementSuaFbs:="5431"]
-tree2saveBack[,measuredElementSuaFbs:=as.character(measuredElementSuaFbs)]
-setcolorder(tree2saveBack,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
-                            "measuredItemChildCPC", "timePointYears", "Value", "flagObservationStatus", 
-                            "flagMethod"))
-
-setnames(tree2saveBack,c("measuredItemParentCPC","measuredItemChildCPC"),c("measuredItemParentCPC_tree","measuredItemChildCPC_tree"))
-
-
-message("Save Commodity tree...")
-
-ptm <- proc.time()
-SaveData(domain = "suafbs", dataset = "ess_fbs_commodity_tree2", data = tree2saveBack, waitTimeout = 20000)
-message((proc.time() - ptm)[3])
-
-
-
-###################################
+# ###################################
+# # TREE TO BE RESAVED
+# 
+# ###  Merge the Tree with the new Values
+# 
+# tree=tree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","extractionRate","share"),with=FALSE]
+# 
+# tree2melt=melt(tree,id.vars = c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears"),
+#                variable.name = "measuredElementSuaFbs",value.name = "Value")
+# 
+# tree2beReExported2=tree2beReExported[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs","flagObservationStatus","flagMethod"),with=FALSE]
+# # newTree=data.table(left_join(tree2beReExported2,tree2melt,by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs")))
+# 
+# newTree=merge(tree2beReExported2,tree2melt,
+#               by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
+#                    "timePointYears","measuredElementSuaFbs"),all = TRUE)
+# 
+# ###  Change Flags of Recalculated Shares in the Commodity Tree
+# # Combination not to be touched are 
+# 
+# newTree[measuredElementSuaFbs=="share"&(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),flagFix:=T]
+# newTree[flagObservationStatus=="E"&flagMethod=="f",flagFix:=T]
+# # Flags to be assigned are those of the Shares which have been calculated during the Standardization
+# newTree[measuredElementSuaFbs=="share"&is.na(flagFix),flagObservationStatus:="I"]
+# newTree[measuredElementSuaFbs=="share"&is.na(flagFix),flagMethod:="i"]
+# 
+# tree2saveBack=newTree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
+#                          "timePointYears","measuredElementSuaFbs","flagObservationStatus",
+#                          "flagMethod","Value"),with=FALSE]
+# 
+# ### Before Saving Bach NA have to be changed to zero 
+# tree2saveBack[is.na(Value),Value:=0]
+# 
+# 
+# 
+# tree2saveBack[measuredElementSuaFbs=="extractionRate",measuredElementSuaFbs:="5423",]
+# tree2saveBack[measuredElementSuaFbs=="share",measuredElementSuaFbs:="5431"]
+# tree2saveBack[,measuredElementSuaFbs:=as.character(measuredElementSuaFbs)]
+# setcolorder(tree2saveBack,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
+#                             "measuredItemChildCPC", "timePointYears", "Value", "flagObservationStatus", 
+#                             "flagMethod"))
+# 
+# setnames(tree2saveBack,c("measuredItemParentCPC","measuredItemChildCPC"),c("measuredItemParentCPC_tree","measuredItemChildCPC_tree"))
+# 
+# 
+# message("Save Commodity tree...")
+# 
+# ptm <- proc.time()
+# SaveData(domain = "suafbs", dataset = "ess_fbs_commodity_tree2", data = tree2saveBack, waitTimeout = 20000)
+# message((proc.time() - ptm)[3])
+# 
+# 
+# 
+# ###################################
 ### FINAL SAVE
 fbs_sua_conversion2 <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins","DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "exports", "feed", "food",
                                                           "foodManufacturing", "imports", "loss", "production",
@@ -1034,8 +1033,10 @@ popSWS[,measuredItemSuaFbs:="S2901"]
 setnames(popSWS,"measuredElement","measuredElementSuaFbs")
 setcolorder(popSWS,colnames(standData))
 
-standData=data.table(standData,popSWS)
-standData[measuredItemSuaFbs=="S2901"& measuredElementSuaFbs%in%c("511","5141","664","674","684")]
+standData=data.table(rbind(standData,popSWS))
+standData=standData[!(measuredItemSuaFbs%in%c("S2901")& !(measuredElementSuaFbs%in%c("664","674","684","511")))]
+standData=standData[!(measuredItemSuaFbs%in%c("2903","2941")& !(measuredElementSuaFbs%in%c("664","674","684")))]
+
 
 
 message("Attempting to save standardized data...")
