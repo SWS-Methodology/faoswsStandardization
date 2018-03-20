@@ -106,10 +106,7 @@ ptm <- proc.time()
 tree=getCommodityTreeNewMethod(areaKeys,yearVals)
 message((proc.time() - ptm)[3])
 
-
 validateTree(tree)
-
-# stop("prova")
 
 # NA ExtractionRates are recorded in the sws dataset as 0
 # for the standardization, we nee them to be treated as NA
@@ -353,19 +350,19 @@ data[is.na(Official),Official:=FALSE]
 dataFlags = copy(data)
 ##############################################################
 
-#protected data
-#### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
-# now we have to delete all the wrong values:
-# THE FOLLOWING STEPS HAVE BEEN COMMENTED BECAUSE THEY SHOULD NOT BE NEEDED
-# the data might have to be corrected from the questionnaires
-
-cropsOfficialFood = c("0111","0112","0113","0115","0116","0117","01199.02","01801","01802")
-data[!geographicAreaM49%in%c("604")&get(params$itemVar)%in%cropsOfficialFood
-     &get(params$elementVar)==params$foodCode
-     ,Value:=NA]
-# only for Japan, delete also Food of Rice Milled.
-data[geographicAreaM49=="392"&get(params$elementVar)==params$foodCode&get(params$itemVar)=="23161.02",Value:=0]
-
+# #protected data
+# #### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
+# # now we have to delete all the wrong values:
+# # THE FOLLOWING STEPS HAVE BEEN COMMENTED BECAUSE THEY SHOULD NOT BE NEEDED
+# # the data might have to be corrected from the questionnaires
+# 
+# cropsOfficialFood = c("0111","0112","0113","0115","0116","0117","01199.02","01801","01802")
+# data[!geographicAreaM49%in%c("604")&get(params$itemVar)%in%cropsOfficialFood
+#      &get(params$elementVar)==params$foodCode
+#      ,Value:=NA]
+# # only for Japan, delete also Food of Rice Milled.
+# data[geographicAreaM49=="392"&get(params$elementVar)==params$foodCode&get(params$itemVar)=="23161.02",Value:=0]
+# 
 #########################
 
 # For DERIVED select only the protected and the estimation (coming from the submodule)
@@ -672,7 +669,7 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
   
   printCodes = character()
   
-  # printCodes = c("0112")
+  # printCodes = c("0143")
   # printCodes = getChildren(commodityTree = tree,
   # parentColname = params$parentVar,
   # childColname = params$childVar,
@@ -862,7 +859,10 @@ if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"
                                                       "timePointYears","ValueForced"),with=FALSE],dataFlags,by=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs",
                                                                                                                  "timePointYears")))
   
-  ForcedProd2send[measuredElementSuaFbs!=params$productionCode,ValueForced:="-"]
+  # ForcedProd2send[measuredElementSuaFbs!=params$productionCode,ValueForced:="-"]
+  ForcedProd2send[,ValueForced:=round(as.numeric(ValueForced),0)]
+  ForcedProd2send[,ValueOld:=round(as.numeric(ValueOld),0)]
+  ForcedProd2send[,measuredItemSuaFbs:=paste0("'",measuredItemSuaFbs)]
   
   # Save these data LOCALLY
   if(CheckDebug()){
@@ -1016,6 +1016,27 @@ setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measured
 standData <- standData[!is.na(Value),]
 standData=standData[measuredElementSuaFbs%in%c(elemKeys,"664","674","684")]
 
+areaKeys=areaKeys
+if("1248"%in%areaKeys){
+  areaKeys=c(areaKeys,"156")
+}
+elemKeys="511"
+key = DatasetKey(domain = "population", dataset = "population_unpd", dimensions = list(
+  geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+  measuredElementSuaFbs = Dimension(name = "measuredElement", keys = elemKeys),
+  timePointYears = Dimension(name = "timePointYears", keys = as.character(yearVals))
+))
+
+popSWS=GetData(key)
+popSWS[geographicAreaM49=="156",geographicAreaM49:="1248"]
+popSWS[,measuredItemSuaFbs:="S2901"]
+
+setnames(popSWS,"measuredElement","measuredElementSuaFbs")
+setcolorder(popSWS,colnames(standData))
+
+standData=data.table(standData,popSWS)
+standData[measuredItemSuaFbs=="S2901"& measuredElementSuaFbs%in%c("511","5141","664","674","684")]
+
 
 message("Attempting to save standardized data...")
 
@@ -1029,6 +1050,13 @@ paste0(out$inserted + out$ignored, " observations written and problems with ",
        out$discarded)
 message((proc.time() - ptm)[3])
 
+###################################
+## Initiate email
+from = "sws@fao.org"
+to = swsContext.userEmail
+subject = "Full Standardization and Balancing completed"
+body = "The plug-in has saved the data in your sessions"
 
-
+sendmail(from = from, to = to, subject = subject, msg = body)
+paste0("Email sent to ", swsContext.userEmail)
 

@@ -733,8 +733,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ##Stock
   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
   ##Food
-  # data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .001]
-  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .001] #batch 119
+  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .05]
   ##Feed
   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
   ##Seed

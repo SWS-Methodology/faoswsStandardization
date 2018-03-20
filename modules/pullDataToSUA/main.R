@@ -375,6 +375,23 @@ setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
 
 message("Merging data files together and saving")
 out = do.call("rbind", list(agData, stockData,foodData, lossData, tradeData, tourData,indData))
+
+#protected data
+#### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
+# now we have to delete all the wrong values:
+# THE FOLLOWING STEPS HAVE BEEN COMMENTED BECAUSE THEY SHOULD NOT BE NEEDED
+# the data might have to be corrected from the questionnaires
+
+cropsOfficialFood = c("0111","0112","0113","0115","0116","0117","01199.02","01801","01802")
+out[!geographicAreaM49%in%c("604")&measuredItemSuaFbs%in%cropsOfficialFood
+     &measuredElementSuaFbs=="5141"
+     ,Value:=NA]
+# only for Japan, delete also Food of Rice Milled.
+out[geographicAreaM49=="392"&measuredElementSuaFbs=="5141"&measuredItemSuaFbs=="23161.02",Value:=0]
+
+#### The previous step has been inserted here and removed from the standardization in order
+# to give to the data team the possibility to eventually add some food value for primary commodities
+
 out <- out[!is.na(Value),]
 setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
 
