@@ -233,7 +233,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   # 
   # if(!is.null(debugFile)){
   #   
-  #   saveFBSItermediateStep(directory=paste0(basedir,"\\debugFile\\Batch_",batchnumber),
+  #   saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
   #                          fileName=paste0("B",batchnumber,"_00a_AfterSuaFilling1"),
   #                          data=standData)
   # }
@@ -415,7 +415,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   # 
   # if(!is.null(debugFile)){
   #   
-  #   saveFBSItermediateStep(directory=paste0(basedir,"\\debugFile\\Batch_",batchnumber),
+  #   saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
   #                          fileName=paste0("B",batchnumber,"_00b_AfterFoodProc"),
   #                          data=standData)
   # }
@@ -632,7 +632,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   if(!is.null(debugFile)){
     
-    saveFBSItermediateStep(directory=paste0(basedir,"\\debugFile\\Batch_",batchnumber),
+    saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
                            fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST"),
                            data=standData)
   }
@@ -738,7 +738,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   if(!is.null(debugFile)){
     
-    saveFBSItermediateStep(directory=paste0(basedir,"\\debugFile\\Batch_",batchnumber),
+    saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
                            fileName=paste0("B",batchnumber,"_03_AfterST_BeforeFBSbal"),
                            data=standData)
   }
@@ -747,7 +747,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ####
   
   coutryT=uniqueLevels[i,geographicAreaM49]
-  # save(tree,file=paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\_tree_",coutryT,"_",yearT,".RData"))
+  # save(tree,file=paste0(basedir,"/debugFile/Batch_",batchnumber,"/_tree_",coutryT,"_",yearT,".RData"))
   
   
   ## STEP 5: Balance at the balancing level.

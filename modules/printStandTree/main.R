@@ -700,7 +700,7 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
   }
   
 if(!CheckDebug()){  
-  basedirPrint = paste0(basedir,"\\dataByTree")
+  basedirPrint = paste0(basedir,"/dataByTree")
   dir.create(basedirPrint, showWarnings = FALSE,recursive = TRUE)
 }  
   
@@ -714,13 +714,13 @@ if(!CheckDebug()){
          split = TRUE)
   }else{
     # tempfolder <- tempfile()
-    # basedirPrint = paste0(basedir,"\\dataByTree")
+    # basedirPrint = paste0(basedir,"/dataByTree")
     # dir.create(basedirPrint, showWarnings = FALSE,recursive = TRUE)
     # destfile <- file.path(basedir, paste0(basename, FILETYPE))
     # dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/")
     #            , showWarnings = FALSE,recursive = TRUE
     # )
-    sink(paste0(basedirPrint,"\\",data$timePointYears[1], "_",
+    sink(paste0(basedirPrint,"/",data$timePointYears[1], "_",
          data$geographicAreaM49[1], "_sample_test.md"), split = TRUE)
     
     # sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER,"/standardization/",
