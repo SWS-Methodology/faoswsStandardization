@@ -105,20 +105,21 @@ roundNum = function(x){
     }
     initialSign = sign(x)
     x = abs(x)
-    # 1 or 2 digits: multiple of 5.
-    # 3 digits: multiple of 10.
-    # 4 to 7 digits: multiple of 100
-    # 8+ digits: 4 significant digits.
-    if(x < 100){
-        x = round(x/5, 0)*5
-    } else if(x < 1000){
-        x = round(x/10)*10
-    } else if(x < 10000000){
-        x = round(x/100)*100
-    } else {
-        x = formatC(x, digits = 4)
-        x = as.numeric(x)
-    }
+    # # 1 or 2 digits: multiple of 5.
+    # # 3 digits: multiple of 10.
+    # # 4 to 7 digits: multiple of 100
+    # # 8+ digits: 4 significant digits.
+    # if(x < 100){
+    #     x = round(x/5, 0)*5
+    # } else if(x < 1000){
+    #     x = round(x/10)*10
+    # } else if(x < 10000000){
+    #     x = round(x/100)*100
+    # } else {
+    #     x = formatC(x, digits = 4)
+    #     x = as.numeric(x)
+    # }
+    x=round(x,0)
     x = x * initialSign
     x = prettyNum(x, big.mark = ",", scientific = FALSE)
     return(x)

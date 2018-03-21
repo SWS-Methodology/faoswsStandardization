@@ -162,7 +162,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   data = addMissingElements(data, p)
   if(length(printCodes) > 0){
-    cat("Initial SUA table:")
+    cat("sua_unbalanced:")
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATable(data = data, standParams = p, printCodes = printCodes)
   }
@@ -198,7 +198,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                   utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=TRUE)
   
   if(length(printCodes) > 0){
-    cat("\nSUA table after sua Filling STEP 1:")
+    cat("\n\nsua_unbalanced + production filled (step 1 of suaFilling):")
     data = markUpdated(new = data, old = old, standParams = p)
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATable(data = data, standParams = p,
@@ -233,7 +233,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   # 
   # if(!is.null(debugFile)){
   #   
-  #   saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
+  #   saveFBSItermediateStep(directory=paste0(basedir,"\\debugFile\\Batch_",batchnumber),
   #                          fileName=paste0("B",batchnumber,"_00a_AfterSuaFilling1"),
   #                          data=standData)
   # }
@@ -328,11 +328,31 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   tree[,weight:=1]
   tree[measuredItemChildCPC %in% zeroWeight , weight:=0]
   
+  
+  printTree = data.table(data.frame(tree))
+  
+  #####################
+  roundNum = function(x){
+    if(is.na(x)){
+      return(x)
+    }
+    initialSign = sign(x)
+    x = abs(x)
+    x=round(x,0)
+    x = x * initialSign
+    x = prettyNum(x, big.mark = ",", scientific = FALSE)
+    return(x)
+  }
+  ##############################
+  
+  printTree[,availability:=ifelse(is.na(availability), "-", sapply(availability, roundNum))]
+  printTree[,share:=round(share,2)]
+  
   if(length(printCodes) > 0){
-    cat("\nAvailability of children and shares:\n\n")
-    print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+    cat("\n\nAvailability of Parent for Food Processing Calculation = Prod+Imp-Exp / Shares by Child / weight of children:")
+    print(knitr::kable(printTree[get(p$childVar) %in% printCodes,
                             c(p$childVar, p$parentVar, p$extractVar, "availability","share","weight"),
-                            with = FALSE]))
+                            with = FALSE], align = 'r'))
     # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
     #                       get(p$childVar) %in% printCodes, ]
     # if(nrow(plotTree) > 0){
@@ -363,7 +383,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data[,c("availability","updateFlag"):=NULL]
   
   if(length(printCodes) > 0){
-    cat("\nSUA table with FOOD PROCESSING:")
+    cat("\nsua_unbalanced + production + food processing caluclated (step 2 of suaFilling):")
     data = markUpdated(new = data, old = old, standParams = p)
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATable(data = data, standParams = p,
@@ -395,7 +415,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   # 
   # if(!is.null(debugFile)){
   #   
-  #   saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
+  #   saveFBSItermediateStep(directory=paste0(basedir,"\\debugFile\\Batch_",batchnumber),
   #                          fileName=paste0("B",batchnumber,"_00b_AfterFoodProc"),
   #                          data=standData)
   # }
@@ -417,7 +437,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   
   if(length(printCodes) > 0){
-    cat("\nSUA table after sua Filling STEP 2:")
+    cat("\nsua_balanced:")
     data = markUpdated(new = data, old = old, standParams = p)
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATable(data = data, standParams = p,
@@ -493,12 +513,30 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
            ifelse(is.na(oldShare), get(params$shareVar), oldShare)]
     tree[, oldShare := NULL]
     
+    printTree = data.table(data.frame(tree))
+    
+    #####################
+    roundNum = function(x){
+      if(is.na(x)){
+        return(x)
+      }
+      initialSign = sign(x)
+      x = abs(x)
+      x=round(x,0)
+      x = x * initialSign
+      x = prettyNum(x, big.mark = ",", scientific = FALSE)
+      return(x)
+    }
+    ##############################
+    
+    printTree[,availability:=ifelse(is.na(availability), "-", sapply(availability, roundNum))]
+    printTree[,share:=round(share,2)]
     
     if(length(printCodes) > 0){
-      cat("\nAvailability of parents/children 2:\n\n")
-      print(knitr::kable(tree[get(p$childVar) %in% printCodes,
+      cat("\n\nAvailability of parents in terms of their children = FoodProc * eR / Final Shares by child:")
+      print(knitr::kable(printTree[get(p$childVar) %in% printCodes,
                               c(p$childVar, p$parentVar, p$extractVar, "availability","share"),
-                              with = FALSE]))
+                              with = FALSE], align = 'r'))
       # plotTree = plotTree[!is.na(get(p$childVar)) & !is.na(get(p$parentVar)) &
       #                         get(p$childVar) %in% printCodes, ]
       # if(nrow(plotTree) > 0){
@@ -594,7 +632,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   if(!is.null(debugFile)){
     
-    saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
+    saveFBSItermediateStep(directory=paste0(basedir,"\\debugFile\\Batch_",batchnumber),
                            fileName=paste0("B",batchnumber,"_02_AfterSuaFilling_BeforeST"),
                            data=standData)
   }
@@ -613,7 +651,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                        additiveElements = nutrientElements)
   if(length(printCodes) > 0){
     # cat("\nSUA table after standardization (BEFORE PROTECTED CORRECTION:)")
-    cat("\nSUA table after standardization")
+    cat("\n\nfbs_standardized")
     data = markUpdated(new = data, old = old, standParams = p)
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATable(data = data, standParams = p,
@@ -700,7 +738,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   if(!is.null(debugFile)){
     
-    saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
+    saveFBSItermediateStep(directory=paste0(basedir,"\\debugFile\\Batch_",batchnumber),
                            fileName=paste0("B",batchnumber,"_03_AfterST_BeforeFBSbal"),
                            data=standData)
   }
@@ -709,7 +747,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ####
   
   coutryT=uniqueLevels[i,geographicAreaM49]
-  save(tree,file=paste0(basedir,"/debugFile/Batch_",batchnumber,"/_tree_",coutryT,"_",yearT,".RData"))
+  # save(tree,file=paste0(basedir,"\\debugFile\\Batch_",batchnumber,"\\_tree_",coutryT,"_",yearT,".RData"))
   
   
   ## STEP 5: Balance at the balancing level.
@@ -770,7 +808,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ## all these elements with their balanced values.
   data[!(nutrientElement), Value := balancedValue]
   if(length(printCodes) > 0){
-    cat("\nSUA table after balancing:")
+    cat("\n\nfbs_balanced:")
     data = markUpdated(new = data, old = old, standParams = p)
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATable(data = data, standParams = p, printCodes = printCodes,
@@ -786,7 +824,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data[(nutrientElement), Value := ifelse(((!is.na(Value))&is.na(foodAdjRatio)),Value, Value * foodAdjRatio)]
   
   if(length(printCodes) > 0){
-    cat("\nSUA table with updated nutrient values:")
+    cat("\n\nfbs_balanced with updated nutrient values:")
     data = markUpdated(new = data, old = old, standParams = p)
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATable(data = data, standParams = p, printCodes = printCodes,
@@ -807,28 +845,28 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       printCodeTable = fbsTree[get(p$itemVar) %in% printCodes, ]
       p$mergeKey[p$mergeKey == p$itemVar] = "fbsID4"
       p$itemVar = "fbsID4"
-      cat("\nFBS Table at first level of aggregation:\n")
+      cat("\n\nFBS Table at first level of aggregation (fbs items):\n")
       printSUATable(data = out[[1]], standParams = p,
                     printCodes = printCodeTable[, fbsID4],
                     printProcessing = TRUE,
                     nutrientElements = nutrientElements)
       p$mergeKey[p$mergeKey == p$itemVar] = "fbsID3"
       p$itemVar = "fbsID3"
-      cat("\nFBS Table at second level of aggregation:\n")
+      cat("\n\nFBS Table at second level of aggregation (fbs aggregates):\n")
       printSUATable(data = out[[2]], standParams = p,
                     printCodes = printCodeTable[, fbsID3],
                     printProcessing = TRUE,
                     nutrientElements = nutrientElements)
       p$mergeKey[p$mergeKey == p$itemVar] = "fbsID2"
       p$itemVar = "fbsID2"
-      cat("\nFBS Table at third level of aggregation:\n")
+      cat("\n\nFBS Table at third level of aggregation (fbs macro aggregates):\n")
       printSUATable(data = out[[3]], standParams = p,
                     printCodes = printCodeTable[, fbsID2],
                     printProcessing = TRUE,
                     nutrientElements = nutrientElements)
       p$mergeKey[p$mergeKey == p$itemVar] = "fbsID1"
       p$itemVar = "fbsID1"
-      cat("\nFBS Table at final level of aggregation:\n")
+      cat("\n\nFBS Table at final level of aggregation (Grand Total):\n")
       printSUATable(data = out[[4]], standParams = p,
                     printCodes = printCodeTable[, fbsID1],
                     printProcessing = TRUE,
