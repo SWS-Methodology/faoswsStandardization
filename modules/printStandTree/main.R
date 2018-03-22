@@ -673,32 +673,6 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
   topNodes = printCodes)
 
   
-  
-  # Create Local Temporary File for All Intermediate Savings
-  if(CheckDebug()){
-    basedir=getwd()
-  }else{
-    basedir <- tempfile()
-  }
-  
-  if(params$createIntermetiateFile){
-    if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
-      file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))
-    }
-    if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))){
-      file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))
-    }
-    if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))){
-      file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))
-    }
-    if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))){
-      file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))
-    }
-    if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
-      file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))
-    }
-  }
-  
 if(!CheckDebug()){  
   basedirPrint = paste0(basedir,"/dataByTree")
   dir.create(basedirPrint, showWarnings = FALSE,recursive = TRUE)
@@ -713,25 +687,17 @@ if(!CheckDebug()){
                 data$geographicAreaM49[1], "_sample_test.md"),
          split = TRUE)
   }else{
-    # tempfolder <- tempfile()
-    # basedirPrint = paste0(basedir,"/dataByTree")
-    # dir.create(basedirPrint, showWarnings = FALSE,recursive = TRUE)
-    # destfile <- file.path(basedir, paste0(basename, FILETYPE))
-    # dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/")
-    #            , showWarnings = FALSE,recursive = TRUE
-    # )
-    sink(paste0(basedirPrint,"/",data$timePointYears[1], "_",
-         data$geographicAreaM49[1], "_sample_test.md"), split = TRUE)
     
-    # sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER,"/standardization/",
-    #             data$timePointYears[1], "_",
-    #             data$geographicAreaM49[1], "_sample_test.md"),
-    #      split = TRUE)
+    dir.create(paste0(basedir, "/standardization/")
+               , showWarnings = FALSE,recursive = TRUE
+    )
+    sink(paste0(basedir,"/standardization/",
+                data$timePointYears[1], "_",
+                data$geographicAreaM49[1], "_sample_test.md"),
+         split = TRUE)
+    
     
   }
-    
-
-  
   out = standardizationWrapper(data = data, tree = tree, fbsTree = fbsTree, 
                                standParams = params, printCodes = printCodes,
                                nutrientData = nutrientData,
@@ -758,6 +724,31 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 
+# Create Local Temporary File for Intermediate Savings
+if(CheckDebug()){
+  basedir=getwd()
+}else{
+  basedir <- tempfile()
+}
+
+if(params$createIntermetiateFile){
+  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
+    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))
+  }
+  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))){
+    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))
+  }
+  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))){
+    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))
+  }
+  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))){
+    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))
+  }
+  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
+    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))
+  }
+
+}
 
 
 
@@ -791,7 +782,17 @@ for (i in seq_len(nrow(uniqueLevels))) {
   names(standData[[i]])[grep("^fbsID", names(standData[[i]]))] <- params$itemVar
   standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))] 
   
-}
+} 
+
+
+
+
+
+
+
+
+
+
 
 
 message((proc.time() - ptm)[3])
@@ -814,14 +815,13 @@ if(!CheckDebug()){
   basename <- sprintf("%s_%s",
                       "dataByTree",
                       sessionid)
-  destfile <- basedirPrint
+  destfile <- paste0(basedir,"/standardization")
+  # destfile <- "/standardization"
+  
   files2zip <- dir(destfile, full.names = TRUE)
-  # create the csv in a temporary foldes   
-  # write.csv(invalidTree, destfile, row.names = FALSE)  
   # define on exit strategy
   on.exit(file.remove(destfile))    
   zipfile <- paste0(destfile, ".zip")
-  # withCallingHandlers(zip(zipfile, files2zip, flags = "-j9X"),
   withCallingHandlers(zip(zipfile, files2zip),
                       warning = function(w){
                         if(grepl("system call failed", w$message)){
@@ -829,14 +829,10 @@ if(!CheckDebug()){
                         }
                       })
   
-  folderContent = apply(data.table(expand.grid(areaKeys,yearVals))
-                        [order(Var1)], 1, paste, collapse="/")
-  
+
   on.exit(file.remove(zipfile), add = TRUE)
-  body = paste("Attached you will find input output files for the following country/years combinations:",
-               " ",
-               cat(folderContent),
-               sep='\n')
+  body = paste("Attached you will find input output files for the country/years combinations selected"
+               ,sep='\n')
   
   sendmailR::sendmail(from = "sws@fao.org",
                       to = swsContext.userEmail,
@@ -847,283 +843,12 @@ if(!CheckDebug()){
                                  )
                       )
   )
+
+  if(!CheckDebug()){
+    unlink(basedir)
+  }else{
+    unlink(paste0(basedir,"/debugFile/Batch_",batchnumber))
+  }
   paste0("Email sent to ", swsContext.userEmail)
 }
-
-
-
-# ##  Save the StandData LOCALLY
-# if(CheckDebug()){
-#   save(standData,file=paste0(PARAMS$temporaryStandData,"/standDatabatch",batchnumber,".RData"))
-# }
-
-# ###################################
-# ## AFTER SUA FILLING 1 (No intermediate saving)
-# if(CheckDebug()){
-#   ptm <- proc.time()
-#   if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
-#     AfterSuaFilling1 = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"),
-#                                   header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-#                                                                    "timePointYears","Value","flagObservationStatus","flagMethod"),
-#                                   colClasses = c("character","character","character","character","character","character","character"))
-#     AfterSuaFilling1 = data.table(AfterSuaFilling1)
-#     message((proc.time() - ptm)[3])
-#     
-#     # Save these data LOCALLY
-#     if(CheckDebug()){
-#       save(AfterSuaFilling1,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.RData"))
-#     }
-#   }
-# }
-###################################
-
-
-# ###################################
-# ## AFTER FOOD PROCESSING (No intermediate saving)
-# if(CheckDebug()){
-#   ptm <- proc.time()
-#   if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))){
-#     AfterFoodProc = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"),
-#                                header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-#                                                                 "timePointYears","Value","flagObservationStatus","flagMethod"),
-#                                colClasses = c("character","character","character","character","character","character","character"))
-#     AfterFoodProc = data.table(AfterFoodProc)
-#     message((proc.time() - ptm)[3])
-#     
-#     # Save these data LOCALLY
-#     if(CheckDebug()){
-#       save(AfterFoodProc,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.RData"))
-#     }
-#   }
-# }
-# 
-
-###################################
-# ## FORCED COMMODITIES IN THE SUA FILLING PROCESS (to be sent by mail)
-# 
-# print(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))
-# print(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv")))
-# 
-# 
-# if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
-#   FORCED_PROD = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"),
-#                            header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-#                                                             "timePointYears","Value","flagObservationStatus","flagMethod"),
-#                            colClasses = c("character","character","character","character","character","character","character"))
-#   FORCED_PROD = data.table(FORCED_PROD)
-#   message=(paste0( length(FORCED_PROD[,unique(measuredItemFbsSua)])," commodities have a FORCED Official Production"))
-#   
-#   
-#   setnames(FORCED_PROD,"measuredItemFbsSua","measuredItemSuaFbs")
-#   setnames(dataFlags,"Value","ValueOld")
-#   setnames(FORCED_PROD,"Value","ValueForced")
-#   
-#   ForcedProd2send=data.table(left_join(FORCED_PROD[,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs",
-#                                                       "timePointYears","ValueForced"),with=FALSE],dataFlags,by=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs",
-#                                                                                                                  "timePointYears")))
-#   
-#   # ForcedProd2send[measuredElementSuaFbs!=params$productionCode,ValueForced:="-"]
-#   ForcedProd2send[,ValueForced:=round(as.numeric(ValueForced),0)]
-#   ForcedProd2send[,ValueOld:=round(as.numeric(ValueOld),0)]
-#   ForcedProd2send[,measuredItemSuaFbs:=paste0("'",measuredItemSuaFbs)]
-#   
-#   # Save these data LOCALLY
-#   if(CheckDebug()){
-#     save(FORCED_PROD,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.RData"))
-#   }else{
-#     # or send them by email
-#     if(dim(ForcedProd2send)[1]>0){
-#       sendMail4forced(ForcedProd2send)
-#     }
-#   }
-# }else{
-#   message("no Forced Production")
-# }
-
-###################################
-### DOWNLOAD POPOULATION FOR INTERMEDIATE SAVINGS
-
-
-# ###################################
-# ### FIRST INTERMEDIATE SAVE
-# message("save first intermediate file")
-# ptm <- proc.time()
-# print(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv")))
-# 
-# if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))){
-#   AfterSuaFilling = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"),
-#                                header=FALSE,sep=";",col.names=c("geographicAreaM49","measuredItemFbsSua",
-#                                                                 "timePointYears","Value","flagObservationStatus","flagMethod", "measuredElementSuaFbs"),
-#                                colClasses = c("character","character","character","character","character","character","character"))
-#   AfterSuaFilling = data.table(AfterSuaFilling)
-#   AfterSuaFilling = AfterSuaFilling[measuredElementSuaFbs%in%c(elemKeys,"664")]
-#   AfterSuaFilling = AfterSuaFilling[,Value:=round(as.numeric(Value),0)]
-#   
-#   ## As per Team B/C request (TOMASZ) I'm saving back only the DES (684)
-#   
-#   SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterSuaFilling, waitTimeout = 20000)
-#   message((proc.time() - ptm)[3])
-#   
-#   # Save these data LOCALLY
-#   if(CheckDebug()){
-#     save(AfterSuaFilling,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.RData"))
-#   }
-# }
-# ###################################
-# ## IMBALANCE ANALYSIS SAVE 3
-# ### SECOND INTERMEDIATE SAVE
-# message("save second intermediate file")
-# ptm <- proc.time()
-# if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))){
-#   
-#   AfterST_BeforeFBSbal = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"),
-#                                     header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
-#                                                                      "timePointYears","Value","flagObservationStatus","flagMethod"),
-#                                     colClasses = c("character","character","character","character","character","character","character"))
-#   AfterST_BeforeFBSbal = data.table(AfterST_BeforeFBSbal)
-#   
-#   AfterST_BeforeFBSbal=AfterST_BeforeFBSbal[measuredElementSuaFbs%in%c(elemKeys,"664")]
-#   SaveData(domain = "suafbs", dataset = "fbs_standardized", data = AfterST_BeforeFBSbal, waitTimeout = 20000)
-#   message((proc.time() - ptm)[3])
-#   
-#   # Save these data LOCALLY
-#   if(CheckDebug()){
-#     save(AfterST_BeforeFBSbal,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.RData"))
-#   }
-# }
-# 
-# # Remove all intermediate Files Create in Temp Folder
-# if(!CheckDebug()){
-#   unlink(basedir)
-# }else{
-#   unlink(paste0(basedir,"/debugFile/Batch_",batchnumber))
-# }
-
-
-# ###################################
-# # TREE TO BE RESAVED
-# 
-# ###  Merge the Tree with the new Values
-# 
-# tree=tree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","extractionRate","share"),with=FALSE]
-# 
-# tree2melt=melt(tree,id.vars = c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears"),
-#                variable.name = "measuredElementSuaFbs",value.name = "Value")
-# 
-# tree2beReExported2=tree2beReExported[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs","flagObservationStatus","flagMethod"),with=FALSE]
-# # newTree=data.table(left_join(tree2beReExported2,tree2melt,by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs")))
-# 
-# newTree=merge(tree2beReExported2,tree2melt,
-#               by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-#                    "timePointYears","measuredElementSuaFbs"),all = TRUE)
-# 
-# ###  Change Flags of Recalculated Shares in the Commodity Tree
-# # Combination not to be touched are 
-# 
-# newTree[measuredElementSuaFbs=="share"&(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),flagFix:=T]
-# newTree[flagObservationStatus=="E"&flagMethod=="f",flagFix:=T]
-# # Flags to be assigned are those of the Shares which have been calculated during the Standardization
-# newTree[measuredElementSuaFbs=="share"&is.na(flagFix),flagObservationStatus:="I"]
-# newTree[measuredElementSuaFbs=="share"&is.na(flagFix),flagMethod:="i"]
-# 
-# tree2saveBack=newTree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-#                          "timePointYears","measuredElementSuaFbs","flagObservationStatus",
-#                          "flagMethod","Value"),with=FALSE]
-# 
-# ### Before Saving Bach NA have to be changed to zero 
-# tree2saveBack[is.na(Value),Value:=0]
-# 
-# 
-# 
-# tree2saveBack[measuredElementSuaFbs=="extractionRate",measuredElementSuaFbs:="5423",]
-# tree2saveBack[measuredElementSuaFbs=="share",measuredElementSuaFbs:="5431"]
-# tree2saveBack[,measuredElementSuaFbs:=as.character(measuredElementSuaFbs)]
-# setcolorder(tree2saveBack,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
-#                             "measuredItemChildCPC", "timePointYears", "Value", "flagObservationStatus", 
-#                             "flagMethod"))
-# 
-# setnames(tree2saveBack,c("measuredItemParentCPC","measuredItemChildCPC"),c("measuredItemParentCPC_tree","measuredItemChildCPC_tree"))
-# 
-# 
-# message("Save Commodity tree...")
-# 
-# ptm <- proc.time()
-# SaveData(domain = "suafbs", dataset = "ess_fbs_commodity_tree2", data = tree2saveBack, waitTimeout = 20000)
-# message((proc.time() - ptm)[3])
-# 
-# 
-# 
-# ###################################
-# ### FINAL SAVE
-# fbs_sua_conversion2 <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins","DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "exports", "feed", "food",
-#                                                           "foodManufacturing", "imports", "loss", "production",
-#                                                           "seed", "stockChange", "residual","industrial", "tourist"),
-#                                   code=c("261", "281", "271","664","674","684","5910", "5520", "5141",
-#                                          "5023", "5610", "5016", "5510",
-#                                          "5525", "5071", "5166","5165", "5164"))
-# 
-# 
-# standData = merge(standData, fbs_sua_conversion2, by = "measuredElementSuaFbs")
-# standData[,`:=`(measuredElementSuaFbs = NULL)]
-# setnames(standData, "code", "measuredElementSuaFbs")
-# 
-# ## Assign flags: I for imputed (as we're estimating/standardizing) and s for
-# ## "sum" (aggregate)
-# standData[, flagObservationStatus := "I"]
-# standData[, flagMethod := "s"]
-# 
-# setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears",
-#                          "Value", "flagObservationStatus", "flagMethod"))
-# 
-# # Remove NA Values
-# standData <- standData[!is.na(Value),]
-# standData=standData[measuredElementSuaFbs%in%c(elemKeys,"664","674","684")]
-# 
-# areaKeys=areaKeys
-# if("1248"%in%areaKeys){
-#   areaKeys=c(areaKeys,"156")
-# }
-# elemKeys="511"
-# key = DatasetKey(domain = "population", dataset = "population_unpd", dimensions = list(
-#   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
-#   measuredElementSuaFbs = Dimension(name = "measuredElement", keys = elemKeys),
-#   timePointYears = Dimension(name = "timePointYears", keys = as.character(yearVals))
-# ))
-# 
-# popSWS=GetData(key)
-# popSWS[geographicAreaM49=="156",geographicAreaM49:="1248"]
-# popSWS[,measuredItemSuaFbs:="S2901"]
-# 
-# setnames(popSWS,"measuredElement","measuredElementSuaFbs")
-# setcolorder(popSWS,colnames(standData))
-# 
-# standData=data.table(rbind(standData,popSWS))
-# standData=standData[!(measuredItemSuaFbs%in%c("S2901")& !(measuredElementSuaFbs%in%c("664","674","684","511")))]
-# standData=standData[!(measuredItemSuaFbs%in%c("2903","2941")& !(measuredElementSuaFbs%in%c("664","674","684")))]
-# 
-# 
-# 
-# message("Attempting to save standardized data...")
-# 
-# setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
-# 
-# ptm <- proc.time()
-# out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData, waitTimeout = 2000000)
-# cat(out$inserted + out$ignored, " observations written and problems with ",
-#     out$discarded, sep = "")
-# paste0(out$inserted + out$ignored, " observations written and problems with ",
-#        out$discarded)
-# message((proc.time() - ptm)[3])
-# 
-# ###################################
-## Initiate email
-# 
-# 
-# from = "sws@fao.org"
-# to = swsContext.userEmail
-# subject = "Full Standardization and Balancing completed"
-# body = "The plug-in has saved the data in your sessions"
-# 
-# sendmail(from = from, to = to, subject = subject, msg = body)
-# paste0("Email sent to ", swsContext.userEmail)
 
