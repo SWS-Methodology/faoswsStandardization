@@ -96,16 +96,17 @@ printSUATableNames = function(data, standParams, printCodes, printProcessing = T
     
     if(length(nutrientElements) > 0){
       printDT=printDT[,c("itemName","Item","Production", "Imports","Exports","StockChange",
-                         "Food","Feed","Seed","Tourist","Industrial","Loss","Residuals",nutrientElements),with=FALSE]
+                         "Food","Food Processing","Feed","Seed","Tourist","Industrial","Loss","Residuals",nutrientElements),with=FALSE]
       printDT=data.table(printDT)
     }else{
       printDT=printDT[,.(itemName,Item,Production, Imports,Exports,StockChange,
-                         Food,Feed,Seed,Tourist,Industrial,Loss,Residuals)]
+                         Food,`Food Processing`,Feed,Seed,Tourist,Industrial,Loss,Residuals)]
 
-      }
-    items = c("itemName","Item", "Production", "Imports", "Exports", "StockChange",
-              "Food", "Feed", "Seed", "Tourist", "Industrial", "Loss","Residuals",
-              nutrientElements)
+    }
+    
+      items = c("itemName","Item", "Production", "Imports", "Exports", "StockChange",
+                "Food","Food Processing", "Feed", "Seed", "Tourist", "Industrial", "Loss","Residuals",
+                nutrientElements) 
 
     out = print(knitr::kable(printDT[, items, with = FALSE], align = 'r'))
     return(out)

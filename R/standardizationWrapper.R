@@ -168,6 +168,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
   
   if(length(printCodes) > 0){
+    cat("sua_unbalanced")
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATableNames(data = data, standParams = p, printCodes = printCodes)
   }
