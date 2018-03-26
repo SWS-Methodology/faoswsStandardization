@@ -633,12 +633,12 @@ setnames(utilizationTable,colnames(utilizationTable),c("geographicAreaM49", "mea
 message("Download zero Weight from SWS...")
 
 zeroWeight=ReadDatatable("zero_weight")[,item_code]
-zeroWeight=data.table(zeroWeight)
+# zeroWeight=data.table(zeroWeight)
 
 message("Download cutItems from SWS...")
 
 cutItems=ReadDatatable("cut_items2")[,cpc_code]
-cutItems=data.table(cutItems)
+# cutItems=data.table(cutItems)
 
 message("Download fbsTree from SWS...")
 
@@ -779,9 +779,6 @@ for (i in seq_len(nrow(uniqueLevels))) {
 }
 
 
-
-
-
 message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
@@ -893,7 +890,7 @@ if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"
                                colClasses = c("character","character","character","character","character","character","character"))
   AfterSuaFilling = data.table(AfterSuaFilling)
   AfterSuaFilling = AfterSuaFilling[measuredElementSuaFbs%in%c(elemKeys,"664")]
-  AfterSuaFilling = AfterSuaFilling[,Value:=round(as.numeric(Value),0)]
+  # AfterSuaFilling = AfterSuaFilling[,Value:=round(as.numeric(Value),0)]
   
   ## As per Team B/C request (TOMASZ) I'm saving back only the DES (684)
   

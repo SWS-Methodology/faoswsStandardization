@@ -574,7 +574,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   standData[,`:=`(measuredElementSuaFbs = NULL)]
   setnames(standData, "code", "measuredElementSuaFbs")
   standData <- standData[!is.na(Value),]
-  standData <- standData[,Value:=round(Value,0)]
+  # standData <- standData[,Value:=round(Value,0)]
   
   
   if(!is.null(debugFile)){
@@ -726,7 +726,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                          Value)]
   standData[, flagObservationStatus := "I"]
   standData[, flagMethod := "s"]
-  standData <- standData[,Value:=round(Value,0)]
+  # standData <- standData[,Value:=round(Value,0)]
   
   
   if(!is.null(debugFile)){
