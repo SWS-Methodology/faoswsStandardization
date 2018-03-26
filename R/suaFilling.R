@@ -58,7 +58,7 @@ suaFilling = function(data, p = p, tree=tree,
   
   stopifnot(imbalanceThreshold > 0)
   
-  eleToExclude = c(p$productionCode,p$exportCode,p$importCode,p$stockCode)
+  eleToExclude = c(p$productionCode,p$exportCode,p$importCode,p$stockCode,p$foodProcCode)
   
   
   #############################
