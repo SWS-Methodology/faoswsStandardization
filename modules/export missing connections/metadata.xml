@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Standardization&BalancingNew</Name>
+	<Description>Standardize SUA data for the Food Balance Sheets</Description>
+	<Category>Computation</Category>
+	<Authors>
+		<Author>
+			<Name>Cristina Muschitiello</Name>
+			<Mail>cristina.muschitiello@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Params>
+    <Param xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Number">
+            <Code>startYear</Code>
+            <Label>First year</Label>
+            <Description>The start of the computation period</Description>
+            <Compulsory>true</Compulsory>
+            <Min>1961</Min>
+            <Max>2015</Max>
+    </Param>
+    <Param xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Number">
+            <Code>endYear</Code>
+            <Label>Last year</Label>
+            <Description>The end of the computation period</Description>
+            <Compulsory>true</Compulsory>
+            <Min>1961</Min>
+            <Max>2015</Max>
+    </Param>
+	</Params>
+	<Datasets>
+        <MainDataset>
+            <Code>fbs_balanced_</Code>
+        </MainDataset>
+        <Dataset>
+            <Code>sua_balanced</Code>
+        </Dataset>
+        <Dataset>
+            <Code>fbs_standardized</Code>
+        </Dataset>
+    </Datasets>
+    <InteractiveValidation>false</InteractiveValidation>
+    <Background>false</Background>
+</RScript>

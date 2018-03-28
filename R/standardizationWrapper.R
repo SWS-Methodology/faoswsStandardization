@@ -184,6 +184,12 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   }else{
     primaryEl=c()
   }
+  
+  ## Add in elements not in the tree, as they are essentially parents
+  nonTreeEl = data[[p$itemVar]]
+  nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
+  primaryEl = c(primaryEl, nonTreeEl)
+  
   data[, ProtectedProd := any(get(standParams$elementVar) == standParams$productionCode &
                                 Official==TRUE),
        by = c(standParams$itemVar)]
@@ -336,7 +342,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   if(length(printCodes) > 0){
     cat("\n\nAvailability of Parent for Food Processing Calculation = Prod+Imp-Exp | Shares by Child | weight of children:")
     print(knitr::kable(printTree[Child %in% printCodes,
-                                 c("Child","ChildName" ,"Parent", "ParentName",p$extractVar, "availability","share"),
+                                 c("Child","ChildName" ,"Parent", "ParentName",p$extractVar, "availability","share","weight"),
                                  with = FALSE], align = 'r'))
 
   }
@@ -548,7 +554,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   if(length(printCodes) > 0){
     cat("\n\nAvailability of parents in terms of their children = FoodProc * eR | Final Shares by child:")
     print(knitr::kable(printTree[Child %in% printCodes,
-                                 c("Child","ChildName" ,"Parent", "ParentName",p$extractVar, "availability","share"),
+                                 c("Child","ChildName" ,"Parent", "ParentName",p$extractVar, "availability","share","weight"),
                                  with = FALSE], align = 'r'))
   }
 }    
