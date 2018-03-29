@@ -807,8 +807,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ## all these elements with their balanced values.
   data[!(nutrientElement), Value := balancedValue]
   
+  data2keep=data.table(data.frame(data)) ###################!!!!!!!!!!!!!!!!!!!!!!DATA
+  
 #############################################################################  
-  data2keep=data.table(data.frame(data))
   setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
   standData=data.table(data.frame(data))
   
@@ -836,11 +837,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data2print=data.table(standDataLong[!(measuredElementSuaFbs%in%c(nutrientElements,"proteinSupplyQt_gCd","fatSupplyQt_gCd"))])
   
   data=data.table(data.frame(data2print))
-  setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-  #############################################################################  
-  
-  data2keep2=data.table(data.frame(data))
-  setnames(data,"measuredItemSuaFbs","measuredItemFbsSua")
+
   data=nameData("suafbs","sua_unbalanced",data,except = c("measuredElementSuaFbs","geographicAreaM49","timePointYears"))
   setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
   if(length(printCodes) > 0){
@@ -852,17 +849,21 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                   nutrientElements = "DESfoodSupply_kCd")
     data[, updateFlag := NULL]
   }
-  data=data.table(data.frame(data2keep2))
   
+  
+
   ## STEP 6: Update calories of processed products proportionally based on
   ## updated food element values.
   # data[(nutrientElement), Value := Value * foodAdjRatio]
   
   
-  data=copy(data.table(data.frame(data2keep)))
+  data=copy(data.table(data.frame(data2keep)))   ###################!!!!!!!!!!!!!!!!!!!!!!DATA
+  
   data[(nutrientElement), Value := ifelse(((!is.na(Value))&is.na(foodAdjRatio)),Value, Value * foodAdjRatio)]
+  
+  data2keep=data.table(data.frame(data)) ###################!!!!!!!!!!!!!!!!!!!!!!DATA
+  
   #############################################################################  
-  data2keep=data.table(data.frame(data))
   setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
   standData=data.table(data.frame(data))
   
@@ -894,7 +895,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   #############################################################################  
 
   if(length(printCodes) > 0){
-    data2keep2=data.table(data.frame(data))
     setnames(data,"measuredItemSuaFbs","measuredItemFbsSua")
     data=nameData("suafbs","sua_unbalanced",data,except = c("measuredElementSuaFbs","geographicAreaM49","timePointYears"))
     setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
@@ -907,9 +907,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                   nutrientElements = "DESfoodSupply_kCd")
     data[, updateFlag := NULL]
   }
-  data=data.table(data.frame(data2keep2))
+
   
-  data=copy(data.table(data.frame(data2keep)))
+  data=copy(data.table(data.frame(data2keep)))   ###################!!!!!!!!!!!!!!!!!!!!!!DATA
   data[, c("balancedValue", "nutrientElement", "foodAdjRatio") := NULL]
   
   ## STEP 7: Aggregate to FBS Level
@@ -919,6 +919,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   } else {
     out = computeFbsAggregate(data = data, fbsTree = fbsTree,
                               standParams = p)
+    
     if(length(printCodes) > 0){
       printCodeTable = fbsTree[get(p$itemVar) %in% printCodes, ]
       # p$mergeKey[p$mergeKey == p$itemVar] = "fbsID4"
@@ -1039,9 +1040,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       
       data=data.table(data.frame(data2print))
       #############################################################################  
-      
-      
-      
       
       data2keep2=data.table(data.frame(data))
       # setnames(data,"fbsID4","measuredItemSuaFbs")

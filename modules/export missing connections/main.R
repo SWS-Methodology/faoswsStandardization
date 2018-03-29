@@ -94,6 +94,32 @@ selectedGEOCode =
          "all" = geoKeys)
 areaKeys = selectedGEOCode
 
+##############################################################
+############ Update params for specific dataset ##############
+##############################################################
+
+params = defaultStandardizationParameters()
+params$itemVar = "measuredItemSuaFbs"
+params$mergeKey[params$mergeKey == "measuredItemCPC"] = "measuredItemSuaFbs"
+params$elementVar = "measuredElementSuaFbs"
+params$childVar = "measuredItemChildCPC"
+params$parentVar = "measuredItemParentCPC"
+params$productionCode = "production"
+params$importCode = "imports"
+params$exportCode = "exports"
+params$stockCode = "stockChange"
+params$foodCode = "food"
+params$feedCode = "feed"
+params$seedCode = "seed"
+params$wasteCode = "loss"
+params$industrialCode = "industrial"
+params$touristCode = "tourist"
+params$foodProcCode = "foodManufacturing"
+params$residualCode = "residual"
+params$createIntermetiateFile= "TRUE"
+params$protected = "Protected"
+params$official = "Official"
+
 
 ##############################################################
 ############ DOWNLOAD AND VALIDATE TREE ######################
@@ -131,32 +157,6 @@ missingTree=missingTree[sumEr==0]
 
 missingTree_in=data.table(data.frame(missingTree[,sumEr:=NULL]))
 
-
-##############################################################
-############ Update params for specific dataset ##############
-##############################################################
-
-params = defaultStandardizationParameters()
-params$itemVar = "measuredItemSuaFbs"
-params$mergeKey[params$mergeKey == "measuredItemCPC"] = "measuredItemSuaFbs"
-params$elementVar = "measuredElementSuaFbs"
-params$childVar = "measuredItemChildCPC"
-params$parentVar = "measuredItemParentCPC"
-params$productionCode = "production"
-params$importCode = "imports"
-params$exportCode = "exports"
-params$stockCode = "stockChange"
-params$foodCode = "food"
-params$feedCode = "feed"
-params$seedCode = "seed"
-params$wasteCode = "loss"
-params$industrialCode = "industrial"
-params$touristCode = "tourist"
-params$foodProcCode = "foodManufacturing"
-params$residualCode = "residual"
-params$createIntermetiateFile= "TRUE"
-params$protected = "Protected"
-params$official = "Official"
 
 ##############################################################
 #################### SET KEYS FOR DATA #######################

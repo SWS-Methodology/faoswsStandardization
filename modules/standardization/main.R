@@ -45,10 +45,10 @@ if (CheckDebug()) {
   )
   
   
-  batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 206 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
   
 } else {
-  batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 206 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
   message("Running on server, no need to call GetTestEnvironment...")
   
 }
@@ -95,7 +95,6 @@ selectedGEOCode =
          "session" = sessionCountries,
          "all" = geoKeys)
 areaKeys = selectedGEOCode
-
 ##############################################################
 ############ DOWNLOAD AND VALIDATE TREE ######################
 ##############################################################
@@ -365,9 +364,7 @@ dataFlags = copy(data)
 
 # For DERIVED select only the protected and the estimation (coming from the submodule)
 
-message("data chenged ok")
-
-
+message("data changed ok")
 
 level = findProcessingLevel(tree, from = params$parentVar,
                             to = params$childVar, aupusParam = params)
@@ -667,7 +664,7 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
   
   printCodes = character()
   
-  # printCodes = c("0143")
+  # printCodes = c("01701")
   # printCodes = getChildren(commodityTree = tree,
   # parentColname = params$parentVar,
   # childColname = params$childVar,

@@ -92,8 +92,8 @@ selectedGEOCode =
          "session" = sessionCountries,
          "all" = geoKeys)
 areaKeys = selectedGEOCode
-
-
+areaKeys = "1248"
+fbsItem = "2514"
 ##############################################################
 ############ DOWNLOAD AND VALIDATE TREE ######################
 ##############################################################
@@ -630,7 +630,7 @@ setnames(utilizationTable,colnames(utilizationTable),c("geographicAreaM49", "mea
 message("Download zero Weight from SWS...")
 
 zeroWeight=ReadDatatable("zero_weight")[,item_code]
-zeroWeight=data.table(zeroWeight)
+# zeroWeight=data.table(zeroWeight)
 
 message("Download cutItems from SWS...")
 
