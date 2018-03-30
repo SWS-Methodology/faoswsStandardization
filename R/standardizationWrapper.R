@@ -317,7 +317,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }
     initialSign = sign(x)
     x = abs(x)
-    x=round(x,0)
+    x=round(x,4)
     x = x * initialSign
     x = prettyNum(x, big.mark = ",", scientific = FALSE)
     return(x)
@@ -528,7 +528,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     }
     initialSign = sign(x)
     x = abs(x)
-    x=round(x,0)
+    x=round(x,4)
     x = x * initialSign
     x = prettyNum(x, big.mark = ",", scientific = FALSE)
     return(x)

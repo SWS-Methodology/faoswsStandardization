@@ -92,8 +92,7 @@ selectedGEOCode =
          "session" = sessionCountries,
          "all" = geoKeys)
 areaKeys = selectedGEOCode
-areaKeys = "1248"
-fbsItem = "2514"
+
 ##############################################################
 ############ DOWNLOAD AND VALIDATE TREE ######################
 ##############################################################

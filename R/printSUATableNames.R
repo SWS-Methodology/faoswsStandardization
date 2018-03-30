@@ -141,7 +141,7 @@ roundNum = function(x){
     #     x = formatC(x, digits = 4)
     #     x = as.numeric(x)
     # }
-    x=round(x,0)
+    x=round(x,4)
     x = x * initialSign
     x = prettyNum(x, big.mark = ",", scientific = FALSE)
     return(x)
