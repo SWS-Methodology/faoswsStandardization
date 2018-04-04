@@ -47,7 +47,8 @@ industrialCode = "5165"
 touristCode = "100"
 suaTouristCode = "5164"
 # Convert tourism units to tonnes
-touristConversionFactor = -1/1000
+# touristConversionFactor = -1/1000
+touristConversionFactor = 1
 # warning("Stocks is change in stocks, not absolute! This needs to be changed")
 stocksCode = "5071"
 

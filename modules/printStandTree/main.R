@@ -92,7 +92,6 @@ selectedGEOCode =
          "session" = sessionCountries,
          "all" = geoKeys)
 areaKeys = selectedGEOCode
-
 ##############################################################
 ############ DOWNLOAD AND VALIDATE TREE ######################
 ##############################################################
