@@ -52,6 +52,7 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
     #### ADDED for solving the problem of cassava code: CRISTINA 
     elementMap[code=="01520.02",type:="CRPR"]
     elementMap[code=="39120.18",type:="CRNP"]
+    message("Two types manually added: Cassava and Marc og Grapes. Code of seed EGGS manually changed in the elementcodes table ")
     #### 
     
     setnames(elementMap, "code", itemCol)
