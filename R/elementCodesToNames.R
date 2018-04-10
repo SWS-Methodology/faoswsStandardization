@@ -82,9 +82,9 @@ elementCodesToNames = function(data, elementCol = NULL, itemCol = NULL,
     itemCodeKey = itemCodeKey[order(itemtype, production), ]
     itemCodeKey[, suffix := paste0("_", seq_len(.N)), by = "itemtype"]
     itemCodeKey[suffix == "_1", suffix := ""]
-    warning("All indigenous and biological cattle and poultry have been
-    removed. This is a bad thing and it would be best to find a way to replace
-    them. I recommend looking at issue #17")
+    # warning("All indigenous and biological cattle and poultry have been
+    # removed. This is a bad thing and it would be best to find a way to replace
+    # them. I recommend looking at issue #17")
     itemCodeKey = itemCodeKey[suffix == "", ]
     itemCodeKey = melt(data = itemCodeKey, id.vars = c("itemtype", "suffix"))
     itemCodeKey = itemCodeKey[!is.na(value), ]

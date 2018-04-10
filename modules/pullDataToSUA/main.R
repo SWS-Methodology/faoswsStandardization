@@ -376,7 +376,6 @@ setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
 
 message("Merging data files together and saving")
 out = do.call("rbind", list(agData, stockData,foodData, lossData, tradeData, tourData,indData))
-
 #protected data
 #### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
 # now we have to delete all the wrong values:
