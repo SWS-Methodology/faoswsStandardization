@@ -154,10 +154,15 @@ suaFilling = function(data, p = p, tree=tree,
   ########################## Supply < utilization (= imbalance < -imbalanceThreshold)
   
   if (loop1==TRUE) {
-    # # if production EXISTS (protected or estimated Via the sub-module), 
-    # # DON'T DO ANYTHING. 
-    # if production do NOT EXISTS or is a NOT protected 0, create it
-    dataNegImb[get(p$elementVar)==p$productionCode & ProtectedProd==FALSE & (is.na(Value)|Value==0),
+    # # # if production EXISTS (protected or estimated Via the sub-module), 
+    # # # DON'T DO ANYTHING. 
+    # # if production do NOT EXISTS or is a NOT protected 0, create it
+    # dataNegImb[get(p$elementVar)==p$productionCode & ProtectedProd==FALSE & (is.na(Value)|Value==0),
+    #            newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
+    #----------------------#
+    # This is being changed the 12/04/2018 as per Salar request
+    # create OR increase production any time is not sufficient to cover Import-Export
+    dataNegImb[get(p$elementVar)==p$productionCode & ProtectedProd==FALSE,
                newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
   }
   
