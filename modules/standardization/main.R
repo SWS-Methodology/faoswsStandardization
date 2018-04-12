@@ -115,14 +115,14 @@ tree[Value==0,Value:=NA]
 ################### MARK OILS COMMODITY ######################
 ##############################################################
 
-oilFatsCPC=c("2161", "2162", "21631.01", "21641.01", "21641.02", "2168", 
-             "21691.14", "2165", "34120", "21932.02", "2166", "21691.07", 
-             "2167", "21673", "21691.01", "21691.02", "21691.03", "21691.04", 
-             "21691.05", "21691.06", "21631.02", "21691.08", "21691.09", "21691.10", 
-             "21691.11", "21691.12", "21691.13", "21691.90", "23620", "21700.01", 
-             "21700.02", "21693.02", "34550", "F1275", "21512", "21512.01", 
-             "21513", "21514", "F0994", "21515", "21511.01", "21511.02", "21521", 
-             "21511.03", "21522", "21519.02", "21519.03", "21529.03", "21529.02", 
+oilFatsCPC=c("2161", "2162", "21631.01", "21641.01", "21641.02", "2168",
+             "21691.14", "2165", "34120", "21932.02", "2166", "21691.07",
+             "2167", "21673", "21691.01", "21691.02", "21691.03", "21691.04",
+             "21691.05", "21691.06", "21631.02", "21691.08", "21691.09", "21691.10",
+             "21691.11", "21691.12", "21691.13", "21691.90", "23620", "21700.01",
+             "21700.02", "21693.02", "34550", "F1275", "21512", "21512.01",
+             "21513", "21514", "F0994", "21515", "21511.01", "21511.02", "21521",
+             "21511.03", "21522", "21519.02", "21519.03", "21529.03", "21529.02",
              "21932.01", "21523", "F1243", "F0666")
 
 tree[(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),oil:=TRUE]
@@ -136,13 +136,14 @@ tree[(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),oi
 ## any other has to ve cleaned except the oils 
 tree[,checkFlags:=paste0("(",flagObservationStatus,",",flagMethod,")")]
 
-
 tree[measuredElementSuaFbs=="share"&(checkFlags=="(E,f)"|oil==TRUE),keep:=TRUE]
 tree[measuredElementSuaFbs=="share"&is.na(keep),Value:=NA]
 
 tree[,checkFlags:=NULL]
 tree[,oil:=NULL]
 tree[,keep:=NULL]
+
+
 
 
 ##############################################################
@@ -171,13 +172,60 @@ params$createIntermetiateFile= "TRUE"
 params$protected = "Protected"
 params$official = "Official"
 
+
+
+##############################################################
+######## CLEAN ALL SESSION TO BE USED IN THE PROCESS #########
+##############################################################
+
+if(!CheckDebug()){
+  ## CLEAN sua_balanced
+  message("wipe sua_balanced session")
+  CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
+  
+  datatoClean=GetData(sessionKey_suabal)
+
+  datatoClean=datatoClean[timePointYears%in%yearVals]
+
+  datatoClean[, Value := NA_real_]
+  datatoClean[, CONFIG$flags := NA_character_]
+  
+  SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
+  
+  
+  ## CLEAN fbs_standardized
+  message("wipe fbs_standardized session")
+  
+  CONFIG <- GetDatasetConfig(sessionKey_fbsStand@domain, sessionKey_fbsStand@dataset)
+  
+  datatoClean=GetData(sessionKey_fbsStand)
+  datatoClean=datatoClean[timePointYears%in%yearVals]
+  
+  datatoClean[, Value := NA_real_]
+  datatoClean[, CONFIG$flags := NA_character_]
+  
+  SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
+
+  ## CLEAN fbs_balanced
+  message("wipe fbs_balanced session")
+  
+  CONFIG <- GetDatasetConfig(sessionKey_fbsBal@domain, sessionKey_fbsBal@dataset)
+  
+  datatoClean=GetData(sessionKey_fbsBal)
+  datatoClean=datatoClean[timePointYears%in%yearVals]
+  
+  datatoClean[, Value := NA_real_]
+  datatoClean[, CONFIG$flags := NA_character_]
+  
+  SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
+}
+
 ##############################################################
 #################### SET KEYS FOR DATA #######################
 ##############################################################
 
-elemKeys=c("5510", "5610", "5071", "5023", "5910", "5016", "5165", "5520","5525","5164","5166","5141")
-
-desKeys = c("664","674","684")
+elemKeys=c("5510", "5610", "5071", "5023", "5910", "5016", 
+           "5165", "5520","5525","5164","5166","5141")
 
 # 5510 Production[t]
 # 5610 Import Quantity [t]
@@ -192,69 +240,14 @@ desKeys = c("664","674","684")
 # 5166 Food [t]
 # 5141 Food Supply (/capita/day) [Kcal]
 
+desKeys = c("664","674","684")
 
-
-##### First of all the session data have to be cleaned
-## CLEAN sua_balanced
-if(!CheckDebug()){
-  CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
-  
-  datatoClean=GetData(sessionKey_suabal)
-
-  datatoClean=datatoClean[timePointYears%in%yearVals]
-
-  datatoClean[, Value := NA_real_]
-  datatoClean[, CONFIG$flags := NA_character_]
-  
-  SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
-  
-  
-  ## CLEAN fbs_standardized
-  
-  CONFIG <- GetDatasetConfig(sessionKey_fbsStand@domain, sessionKey_fbsStand@dataset)
-  
-  datatoClean=GetData(sessionKey_fbsStand)
-  datatoClean=datatoClean[timePointYears%in%yearVals]
-  
-  datatoClean[, Value := NA_real_]
-  datatoClean[, CONFIG$flags := NA_character_]
-  
-  SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
-  
-  
-  
-  ## CLEAN fbs_balanced
-  
-  CONFIG <- GetDatasetConfig(sessionKey_fbsBal@domain, sessionKey_fbsBal@dataset)
-  
-  datatoClean=GetData(sessionKey_fbsBal)
-  datatoClean=datatoClean[timePointYears%in%yearVals]
-  
-  datatoClean[, Value := NA_real_]
-  datatoClean[, CONFIG$flags := NA_character_]
-  
-  SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
-  
-  ### Send Mail for Data Cleaned
-  # body = paste("Before processing new unbalanced SUAs",
-  #              " ",
-  #              "All Datasets have been cleaned"
-  #              ,sep='\n')
-  # 
-  # sendmailR::sendmail(from = "sws@fao.org",
-  #                     to = swsContext.userEmail,
-  #                     subject = sprintf("sessions cleaned"),
-  #                     msg = strsplit(body,"\n")[[1]])
-  
-}
-## Starting reading SUAs
-message("Reading SUA data...")
-
+# 664 Food Supply (Kcal/caput/day) [kcal]
+# 674 Protein Supply quantity (g/caput/day) [g]
+# 684 Fat supply quantity (g/caput/day) [g]
 
 itemKeys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", "measuredItemFbsSua")
 itemKeys = itemKeys[, code]
-
-
 
 key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = list(
   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
@@ -263,34 +256,32 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
   timePointYears = Dimension(name = "timePointYears", keys = yearVals)
 ))
 
-
-
 ##############################################################
-########## DOWNLOAD AND FIX DATA FOR SUGAR CODES #############
+####################### DOWNLOAD  DATA #######################
 ##############################################################
-# load(file.path(PARAMS$localFiles, "dataTESTNewStand.RData")) 
 
-# data=data[geographicAreaM49=="1248"&timePointYears%in%yearVals]
-# data=suppressWarnings(dataDownloadFix(key=key,p=params))
-
+message("Reading SUA data...")
 
 data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
                            elementCol = "measuredElementSuaFbs")
 
-message("elementCodesToNames ok")
+message("convert element codes into element names")
 
+data[measuredElementSuaFbs=="foodmanufacturing",measuredElementSuaFbs:="foodManufacturing"]
 setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 data[measuredElementSuaFbs=="stock_change",measuredElementSuaFbs:="stockChange"]
 data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
 
-data=data[timePointYears%in%yearVals]
+message("delete null elements")
+
 data=data[!is.na(measuredElementSuaFbs)]
 
 ##############################################################
 ######### SUGAR RAW CODES TO BE CONVERTED IN 2351F ###########
 ##############################################################
-#######################################
+
 datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
+
 datas[,Value2:=sum(Value*ifelse(measuredItemSuaFbs=="2351f",0,1)),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
 sugarComb = datas[, .N, by = c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
 
@@ -339,42 +330,23 @@ data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>
   data.table
 
 data[flagObservationStatus%in%c("","T"),Official:=TRUE]
-# data[flagObservationStatus%in%c(""),Official:=TRUE]
 data[is.na(Official),Official:=FALSE]
-# data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Protected","Official"))]
 # ######### ######### #########
 #######################################
 dataFlags = copy(data)
 ##############################################################
 
-# #protected data
-# #### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
-# # now we have to delete all the wrong values:
-# # THE FOLLOWING STEPS HAVE BEEN COMMENTED BECAUSE THEY SHOULD NOT BE NEEDED
-# # the data might have to be corrected from the questionnaires
-# 
-# cropsOfficialFood = c("0111","0112","0113","0115","0116","0117","01199.02","01801","01802")
-# data[!geographicAreaM49%in%c("604")&get(params$itemVar)%in%cropsOfficialFood
-#      &get(params$elementVar)==params$foodCode
-#      ,Value:=NA]
-# # only for Japan, delete also Food of Rice Milled.
-# data[geographicAreaM49=="392"&get(params$elementVar)==params$foodCode&get(params$itemVar)=="23161.02",Value:=0]
-# 
-#########################
-
-# For DERIVED select only the protected and the estimation (coming from the submodule)
-
-message("data changed ok")
+# For DERIVED select only the protected and the estimation (coming from the submodule of derived and Livestock)
 
 level = findProcessingLevel(tree, from = params$parentVar,
                             to = params$childVar, aupusParam = params)
 primaryEl = level[processingLevel == 0, get(params$itemVar)]
 
-# I have to select Protected and Estimation (I,e)
+# I have to select Protected and Estimation (I,e) and (I,i)
 # For all the others delete the production value
 # this will leave the Sua Filling creting prodcution, where needed
 
-data[!(get(params$protected)=="TRUE"|(flagObservationStatus=="I"&flagMethod=="e"))
+data[!(get(params$protected)=="TRUE"|(flagObservationStatus=="I"&flagMethod%in%c("i","e")))
      &get(params$elementVar)==params$productionCode
      &!(get(params$itemVar) %in% primaryEl),Value:=NA]
 
@@ -388,18 +360,18 @@ p=params
 ### Compute availability and SHARE  
 
 data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                             ifelse(get(p$elementVar) == p$productionCode, 1,
-                                    ifelse(get(p$elementVar) == p$importCode, 1,
-                                           ifelse(get(p$elementVar) == p$exportCode, -1,
-                                                  ifelse(get(p$elementVar) == p$stockCode, 0,
-                                                         ifelse(get(p$elementVar) == p$foodCode, 0,
-                                                                ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                                                                       ifelse(get(p$elementVar) == p$feedCode, 0,
-                                                                              ifelse(get(p$elementVar) == p$wasteCode, 0,
-                                                                                     ifelse(get(p$elementVar) == p$seedCode, 0,
-                                                                                            ifelse(get(p$elementVar) == p$industrialCode, 0,
-                                                                                                   ifelse(get(p$elementVar) == p$touristCode, 0,
-                                                                                                          ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
+                           ifelse(get(p$elementVar) == p$productionCode, 1,
+                           ifelse(get(p$elementVar) == p$importCode, 1,
+                           ifelse(get(p$elementVar) == p$exportCode, -1,
+                           ifelse(get(p$elementVar) == p$stockCode, 0,
+                           ifelse(get(p$elementVar) == p$foodCode, 0,
+                           ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                           ifelse(get(p$elementVar) == p$feedCode, 0,
+                           ifelse(get(p$elementVar) == p$wasteCode, 0,
+                           ifelse(get(p$elementVar) == p$seedCode, 0,
+                           ifelse(get(p$elementVar) == p$industrialCode, 0,
+                           ifelse(get(p$elementVar) == p$touristCode, 0,
+                           ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
      by = c(p$mergeKey)]
 
 
@@ -421,8 +393,8 @@ tree2exRa[,c("measuredElementSuaFbs","Value"):=NULL]
 
 
 tree2=data.table(left_join(tree2shares,tree2exRa[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-                                                    "timePointYears","extractionRate"),with=FALSE],by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-                                                                                                        "timePointYears")))
+                                                    "timePointYears","extractionRate"),with=FALSE],
+                           by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears")))
 
 tree2=tree2[!is.na(extractionRate)]
 tree2 = merge(tree2, mergeToTree, by = p$parentVar, all.x = TRUE)
@@ -1051,6 +1023,6 @@ to = swsContext.userEmail
 subject = "Full Standardization and Balancing completed"
 body = "The plug-in has saved the data in your sessions"
 
-if(CheckDebug()){sendmail(from = from, to = to, subject = subject, msg = body)}
+if(!CheckDebug()){sendmail(from = from, to = to, subject = subject, msg = body)}
 paste0("Email sent to ", swsContext.userEmail)
 
