@@ -1,0 +1,460 @@
+\documentclass[nojss]{jss}
+\usepackage[sc]{mathpazo}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+\usepackage{breakurl}
+\usepackage{hyperref}
+\usepackage[ruled, vlined]{algorithm2e}
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{mathrsfs}
+\usepackage[toc,page]{appendix}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{breqn}
+\usepackage[demo]{graphicx}% "demo" to make example compilable without .png-file
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{lipsum}
+
+\usepackage{booktabs}
+\newcommand{\head}[1]{\textnormal{\textbf{#1}}}
+%% \usepackage{mathbbm}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator*{\argmax}{\arg\!\max}
+
+\title{\bf faoswsProduction: A sub-module for the imputation of missing time
+series data in the Statistical Working System - Livestock items }
+
+\author{Francesca Rosa\\ Food and Agriculture
+    Organization \\ of the United Nations\\}
+
+\Plainauthor{Francesca Rosa}
+
+\Plaintitle{faoswsImputation: A sub-module for the imputation of missing time
+series data in the Statistical Working System - Processed items}
+
+\Shorttitle{Derived item production}
+
+\Abstract{
+
+  This vignette provides a detailed description of the usage of
+  functions in the \pkg{Livestock production} package. \\
+
+}
+
+\Keywords{Imputation, Linear Mixed Model, Ensemble Learning}
+\Plainkeywords{Imputation, Linear Mixed Model, Commodity Tree, Processing Share}
+
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\SwaveParseOpstions
+
+
+\section{Overall Workflow}
+
+The key features of the production sub-modules (both the Crop production and the Livestock production sub-modules) are:
+\begin{itemize}
+\item{The common theoretical framework based on the \textit{Ensemble approach} developed to produce data-imputations};
+\item{The production imputation process based on the concept of triplet. The triplet contains three elements linked through the relation:
+\begin{dmath*}
+output_{t}= input_{t} * productivity_{t}
+\end{dmath*}
+This identity is the basic equation to compute the production quantities (where it is missing) and to validate the output of the module, since we can have an a priori information on feasible \textit{productivities} and/or \textit{inputs} associated to different productive processes.}
+\end{itemize}
+
+
+
+The specificities of the Livestock sub-module consist in the elements\footnote{With the term \textbf{"Elements"} (familiar to the SWS users), we mean the variable/indicator that identifies the measure. It also contains the unit of measurement. For example the element \textbf{5510} identifies the \textbf{"Production [tons]".}} involved, which are not three as usual, but five. In particular we can talk about two different triplets with one element in common. One triplet is associated to the \textit{live animal item}, and its output consists in the \textit{Number of animal slaughtered}. The other triplet is associated to the \textit{derived items} obtained throught the slaughtering process, in this latter case the \textit{Number of animal slaughtered} is the input. 
+
+
+\begin{center}
+\includegraphics{plot/Quintuplette.png}
+\end{center}
+
+The imputation process should be driven by the reliability of available information and it is highly recommended to start with \textit{Livestock numbers} which represent the basis to estimate the number of slaughtered animals which again represent the basis to estimate those items obtained as result of the process of slaughtering animals (meat, hides and skins..) . On the other hand, for many countries we might dispose of official data for production of meat. The current approach has been developped in order to proper exploit this double source of information to produce a coherent and consistent output.
+
+ 
+\section{The animal Triplet}
+
+The triplet referring to live animals involves the following three elements:
+\begin{itemize}
+\item{\textbf{Livestock numbers} - The process starts with the imputations of Livestock numbers. The adopted methodological framework is the \textit{ensemble approach}. It is the first imputed series since we dispose of a broad and reliable set of official/semi-official data. This means that for almost all the countries we can count on a solid basis to produce imputations for filling few gaps in the available time series.
+
+\begin{center}
+\scalebox{0.50}{\includegraphics{plot/Livestock.png}}
+\captionof{figure}{example}
+\end{center}
+
+}
+
+\item{\textbf{Off-take rate} - The \textit{take-off rate} is linked to the natural reproduction of the different kind of animals (chickens reach the slaughtering age in 5-6 months while cows need more than one year). This element does not exist in the Statistical Working System and it is artificially computed ad identity using the \textit{Livesock numbers} and the \textit{Number of animal slaughtered}. Indeed this case the triples is represented by the identity:
+
+\begin{dmath*}
+SlaughteredAnimal_{t}= LivestockNumbers_{t} * OffTakeRate_{t}
+\end{dmath*}
+
+
+\textit{Off-take rates} can be computed as long as we dispose of Official or Semi-Official \textit{Slauhtered animal} series. The resulting Off-take rates series still contains many gaps that are imputed through the \textit{ensemble approach}.
+
+The output of this step is \textbf{stored in a shared folder}. Each time an user launch the Livestock plugin from the SWS, csv tables (by animal) are stored in the \textit{sws _ r _ share}-drive (be sure to have mapped this folder in your computer in order to be able to analyze the off-take rates.).
+}
+
+
+
+
+\begin{center}
+\scalebox{0.50}{\includegraphics{plot/OffTake.png}}
+\captionof{figure}{example}
+\end{center}
+
+\item{\textbf{Number of animal slaughtered} - once both \textit{Livestock numbers} and \textit{Off-take rates} have been properly computed we can proceed computing as identity the \textit{Number of animal Slaughtered} that is the output of this first process but will be  the input of the next one.}
+
+
+\end{itemize}
+
+
+\subsection{The role of trade}
+
+Some countries do not Livestock", but import animals for slaghtering purposes. This means that the total Livestock numbers should be increased by the  
+
+
+
+\section{The meat and non-meat item triplet}
+The triplet referring to the meat items involves the following three elements:
+
+\begin{itemize}
+\item{\textbf{Number of animal slaughtered} - This element is transferred in bulk from the element referring to the Animal item. All the transfered figures are flagged as: method flag = "c" which means \textit{copied from elsewhere in the SWS}.
+
+\begin{center}
+\includegraphics{plot/Slaughtered.png}
+\end{center}
+
+}
+
+\item{\textbf{Carcass Weight} - It is the element playing the role of \textit{productivity}. It identifies the quantity of meat that can be obtained from slaughtering one animal. We have a priori information at least on the feasible ranges where the imputed figures should lie. This means that it is the element on which ex post checks are performed.}
+\item{\textbf{Meat Production} - It is the final output of the process. It is imputed throught the \textit{ensemble approach} simultaneously with the other two element of the triplet or balanced as identy if official/semi-official figures of the other two variables \footnote{There is a specific function, \textit{imputeProductionTriple}, which performs the ensemble approach for the elements of the triplet and balances the other two accordingly.} exist.}
+\end{itemize}
+
+At the end of this process an important check in the \textit{Carcas weight} element is performed. This exigency arose to embed some a priori information into the Livestock sub-module. In particular we check the consistency of the resulting \textit{carcass weight} element.
+
+The a priori information embedded in the module consist in minimum and maximum boundaries for the \textit{carcass wegth} of each animal.
+This information is contained in a data table stored in the SWS:
+
+<<my-label, eval=TRUE, echo=FALSE, dev='png'>>=
+
+message("Step 0: Setup")
+
+##' Load the libraries
+suppressMessages({
+    library(data.table)
+    library(faosws)
+    library(faoswsFlag)
+    library(faoswsUtil)
+    library(faoswsImputation)
+    library(faoswsProduction)
+    library(faoswsProcessing)
+    library(faoswsEnsure)
+    library(magrittr)
+    library(dplyr)
+    library(sendmailR)
+    
+})
+
+##' Get the shared path
+R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
+
+if(CheckDebug()){
+    
+    library(faoswsModules)
+    ##SETTINGS = ReadSettings("modules/animal_StockFRANCESCA/sws.yml")
+    SETTINGS = ReadSettings("sws.yml")
+    ## If you're not on the system, your settings will overwrite any others
+    R_SWS_SHARE_PATH = SETTINGS[["share"]]
+    
+    ## Define where your certificates are stored
+    SetClientFiles(SETTINGS[["certdir"]])
+    
+    ## Get session information from SWS. Token must be obtained from web interface
+    GetTestEnvironment(baseUrl = SETTINGS[["server"]],
+                       token = SETTINGS[["token"]])
+    
+}
+rangeCarcassWeight=ReadDatatable("range_carcass_weight")
+
+animal_parent_child_mapping=ReadDatatable("animal_parent_child_mapping")
+
+label=nameData("agriculture", "aproduction", data.table(measuredItemCPC=rangeCarcassWeight[,meat_item_cpc]))
+
+rangeCarcassWeight=setnames(rangeCarcassWeight, c("meat_item_cpc", "carcass_weight_min","carcass_weight_max"), c("measuredItemCPC", "min", "max"))
+
+CPC=GetCodeList("agriculture", "aproduction", "measuredItemCPC",unique(animal_parent_child_mapping[,measured_item_child_cpc]) )
+
+CPC=CPC[type=="LSNP", unit:="kg"]
+CPC=CPC[type=="PONP", unit:="grams"]
+
+CPC=setnames(CPC, "code", "measuredItemCPC")
+
+CPC=CPC[,.(measuredItemCPC,unit)]
+
+rangeCarcassWeight=merge(rangeCarcassWeight,CPC, by=c("measuredItemCPC"))
+rangeCarcassWeight=merge(rangeCarcassWeight,label, by=c("measuredItemCPC"))
+
+rangeCarcassWeight=setnames(rangeCarcassWeight, c("measuredItemCPC_description"), c("label"))
+
+rangeCarcassWeight=setcolorder(rangeCarcassWeight, c("measuredItemCPC","label", "min", "max", "unit"))
+
+rangeCarcassWeight=rangeCarcassWeight[, label:=gsub(", fresh or chilled", "",label)]
+
+print(rangeCarcassWeight)
+
+@
+
+If some \textit{Carcass weights} lie outside this ranges, that values are replaced by the miniminm or the maximum admitted values". In particular:
+
+\begin{itemize}
+\item{if the resulting \textit{Carcass weight} is greater that maximum admitted value it is replaced by the upper baundary of the range;
+
+\begin{center}
+\includegraphics{plot/maxCarcass.png}
+\end{center}
+}
+\item{if the resulting \textit{Carcass weight} is lower that minimum admitted value it is replaced by the lower baundary of the range.
+\begin{center}
+\includegraphics{plot/minCarcass.png}
+\end{center}}
+\end{itemize}
+
+We do not have to forget that the \textit{Carcass weight} is part of a triplet of elements that must always be balanced. To ensure that the \textit{Carcass weight} is within the feasible ranges, we have to balance again the triplet.
+
+In general we decided to use the \textit{Number of animal slaughtered} to re-balance the triplet. This implies that some official/semi-official figures may be overwritten by the module. The user will recieve an email all the time this case occurs in order to be able to check those unfeasible figures.
+
+\begin{center}
+\includegraphics{plot/slauBal.png}
+\end{center}
+
+
+The only scenario where the \textit{Production} element is overwritten is when \textit{Production} had been computed ad \textit{identity}, so it was flagged as: ''method flag'' = "i". This choice depends on the exigency of reducing as much as possible the cases where \textit{protected figures} are overwritten.
+
+\begin{center}
+\includegraphics{plot/prodBal.png}
+\end{center}
+
+In this latter scenario there is no risk to overwrite \textit{Official/semi-official} figures, since only Production that had been flaggled as ''method flag'' = "i" (and not protected by definition) will be overwritten.
+
+
+\subsection{Non-meat item}
+The so-defined \textit{non-meat} item involves all those secondary items obtained from the slaughtering process. Offals, hides and skins are involved in this category. The imputation process is based on the non-meat item triplet and the methodological framework is based onece again on the ensemble approach. The number of \textit{Slaughtered animal} is sinchronized from the animal parent and it is exactly the same associated to the \textit{animal and meat} items. The key differece from the animal and meat items is that we do not dispose of a broad set of official/semi-official production data. That's why we decided to \textit{protect} also imputations coming from the \textit{old system}. This means that all the figures flagged as (I, -) are included and protected in the imputation process and are used to produce new imputations. The difference between \textit{protected} and \textit{non-protected} figures is explicity taken into account in the next section.
+
+\section{Flag management}
+
+\subsection{Protected flag combinations}
+As mentioned the imputation method developed to fill the time series that contain missing values, needs a broad set of \textit{official/semi-official} figures. The module exploits as much as possible the precious information already stored in the SWS. This means that the more accurate is the data in SWS the more reliable are the imputed figures obtained through the run of the module.
+
+It is extremely important to define a rule that identifies which figures have to be used as basis to produce imputations and which figures have to be overwritten by new imputations.
+
+By now we have generically talked about \textit{Official and semi-Official} figure as the backbone information to compute imputations, but for some series we do not dispose of a sufficient set of \textit{official/semi-official} data and so we decided to \textit{protect} (and not overwrite) a larger set of information. In particular, we look at some flag combinations that identify a more reliable set of data.
+
+
+<<my-label, eval=TRUE, echo=FALSE, dev='png'>>=
+flagValidTable[Protected==TRUE]
+
+@
+
+At each run of the \textit{Livestock Production module} all the figure considered \textit{non-protected} are deleted, and only the \textit{protected} figures are used to produce new imputations.
+
+
+\subsection{Open/close a series}
+Between the \textit{protected flag combinations} we can find (M,-). The \textbf{"M"} observation flag indicates a \textit{missing observation}. This means that, despite all those missing value flagged as (M,-), actually contains missing data, they won't be overwritten. In other words those figures have been flagged as missing on purpose, and do not have to be imputed.
+
+It is the case, for example, of items that were produced in the past but are not produced anymore. The series must be \textit{closed} in a way that can be properly intepreted by the R script. The agreed signal to identify this kind of situation is this "special" flag combination.
+
+The situation is more complicated when we take into account the \textit{tiplet}. We have to ensure the compliancy between the element of the triplet. If one element of the triplet is flagged as (M,-) all the others are authomatically flagged as (M,-) unless they are already flagged as \textit{protected figures}, and \textit{protected figures} are not overwritten. 
+
+Once a series has been \textit{closed} it has to be manually re-opened. The only way to \textit{re-open} a closed time-series is to add new protected figures for at least two elements of its triplet in the year where that activity starts again. In particular the system requests to add:
+\begin{itemize}
+\item a protected figure for the "Output";
+\item a protected figure for the "Input".
+\end{itemize}
+
+
+\subsection{Tranferred series}
+
+\section{Items involved}
+
+The current version of the \textit{Livestock} sub-module is working on 17 animal items:
+
+<<my-label, eval=TRUE, echo=FALSE, dev='png'>>=
+
+message("Step 0: Setup")
+
+##' Load the libraries
+suppressMessages({
+    library(data.table)
+    library(faosws)
+    library(faoswsFlag)
+    library(faoswsUtil)
+    library(faoswsImputation)
+    library(faoswsProduction)
+    library(faoswsProcessing)
+    library(faoswsEnsure)
+    library(magrittr)
+    library(dplyr)
+    library(sendmailR)
+    
+})
+
+##' Get the shared path
+R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
+
+if(CheckDebug()){
+    
+    library(faoswsModules)
+    SETTINGS = ReadSettings("sws.yml")
+    
+    ## If you're not on the system, your settings will overwrite any others
+    R_SWS_SHARE_PATH = SETTINGS[["share"]]
+    
+    ## Define where your certificates are stored
+    SetClientFiles(SETTINGS[["certdir"]])
+    
+    ## Get session information from SWS. Token must be obtained from web interface
+    GetTestEnvironment(baseUrl = SETTINGS[["server"]],
+                       token = SETTINGS[["token"]])
+    
+}
+
+
+animalMeatMappingTable = ReadDatatable("animal_parent_child_mapping")
+
+setnames(animalMeatMappingTable, c("measured_item_parent_cpc","measured_item_parent_cpc_description", "measured_item_child_cpc","measured_item_child_cpc_description"), c("ItemParentCode", "ItemParent", "ItemChildCode", "ItemChild") )
+         
+animalItem=unique(animalMeatMappingTable[,.(ItemParentCode, ItemParent)])
+print(animalItem)
+
+@
+
+To each \textit{animal item}, several \textit{meat} and \textit{non-meat} items are associated. For example, we report here the derived items obtained from the pig slaughtering:
+
+<<my-label, eval=TRUE, echo=FALSE, dev='png'>>=
+print(animalMeatMappingTable[ItemParentCode=="02140", .(ItemParentCode,ItemParent,ItemChildCode, ItemChild)])
+
+@
+The relationship between the parent (animal) and child commodities (items obtaining from the slaughtering process) is stores in a data table the SWS:
+
+\begin{center}
+\includegraphics{plot/animalMeatMapping.png}
+\end{center}
+
+This table can be manually modified in case some CPC codes change, or if it is necessary to expand the list
+ of animals and/or derived items to be taken into account.
+
+
+In addition, as the element codes associated to the Animal (\textbf{Parent}) and Meat (\textbf{Child}) 
+are usually different, this table also contains information on the elements composing the triple. In particular 
+we can find here the element codes that identify the \textit{Number of animal slaughtered weight} which is the 
+bridge between the two triplets just introduced.
+
+
+\section{Elements involved}
+
+There is a triplet associated to each item whatever is its nature: \textit{Animal, meat, non-meat..}. The elements composing each triplet is contained in another data table stored in the SWS:
+
+\begin{center}
+\includegraphics{plot/animalMeatMapping.png}
+\end{center}
+
+
+<<my-label, eval=TRUE, echo=FALSE, dev='png'>>=
+element_codes=ReadDatatable("element_codes")
+animal_parent_child_mapping=ReadDatatable("animal_parent_child_mapping")
+
+
+#CPC_amnimal=GetCodeList("agriculture", "aproduction","measuredItemCPC", unique(animal_parent_child_mapping[,measured_item_parent_cpc]) )
+CPC_meat= GetCodeList("agriculture", "aproduction","measuredItemCPC",unique(animal_parent_child_mapping[,measured_item_child_cpc]) )   
+
+#CPC=rbind(CPC_meat,CPC_amnimal)
+
+CPC_meat=CPC_meat[,.(code,description, type)]
+
+element_codes[itemtype %in% c("LSPR", "POPR","LSNP","OFF","PONP", "PSKN","POFF","HIDE","DERA"),.(itemtype,description,
+                                                                                                 areaharvested,
+                                                                                                 yield,
+                                                                                                 production,
+                                                                                                 factor )]
+
+@
+
+The column itemType identifies a typology of item. All the items beloging to the same category shares the same \textit{Element} and consequently the same \textit{unit of measurement}. The column \textit{factor} contain the conversion factors associated to each triplet. For example:
+
+\begin{itemize}
+\item{Cows are categorized as \textit{big animals}. The triplet associated to \textit{meat of cattle} is
+
+\begin{dmath*}
+Production_{t}^{tons}= SlaughteredAnimals_{t}^{heads} * CarcassWeight_{t}^{kg}*\frac{1}{1000}
+\end{dmath*}
+
+
+}
+\item{Chicken are categorized as \textit{small animals}. The triplet associated to \textit{meat of Chicken}
+
+\begin{dmath*}
+Production_{t}^{tons}= SlaughteredAnimals_{t}^{1000 heads} * CarcassWeight_{t}^{grams}*\frac{1}{1000}
+\end{dmath*}
+}
+\end{itemize}
+
+
+
+
+
+
+\section{Running the plugin in the SWS}
+This section contains the list of operations to be performed to successfully  run the \textit{Livestock Imputation Module}.
+
+\begin{enumerate}
+\item Open a new session in the SWS on:
+\begin{itemize}
+\item{domain = \textit{Agriculture production}}
+\item{dataset = \textit{Agriculture production}}
+\end{itemize}
+
+The selection is not particularly important, provided that you select at least one meat item which is, in general, the one (or the those that) you want to impute. Country and time-window are not important at all: all the countries will be authomatically selected by the module and the time-window starts from 1990 up to the last available year. The complete \textit{imputation key} is contained in the data table stored in the SWS:
+"fbs production comm codes". This data table has to be updated at least every year to include the last year for which you want to produce imputations.
+\item Click on \textit{R} plugin and choose: \textit{Livestock Imputation (New version)}
+\item Set up the imputation parameters. The imputation process may be performed on the \textit{"Selected session"} only on the meat (and all its linked items) contained in the session selection. On the other hands the imputation process may be performed on \textit{"All Production Data"}, this means that the orginal selection will be expanded and the imputation process will be performed for all the 17 meat items and all the linked animal and non-meat items.
+
+\begin{center}
+\includegraphics{plot/setUpParams1.png}
+\end{center}
+
+\item Set up the imputation parameters. The user has the possibility to choose the \textit{Time window imputation} that can be \textit{since 1990} or \textit{last three years}. In this latter case, the module authomatically select the last year contained in the complete imputation key and will produce imputations only for last three years. All previous figures are considered protected and will be used to produce new imputations (see the section about flag management for further clarifications). 
+
+\begin{center}
+\includegraphics{setUpParams2.png}
+\end{center}
+
+\item Click on \textit{Launch R plugin}
+\end{enumerate}
+
+
+
+
+
+\section{APPENDIX 1: List of all the data table the module needs to be correctly run}
+
+\subsection{Animal Parent-child mapping}
+\subsection{Item Type Yield}
+\subsection{range_carcass_weight}
+
+
+
+
+
+
+\end{document}
