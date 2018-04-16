@@ -143,11 +143,8 @@ tree[,checkFlags:=NULL]
 tree[,oil:=NULL]
 tree[,keep:=NULL]
 
-
-
-
 ##############################################################
-############ Update params for specific dataset ##############
+############ Set parameters for specific dataset #############
 ##############################################################
 
 params = defaultStandardizationParameters()
@@ -279,48 +276,49 @@ data=data[!is.na(measuredElementSuaFbs)]
 ##############################################################
 ######### SUGAR RAW CODES TO BE CONVERTED IN 2351F ###########
 ##############################################################
+data=convertSugarCodes(data)
 
-datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
-
-datas[,Value2:=sum(Value*ifelse(measuredItemSuaFbs=="2351f",0,1)),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
-sugarComb = datas[, .N, by = c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
-
-# Filter all the rows for which only one row exists
-filterA=sugarComb[N==1]
-filterA=filterA[,N:=NULL]
-datasA=datas[filterA, ,on=c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
-# check if some of this rows are not 2351f and change the flag, in that case
-datasA[measuredItemSuaFbs!="2351f",flagObservationStatus:=ifelse(flagObservationStatus!="I","I",flagObservationStatus)]
-datasA[measuredItemSuaFbs!="2351f",flagMethod:=ifelse(!(flagMethod%in%c("e","s")),"s",flagMethod)]
-datasA[,measuredItemSuaFbs:="2351f"]
-datasA[,Value2:=NULL]
-
-
-
-filterB=sugarComb[N>1]
-filterB=filterB[,N:=NULL]
-datasC=datas[filterB, ,on=c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
-datasC[,s2351f:=max(Value2,Value),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
-
-datasC[,c("Value","Value2"):=NULL]
-datasC[,Value:=s2351f*ifelse(measuredItemSuaFbs=="2351f",1,0),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
-datasB=datasC[Value!=0]
-
-sugarComb2=datasB[,.N,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")][,N:=NULL]
-datasD=datasC[sugarComb2,,on=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
-
-datasD=setdiff(datasC,datasD)
-
-datasD[,Value:=sum(s2351f*ifelse(measuredItemSuaFbs=="2351f",0,1)),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
-datasD=unique(datasD,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs"))
-datasD[,measuredItemSuaFbs:="2351f"]
-
-datasB=datasB[,colnames(datasA),with=FALSE]
-datasD=datasD[,colnames(datasA),with=FALSE]
-dataTorBind=rbind(datasA,datasB,datasD)
-
-data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
-data=rbind(data,dataTorBind)
+# datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
+# 
+# datas[,Value2:=sum(Value*ifelse(measuredItemSuaFbs=="2351f",0,1)),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
+# sugarComb = datas[, .N, by = c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
+# 
+# # Filter all the rows for which only one row exists
+# filterA=sugarComb[N==1]
+# filterA=filterA[,N:=NULL]
+# datasA=datas[filterA, ,on=c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
+# # check if some of this rows are not 2351f and change the flag, in that case
+# datasA[measuredItemSuaFbs!="2351f",flagObservationStatus:=ifelse(flagObservationStatus!="I","I",flagObservationStatus)]
+# datasA[measuredItemSuaFbs!="2351f",flagMethod:=ifelse(!(flagMethod%in%c("e","s")),"s",flagMethod)]
+# datasA[,measuredItemSuaFbs:="2351f"]
+# datasA[,Value2:=NULL]
+# 
+# 
+# 
+# filterB=sugarComb[N>1]
+# filterB=filterB[,N:=NULL]
+# datasC=datas[filterB, ,on=c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
+# datasC[,s2351f:=max(Value2,Value),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
+# 
+# datasC[,c("Value","Value2"):=NULL]
+# datasC[,Value:=s2351f*ifelse(measuredItemSuaFbs=="2351f",1,0),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
+# datasB=datasC[Value!=0]
+# 
+# sugarComb2=datasB[,.N,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")][,N:=NULL]
+# datasD=datasC[sugarComb2,,on=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
+# 
+# datasD=setdiff(datasC,datasD)
+# 
+# datasD[,Value:=sum(s2351f*ifelse(measuredItemSuaFbs=="2351f",0,1)),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
+# datasD=unique(datasD,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs"))
+# datasD[,measuredItemSuaFbs:="2351f"]
+# 
+# datasB=datasB[,colnames(datasA),with=FALSE]
+# datasD=datasD[,colnames(datasA),with=FALSE]
+# dataTorBind=rbind(datasA,datasB,datasD)
+# 
+# data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
+# data=rbind(data,dataTorBind)
 
 # ########################################
 #

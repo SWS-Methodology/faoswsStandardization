@@ -68,4 +68,7 @@ dataTorBind=rbind(dataSugarA,dataSugarB,dataSugarD)
 
 data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
 data=rbind(data,dataTorBind)
+
+return(data)
+
 }
