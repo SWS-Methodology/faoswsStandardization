@@ -127,7 +127,7 @@ agKey = DatasetKey(domain = "agriculture", dataset = "aproduction",
                      measuredItemCPC = itemDim,
                      timePointYears = timeDim)
 )
-agData = GetData(agKey,omitna = FALSE)
+agData = GetData(agKey)
 setnames(agData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
@@ -144,7 +144,7 @@ foodKey = DatasetKey(domain = "food", dataset = "fooddata",
                        measuredItemCPC = itemDim,
                        timePointYears = timeDim)
 )
-foodData = GetData(foodKey,omitna = FALSE)
+foodData = GetData(foodKey)
 setnames(foodData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
@@ -199,6 +199,10 @@ setnames(suaUnb,c("Value","flagObservationStatus", "flagMethod"),c("Value2Keep",
 
 data=data.table(left_join(newData,suaUnb,by=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
                         "timePointYears")))
+data[,Value:=ifelse(is.na(Value2Keep),NA,
+                    ValueNew)]
+# 0))]
+
 
 data[,Value:=ifelse(is.na(Value2Keep),NA,
                       ifelse(Value2Keep!=ValueNew,Value2Keep,
@@ -227,18 +231,20 @@ data[,c("ValueNew","flagObservationStatusNew","flagMethodNew","Value2Keep","flag
 
 
 ##### Wipe Sua_unbalanced
-
-datatoClean=data.table(data.frame(data))
-
-datatoClean[, Value := NA_real_]
-datatoClean[, c("flagObservationStatus","flagMethod") := NA_character_]
-
-SaveData("suafbs", "sua_unbalanced" , data = datatoClean, waitTimeout = Inf)
+# 
+# datatoClean=data.table(data.frame(newData))
+# 
+# datatoClean[, Value := NA_real_]
+# datatoClean[, c("flagObservationStatus","flagMethod") := NA_character_]
+# 
+# SaveData("suafbs", "sua_unbalanced" , data = datatoClean, waitTimeout = Inf)
 
 
 ##### Save in Sua_unbalanced
 
-stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data, waitTimeout = Inf)
+newData=newData[!is.na(Value)]
+
+stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = newData, waitTimeout = Inf)
 
 paste0(stats$inserted, " observations written, ",
        stats$ignored, " weren't updated, ",

@@ -278,71 +278,32 @@ data=data[!is.na(measuredElementSuaFbs)]
 ##############################################################
 data=convertSugarCodes(data)
 
-# datas=data[measuredItemSuaFbs %in% c("23511.01","23512","2351f")]
-# 
-# datas[,Value2:=sum(Value*ifelse(measuredItemSuaFbs=="2351f",0,1)),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
-# sugarComb = datas[, .N, by = c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
-# 
-# # Filter all the rows for which only one row exists
-# filterA=sugarComb[N==1]
-# filterA=filterA[,N:=NULL]
-# datasA=datas[filterA, ,on=c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
-# # check if some of this rows are not 2351f and change the flag, in that case
-# datasA[measuredItemSuaFbs!="2351f",flagObservationStatus:=ifelse(flagObservationStatus!="I","I",flagObservationStatus)]
-# datasA[measuredItemSuaFbs!="2351f",flagMethod:=ifelse(!(flagMethod%in%c("e","s")),"s",flagMethod)]
-# datasA[,measuredItemSuaFbs:="2351f"]
-# datasA[,Value2:=NULL]
-# 
-# 
-# 
-# filterB=sugarComb[N>1]
-# filterB=filterB[,N:=NULL]
-# datasC=datas[filterB, ,on=c("geographicAreaM49", "timePointYears","measuredElementSuaFbs")]
-# datasC[,s2351f:=max(Value2,Value),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
-# 
-# datasC[,c("Value","Value2"):=NULL]
-# datasC[,Value:=s2351f*ifelse(measuredItemSuaFbs=="2351f",1,0),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
-# datasB=datasC[Value!=0]
-# 
-# sugarComb2=datasB[,.N,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")][,N:=NULL]
-# datasD=datasC[sugarComb2,,on=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
-# 
-# datasD=setdiff(datasC,datasD)
-# 
-# datasD[,Value:=sum(s2351f*ifelse(measuredItemSuaFbs=="2351f",0,1)),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
-# datasD=unique(datasD,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs"))
-# datasD[,measuredItemSuaFbs:="2351f"]
-# 
-# datasB=datasB[,colnames(datasA),with=FALSE]
-# datasD=datasD[,colnames(datasA),with=FALSE]
-# dataTorBind=rbind(datasA,datasB,datasD)
-# 
-# data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
-# data=rbind(data,dataTorBind)
+##############################################################
+############### CREATE THE COLUMN "OFFICIAL" #################
+##############################################################
 
-# ########################################
-#
-# data=data[, list(Value = sum(Value, na.rm = TRUE)),
-#           by = c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","flagObservationStatus","flagMethod")]
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 
 data[flagObservationStatus%in%c("","T"),Official:=TRUE]
 data[is.na(Official),Official:=FALSE]
-# ######### ######### #########
-#######################################
-dataFlags = copy(data)
-##############################################################
 
-# For DERIVED select only the protected and the estimation (coming from the submodule of derived and Livestock)
+#######################################
+# The following copy is needed for saving back some of the intermediate
+# files. These intermediate steps will come without flag and the flag
+# will be merged with this original data object
+dataFlags = copy(data)
+
+##############################################################
+# For DERIVED select only the protected and the estimation 
+# (coming from the submodule of derived and Livestock)
+# I have to select Protected and Estimation (I,e) and (I,i)
+# For all the others delete the production value
+# this will leave the Sua Filling creting prodcution, where needed
 
 level = findProcessingLevel(tree, from = params$parentVar,
                             to = params$childVar, aupusParam = params)
 primaryEl = level[processingLevel == 0, get(params$itemVar)]
-
-# I have to select Protected and Estimation (I,e) and (I,i)
-# For all the others delete the production value
-# this will leave the Sua Filling creting prodcution, where needed
 
 data[!(get(params$protected)=="TRUE"|(flagObservationStatus=="I"&flagMethod%in%c("i","e")))
      &get(params$elementVar)==params$productionCode
@@ -450,13 +411,9 @@ if(dim(tree2merge)[1]>0){
 
 sendMail4shares(tree2merge)
 
-##############################################################
-
 # IF SHARES ARE VALID ( and Tree2change does not exists), The " tree" is the one to use 
 # onwards
-
 # nothing has to be done in this case
-
 # IF THERE IS A tree2change, after it has been sent, it has to be integrated in the tree
 # before going on
 
@@ -476,43 +433,20 @@ if(dim(tree2merge)[1]>0){
   
 }
 
+
 ##############################################################
-################ CHANGE TREE SHAPE & SAVE  ###################
-################  TREE TO BE RE-EXPORTED   ###################
+##############  LAST MANIPULATIONS ON TREE   #################
 ##############################################################
-
-# This Tree is saved with a different name with all the flags. 
-# From now on Flags will be removed and the tree will be used as usual, but using 
-# eventual manually corrected extraction rates and Shares. 
-
-# This is done because the tree has been modifyed in a very subsequent moment from the 
-# time the module was created, therefore functions are designed to be used with a structure of the 
-# tree different from the one of the Dataset Commodity tree
-
-# is therefore, very important that this order of the things is not changed
-# tree2beReExported = copy(tree)
 
 tree[,c("flagObservationStatus","flagMethod"):=NULL]
 tree=data.table(dcast(tree,geographicAreaM49 + measuredItemParentCPC + measuredItemChildCPC + timePointYears
                       ~ measuredElementSuaFbs,value.var = "Value"))
 
-##############################################################
-##################  LAST FIXES ON TREE   #####################
-##############################################################
-
 tree=tree[!is.na(extractionRate)]
 tree=tree[!is.na(measuredItemChildCPC)]
 
-
-##############################################################
-##############################################################
-##############################################################
-#######################################################################################
-## Update tree by setting some edges to "F", computing average extraction rates
-## when missing, and bringing in extreme extraction rates
-
+## Update tree by setting some edges to "F"
 FPCommodities <- c( "01499.06", "01921.01")
-
 # These commodities are forwards processed instead of backwards processed:
 #        code             description type
 # 3: 01499.06      Kapokseed in shell CRNP

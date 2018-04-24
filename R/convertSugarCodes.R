@@ -56,15 +56,20 @@ dataSugarB=dataSugarC[Value!=0]
 sugarComb2=dataSugarB[,.N,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")][,N:=NULL]
 dataSugarD=dataSugarC[sugarComb2,,on=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
 
-dataSugarD=setdiff(dataSugarC,dataSugarD)
+dataSugarD=data.table(setdiff(dataSugarC,dataSugarD))
 
+if(nrow(dataSugarD)>0){
 dataSugarD[,Value:=sum(s2351f*ifelse(measuredItemSuaFbs=="2351f",0,1)),by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs")]
 dataSugarD=unique(dataSugarD,by=c("geographicAreaM49","timePointYears","measuredElementSuaFbs"))
 dataSugarD[,measuredItemSuaFbs:="2351f"]
-
-dataSugarB=dataSugarB[,colnames(dataSugarA),with=FALSE]
 dataSugarD=dataSugarD[,colnames(dataSugarA),with=FALSE]
+dataSugarB=dataSugarB[,colnames(dataSugarA),with=FALSE]
 dataTorBind=rbind(dataSugarA,dataSugarB,dataSugarD)
+}else{
+  dataSugarB=dataSugarB[,colnames(dataSugarA),with=FALSE]
+  dataTorBind=rbind(dataSugarA,dataSugarB)
+}
+
 
 data=data[!(measuredItemSuaFbs %in% c("23511.01","23512","2351f"))]
 data=rbind(data,dataTorBind)

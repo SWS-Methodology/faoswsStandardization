@@ -158,8 +158,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   #for saving the TREE
   yearT=data[,unique(timePointYears)]
   
-  
-  
   data = addMissingElements(data, p)
   data2keep=data.table(data.frame(data))
   
@@ -226,19 +224,19 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ### STEP 3: Compute availability and SHARE 1 
   
   data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                               ifelse(get(p$elementVar) == p$productionCode, 1,
-                                      ifelse(get(p$elementVar) == p$importCode, 1,
-                                             ifelse(get(p$elementVar) == p$exportCode, -1,
-                                                    ifelse(get(p$elementVar) == p$stockCode, 0,
-                                                           ifelse(get(p$elementVar) == p$foodCode, 0,
-                                                                  ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                                                                         ifelse(get(p$elementVar) == p$feedCode, 0,
-                                                                                ifelse(get(p$elementVar) == p$wasteCode, 0,
-                                                                                       ifelse(get(p$elementVar) == p$seedCode, 0,
-                                                                                              ifelse(get(p$elementVar) == p$industrialCode, 0,
-                                                                                                     ifelse(get(p$elementVar) == p$touristCode, 0,
-                                                                                                            ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
-       by = c(p$mergeKey)]
+                              ifelse(get(p$elementVar) == p$productionCode, 1,
+                               ifelse(get(p$elementVar) == p$importCode, 1,
+                                ifelse(get(p$elementVar) == p$exportCode, -1,
+                                 ifelse(get(p$elementVar) == p$stockCode, 0,
+                                  ifelse(get(p$elementVar) == p$foodCode, 0,
+                                   ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                                    ifelse(get(p$elementVar) == p$feedCode, 0,
+                                     ifelse(get(p$elementVar) == p$wasteCode, 0,
+                                      ifelse(get(p$elementVar) == p$seedCode, 0,
+                                       ifelse(get(p$elementVar) == p$industrialCode, 0,
+                                        ifelse(get(p$elementVar) == p$touristCode, 0,
+                                         ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
+                         by = c(p$mergeKey)]
   
   
   

@@ -1,4 +1,5 @@
 \documentclass[nojss]{jss}
+\usepackage{draftwatermark}
 
 \title{\bf faoswsStandardization: A module for performing Standardization and Balancing and Producing Food Balance Sheets }
 
@@ -6,22 +7,25 @@
     Organization \\ of the United Nations\\}
 
 \Plainauthor{Cristina Muschitiello}
+
+\Plaintitle{faoswsStandardization: A module for performing Standardization and Balancing and Producing Food Balance Sheets}
+
 \Shorttitle{Derived item production}
 
 \Abstract{
 
-  This vignette provides a detailed description of the usage of
-  functions in the \pkg{Livestock production} package. \\
+  This vignette provides a description of the usage of
+  functions in the \pkg{faoswsStandardization} package. \\
 
 }
 
-\Keywords{Imputation, Linear Mixed Model, Ensemble Learning}
+\Keywords{standardization, balancing, food balance sheet, commodity tree, extraction rates, shares}
 \Plainkeywords{Imputation, Linear Mixed Model, Commodity Tree, Processing Share}
 
 
-\usepackage{Sweave}
+
 \begin{document}
-\input{Standardization&Balancing_documentation-concordance}
+\SweaveOpts{concordance=TRUE}
 
 
 

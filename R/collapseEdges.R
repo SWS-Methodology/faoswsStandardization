@@ -40,6 +40,24 @@ collapseEdges = function(edges, parentName = "parentID",
     targetNodes = setdiff(edges[[parentName]], edges[[childName]])
     edgesCopy = copy(edges[, c(parentName, childName, extractionName,
                                keyCols), with = FALSE])
+  ##################
+    edgesCopy2 = copy(edges[, c(parentName, childName, extractionName,
+                                keyCols,"weight"), with = FALSE])
+    edgesCopy2 = edgesCopy2[,c("measuredItemChildCPC","weight"),with=FALSE]
+    
+    setnames(edgesCopy2,"measuredItemChildCPC","measuredItemParentCPC")
+    
+    edgesCopy3=data.table(left_join(edgesCopy,edgesCopy2,by="measuredItemParentCPC"))
+
+    edge2remove=edgesCopy3[(weight==0&grepl("f???_",measuredItemChildCPC)),c("measuredItemParentCPC","measuredItemChildCPC"),
+                           with=FALSE]
+    
+    edges=edges[!edge2remove,,on=c("measuredItemParentCPC","measuredItemChildCPC")]
+
+    edgesCopy=copy(edgesCopy3[!(weight==0&grepl("f???_",measuredItemChildCPC))])
+    
+    edgesCopy[,weight:=NULL]
+    ################  
     setnames(edgesCopy, c(parentName, childName, extractionName),
              c("newParent", parentName, "extractionMult"))
     finalEdges = edges[get(parentName) %in% targetNodes, ]

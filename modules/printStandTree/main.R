@@ -276,6 +276,7 @@ data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
 
 message("elementCodesToNames ok")
 
+data[measuredElementSuaFbs=="foodmanufacturing",measuredElementSuaFbs:="foodManufacturing"]
 setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 data[measuredElementSuaFbs=="stock_change",measuredElementSuaFbs:="stockChange"]
 data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
@@ -781,17 +782,6 @@ for (i in seq_len(nrow(uniqueLevels))) {
   standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))] 
   
 } 
-
-
-
-
-
-
-
-
-
-
-
 
 message((proc.time() - ptm)[3])
 
