@@ -91,7 +91,7 @@ suaFilling = function(data, p = p, tree=tree,
                                          ifelse(get(p$elementVar) == p$exportCode, 0,
                                                 ifelse(get(p$elementVar) == p$stockCode, ifelse(is.na(Value),0,ifelse(Value<0,0,1)),
                                                        ifelse(get(p$elementVar) == p$foodCode, 1,
-                                                              ifelse(get(p$elementVar) == p$foodProcCode, 1,
+                                                              ifelse(get(p$elementVar) == p$foodProcCode, 0,
                                                                      ifelse(get(p$elementVar) == p$feedCode, 1,
                                                                             ifelse(get(p$elementVar) == p$wasteCode, 1,
                                                                                    ifelse(get(p$elementVar) == p$seedCode, 1,
@@ -237,7 +237,7 @@ suaFilling = function(data, p = p, tree=tree,
                                            ifelse(get(p$elementVar) == p$exportCode, 0,
                                                   ifelse(get(p$elementVar) == p$stockCode, ifelse(is.na(Value),0,ifelse(Value<0,0,1)),
                                                          ifelse(get(p$elementVar) == p$foodCode, 1,
-                                                                ifelse(get(p$elementVar) == p$foodProcCode, 1,
+                                                                ifelse(get(p$elementVar) == p$foodProcCode, 0,
                                                                        ifelse(get(p$elementVar) == p$feedCode, 1,
                                                                               ifelse(get(p$elementVar) == p$wasteCode, 1,
                                                                                      ifelse(get(p$elementVar) == p$seedCode, 1,
@@ -288,12 +288,12 @@ suaFilling = function(data, p = p, tree=tree,
     # I serparate the different blocks of data for trating them separately 
     
     dataPrimary = data[(get(p$itemVar) %in% primaryCommodities)]
-    dataNoImbP = dataPrimary[imbalance<=imbalanceThreshold&imbalance>=(-imbalanceThreshold)] # never touched
+    dataNoImbP = dataPrimary[imbalance <= imbalanceThreshold&imbalance>=(-imbalanceThreshold)] # never touched
     dataNegImbP = dataPrimary[imbalance < (-imbalanceThreshold)] # never touched
     dataPosImbP = dataPrimary[imbalance > imbalanceThreshold]
     
     dataNoPrimary = data[!(get(p$itemVar) %in% primaryCommodities)]
-    dataNoImb = dataNoPrimary[imbalance<=imbalanceThreshold&imbalance>=(-imbalanceThreshold)] # never touched
+    dataNoImb = dataNoPrimary[imbalance <= imbalanceThreshold&imbalance>=(-imbalanceThreshold)] # never touched
     dataNegImb = dataNoPrimary[imbalance < (-imbalanceThreshold)]
     dataPosImb = dataNoPrimary[imbalance > imbalanceThreshold]
     
@@ -369,10 +369,10 @@ suaFilling = function(data, p = p, tree=tree,
           # 
           dataPosImb[measuredItemSuaFbs==i
                      &!(get(p$elementVar)%in%eleToExclude)
-                     &!is.na(rank)                              ############### Vhange 10/17/2017
-                     &Value>0,
+                     # &!is.na(rank)                              ############### change 5/15/2018
+                     &Value!=0,
                      newValue:=ifelse(is.na(Value),NA,
-                                      Value+abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup))))]
+                                      Value+Value*(imbalance/(sumUtils+(sumSupstock-sumSup))))]
         }else{
           #se un valore non 'e popolato e non 'e stock
           if(length(dataPosImb[measuredItemSuaFbs==i
