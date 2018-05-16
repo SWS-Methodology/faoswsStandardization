@@ -1,0 +1,12 @@
+            ParentName,            ChildName,eR,  share,  weight
+                Wheat, Wheat and meslin flo,0.78,1,1
+                Wheat,        Bran of Wheat,0.22,1,0
+ Wheat and meslin flo,"  Uncooked pasta, not",1,1,1
+ Wheat and meslin flo,                bread,1,1,1
+ Wheat and meslin flo,               pastry,1,1,1
+ Wheat and meslin flo,      Starch of Wheat,0.75,1,1
+ Wheat and meslin flo,         Wheat Gluten,0.08,1,0
+ Wheat and meslin flo," Communion wafers, em",1,1,1
+      Starch of Wheat, Other Fructose and S,1,1,1
+         Wheat Gluten, Gluten Feed and Meal,1,0.33,0
+        Bran of Maize, Gluten Feed and Meal,1,0.67,0

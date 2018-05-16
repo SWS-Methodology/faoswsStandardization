@@ -4,8 +4,6 @@
 sws.yml
 
 #Ignore built files
-*.pdf
-*.csv
 sandbox/*.png
 sandbox/*.zip
 
