@@ -108,6 +108,8 @@ Food and Agriculture Organization of the United Nations}
 \usepackage{float}
 \floatplacement{figure}{H}
 \usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
 \usepackage{mathtools}
 
 \begin{document}
@@ -1389,9 +1391,120 @@ therefore, all of them are increased proportionally to their values.
 \end{enumerate}
 
 \begin{quote}
+The \emph{Inverse ranking rule} starts from the Utilization table with
+the addition of a column containing the \emph{rank weigth \(Wr\)}, as
+reported in the following table:
+\end{quote}
+
+\begin{quote}
+\begin{center}
+\begin{tabular}{ c|c|c|c } 
+\hline
+element ($Ut_{i}$) & rank ($r_{i}$) & Inverse rank ($Ir_{i}$) & weight Rank ($Wr_{i}$)\\
+\hline
+$Ut_{1}$ & $r_{1}$ & $Ir_{1}$  & $Wr_{1}$\\ 
+... & ... & ... & ...\\ 
+$Ut_{i}$ & $r_{i}$ & $Ir_{i}$  & $Wr_{i}$\\ 
+... & ... & ... & ...\\ 
+$Ut_{n}$ & $r_{n}$ & $Ir_{n}$  & $Wr_{n}$\\ 
+\hline
+\end{tabular}
+\end{center}
+\end{quote}
+
+\begin{quote}
+where:
+\end{quote}
+
+\begin{quote}
+\begin{itemize}
+\tightlist
+\item
+  \(Ut_{i}\) is the generic utilization, with \(i=1,2,...n\)
+\item
+  \(r_{i}\) is the rank of utilization \(Ut_{i}\), with \(i=1,2,...n\)
+\item
+  \(Ir_{i}\) is the Inverse rank of utilization \(Ut_{i}\), with
+  \(i=1,2,...n\) and is equal to:
+\end{itemize}
+\end{quote}
+
+\begin{quote}
+\begin{quote}
+\begin{equation}
+\label{eq:inverseRankequation}
+Ir_{i} = max(r)-r_{i}+1
+\end{equation}
+\end{quote}
+\end{quote}
+
+\begin{quote}
+\begin{itemize}
+\tightlist
+\item
+  \(Wr_{i}\) is the rank weight of utilization \(Ut_{i}\) and is equal
+  to 0 or 1 depending on the element being, respectively, exluded or not
+  from the sua filling (Table 10).
+\end{itemize}
+\end{quote}
+
+\begin{longtable}[]{@{}cc@{}}
+\caption{Rank Weight of the elements of FBS}\tabularnewline
+\toprule
+Utilizations & Wr\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+Utilizations & Wr\tabularnewline
+\midrule
+\endhead
+\(X\) & \(0\)\tabularnewline
+\(DSt\) & \(0\)\tabularnewline
+\(Fo\) & \(1\)\tabularnewline
+\(FP\) & \(0\)\tabularnewline
+\(Fe\) & \(1\)\tabularnewline
+\(Se\) & \(1\)\tabularnewline
+\(T\) & \(1\)\tabularnewline
+\(IU\) & \(1\)\tabularnewline
+\(L\) & \(1\)\tabularnewline
+\(ROU\) & \(0\)\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{quote}
+The value \(Value_{i}\) assigned to the utilization of each commodity is
+calculated as a rank based proportion \(pR_{i}\) of the total \(Imb2\)
+according to the following equation:
+\end{quote}
+
+\begin{quote}
+\begin{equation}
+\label{eq:inverseRank}
+Value_{i} = Imb2 \times pR_{i}
+\end{equation}
+\end{quote}
+
+\begin{quote}
+with \(pR_{i}\) depending on \(\sum \limits_{i=1}^n Wr_{i}\):
+\end{quote}
+
+\begin{quote}
+\begin{equation}
+\label{eq:weightRank}
+\begin{cases}
+pR_{i} = 0     & \quad \text{when} \quad \sum \limits_{i=1}^n Wr_{i} = 0\\
+pR_{i} = \frac{Ir_{i}\times we_{i}}{\sum \limits_{i=1}^n\left(Ir_{i}\times Wr_{i}\right)}     & \quad \text{when} \quad \sum \limits_{i=1}^n Wr_{i} > 0 
+\end{cases}
+\end{equation}
+\end{quote}
+
+\begin{quote}
+\end{quote}
+
+\begin{quote}
 As an example consider the SUA line of \emph{Cocoa Beans} in Madagascar
-in 2014 (Table 10) and the Utilization table of the same
-country/commodity combination (Table 11)
+in 2014 (Table 11) and the Utilization table of the same
+country/commodity combination (Table 12)
 \end{quote}
 
 \begin{longtable}[]{@{}cccccccccccccc@{}}
@@ -1412,81 +1525,50 @@ Cocoa beans & 10,865 & 36 & 8,326 & - & - & - & - & - & - & - & 743 & -
 \bottomrule
 \end{longtable}
 
-\begin{longtable}[]{@{}ccccc@{}}
+\begin{longtable}[]{@{}cccc@{}}
 \caption{Utilization table for Cocoa Beans Madagascar}\tabularnewline
 \toprule
-AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
+Ut & r & Ir & Wr\tabularnewline
 \midrule
 \endfirsthead
 \toprule
-AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
+Ut & r & Ir & Wr\tabularnewline
 \midrule
 \endhead
-450 & FP & 1640 & 4 & 2\tabularnewline
-450 & Fo & 1640 & 2 & 4\tabularnewline
-450 & IU & 1640 & 3 & 3\tabularnewline
-450 & DSt & 1640 & 5 & 1\tabularnewline
-450 & X & 1640 & 1 & 5\tabularnewline
+FP & 4 & 2 & 0\tabularnewline
+Fo & 2 & 4 & 1\tabularnewline
+IU & 3 & 3 & 1\tabularnewline
+DSt & 5 & 1 & 0\tabularnewline
+X & 1 & 5 & 0\tabularnewline
 \bottomrule
 \end{longtable}
 
 \begin{quote}
 Besides the excluded elements, there are 2 utilizations empty:
-\emph{food} and \emph{Industrial Use}. The value \(Value_{i}\) assigned
-to each commodity is calculated as a rank based proportion \(pR_{i}\) of
-the total \(Imb2\) (in this case \(1,832\)) according to the following
-equation:
+\emph{food} and \emph{Industrial Use}. The Values of these two elements
+is calculated as folows:
 \end{quote}
 
 \begin{quote}
 \begin{equation}
-\label{eq:inverseRank}
-Value_{i} = Imb2 \times pR_{i}
+\begin{aligned}
+pR_{Fo} &= \frac{4\times 1}{0 + 0 + 4 + 3 + 0 + 0} = 4/7 = 0.57143 \\
+Value_{Fo} &= 1,832 \times 0.57143 = 1,047 
+\end{aligned}
 \end{equation}
 \end{quote}
 
 \begin{quote}
-with the generic Utilization table being
-\end{quote}
-
-\begin{quote}
-\begin{center}
-\begin{tabular}{ c|c|c|c } 
-\hline
-element ($El_{i}$) & rank ($r_{i}$) & Inverse rank ($Ir_{i}$) & weight Rank ($wR_{i}$)\\
-\hline
-$El_{1}$ & $r_{1}$ & $Ir_{1}$  & $wR_{1}$\\ 
-... & ... & ... & ...\\ 
-$El_{i}$ & $r_{i}$ & $Ir_{i}$  & $wR_{i}$\\ 
-... & ... & ... & ...\\ 
-$El_{n}$ & $r_{n}$ & $Ir_{n}$  & $wR_{n}$\\ 
-\hline
-\end{tabular}
-\end{center}
-\end{quote}
-
-\begin{quote}
-and with \(pR_{i}\) depending on \(\sum \limits_{i=1}^n wR_{i}\):
 \end{quote}
 
 \begin{quote}
 \begin{equation}
-\label{eq:weightRank}
-\begin{cases}
-pR_{i} = 0     & \quad \text{when} \quad \sum \limits_{i=1}^n wR_{i} = 0\\
-pR_{i} = \frac{Ir_{i}\times we_{i}}{\sum \limits_{i=1}^n\left(Ir_{i}\times wR_{i}\right)}     & \quad \text{when} \quad \sum \limits_{i=1}^n wR_{i} > 0 
-\end{cases}
+\begin{aligned}
+\label{eq:VIUC}
+pR_{IU} &= \frac{3\times 1}{0 + 0 + 4 + 3 + 0 + 0} = 3/7 = 0.42857\\
+Value_{IU} &= 1,832 \times 0.42857 = 785
+\end{aligned}
 \end{equation}
-\end{quote}
-
-\begin{quote}
-In the rquation \ref{eq:weightRank}:
-\end{quote}
-
-\begin{quote}
-\begin{itemize}
-\item
-\end{itemize}
 \end{quote}
 
 \begin{longtable}[]{@{}cccccccccccccc@{}}

@@ -10,6 +10,8 @@ header-includes:
 - \usepackage{float} #use the 'float' package
 - \floatplacement{figure}{H} #make every figure with caption = h
 - \usepackage{amsmath}
+- \usepackage{amssymb}
+- \usepackage{amsthm}
 - \usepackage{mathtools}
 author:
 - Cristina Muschitiello\
@@ -90,12 +92,15 @@ t9_cap <- table_nums(name = "t9",
                         caption = "Utilization Table Bran of Wheat China Mainland 2014")
 
 t10_cap <- table_nums(name = "t10", 
-                        caption = "Sua line of Cocoa Beans Madagascar 2014 - before Sua Filling")
+                        caption = "Rank Weight of the elements of FBS")
 
 t11_cap <- table_nums(name = "t11", 
-                        caption = "Utilization table for Cocoa Beans Madagascar")
+                        caption = "Sua line of Cocoa Beans Madagascar 2014 - before Sua Filling")
 
 t12_cap <- table_nums(name = "t12", 
+                        caption = "Utilization table for Cocoa Beans Madagascar")
+
+t13_cap <- table_nums(name = "t13", 
                         caption = "Sua line of Cocoa Beans Madagascar 2014 - after Sua Filling")
 
 
@@ -565,63 +570,103 @@ knitr::kable(table,caption = "Utilization Table Bran ofWheat China Mainland 2014
 
 3. Finally, if more that one utilization is empty, the so called ***Inverse Ranking rule*** is activated. This rule assigns part of the imbalance to the ranked utilizations proportionally to the ranks. This happens by making use of the inverse rank of all the utilizations that are "activable" and not excluded from the procedure. The rule works for any number of ranks and independently from the number of utilizations that have to be excluded. 
 
-> As an example consider the SUA line of *Cocoa Beans* in Madagascar in 2014 (`r table_nums("t10",display = "cite")`) and the Utilization table of the same country/commodity combination (`r table_nums("t11",display = "cite")`)
+> The *Inverse ranking rule* starts from the Utilization table with the addition of a column containing the *rank weigth $Wr$*, as reported in the following table: 
+
+
+> \begin{center}
+\begin{tabular}{ c|c|c|c } 
+ \hline
+element ($Ut_{i}$) & rank ($r_{i}$) & Inverse rank ($Ir_{i}$) & weight Rank ($Wr_{i}$)\\
+ \hline
+$Ut_{1}$ & $r_{1}$ & $Ir_{1}$  & $Wr_{1}$\\ 
+... & ... & ... & ...\\ 
+$Ut_{i}$ & $r_{i}$ & $Ir_{i}$  & $Wr_{i}$\\ 
+... & ... & ... & ...\\ 
+$Ut_{n}$ & $r_{n}$ & $Ir_{n}$  & $Wr_{n}$\\ 
+ \hline
+\end{tabular}
+\end{center}
+
+> where: 
+
+> * $Ut_{i}$ is the generic utilization, with $i=1,2,...n$
+> * $r_{i}$ is the rank of utilization $Ut_{i}$, with $i=1,2,...n$
+> * $Ir_{i}$ is the Inverse rank of utilization $Ut_{i}$, with $i=1,2,...n$ and is equal to: 
+
+>> \begin{equation}
+\label{eq:inverseRankequation}
+Ir_{i} = max(r)-r_{i}+1
+\end{equation} 
+
+> * $Wr_{i}$ is the rank weight of utilization $Ut_{i}$ and is equal to 0 or 1 depending on the element being, respectively, exluded or not from the sua filling (`r table_nums("t10",display = "cite")`). 
 
 ```{r t10, fig.cap=t10_cap, fig.pos = "H"}
-table=data.table(read.csv("tables/10_cocoaBeans.csv"))
-knitr::kable(table,caption = "Sua line of Cocoa Beans Madagascar 2014 - before Sua Filling",
+table=data.table(read.csv("tables/10_RankWeightTable.csv"))
+knitr::kable(table,caption = "Rank Weight of the elements of FBS",
              align = c(rep("c",length(colnames(table))-1)))
 
 ```
 
-```{r t11, fig.cap=t11_cap, fig.pos = "H"}
-table=data.table(read.csv("tables/11_cocoaUtilizationT.csv"))
-knitr::kable(table,caption = "Utilization table for Cocoa Beans Madagascar",
-             align = c(rep("c",length(colnames(table))-1)))
 
-```
-
-> Besides the excluded elements, there are 2 utilizations empty: *food* and *Industrial Use*. The value $Value_{i}$ assigned to each commodity is calculated as a rank based proportion $pR_{i}$ of the total $Imb2$ (in this case $1,832$) according to the following equation:
+> The value $Value_{i}$ assigned to the utilization of each commodity is calculated as a rank based proportion $pR_{i}$ of the total $Imb2$ according to the following equation:
 
 > \begin{equation}
 \label{eq:inverseRank}
 Value_{i} = Imb2 \times pR_{i}
 \end{equation}
 
-> with the generic Utilization table being
-
-> \begin{center}
-\begin{tabular}{ c|c|c|c } 
- \hline
-element ($El_{i}$) & rank ($r_{i}$) & Inverse rank ($Ir_{i}$) & weight Rank ($wR_{i}$)\\
- \hline
-$El_{1}$ & $r_{1}$ & $Ir_{1}$  & $wR_{1}$\\ 
-... & ... & ... & ...\\ 
-$El_{i}$ & $r_{i}$ & $Ir_{i}$  & $wR_{i}$\\ 
-... & ... & ... & ...\\ 
-$El_{n}$ & $r_{n}$ & $Ir_{n}$  & $wR_{n}$\\ 
- \hline
-\end{tabular}
-\end{center}
-
-
-> and with $pR_{i}$ depending on $\sum \limits_{i=1}^n wR_{i}$:
+> with $pR_{i}$ depending on $\sum \limits_{i=1}^n Wr_{i}$:
 
 
 > \begin{equation}
 \label{eq:weightRank}
 \begin{cases}
-   pR_{i} = 0     & \quad \text{when} \quad \sum \limits_{i=1}^n wR_{i} = 0\\
-   pR_{i} = \frac{Ir_{i}\times we_{i}}{\sum \limits_{i=1}^n\left(Ir_{i}\times wR_{i}\right)}     & \quad \text{when} \quad \sum \limits_{i=1}^n wR_{i} > 0 
+   pR_{i} = 0     & \quad \text{when} \quad \sum \limits_{i=1}^n Wr_{i} = 0\\
+   pR_{i} = \frac{Ir_{i}\times we_{i}}{\sum \limits_{i=1}^n\left(Ir_{i}\times Wr_{i}\right)}     & \quad \text{when} \quad \sum \limits_{i=1}^n Wr_{i} > 0 
 \end{cases}
 \end{equation}
 
-> In the rquation \ref{eq:weightRank}: 
+> 
+> 
 
- > *  
+> As an example consider the SUA line of *Cocoa Beans* in Madagascar in 2014 (`r table_nums("t11",display = "cite")`) and the Utilization table of the same country/commodity combination (`r table_nums("t12",display = "cite")`)
+
+```{r t11, fig.cap=t11_cap, fig.pos = "H"}
+table=data.table(read.csv("tables/11_cocoaBeans.csv"))
+knitr::kable(table,caption = "Sua line of Cocoa Beans Madagascar 2014 - before Sua Filling",
+             align = c(rep("c",length(colnames(table))-1)))
+
+```
 
 ```{r t12, fig.cap=t12_cap, fig.pos = "H"}
-table=data.table(read.csv("tables/12_cocoaBeansBal.csv"))
+table=data.table(read.csv("tables/12_cocoaUtilizationT.csv"))
+knitr::kable(table,caption = "Utilization table for Cocoa Beans Madagascar",
+             align = c(rep("c",length(colnames(table))-1)))
+
+```
+
+> Besides the excluded elements, there are 2 utilizations empty: *food* and *Industrial Use*. The Values of these two elements is calculated as folows: 
+
+> \begin{equation}
+\begin{aligned}
+  pR_{Fo} &= \frac{4\times 1}{0 + 0 + 4 + 3 + 0 + 0} = 4/7 = 0.57143 \\
+  Value_{Fo} &= 1,832 \times 0.57143 = 1,047 
+\end{aligned}
+\end{equation}
+
+> 
+
+> \begin{equation}
+\begin{aligned}
+\label{eq:VIUC}
+  pR_{IU} &= \frac{3\times 1}{0 + 0 + 4 + 3 + 0 + 0} = 3/7 = 0.42857\\
+  Value_{IU} &= 1,832 \times 0.42857 = 785
+\end{aligned}
+\end{equation}
+
+
+```{r t13, fig.cap=t13_cap, fig.pos = "H"}
+table=data.table(read.csv("tables/13_cocoaBeansBal.csv"))
 knitr::kable(table,caption = "Sua line of Cocoa Beans Madagascar 2014 - after Sua Filling",
              align = c(rep("c",length(colnames(table))-1)))
 

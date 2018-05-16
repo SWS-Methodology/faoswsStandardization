@@ -1,6 +1,0 @@
-AreaM49,Element (El_{i}),ItemCpc,rank (r_{i}),rankInv (Ir_{i}),weight Rank (wR_{i})
-countryM49,El_{1},cpcCode,r_{1},Ir_{1},wR_{1}
-…,…,…,…,…,…
-countryM49,El_{i},cpcCode,r_{i},Ir_{i},wR_{i}
-…,…,…,…,…,…
-countryM49,El_{n},cpcCode,r_{n},Ir_{n},wR_{n}
