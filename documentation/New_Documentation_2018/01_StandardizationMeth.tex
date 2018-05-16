@@ -84,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{15 May 2018}
+  \date{16 May 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -204,10 +204,10 @@ common identities set domestic supply equal to domestic demand (first
 equation) or total supply equal to total demand (second equation).
 
 \begin{equation}
-\label{balance1}
+\label{eq:balance1}
 P_{ijt} + I_{ijt} - X_{ijt} - \Delta St_{ijt} = Fo_{ijt} + Fe_{ijt} + Lo_{ijt} + Se_{ijt} + IU_{ijt} + T_{ijt}  + ROU_{ijt}
 \end{equation}\begin{equation}
-\label{balance2}
+\label{eq:balance2}
 P_{ijt} + I_{ijt} - \Delta St_{ijt} = X_{ijt} + Fo_{ijt} + Fe_{ijt} + Lo_{ijt} + Se_{ijt} + IU_{ijt} + T_{ijt} + ROU_{ijt}
 \end{equation}
 
@@ -687,7 +687,7 @@ detect the Production figures that need to be filled or modified, by
 looking at the following \emph{Imbalance}:
 
 \begin{equation}
-\label{imbalance1}
+\label{eq:imbalance1}
 Imb_{1} = P_{ijt} + I_{ijt} - X_{ijt}
 \end{equation}
 
@@ -704,7 +704,7 @@ later. Here:
 \end{itemize}
 
 \begin{equation}
-\label{imbalance1}
+\label{eq:imbalance1}
  P^*_{ijt} = P_{ijt} + Imb_{1}
 \end{equation}
 
@@ -836,8 +836,8 @@ The formula for calculating \(FP\) is based on the production of the
 child product:
 
 \begin{equation}
-\label{Food Processing}
-FP_{p_{ijt}} = \sum \limits_{c=1}^C\biggl(\frac{P_{c_{ijt}}}{eR_{p\to c}}\biggr)s_{cp}w_{c}
+\label{eq:Food Processing}
+FP_{p_{ijt}} = \sum \limits_{c=1}^C\biggl(\frac{P_{c_{ijt}}}{eR_{p\to c}}\biggr)\times s_{cp}\times w_{c}
 \end{equation}
 
 where:
@@ -869,7 +869,7 @@ where:
 
 \begin{quote}
 \begin{equation}
-\label{shares}
+\label{eq:shares}
 s_{cp} = \frac{availability1_{p(c)}}{\sum \limits_{p=1}^A{availability1_{p(c)}}}
 \end{equation}
 \end{quote}
@@ -884,8 +884,8 @@ availability will be found in a following step:
 \begin{quote}
 \begin{quote}
 \begin{equation}
-\label{availability 1}
-availability1_{p(c)} = (P_{p_{ijt}} + I_{p_{ijt}})eR_{p\to c}
+\label{eq:availability 1}
+availability1_{p(c)} = (P_{p_{ijt}} + I_{p_{ijt}})\times eR_{p\to c}
 \end{equation}
 \end{quote}
 \end{quote}
@@ -914,7 +914,7 @@ availability1_{p(c)} = (P_{p_{ijt}} + I_{p_{ijt}})eR_{p\to c}
 \begin{quote}
 \begin{quote}
 \begin{equation}
-\label{weight}
+\label{eq:weight}
 \begin{cases}
 w_{c} = 1      & \quad \text{if boht quantity and calories have to be standardized} \\
 w_{c} = 0      & \quad \text{if only calories have to be standardized}
@@ -1008,18 +1008,18 @@ pastry & 193,950 & 89,593 & 117,630 &  & 165,914 &  &  &  & -43 &  &  & -\\
 \end{landscape}
 
 From Table 4 and Table 5 here is, as example, the computation of
-\emph{Food procesing} of Wheat,Flour of wheat and Starch of wheat:
+\emph{Food processing} of Wheat,Flour of wheat and Starch of wheat:
 
 \begin{equation}
 \begin{multlined}
-\label{wheatFP}
+\label{eq:wheatFP}
 FP_{wheat_{2014}} = \left(70,500,000/0.78\right)\times 1\times 1 +\left(21,414,729/0.8\right)\times 1\times 0 = 90,384,615
 \end{multlined}
 \end{equation}
 
 \begin{equation}
 \begin{multlined}
-\label{flourFP}
+\label{eq:flourFP}
 FP_{flourW_{2014}} = \left(1,415,692/1\right)\times 1\times 1 +\left(15,486/1\right)\times 1\times 1 
 +\left(193,950/1\right)\times 1\times 1
 +\\
@@ -1030,7 +1030,7 @@ FP_{flourW_{2014}} = \left(1,415,692/1\right)\times 1\times 1 +\left(15,486/1\ri
 
 \begin{equation}
 \begin{multlined}
-\label{starchFP}
+\label{eq:starchFP}
 FP_{starchW_{2014}} = \left(158,665/1\right)\times 1\times 1 +\left(21,414,729/0.8\right)\times 1\times 0 = 158,665
 \end{multlined}
 \end{equation}
@@ -1049,7 +1049,7 @@ balancing may affect Primary commodity figures. This step is based on
 the value of the following Imbalance:
 
 \begin{equation}
-\label{imbalance2}
+\label{eq:imbalance2}
 Imb_{2} = P_{ijt} + I_{ijt} - X_{ijt} - \Delta St_{ijt} - Fo_{ijt} - Fe_{ijt} - Lo_{ijt} - Se_{ijt} - IU_{ijt} - T_{ijt}
 \end{equation}
 
@@ -1178,7 +1178,7 @@ reported in the table). In the following step, as the production is not
 protected, the new value of production is equal to:
 
 \begin{equation}
-\label{prod}
+\label{eq:prod}
 P_{StarchW} = 239,816 + 74,204 = 314,020
 \end{equation}
 
@@ -1278,10 +1278,10 @@ AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
 AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
 \midrule
 \endhead
-1248 & food processing & 23110 & 2 & 3\tabularnewline
-1248 & food & 23110 & 1 & 4\tabularnewline
-1248 & stock Variation & 23110 & 4 & 1\tabularnewline
-1248 & exports & 23110 & 3 & 2\tabularnewline
+1248 & FP & 23110 & 2 & 3\tabularnewline
+1248 & Fo & 23110 & 1 & 4\tabularnewline
+1248 & DSt & 23110 & 4 & 1\tabularnewline
+1248 & X & 23110 & 3 & 2\tabularnewline
 \bottomrule
 \end{longtable}
 
@@ -1343,7 +1343,7 @@ As reported in the Figure, Three cases may happen:
   If all the ranked utilizations are already filled, all of them are
   increased proportionally to their values. \emph{Bran of Wheat} in our
   example, belongs to this case. Utilization table for Bran of Wheat is
-  reported in Table 8
+  reported in Table 9
 \end{enumerate}
 
 \begin{longtable}[]{@{}ccccc@{}}
@@ -1357,17 +1357,155 @@ AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
 AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
 \midrule
 \endhead
-1248 & feed & 39120.01 & 2 & 2\tabularnewline
-1248 & food & 39120.01 & 1 & 3\tabularnewline
-1248 & exports & 39120.01 & 3 & 1\tabularnewline
+1248 & Fe & 39120.01 & 2 & 2\tabularnewline
+1248 & Fo & 39120.01 & 1 & 3\tabularnewline
+1248 & X & 39120.01 & 3 & 1\tabularnewline
 \bottomrule
 \end{longtable}
 
-According to this table, there aer 3 Utilizations that are suppose to be
+\begin{quote}
+According to this table, there are 3 Utilizations that are suppose to be
 active for this commodity: \emph{feed}, \emph{food} and \emph{exports}.
 \emph{Exports} is excluded from this step, therefore, food and feed
 reamain. Both Variables are filled in the SUA line of This Commodity,
-therefore, as
+therefore, all of them are increased proportionally to their values.
+\end{quote}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\item
+  If all the ranked utilizations are already filled but one, the all
+  imbalance goes to that commodity. In our Example, this is the case of
+  \emph{Gluten Feed and meals} (Table 9).
+\item
+  Finally, if more that one utilization is empty, the so called
+  \textbf{\emph{Inverse Ranking rule}} is activated. This rule assigns
+  part of the imbalance to the ranked utilizations proportionally to the
+  ranks. This happens by making use of the inverse rank of all the
+  utilizations that are ``activable'' and not excluded from the
+  procedure. The rule works for any number of ranks and independently
+  from the number of utilizations that have to be excluded.
+\end{enumerate}
+
+\begin{quote}
+As an example consider the SUA line of \emph{Cocoa Beans} in Madagascar
+in 2014 (Table 10) and the Utilization table of the same
+country/commodity combination (Table 11)
+\end{quote}
+
+\begin{longtable}[]{@{}cccccccccccccc@{}}
+\caption{Sua line of Cocoa Beans Madagascar 2014 - before Sua
+Filling}\tabularnewline
+\toprule
+itemName & P & I & X & DSt & Fo & FP & Fe & Se & T & IU & L & ROU &
+Imb2\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+itemName & P & I & X & DSt & Fo & FP & Fe & Se & T & IU & L & ROU &
+Imb2\tabularnewline
+\midrule
+\endhead
+Cocoa beans & 10,865 & 36 & 8,326 & - & - & - & - & - & - & - & 743 & -
+& \textbf{\emph{1,832}}\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{longtable}[]{@{}ccccc@{}}
+\caption{Utilization table for Cocoa Beans Madagascar}\tabularnewline
+\toprule
+AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
+\midrule
+\endhead
+450 & FP & 1640 & 4 & 2\tabularnewline
+450 & Fo & 1640 & 2 & 4\tabularnewline
+450 & IU & 1640 & 3 & 3\tabularnewline
+450 & DSt & 1640 & 5 & 1\tabularnewline
+450 & X & 1640 & 1 & 5\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{quote}
+Besides the excluded elements, there are 2 utilizations empty:
+\emph{food} and \emph{Industrial Use}. The value \(Value_{i}\) assigned
+to each commodity is calculated as a rank based proportion \(pR_{i}\) of
+the total \(Imb2\) (in this case \(1,832\)) according to the following
+equation:
+\end{quote}
+
+\begin{quote}
+\begin{equation}
+\label{eq:inverseRank}
+Value_{i} = Imb2 \times pR_{i}
+\end{equation}
+\end{quote}
+
+\begin{quote}
+with the generic Utilization table being
+\end{quote}
+
+\begin{quote}
+\begin{center}
+\begin{tabular}{ c|c|c|c } 
+\hline
+element ($El_{i}$) & rank ($r_{i}$) & Inverse rank ($Ir_{i}$) & weight Rank ($wR_{i}$)\\
+\hline
+$El_{1}$ & $r_{1}$ & $Ir_{1}$  & $wR_{1}$\\ 
+... & ... & ... & ...\\ 
+$El_{i}$ & $r_{i}$ & $Ir_{i}$  & $wR_{i}$\\ 
+... & ... & ... & ...\\ 
+$El_{n}$ & $r_{n}$ & $Ir_{n}$  & $wR_{n}$\\ 
+\hline
+\end{tabular}
+\end{center}
+\end{quote}
+
+\begin{quote}
+and with \(pR_{i}\) depending on \(\sum \limits_{i=1}^n wR_{i}\):
+\end{quote}
+
+\begin{quote}
+\begin{equation}
+\label{eq:weightRank}
+\begin{cases}
+pR_{i} = 0     & \quad \text{when} \quad \sum \limits_{i=1}^n wR_{i} = 0\\
+pR_{i} = \frac{Ir_{i}\times we_{i}}{\sum \limits_{i=1}^n\left(Ir_{i}\times wR_{i}\right)}     & \quad \text{when} \quad \sum \limits_{i=1}^n wR_{i} > 0 
+\end{cases}
+\end{equation}
+\end{quote}
+
+\begin{quote}
+In the rquation \ref{eq:weightRank}:
+\end{quote}
+
+\begin{quote}
+\begin{itemize}
+\item
+\end{itemize}
+\end{quote}
+
+\begin{longtable}[]{@{}cccccccccccccc@{}}
+\caption{Sua line of Cocoa Beans Madagascar 2014 - after Sua
+Filling}\tabularnewline
+\toprule
+itemName & P & I & X & DSt & Fo & FP & Fe & Se & T & IU & L & ROU &
+Imb2\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+itemName & P & I & X & DSt & Fo & FP & Fe & Se & T & IU & L & ROU &
+Imb2\tabularnewline
+\midrule
+\endhead
+Cocoa beans & 10,865 & 36 & 8326 & - & \textbf{\emph{1,047}} & - & - & -
+& - & \textbf{\emph{785}} & 743 & - & \textbf{\emph{0}}\tabularnewline
+\bottomrule
+\end{longtable}
 
 
 \end{document}

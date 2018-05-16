@@ -87,9 +87,16 @@ t8_cap <- table_nums(name = "t8",
                         caption = "Utilization Table Wheat and meslin Flour China Mainland 2014")
 
 t9_cap <- table_nums(name = "t9", 
-                        caption = "Utilization Table Bran ofWheat China Mainland 2014")
+                        caption = "Utilization Table Bran of Wheat China Mainland 2014")
 
+t10_cap <- table_nums(name = "t10", 
+                        caption = "Sua line of Cocoa Beans Madagascar 2014 - before Sua Filling")
 
+t11_cap <- table_nums(name = "t11", 
+                        caption = "Utilization table for Cocoa Beans Madagascar")
+
+t12_cap <- table_nums(name = "t12", 
+                        caption = "Sua line of Cocoa Beans Madagascar 2014 - after Sua Filling")
 
 
 ```
@@ -124,11 +131,11 @@ All the steps of the standardization process are performed inside the standardiz
 At the most basic level, Food Balance Sheets are, like all commodity balances, simple identities. In these identities, the sum of all supply variables is equal to the sum of all demand variables; the two most common identities set domestic supply equal to domestic demand (first equation) or total supply equal to total demand (second equation). 
 
 \begin{equation}
-\label{balance1}
+\label{eq:balance1}
 P_{ijt} + I_{ijt} - X_{ijt} - \Delta St_{ijt} = Fo_{ijt} + Fe_{ijt} + Lo_{ijt} + Se_{ijt} + IU_{ijt} + T_{ijt}  + ROU_{ijt}
 \end{equation}
 \begin{equation}
-\label{balance2}
+\label{eq:balance2}
 P_{ijt} + I_{ijt} - \Delta St_{ijt} = X_{ijt} + Fo_{ijt} + Fe_{ijt} + Lo_{ijt} + Se_{ijt} + IU_{ijt} + T_{ijt} + ROU_{ijt}
 \end{equation}
 
@@ -272,7 +279,7 @@ knitr::include_graphics("images/04_SuaFilling2.pdf")
 Only Derived commodities are involved in this process. The sua filling detect the Production figures that need to be filled or modified, by looking at the following *Imbalance*: 
 
 \begin{equation}
-\label{imbalance1}
+\label{eq:imbalance1}
 Imb_{1} = P_{ijt} + I_{ijt} - X_{ijt}
 \end{equation}
 
@@ -281,7 +288,7 @@ where $Imb_{1}$ is the Imbalance and is enumerated because is different from a s
  * If $Imb_{1} < 0$ there is no supply enough for the export and this is intepreted as the need for creating/incrementing the Production figure. The new production figure ($P^*_{ijt}$) is computed as: 
  
  \begin{equation}
-\label{imbalance1}
+\label{eq:imbalance1}
  P^*_{ijt} = P_{ijt} + Imb_{1}
 \end{equation}
  
@@ -325,8 +332,8 @@ When Production has been checked, created or incremented, *Food Processing* can 
 The formula for calculating $FP$ is based on the production of the child product: 
 
  \begin{equation}
-\label{Food Processing}
-FP_{p_{ijt}} = \sum \limits_{c=1}^C\biggl(\frac{P_{c_{ijt}}}{eR_{p\to c}}\biggr)s_{cp}w_{c}
+\label{eq:Food Processing}
+FP_{p_{ijt}} = \sum \limits_{c=1}^C\biggl(\frac{P_{c_{ijt}}}{eR_{p\to c}}\biggr)\times s_{cp}\times w_{c}
 \end{equation}
 
 where: 
@@ -338,22 +345,22 @@ where:
  * $s_{cp}$ is the *share* of child $c$ from parent $p$. Shares represent the amount of the child commodity that was produced from the specified parentand are expressed as a ratio Indeed, many products can be obtained from more than one parent (i.e. the commodity fruiti juice) and this requires to define the ratio coming from each parent. Shares are defined as: 
 
 > \begin{equation}
-\label{shares}
+\label{eq:shares}
 s_{cp} = \frac{availability1_{p(c)}}{\sum \limits_{p=1}^A{availability1_{p(c)}}}
 \end{equation}
 
 > where $availability1_{p(c)}$ is the availability of each parent $p$ of child $c$ expressed in terms of $c$ (as say in *child equivalent*). Is is enumerated as $1$ because a slighlty different availability will be found in a following step: 
 
 >>\begin{equation}
-\label{availability 1}
-availability1_{p(c)} = (P_{p_{ijt}} + I_{p_{ijt}})eR_{p\to c}
+\label{eq:availability 1}
+availability1_{p(c)} = (P_{p_{ijt}} + I_{p_{ijt}})\times eR_{p\to c}
 \end{equation}
 
 
  * $w_{c}$ is the *weight* of child $c$. This parameter is used for identifying and treating co-product. Indeed, if the production of two or more co-prodiucts is used for producing *Food processing* of the parent commodity producing them, the result would be a Food processing twice the size of what it should be. This would happen because the two co-products are produced during the same process, in other words, fromt he same amount of the parent commodity. For this to be taken into account, a weight is used, which is 1 for the commodity that have to be considered for determining Food processing of parent commodity and 0 for the child commodity that are co-products (equation \ref{weight}). Please notice that, the co-products are still important in the standardization, because they contribute in the creation of the calories availability of the country, therefore, these commodities (Also called *zero weight* commodities) are multiplied by 0 only when quantities are treated, they will instead be considered when calories will be taken into account: 
  
 >>\begin{equation}
-\label{weight}
+\label{eq:weight}
 \begin{cases}
     w_{c} = 1      & \quad \text{if boht quantity and calories have to be standardized} \\
     w_{c} = 0      & \quad \text{if only calories have to be standardized}
@@ -387,18 +394,18 @@ landscape(knitr::kable(table,format="latex",caption = "Sua table with Food Proce
 
 ```
 
-From `r table_nums("t4",display = "cite")` and `r table_nums("t5",display = "cite")` here is, as example, the computation of *Food procesing* of Wheat,Flour of wheat and Starch of wheat: 
+From `r table_nums("t4",display = "cite")` and `r table_nums("t5",display = "cite")` here is, as example, the computation of *Food processing* of Wheat,Flour of wheat and Starch of wheat: 
 
 \begin{equation}
 \begin{multlined}
-\label{wheatFP}
+\label{eq:wheatFP}
 FP_{wheat_{2014}} = \left(70,500,000/0.78\right)\times 1\times 1 +\left(21,414,729/0.8\right)\times 1\times 0 = 90,384,615
 \end{multlined}
 \end{equation}
 
 \begin{equation}
 \begin{multlined}
-\label{flourFP}
+\label{eq:flourFP}
 FP_{flourW_{2014}} = \left(1,415,692/1\right)\times 1\times 1 +\left(15,486/1\right)\times 1\times 1 
 +\left(193,950/1\right)\times 1\times 1
 +\\
@@ -410,7 +417,7 @@ FP_{flourW_{2014}} = \left(1,415,692/1\right)\times 1\times 1 +\left(15,486/1\ri
 
 \begin{equation}
 \begin{multlined}
-\label{starchFP}
+\label{eq:starchFP}
 FP_{starchW_{2014}} = \left(158,665/1\right)\times 1\times 1 +\left(21,414,729/0.8\right)\times 1\times 0 = 158,665
 \end{multlined}
 \end{equation}
@@ -422,7 +429,7 @@ After *Food processing* figures have been computed, the other variables have to 
 This step is based on the value of the following Imbalance:
 
 \begin{equation}
-\label{imbalance2}
+\label{eq:imbalance2}
 Imb_{2} = P_{ijt} + I_{ijt} - X_{ijt} - \Delta St_{ijt} - Fo_{ijt} - Fe_{ijt} - Lo_{ijt} - Se_{ijt} - IU_{ijt} - T_{ijt}
 \end{equation}
 
@@ -471,7 +478,7 @@ If this happens, it means that there is not enough supply for the commodity to b
 *Starch of Wheat* belongs to this very last case. Indeed, it has a negative Imbalance therefore its utilizations (except those utilizations that are completely excluded from this process) are reduced by 30% of their values (see `r table_nums("t7",display = "cite")`). After that happens, the Imb2 is recalculated and it is still negative, equal to $74,204$ (this value is not reported in the table). In the following step, as the production is not protected, the new value of production is equal to: 
 
 \begin{equation}
-\label{prod}
+\label{eq:prod}
 P_{StarchW} = 239,816 + 74,204 = 314,020
 \end{equation}
 
@@ -540,7 +547,7 @@ knitr::include_graphics("images/07_PositiveImbalance.pdf")
 
 As reported in the Figure, Three cases may happen: 
 
-1. If all the ranked utilizations are already filled, all of them are increased proportionally to their values. *Bran of Wheat* in our example, belongs to this case. Utilization table for Bran of Wheat is reported in `r table_nums("t8",display = "cite")`
+1. If all the ranked utilizations are already filled, all of them are increased proportionally to their values. *Bran of Wheat* in our example, belongs to this case. Utilization table for Bran of Wheat is reported in `r table_nums("t9",display = "cite")`
 
 
 ```{r t9, fig.cap=t9_cap, fig.pos = "H"}
@@ -551,8 +558,72 @@ knitr::kable(table,caption = "Utilization Table Bran ofWheat China Mainland 2014
 ```
   
 
-According to this table, there aer 3 Utilizations that are suppose to be active for this commodity: *feed*, *food* and *exports*. *Exports* is excluded from this step, therefore, food and feed reamain. Both Variables are filled in the SUA line of This Commodity, therefore, as 
+> According to this table, there are 3 Utilizations that are suppose to be active for this commodity: *feed*, *food* and *exports*. *Exports* is excluded from this step, therefore, food and feed reamain. Both Variables are filled in the SUA line of This Commodity, therefore, all of them are increased proportionally to their values. 
+
+2. If all the ranked utilizations are already filled but one, the all imbalance goes to that commodity. In our Example, this is the case of *Gluten Feed and meals* (`r table_nums("t9",display = "cite")`).
 
 
+3. Finally, if more that one utilization is empty, the so called ***Inverse Ranking rule*** is activated. This rule assigns part of the imbalance to the ranked utilizations proportionally to the ranks. This happens by making use of the inverse rank of all the utilizations that are "activable" and not excluded from the procedure. The rule works for any number of ranks and independently from the number of utilizations that have to be excluded. 
 
+> As an example consider the SUA line of *Cocoa Beans* in Madagascar in 2014 (`r table_nums("t10",display = "cite")`) and the Utilization table of the same country/commodity combination (`r table_nums("t11",display = "cite")`)
+
+```{r t10, fig.cap=t10_cap, fig.pos = "H"}
+table=data.table(read.csv("tables/10_cocoaBeans.csv"))
+knitr::kable(table,caption = "Sua line of Cocoa Beans Madagascar 2014 - before Sua Filling",
+             align = c(rep("c",length(colnames(table))-1)))
+
+```
+
+```{r t11, fig.cap=t11_cap, fig.pos = "H"}
+table=data.table(read.csv("tables/11_cocoaUtilizationT.csv"))
+knitr::kable(table,caption = "Utilization table for Cocoa Beans Madagascar",
+             align = c(rep("c",length(colnames(table))-1)))
+
+```
+
+> Besides the excluded elements, there are 2 utilizations empty: *food* and *Industrial Use*. The value $Value_{i}$ assigned to each commodity is calculated as a rank based proportion $pR_{i}$ of the total $Imb2$ (in this case $1,832$) according to the following equation:
+
+> \begin{equation}
+\label{eq:inverseRank}
+Value_{i} = Imb2 \times pR_{i}
+\end{equation}
+
+> with the generic Utilization table being
+
+> \begin{center}
+\begin{tabular}{ c|c|c|c } 
+ \hline
+element ($El_{i}$) & rank ($r_{i}$) & Inverse rank ($Ir_{i}$) & weight Rank ($wR_{i}$)\\
+ \hline
+$El_{1}$ & $r_{1}$ & $Ir_{1}$  & $wR_{1}$\\ 
+... & ... & ... & ...\\ 
+$El_{i}$ & $r_{i}$ & $Ir_{i}$  & $wR_{i}$\\ 
+... & ... & ... & ...\\ 
+$El_{n}$ & $r_{n}$ & $Ir_{n}$  & $wR_{n}$\\ 
+ \hline
+\end{tabular}
+\end{center}
+
+
+> and with $pR_{i}$ depending on $\sum \limits_{i=1}^n wR_{i}$:
+
+
+> \begin{equation}
+\label{eq:weightRank}
+\begin{cases}
+   pR_{i} = 0     & \quad \text{when} \quad \sum \limits_{i=1}^n wR_{i} = 0\\
+   pR_{i} = \frac{Ir_{i}\times we_{i}}{\sum \limits_{i=1}^n\left(Ir_{i}\times wR_{i}\right)}     & \quad \text{when} \quad \sum \limits_{i=1}^n wR_{i} > 0 
+\end{cases}
+\end{equation}
+
+> In the rquation \ref{eq:weightRank}: 
+
+ > *  
+
+```{r t12, fig.cap=t12_cap, fig.pos = "H"}
+table=data.table(read.csv("tables/12_cocoaBeansBal.csv"))
+knitr::kable(table,caption = "Sua line of Cocoa Beans Madagascar 2014 - after Sua Filling",
+             align = c(rep("c",length(colnames(table))-1)))
+
+```
 
