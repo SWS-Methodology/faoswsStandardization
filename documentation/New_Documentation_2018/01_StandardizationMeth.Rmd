@@ -64,6 +64,10 @@ library(xtable)
 ```{r}
 # DEFINE ALL TABLE NAMES AND CAPTIONS
 table_nums <- captioner::captioner(prefix = "Table")
+
+t15_cap <- table_nums(name = "t15", 
+                        caption = "Commodity Tree Wheat China Mainland, 2014")
+
 t1_cap <- table_nums(name = "t1",
                      caption = "Unbalanced Sua table (Example China Mainland, Wheat 2014)")
 t2_cap <- table_nums(name = "t2", 
@@ -74,7 +78,7 @@ t3_cap <- table_nums(name = "t3",
 2014)")
 
 t4_cap <- table_nums(name = "t4", 
-                        caption = "Parent/child eR and shares")
+                        caption = "Commodity Tree Wheat China Mainland, 2014 with weights")
 
 t5_cap <- table_nums(name = "t5", 
                         caption = "Sua table with Food Processing filled (Example China Mainland, Wheat 2014)")
@@ -103,11 +107,15 @@ t12_cap <- table_nums(name = "t12",
 t13_cap <- table_nums(name = "t13", 
                         caption = "Sua line of Cocoa Beans Madagascar 2014 - after Sua Filling")
 
+t14_cap <- table_nums(name = "t14", 
+                        caption = "Sua Balanced (Example China Mainland, Wheat 2014)")
+
+
 
 ```
 
 
-# Disclaimer {-}
+## Disclaimer {-}
 
 This Working Paper should not be reported as representing the official view of
 the FAO. The views expressed in this Working Paper are those of the
@@ -120,9 +128,7 @@ changes and updates.
 
 \newpage
 
-# The Food Balance Sheet Framework
-
-## Introduction
+# The Food Balance Sheet Framework {-}
 
 A food balance sheet can be defined as an aggregated and analytical data set that "presents a comprehensive picture of the pattern of a country's food supply during a specified reference period."^[For this definition and a more extended description of the motivation behind the development of FBS, see FAO, 2001, *Food Balance Sheets: A Handbook*, available at: http://www.fao.org/docrep/003/X9892E/X9892E00.HTM. Accessed on 19 January 2017.] FBS are presented as products accounts, where the quantities allocated to all the sources of total supply must be equal to the quantities allocated to all the sources of utilization. This balance is compiled for every food item consumed within a country at primary commodity equivalent basis, and all of the primary commodity equivalent balances are then combined into a single overall FBS. FBSs are, then, expressed in terms of per capita supply for each food item by dividing by the country's population, with the per capita supplies being expressed both in terms of quantity and, through the application of food conversion factors, in terms of caloric value, protein, and fat content. These per capita estimates of caloric value for individual food products are then summed to obtain the total daily per capita Dietary Energy Supply (DES) of a country.
 
@@ -131,7 +137,7 @@ The process of obtaining FBS starting from product's accounts is the so-called s
 
 All the steps of the standardization process are performed inside the standardization & Balancing module, described in this document.
 
-## The Balancing equation and its variables
+# The Balancing equation and its variables {-}
 
 At the most basic level, Food Balance Sheets are, like all commodity balances, simple identities. In these identities, the sum of all supply variables is equal to the sum of all demand variables; the two most common identities set domestic supply equal to domestic demand (first equation) or total supply equal to total demand (second equation). 
 
@@ -160,7 +166,7 @@ where:
  * $ROU$=Residual Other Use.  
 
 
-In the equation the $i$ index runs over all countries, the $j$ index over all commodities, and $t$ over years.
+In the equation the $i$ index runs over all countries, the $j$ index over all commodities, and $t$ over years. All variables are expressed in the same measurement unit: metric tonnes.
 Ideally, as many variables as possible should be measured and measurement should take place with a maximum degree of accuracy. At international level, the primary data source that FAO uses to compile the the Supply Utilization Accounts/Food Balance Sheets are the data as collected through the annual *Agriculture Production Questionnaires*. In reality, measured values are mostly limited to variables on the supply side (production, imports and exports), while, on the demand side, most estimates are imputed data. Moreover, some of the variables on the demand side are never measured and are always calculated during the standardization process itself. In particular^[For more details on FBS variables please see the latest version of the *Resource Book*]:
 
 
@@ -189,9 +195,50 @@ One more variabel has to be mentioned which is not included in the function, bec
 
  * *Food Processing (FP)*: This variable represents the amount of the availability of a commodity that enter a manufacturing process to be tranformed in a derived commodity. Food processing is not officially measured, nor collected via official sources. This variable is entirely calculated during the standardization process by applying extraction rates to the amount of production of the derived commodity. This will be better specified in section XXX of the present document.
 
-# The Workflow
+# Commodity Tree {-}
 
-## Data Pull
+The Aggregation of the SUAs into FBSs requires a structured and clear set of relationships between commodity and this representation is given by the *Commodity tree*.
+The majority of the commodities are produced from one (or more) *parent* commodity (/ies) and/or are themselfes parent of one (or more) *child* (*children*) commodity (/ies). These relationships creates an intense and articulated network of relationships at different levels: The primary commodity, like crops, are *zero-level* commodities from which *level1* commodities are produced, which are in turn used to poduce other commodities of a gradually lower level. These network is known as *Commodity tree*. With the same name also the single *"trees"*, one for each linked processed product starting from the same primary commodity, are named, therefore there are as many commodity trees as many process chain in country. For a more detailed description of commodity trees, please see the specific documentation^[The reference document, at the moment is the *tecnical conversion factor* document available in the documentation folder on [*GitHub*](https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation)]. Here is important to remember some fundamental charachteristics of commodity trees: 
+
+ 1. Each commodity tree is represented as a flowchart of the kind presentef in Figure \ref{fig:f2} where:
+  * ***nodes*** represent commodities, 
+  * ***edges*** represent production processes ,
+  * ***joints*** indicate where a single production process creates more that one commodity. These commodities are, then, called *by-products* or *co-products*.
+
+```{r f2, fig.align = "center", fig.pos = "H",  fig.cap = "\\label{fig:f2}Commodity Tree for Wheat in China mainland 2014"}
+
+knitr::include_graphics("images/02_WheatTree.pdf")
+```
+
+
+ 2. Not all the countries use the same production processes, therefore the commodity trees are not the same across countries.
+ 
+ 3. if a production process is active in a country, this is expressed trought the existence of a conversion factor called ***extraction Rate***. An Extraction rate ($eR$) represents how much amount of the child commodity is produced from 1 unit of parent commodity. It is expressed as a ratio of the processed product obtained from the processing of the parent/originating product.
+  
+ 4. Some child commodities can be produced starting from more that one parent commodity. A second conversion factor exists representing the amount of a child commodity that is produced from each parent ocmmodity. This conversion factor is called ***Share***. Shares represent the amount of the child commodity that is produced from the specified parent and are expressed as a ratio. Shares are generically defined as: 
+ 
+> \begin{equation}
+\label{eq:sharesGen}
+s_{cp} = \frac{availability_{p(c)}}{\sum \limits_{p=1}^A{availability_{p(c)}}}
+\end{equation}
+
+> where $availability_{p(c)}$ is the availability of each parent $p$ of child $c$ expressed in terms of $c$ (as say in *child equivalent*). The availability $availability_{p(c)}$ can be defined in different ways during different steps of the overall process. In general terms, it represents a difference between supply and utilizations, but utilizations may be or not be all included in the calculation. 
+
+Commodity trees are presented in tables like `r table_nums("t15",display = "cite")`, which represents the same example of Figure \ref{fig:f2}. In the table each production process is represented in a separate row. 
+
+```{r t15, fig.cap=t15_cap, fig.pos = "H"}
+table=data.table(read.csv("tables/15_TreeChinaWheat.csv"))
+knitr::kable(table,caption = "Commodity Tree Wheat China Mainland, 2014",
+             align = c("r",rep("l",length(colnames(table))-1)))
+
+```
+
+There are some concepts linked to the Commodity tree framework: 
+
+ * ***Proxi-Primary*** commodities. These are a set of commodities that are children of other commodities but, because they are important in representing the food availability of a country, are not aggregated to their primary commodities, but are kept separated. These commodities are *cut* from the tree of the primary commodity/ies and, if they can be processed in other products, have their own commodity tree. The name *proxi-primary* is assigned because they are considered as primary commodity in the Standarization process.
+ * ***No-Tree*** commodities. These are commodities that are primary commodities and are never processed in other products. As they are not involved in any production process, there is no tree associated to them. Notice that, even a commodity that is included in the commodity tree for one COuntry, might be a No-tree commodity for another countrt or another year, if no production processes have been activated for that specific commodity or year.
+
+# Data Pull
 
 The process starts by considering the initial SUA for each commodity, primary and derived, with the different variables of the equation (as listed and briefly described in the previous section) filled with figures as available from official or other sources and from imputation and estimation method, when applied. In other words, the Process starts by pulling figures inside a so-called *SUA unbalanced*. In this initial account food processing and RoU figures are not available (because they, by default, will be measured during the process), whereas the figures for all other variables have been already collected, imputed and estimated through specific *module* (Figure \ref{fig:f1}). 
 
@@ -201,22 +248,11 @@ knitr::include_graphics("images/01_pulldata.pdf")
 
 A module, in the FBS Framework, is an R-script, written by an R-developer, for the execution of a set of operations (either data import, manipulation, imputation or estimation) required for compiling the time series of one variable. There is at least one module (there might be more) for each variable of the FBS. Each module produces figures that are collected in a dataset inside the *Statistical Working System (SWS)*^[SWS is an internal Working System providing a platform for statisticians and statistical clers to collect, collate, validate and correct data. Moreover, the platfors supports the possibility of performing imputations of data based on statisticians' knowledge and development.].Output data of a module may become input data of another module, this creating a precise sequence for the execution of a complete FBS. IN the present document we are analyzing the workflow of the Standardization process as starts after all the module have run and have produced reliable data or each variable. The detailed description of the workflow for the execution of al the module of the FBS is described in a separate document^[[report the document when it will be available]].
 
-## the Initial Sua Unbalanced 
+# the Initial Sua Unbalanced 
 
 After pulling all data, the process of compiling Food Balance Sheets is a non-complete supply-utilization account. The non-completeness of the SUAs is due to different reasons: first, as already said, some variables are not collected, nor estimated before the process begins, second there is the model for industrial use that does not impute or estimate data, but just collects data from different sources, this opening the strong possibility not to have values where they are supposed to exist and, also, not guaranteeing consistency of data over time. Thirdly, modules might, sometimes, fail in the imputation, because of the strong complexity and structural diversity of the input data. 
 
-Supply utilization accounts are typically organized into tables where the SUA for the primary commodity is at the top, and the SUAs for all of the products derived from that commodity follow (`r table_nums("t1",display = "cite")`). Commodities in the SUA table are in a parent-child relationship representing a real commodity process. In the example of `r table_nums("t1",display = "cite")` the relationship between commodities is the following: 
 
- + Maize is processed in flour, Bran and Breakfast Cereals,
- + Flour of maize is processed into Starch and Gluten, Wafers, pastry, bread and pasta
- + Starch is processed into Glucose and Dextrose, 
- + Gluten and Bran are processed into some feed and meal,
-
-All these relationships happens at different levels, creating a tree of relationships representing what is called the ***Commodity Tree***. In particular, our example represents the commodity tree of Wheat in China in 2014 and is displayed, in its graphical form, in Figure \ref{fig:f2}. A commodity Tree is the representation of all possible parent-child relationship between commodities at all levels and might be different from country to country. A better descritpion of Commodity tree is given in a separate document^[The reference document, at the moment is the *tecnical conversion factor* document available in the documentation folder on [*GitHub*](https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation)]. 
-
-```{r f2, fig.pos = 'H', fig.cap = "\\label{fig:f2}Commodity Tree for Wheat in China mainland 2014"}
-knitr::include_graphics("images/02_WheatTree.pdf")
-```
 
 ```{r t1, fig.cap=t1_cap}
 table=data.table(read.csv("tables/01_sua_unbalanced.csv"))
@@ -230,11 +266,21 @@ landscape(knitr::kable(table,format="latex",caption = "Unbalanced Sua table (Exa
   add_footnote( "P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",notation = "symbol")
 ```
 
+Supply utilization accounts are typically organized into tables where the SUA for the primary commodity is at the top, and the SUAs for all of the products derived from that commodity follow (`r table_nums("t1",display = "cite")`). Commodities in the SUA table are in a parent-child relationship representing a real commodity process. In the example of `r table_nums("t1",display = "cite")` the relationship between commodities is the following: 
+
+ + Maize is processed in flour, Bran and Breakfast Cereals,
+ + Flour of maize is processed into Starch and Gluten, Wafers, pastry, bread and pasta
+ + Starch is processed into Glucose and Dextrose, 
+ + Gluten and Bran are processed into some feed and meal,
+
+All these relationships represent the *Commodity tree* of wheat in China in 2014. In particular, our example represents the commodity tree of Wheat in China in 2014 and is displayed, in its graphical form, in Figure \ref{fig:f2}.
+
 There are unbalanced SUAs for all combinations of commodity tree/country/year. These tables are the starting poin of the *Standardization and Balancing* process, which starts with the "Filling" of the missing figures in the SUAs.
 
-## The *Sua Filling*
 
-### Main rules and the rationale {-}
+# The *Sua Filling*
+
+## Main rules and the rationale {-}
 
 The Standardization, i.e. the conversion of the variables of any child commodity in primary-equivalent commodity, requires all variables of the SUAs to be filled (exept for ROU, which is a residual variable and is imputed at the very last step of theprocess), "all variables" meaning "all variables that are supposed to be filled". Indeed, not all variables have to exist for all commodities. Consider maize as an example: if there is no figure of *food availability* for maize, that does not mean that there is a missing figure, because maize is rarely used for human consumption directly. However, in some country people do eat raw maize and, therefore, for those countries a food figure is expected and, if missing, that has to be taken into account. 
 
@@ -279,7 +325,7 @@ knitr::include_graphics("images/04_SuaFilling2.pdf")
 ```
 
 
-### Step 1: Filling of production figures {-}
+## Step 1: Filling of production figures {-}
 
 Only Derived commodities are involved in this process. The sua filling detect the Production figures that need to be filled or modified, by looking at the following *Imbalance*: 
 
@@ -318,19 +364,20 @@ add_footnote( "P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availa
 
 ```{r t3, fig.cap=t3_cap}
 table=data.table(read.csv("tables/03_sua_unbalanced_prod.csv"))
-landscape(knitr::kable(table,format="latex",caption = "Sua table with Production filled/incremented (Example China Mainland, Wheat 2014)",
-             align = c("r",rep("l",length(colnames(table))-1)))) %>% 
+knitr::kable(table,format="latex",caption = "Sua table with Production filled/incremented (Example China Mainland, Wheat 2014)",
+             align = c("r",rep("l",length(colnames(table))-1))) %>% 
   kable_styling(font_size = 18,latex_options=c("scale_down", full_width = T))%>%
   row_spec(0, bold=TRUE, align = c("r",rep('c',times=length(colnames(table))-1))) %>%
   row_spec(c(4,6),bold=T, italic=T,color = "red") %>%
   # column_spec(2,color = "red",width = "6em")%>%
   column_spec(3:length(colnames(table)),bold=FALSE, italic=FALSE,color = "black",width = "6em")%>%
   column_spec(1,width = "12em")%>%
-add_footnote( "P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",notation = "symbol")
+add_footnote( "P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",notation = "symbol")%>%
+  landscape()
 ```
 
 
-### Step 2: Filling of food processing {-}
+## Step 2: Filling of food processing {-}
 
 When Production has been checked, created or incremented, *Food Processing* can be calculated. Food processing is the amount of the supply of a commodity processed into derived commodities. *Food processing* is calculated for all the parent commodities as sum of the food processing of all the possible derived commodities. For example, Wheat in China is processed into Flour of Wheat, Bran of Wheatand Breakfast Cereals: Flour and Bran are produced during the same production process (they are called *co-products* or *by-products*), therefore the same amount of wheat is used for producing all of them, Breakfast Cereals comes from a separate production process instead. Therefore, *Food processing* of Wheat is given as sum of the amount of wheat's supply used for priducing Flour and Bran + The amount used for producing Breakfast Cereals. Calculation of Food processing happens by level, then after having calculated the amount for wheat, the amount of supply of flour of wheat used for producing Starch, Gluten, bread and the other derived of wheat flour becomes the *Food processing* of flour of Wheat and so on, for any subsequent level. 
 
@@ -346,8 +393,8 @@ where:
  * $FP_{p_{ijt}}$ is *Food processing* of the generic parent $p$.
  * $c = 1,2,3...C$ are the $C$ children $c$ of parent $p$.
  * $P_{c_{ijt}}$ is the Production of Child $c$.
- * $eR_{p\to c}$ is the *extraction Rate* from parent $p$ to child $c$. The Extraction rate represents how much amount of the child commodity is produced from 1 unit of parent commodity^[FBSs are normally expressed in tonnes.]. It is expressed as a ratio of the processed product obtained from the processing of the parent/originating product.
- * $s_{cp}$ is the *share* of child $c$ from parent $p$. Shares represent the amount of the child commodity that was produced from the specified parentand are expressed as a ratio Indeed, many products can be obtained from more than one parent (i.e. the commodity fruiti juice) and this requires to define the ratio coming from each parent. Shares are defined as: 
+ * $eR_{p\to c}$ is the *extraction Rate* from parent $p$ to child $c$. 
+ * $s_{cp}$ is the *share* of child $c$ from parent $p$. Shares here are defined as: 
 
 > \begin{equation}
 \label{eq:shares}
@@ -362,7 +409,7 @@ availability1_{p(c)} = (P_{p_{ijt}} + I_{p_{ijt}})\times eR_{p\to c}
 \end{equation}
 
 
- * $w_{c}$ is the *weight* of child $c$. This parameter is used for identifying and treating co-product. Indeed, if the production of two or more co-prodiucts is used for producing *Food processing* of the parent commodity producing them, the result would be a Food processing twice the size of what it should be. This would happen because the two co-products are produced during the same process, in other words, fromt he same amount of the parent commodity. For this to be taken into account, a weight is used, which is 1 for the commodity that have to be considered for determining Food processing of parent commodity and 0 for the child commodity that are co-products (equation \ref{weight}). Please notice that, the co-products are still important in the standardization, because they contribute in the creation of the calories availability of the country, therefore, these commodities (Also called *zero weight* commodities) are multiplied by 0 only when quantities are treated, they will instead be considered when calories will be taken into account: 
+ * $w_{c}$ is the *weight* of child $c$. This parameter is used for identifying and treating co-product. Indeed, if the production of two or more co-prodiucts is used for producing *Food processing* of the parent commodity producing them, the result would be a Food processing twice the size of what it should be. This would happen because the two co-products are produced during the same process, in other words, fromt he same amount of the parent commodity. For this to be taken into account, a weight is used, which is 1 for the commodity that have to be considered for determining Food processing of parent commodity and 0 for the child commodity that are co-products (equation \ref{eq:weight}). Please notice that, the co-products are still important in the standardization, because they contribute in the creation of the calories availability of the country, therefore, these commodities (Also called *zero weight* commodities) are multiplied by 0 only when quantities are treated, they will instead be considered when calories will be taken into account: 
  
 >>\begin{equation}
 \label{eq:weight}
@@ -373,31 +420,18 @@ availability1_{p(c)} = (P_{p_{ijt}} + I_{p_{ijt}})\times eR_{p\to c}
 \end{equation}
 
 
-`r table_nums("t4",display = "cite")` contains the parent/child relationships, extraction rates and shares for *Food processing* computation of che wheat/China example.
+The following Table reports the commodity tree of the wheat/China example with the extracolumn reporting the *weight* of each child-commodity.
 
-```{r t4, fig.cap=t4_cap, fig.pos = "H"}
+```{r t4, fig.cap=t4_cap}
 table=data.table(read.csv("tables/04_foodproc_calc.csv"))
-knitr::kable(table,caption = "Parent/child eR and shares",
+knitr::kable(table,caption = "Commodity Tree Wheat China Mainland, 2014 with weights",
              align = c("r",rep("l",length(colnames(table))-1)))
 
 ```
 
-This table reproduces the relationships of Figure \ref{fig:f2}. Shares lower than $1$ mean that the child commodity might be produced also from other parents and, therefore, the reported ratio represents the ratio of that commodity that is produced from the reported parent. For example, *Gluten Feed and Meal* is produced from *Wheat Gluten* and from *Bran of maize*. The sum of the shares associated to this child ($0.33$ and $0.67$) is equal to $1$.
+Shares lower than $1$ mean that the child commodity might be produced also from other parents and, therefore, the reported ratio represents the ratio of that commodity that is produced from the reported parent. For example, *Gluten Feed and Meal* is produced from *Wheat Gluten* and from *Bran of maize*. The sum of the shares associated to this child ($0.33$ and $0.67$) is equal to $1$.
 
-`r table_nums("t4",display = "cite")` shows the SUA table after the two steps just described. Notice that, in the specific example, there was no need for the creation/incrementation of Production on any derived commodity because $Imb1$ is positive for all commodities. 
-
-```{r t5, fig.cap=t5_cap}
-table=data.table(read.csv("tables/05_sua_unbalanced_2.csv"))
-landscape(knitr::kable(table,format="latex",caption = "Sua table with Food Processing filled (Example China Mainland, Wheat 2014)",
-             align = c("r",rep("l",length(colnames(table))-1)))) %>% 
-  kable_styling(font_size = 18,latex_options=c("scale_down", full_width = T))%>%
-  row_spec(0, bold=TRUE, align = c("r",rep('c',times=length(colnames(table))-1))) %>%
-  column_spec(1,width = "12em")%>%
-  column_spec(2:length(colnames(table)),width = "6em")%>%
-  column_spec(7,italic=TRUE,bold=T,color = "red")%>%
-  add_footnote( "P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",notation = "symbol")
-
-```
+`r table_nums("t5",display = "cite")` shows the SUA table after the two steps just described. Notice that, in the specific example, there was no need for the creation/incrementation of Production on any derived commodity because $Imb1$ is positive for all commodities. 
 
 From `r table_nums("t4",display = "cite")` and `r table_nums("t5",display = "cite")` here is, as example, the computation of *Food processing* of Wheat,Flour of wheat and Starch of wheat: 
 
@@ -428,7 +462,23 @@ FP_{starchW_{2014}} = \left(158,665/1\right)\times 1\times 1 +\left(21,414,729/0
 \end{equation}
 
 
-### Step 3: Filling of other missing utilizations {-}
+```{r t5, fig.cap=t5_cap}
+table=data.table(read.csv("tables/05_sua_unbalanced_2.csv"))
+landscape(knitr::kable(table,format="latex",caption = "Sua table with Food Processing filled (Example China Mainland, Wheat 2014)",
+             align = c("r",rep("l",length(colnames(table))-1)))) %>% 
+  kable_styling(font_size = 18,latex_options=c("scale_down", full_width = T))%>%
+  row_spec(0, bold=TRUE, align = c("r",rep('c',times=length(colnames(table))-1))) %>%
+  column_spec(1,width = "12em")%>%
+  column_spec(2:length(colnames(table)),width = "6em")%>%
+  column_spec(7,italic=TRUE,bold=T,color = "red")%>%
+  add_footnote( "P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",notation = "symbol")
+
+```
+
+
+
+
+## Step 3: Filling of other missing utilizations {-}
 
 After *Food processing* figures have been computed, the other variables have to be checked and either filled, increased or decreased. Only derived commodities enter this step. Primary commodities are excluded because for these commodities, the figures are normally more reliable and complete and, very often protected. Only the final balancing may affect Primary commodity figures.
 This step is based on the value of the following Imbalance:
@@ -464,12 +514,12 @@ add_footnote( "P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availa
 Please notice that, besides export and stock Variations, that are excluded from this step for the reasons previously explained, also Food Procesisng is excluded from the next steps, because $FP$ is related to the production figures of the children and to modify it, would detach this very important parent-children link. 
 
 
-### - *Imbalance = 0 (Scenario A)* {-}
+### *Imbalance = 0 (Scenario A)* {-}
 
 In this scenario the Imbalance is null, this meaning that there is enought supply for the existing utilizations. In This case the SUA line is balanced and nothig happens for the commodity. In `r table_nums("t6",display = "cite")` this is the case of *Other Fructose and syrup* and *wheat Gluten*.
 
 
-### - *Imbalance < 0 (Scenario B)* {-}
+### *Imbalance < 0 (Scenario B)* {-}
 
 If this happens, it means that there is not enough supply for the commodity to be used in the way the SUA figures suggest. First of all it has to be rembered that, as said in a previous section, trade figures are never changed during the filling process, this meaning that, if there is a need for interveening on supply, only production figures might be taken into account. In this case, as shown in Figure \ref{fig:f6} a distinction as to be made as of the Production figure is protected or not.
 
@@ -508,7 +558,7 @@ add_footnote( "P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availa
 ```
 
 
-### - *Imbalance > 0 (Scenario C)* {-}
+### *Imbalance > 0 (Scenario C)* {-}
 
 When $Imb2 >0$ there is an excess of supply that has to be distributed trought utilizations. Here:  
 
@@ -645,7 +695,7 @@ knitr::kable(table,caption = "Utilization table for Cocoa Beans Madagascar",
 
 ```
 
-> Besides the excluded elements, there are 2 utilizations empty: *food* and *Industrial Use*. The Values of these two elements is calculated as folows: 
+> Besides the excluded elements, there are 2 utilizations empty: *food* and *Industrial Use*. The Values of these two elements is calculated as folows and the result shown in `r table_nums("t13",display = "cite")`: 
 
 > \begin{equation}
 \begin{aligned}
@@ -671,4 +721,32 @@ knitr::kable(table,caption = "Sua line of Cocoa Beans Madagascar 2014 - after Su
              align = c(rep("c",length(colnames(table))-1)))
 
 ```
+
+## The Sua Balanced 
+
+The table resulting after the Sua Filling is called *Sua Balanced*. For the Example of China Mainland, wheat 2014 the *Sua Balanced* is reported in `r table_nums("t14",display = "cite")`
+
+```{r t14, fig.cap=t14_cap}
+table=data.table(read.csv("tables/14_sua_Balanced.csv"))
+landscape(knitr::kable(table,format="latex",caption = "Sua Balanced (Example China Mainland, Wheat 2014)",
+             align = c("r",rep("l",length(colnames(table))-1)))) %>% 
+  kable_styling(font_size = 18,latex_options=c("scale_down", full_width = T))%>%
+  row_spec(0, bold=TRUE, align = c("r",rep('c',times=length(colnames(table))-1))) %>%
+  row_spec(c(1,3,9),color = "red",bold=T, italic=T ) %>%
+add_footnote( "P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",notation = "symbol")
+```
+
+The red lines are not balanced lines. Indeed, the *Sua Filling* procedure does not interveene on all the commodities. It leaves unbalanced all the "top level" commodities falling in 2 main categories:
+
+ 1. The *Primary commodities*. These are all the crop commodities, like cereals, pulses, vegetables, fruits etc, that are often processed in other commodities, like the wheat in flour of wheat.
+ 2. The *no tree* commodities. These commodities are excluded from the list of commodities that are processed into something else, they are often mixes of some other crop or commodity and used for specific purposes, i.e. *Mixes and dough for the preparation of baker's wares* and *Food preparations of Flour, Meal or Malt Extract* from our example.
+ 
+Therefore  3 lines are not balanced in `r table_nums("t14",display = "cite")`, belonging to these 2 categories of "not balanced" commodities.
+
+The reason for the exclusion of the *zero-level* commodities form the filling stays in the circumstance for which the standardization will affect the figures of the primary commodities, this opening the need for a final *balancing* procedure. In order not to intervene twice on these commodities, it has been decide to keep as smaller as possible the number correction, so to reduce error. 
+
+# The Standardization
+
+The *Standardization* is the process of transforming all the processed commodities in terms of their primary commodities, so to have all the existing food availability of a country, expressed in terms of the main commodities. Aggregation of data from a detailed product classification to a more comprehensive one is common practice for two reasons. The first reason is to reduce the amount of data, and the number of commodities involved, to a level and size more suited for analytical purposes. The second reason is, that by cancelling out the intermediate production of derived products against the input use of primary products, a clearer view emerges of the domestic availability of a product and its final uses.
+
 
