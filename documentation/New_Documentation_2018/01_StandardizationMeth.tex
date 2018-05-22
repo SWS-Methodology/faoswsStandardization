@@ -84,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{17 May 2018}
+  \date{22 May 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -180,20 +180,24 @@ so-called standardization. This process starts from individual
 accounting balances for individual products and leads to the creation of
 a FBS for the primary commodity equivalent products, passing trough
 various steps, from filling of missing data to the balancing of the
-account. In the FBS framework the \emph{Central Product Classification
-(CPC)} System is used for classifying commodities\footnote{The CPC
-  represents a comprehensive classification of products into a system of
-  categories that are both exhaustive and mutually exclusive. It is
-  based on a set of internationally agreed concepts, definitions,
-  principles and classification rules. The custodian of this
-  classification is the UNSD. For more information, see the
+account.
+
+Individual accounts for commodities are called \emph{Supply-Utilization
+Accounts} (\textbf{\emph{SUA}}) and commodities are classified according
+to the \emph{Central Product Classification} (\textbf{\emph{CPC}})
+System\footnote{The CPC represents a comprehensive classification of
+  products into a system of categories that are both exhaustive and
+  mutually exclusive. It is based on a set of internationally agreed
+  concepts, definitions, principles and classification rules. The
+  custodian of this classification is the UNSD. For more information,
+  see the
   \href{http://gsars.org/wp-content/uploads/2015/12/Guidelines-for-Int-Classifications-on-Agricultural-Statistics-web.pdf}{\emph{Guidelines
   on International Classifications for Agricultural Statistics}} and the
   \href{https://unstats.un.org/unsd/cr/downloads/CPCv2.1_complete\%28PDF\%29_English.pdf}{\emph{UNSD
   official document on CPC Vesion 2.1}}}.
 
-All the steps of the standardization process are performed inside the
-standardization \& Balancing module, described in this document.
+All the steps of the \emph{standardization \& Balancing} process are
+described in this document.
 
 \section*{The Balancing equation and its
 variables}\label{the-balancing-equation-and-its-variables}
@@ -245,18 +249,19 @@ where:
 
 In the equation the \(i\) index runs over all countries, the \(j\) index
 over all commodities, and \(t\) over years. All variables are expressed
-in the same measurement unit: metric tonnes. Ideally, as many variables
-as possible should be measured and measurement should take place with a
-maximum degree of accuracy. At international level, the primary data
-source that FAO uses to compile the the Supply Utilization Accounts/Food
-Balance Sheets are the data as collected through the annual
-\emph{Agriculture Production Questionnaires}. In reality, measured
-values are mostly limited to variables on the supply side (production,
-imports and exports), while, on the demand side, most estimates are
-imputed data. Moreover, some of the variables on the demand side are
-never measured and are always calculated during the standardization
-process itself. In particular\footnote{For more details on FBS variables
-  please see the latest version of the \emph{Resource Book}}:
+in the same measurement unit: \textbf{\emph{metric tonnes}}. Ideally, as
+many variables as possible should be measured and measurement should
+take place with a maximum degree of accuracy. At international level,
+the primary data source that FAO uses to compile the the Supply
+Utilization Accounts/Food Balance Sheets are the data as collected
+through the annual \emph{Agriculture Production Questionnaires}. In
+reality, measured values are mostly limited to variables on the supply
+side (production, imports and exports), while, on the demand side, most
+estimates are imputed data. Moreover, some of the variables on the
+demand side are never measured and are always calculated during the
+standardization process itself. In particular\footnote{For more details
+  on FBS variables please see the latest version of the \emph{Resource
+  Book}}:
 
 \begin{itemize}
 \item
@@ -268,10 +273,10 @@ process itself. In particular\footnote{For more details on FBS variables
   organization. When no other data are available Production is imputed
   or estimated. Imputation and estimation procedures depends on the
   specific commodity. There are different for crops and livestock but
-  all based on an \emph{ensemble approach}\^{}{[}See \emph{Production
-  module} documentation for more details*. Production data in the FBS
-  framework are needed for all the primary commodities and for a set of
-  derived commodities.
+  all based on an \emph{ensemble approach}\footnote{See \emph{Production
+    module} documentation for more details}. Production data in the FBS
+  framework are collected, imputed or estimated for all the primary
+  commodities and for a set of derived commodities.
 \item
   \emph{Import(I) and Export(X)}: Data on Trade are, mainly, official
   from international trade databases, like UNSD and EUROSTAT, at HS6
@@ -298,12 +303,12 @@ process itself. In particular\footnote{For more details on FBS variables
   considered as a utilization of that commodity. Changes in stocks are
   tipically limited to a short number of commodities, mainly grains,
   pulses and sugar and, because they are very rarely measured by
-  country, figures are very often imputed or estimated\^{}{[}For a
-  complete list of stock commodities and for details about the
-  imputation methodology, please refer to specific documentation for
-  stock\}. Estimation of Changes in stock is based on opening stocks
-  figures throught an approach that mantain time consistency of data
-  that are available and official\footnote{All data are marked as
+  country, figures are very often imputed or estimated\footnote{For a
+    complete list of stock commodities and for details about the
+    imputation methodology, please refer to specific documentation for
+    stock}. Estimation of Changes in stock is based on opening stocks
+  figures throught an approach that mantain time consistency of
+  available data and official data\footnote{All data are marked as
     \(official\), \(semi-official\) or \emph{unofficial}, depending on
     the source they come from, throught \(flags\). Flag management is
     one of the core responsibilities of the \emph{Office of the Chief
@@ -350,7 +355,7 @@ process itself. In particular\footnote{For more details on FBS variables
   as a separate utilization variable, while in the past it was included
   in the ``other utilization'' catchall cathegory. Official data for
   this variable are rare and may come from tourism offices or collected
-  by tourism boards trought surveys. UNWTO is an alternative source of
+  by tourism boards through surveys. UNWTO is an alternative source of
   data or other authorities. Imputations and estimations of tourist food
   are made as a function of food figures.
 \item
@@ -389,46 +394,45 @@ process itself. In particular\footnote{For more details on FBS variables
   is balanced thrugh a balancing mechanism that will be later specified.
 \end{itemize}
 
-One more variabel has to be mentioned which is not included in the
-function, because is somehow inluded in \emph{Production}, but is very
-important in the process of creating FBS. This is the \emph{Food
+One more variable has to be mentioned which is not included in the
+function, because is somehow included in \emph{Production}, but is very
+important in the process of creating FBSs. This is the \emph{Food
 Processing}.
 
 \begin{itemize}
 \tightlist
 \item
   \emph{Food Processing (FP)}: This variable represents the amount of
-  the availability of a commodity that enter a manufacturing process to
-  be tranformed in a derived commodity. Food processing is not
+  the availability of a commodity that enters a manufacturing process to
+  be transformed into a derived commodity. Food processing is not
   officially measured, nor collected via official sources. This variable
   is entirely calculated during the standardization process by applying
   extraction rates to the amount of production of the derived commodity.
-  This will be better specified in section XXX of the present document.
+  This will be better specified in section \emph{3-Step2} of the present
+  document.
 \end{itemize}
 
 \section*{Commodity Tree}\label{commodity-tree}
 \addcontentsline{toc}{section}{Commodity Tree}
 
-The Aggregation of the SUAs into FBSs requires a structured and clear
-set of relationships between commodity and this representation is given
-by the \emph{Commodity tree}. The majority of the commodities are
-produced from one (or more) \emph{parent} commodity (/ies) and/or are
+The process of combining commodity balances for creating Food Balance
+Sheets is based on a structured and clear set of relationships between
+commodity and this representation is given by the \emph{Commodity tree}.
+The majority of the commodities are produced from one (or more)
+commodity (/ies), called \emph{parent} commodity(/ies), and/or are
 themselfes parent of one (or more) \emph{child} (\emph{children})
-commodity (/ies). These relationships creates an intense and articulated
-network of relationships at different levels: The primary commodity,
-like crops, are \emph{zero-level} commodities from which \emph{level1}
-commodities are produced, which are in turn used to poduce other
-commodities of a gradually lower level. These network is known as
-\emph{Commodity tree}. With the same name also the single
-\emph{``trees''}, one for each linked processed product starting from
-the same primary commodity, are named, therefore there are as many
-commodity trees as many process chain in country. For a more detailed
-description of commodity trees, please see the specific
-documentation\footnote{The reference document, at the moment is the
-  \emph{tecnical conversion factor} document available in the
-  documentation folder on
+commodity (/ies). These structure creates an intense and articulated
+network of relationships at different levels: primary commodities, like
+crops, are \emph{parent} commodities and, also, \emph{zero-level}
+commodities from which \emph{children} commodities of \emph{level1}are
+produced, which are in turn used to produce other commodities of a
+gradually lower level. There are as many commodity trees as the number
+of process chains in a country. For a more detailed description of
+commodity trees, please see the specific documentation\footnote{The
+  reference document, at the moment is the \emph{tecnical conversion
+  factor} document available in the documentation folder on
   \href{https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation}{\emph{GitHub}}}.
-Here is important to remember some fundamental charachteristics of
+Here is important to remember some fundamental characteristics of
 commodity trees:
 
 \begin{enumerate}
@@ -436,7 +440,7 @@ commodity trees:
 \tightlist
 \item
   Each commodity tree is represented as a flowchart of the kind
-  presentef in Figure \ref{fig:f2} where:
+  presented in Figure \ref{fig:f2} where:
 
   \begin{itemize}
   \tightlist
@@ -464,11 +468,11 @@ commodity trees:
 \def\labelenumi{\arabic{enumi}.}
 \setcounter{enumi}{1}
 \item
-  Not all the countries use the same production processes, therefore the
-  commodity trees are not the same across countries.
+  Not all the countries have the same production processes, therefore
+  the commodity trees are not the same across countries.
 \item
   if a production process is active in a country, this is expressed
-  trought the existence of a conversion factor called
+  throught the existence of a conversion factor called
   \textbf{\emph{extraction Rate}}. An Extraction rate (\(eR\))
   represents how much amount of the child commodity is produced from 1
   unit of parent commodity. It is expressed as a ratio of the processed
@@ -478,7 +482,7 @@ commodity trees:
   Some child commodities can be produced starting from more that one
   parent commodity. A second conversion factor exists representing the
   amount of a child commodity that is produced from each parent
-  ocmmodity. This conversion factor is called \textbf{\emph{Share}}.
+  commodity. This conversion factor is called \textbf{\emph{Share}}.
   Shares represent the amount of the child commodity that is produced
   from the specified parent and are expressed as a ratio. Shares are
   generically defined as:
@@ -494,10 +498,8 @@ s_{cp} = \frac{availability_{p(c)}}{\sum \limits_{p=1}^A{availability_{p(c)}}}
 \begin{quote}
 where \(availability_{p(c)}\) is the availability of each parent \(p\)
 of child \(c\) expressed in terms of \(c\) (as say in \emph{child
-equivalent}). The availability \(availability_{p(c)}\) can be defined in
-different ways during different steps of the overall process. In general
-terms, it represents a difference between supply and utilizations, but
-utilizations may be or not be all included in the calculation.
+equivalent}). Availability \(availability_{p(c)}\) is defined in
+different ways during different steps of the overall process.
 \end{quote}
 
 Commodity trees are presented in tables like Table 1, which represents
@@ -505,7 +507,7 @@ the same example of Figure \ref{fig:f2}. In the table each production
 process is represented in a separate row.
 
 \begin{longtable}[]{@{}rlllll@{}}
-\caption{Commodity Tree Wheat China Mainland, 2014}\tabularnewline
+\caption{Commodity Tree - China/Wheat/2014 example}\tabularnewline
 \toprule
 Country & Year & ParentName & ChildName & eR & share\tabularnewline
 \midrule
@@ -544,37 +546,39 @@ There are some concepts linked to the Commodity tree framework:
 \begin{itemize}
 \tightlist
 \item
-  \textbf{\emph{Proxi-Primary}} commodities. These are a set of
+  \textbf{\emph{Proxy-Primary}} commodities. These are a set of
   commodities that are children of other commodities but, because they
   are important in representing the food availability of a country, are
-  not aggregated to their primary commodities, but are kept separated.
+  not aggregated to their primary commodities, but are kept separate.
   These commodities are \emph{cut} from the tree of the primary
   commodity/ies and, if they can be processed in other products, have
-  their own commodity tree. The name \emph{proxi-primary} is assigned
-  because they are considered as primary commodity in the Standarization
-  process.
+  their own commodity tree. The name \emph{proxy-primary} is assigned
+  because they are considered as primary- commodities in the
+  Standardization process.
 \item
-  \textbf{\emph{No-Tree}} commodities. These are commodities that are
-  primary commodities and are never processed in other products. As they
-  are not involved in any production process, there is no tree
-  associated to them. Notice that, even a commodity that is included in
-  the commodity tree for one COuntry, might be a No-tree commodity for
-  another countrt or another year, if no production processes have been
-  activated for that specific commodity or year.
+  \textbf{\emph{No-Tree}} commodities. These are \emph{zero-level}
+  commodities that are primary commodities and are never processed in
+  other products. As they are not involved in any production process,
+  there is no tree associated to them. Notice that, even a commodity
+  that is included in the commodity tree for one Country, might be a
+  No-tree commodity for another countrt or another year, if no
+  production processes have been activated for that specific commodity
+  or year.
 \end{itemize}
 
 \section{Data Pull}\label{data-pull}
 
-The process starts by considering the initial SUA for each commodity,
-primary and derived, with the different variables of the equation (as
-listed and briefly described in the previous section) filled with
-figures as available from official or other sources and from imputation
-and estimation method, when applied. In other words, the Process starts
-by pulling figures inside a so-called \emph{SUA unbalanced}. In this
-initial account food processing and RoU figures are not available
-(because they, by default, will be measured during the process), whereas
-the figures for all other variables have been already collected, imputed
-and estimated through specific \emph{module} (Figure \ref{fig:f1}).
+The process of creating FBSs starts by considering the initial commodity
+balance for each CPC commodity, primary and derived, with the different
+variables of the equation (as listed and briefly described in the
+previous section) filled with figures as available from official or
+other sources and from imputation and estimation method, when applied.
+In other words, the Process starts by pulling figures inside a so-called
+\emph{SUA unbalanced}. In this initial account, food processing and ROU
+figures are not available (because they, by default, will be measured
+during the process), whereas the figures for all other variables have
+been already collected, imputed and estimated through specific
+\emph{module} (Figure \ref{fig:f1}).
 
 \begin{figure}[htbp]
 \centering
@@ -594,13 +598,13 @@ Working System (SWS)}\footnote{SWS is an internal Working System
   collect, collate, validate and correct data. Moreover, the platfors
   supports the possibility of performing imputations of data based on
   statisticians' knowledge and development.}.Output data of a module may
-become input data of another module, this creating a precise sequence
-for the execution of a complete FBS. IN the present document we are
-analyzing the workflow of the Standardization process as starts after
-all the module have run and have produced reliable data or each
-variable. The detailed description of the workflow for the execution of
-al the module of the FBS is described in a separate document\footnote{{[}report
-  the document when it will be available{]}}.
+become input data of another module, this circumstance creating a
+precise sequence for the execution of a complete FBS. In the present
+document, we are analyzing the workflow of the Standardization process
+as starts after all the modules have run and have produced reliable data
+or each variable. The detailed description of the workflow for the
+execution of all the modules of the FBS will be given in a separate
+document.\footnote{{[}report the document when it will be available{]}}.
 
 \section{the Initial Sua Unbalanced}\label{the-initial-sua-unbalanced}
 
@@ -617,7 +621,7 @@ complexity and structural diversity of the input data.
 
 \begin{landscape}\begin{table}
 
-\caption{\label{tab:t1}Unbalanced Sua table (Example China Mainland, Wheat 2014)}
+\caption{\label{tab:t1}Unbalanced Sua table - China/Wheat/2014 example}
 \centering
 \resizebox{\linewidth}{!}{\fontsize{18}{20}\selectfont
 \begin{tabular}[t]{>{\raggedleft\arraybackslash}p{12em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}}
@@ -650,7 +654,7 @@ bread & 15,485 & 2,897 & 4,210 &  & 14,175 & - &  &  & -3 &  &  & -\\
 \hline
 pastry & 193,950 & 89,593 & 117,630 &  & 165,914 & - &  &  & -43 &  &  & -\\
 \hline
-\multicolumn{13}{l}{\textsuperscript{*} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption,}\\
+\multicolumn{13}{l}{\textsuperscript{a} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption,}\\
 \multicolumn{13}{l}{IU=IndustrialUse, L=Loss, ROU=Residual and other uses}\\
 \end{tabular}}
 \end{table}
@@ -682,9 +686,7 @@ of Wheat in China in 2014 and is displayed, in its graphical form, in
 Figure \ref{fig:f2}.
 
 There are unbalanced SUAs for all combinations of commodity
-tree/country/year. These tables are the starting poin of the
-\emph{Standardization and Balancing} process, which starts with the
-``Filling'' of the missing figures in the SUAs.
+tree/country/year.
 
 \section{\texorpdfstring{The \emph{Sua
 Filling}}{The Sua Filling}}\label{the-sua-filling}
@@ -695,14 +697,14 @@ rationale}\label{main-rules-and-the-rationale}
 
 The Standardization, i.e.~the conversion of the variables of any child
 commodity in primary-equivalent commodity, requires all variables of the
-SUAs to be filled (exept for ROU, which is a residual variable and is
-imputed at the very last step of theprocess), ``all variables'' meaning
+SUAs to be filled (except for ROU, which is a residual variable and is
+imputed at the very last step of the process), ``all variables'' meaning
 ``all variables that are supposed to be filled''. Indeed, not all
 variables have to exist for all commodities. Consider maize as an
 example: if there is no figure of \emph{food availability} for maize,
-that does not mean that there is a missing figure, because maize is
+that does not mean that there is a missing figure because maize is
 rarely used for human consumption directly. However, in some country
-people do eat raw maize and, therefore, for those countries a food
+people do eat raw maize and, therefore, for those countries, a food
 figure is expected and, if missing, that has to be taken into account.
 
 A simplifided workflow of \emph{Sua Filling} is reported in Figure
@@ -714,13 +716,13 @@ A simplifided workflow of \emph{Sua Filling} is reported in Figure
 
 }
 
-\caption{\label{fig:f3}The Sua filling simplified workflow}\label{fig:f3}
+\caption{\label{fig:f3}The Sua Filling simplified workflow}\label{fig:f3}
 \end{figure}
 
-\emph{Food Processing} needs to be computed first, which does not come
-from any module. For the food processing to be correclty computed, a
-check on the other variables as to be performed, in order to be sure
-that the food processing might be correclty imputed. In particular,
+\emph{Food Processing} needs to be computed first and it does not come
+from any module. For the food processing to be correctly computed, a
+check on the other variables has to be performed, in order to be sure
+that the food processing might be correctly imputed. In particular,
 Production is checked first, as the \emph{Food Processing} figure of any
 commodity is based on the production one. Then \emph{Food processing}
 can be computed and, after that, other missing figures, if existing, are
@@ -741,7 +743,7 @@ been developed that responds to the following rationale and rules:
   \emph{Preserving reliability of sources of data}
 \end{enumerate}
 
-Not all the variables (supplies and utilizations) are to be filled:
+Not all the variables (supplies and Utilizations) are to be filled:
 
 \begin{itemize}
 \tightlist
@@ -754,11 +756,11 @@ Not all the variables (supplies and utilizations) are to be filled:
   Production figures of primary commodities are also published by FAO.
   As previously mentioned, production values can have various flags
   which assign different degrees of reliability to these figures. The
-  \emph{sua filling} treats production figures accordingly to flags.
+  \emph{Sua Filling} treats production figures accordingly to flags.
 \item
   Stock figures are also not touched during the process of filling. This
   decision was taken because the standardization process works year by
-  year, while \emph{stock variation} is a time-based variable that have
+  year, while \emph{stock variation} is a time-based variable that has
   to be always treated looking at the data over time. The cross year
   approach is incompatible with this characteristic. Any inconsistent or
   missing value for stock found would require to go back to the module
@@ -766,51 +768,51 @@ Not all the variables (supplies and utilizations) are to be filled:
   found, a manual correction would be required.
 \end{itemize}
 
-Information about the remaining variables, which are all utilizations,
+Information about the remaining variables, which are all Utilizations,
 is taken from FBSs and SUAs of past years. FBSs published with the
 previous methodology and their corresponding SUAs can give information
-about which are the utilizations supposed to be active for every single
+about which are the Utilizations supposed to be active for every single
 commodity in each country.\\
-Therefore, these information have to be given externally, as the process
-is automated and there is non-human knowledge intervening in training
-the machine that is performing the calculations. The previous
+Therefore, these pieces of information have to be given externally, as
+the process is automated and there is non-human knowledge intervening in
+training the machine that is performing the calculations. The previous
 methodology used for compiling FBS made massive use of manual
 interventions while the new methodology tries to avoid it, but taking
 advantage of the work and effort of the country experts that compiled
-the FBSs in the past. Past information are embedded in the new
-methodology trought the use of the \emph{Utilization table} which helps
-idenifying which variables have to be filled, commodity by commodity,
-while the amount of the to be assiged to sigures is identified through a
-set of rules, known as \emph{Sua filling}. This procedure makes use of
+the FBSs in the past. Past information is embedded in the new
+methodology through the use of the \emph{Utilization Table} which helps
+to identify which variables have to be filled, commodity by commodity,
+while the amount of them to be assigned to figures is identified through
+a set of rules, known as \emph{Sua Filling}. This procedure makes use of
 the imbalance between supply and utilization values for each commodity
 and fills the figures that have been recognized as missing from the
-\textbf{\emph{Utilization table}}. The filling procedure assigns figures
+\textbf{\emph{Utilization Table}}. The filling procedure assigns figures
 using an ad-hoc algorithm, called \textbf{\emph{Inverse Ranking}},
 designed for dimensioning the figures in accordance with the importance
 they had in the past FBSs, as suggested also from the \emph{Utilization
-table} through ranks associated to each variable. As a consequence, all
-the commodities entering the sua filling procedure are eventually
+Table} through ranks associated to each variable. As a consequence, all
+the commodities entering the \emph{Sua Filling} procedure are eventually
 balanced.
 
 Not all the commodities enter the process the same way. In particular, a
-distinction is made between primary commodties and derived commodities:
+distinction is made between primary commodities and derived commodities:
 
 \begin{itemize}
 \tightlist
 \item
   Primary commodities are normally the commodities for which more
-  reliable figures are produced. Moreover, FAO often publish information
-  about primary commodities, therefore values are not expected to be
-  modifyed during a computational process.
+  reliable figures are produced. Moreover, FAO often publishes
+  information about primary commodities, therefore values are not
+  expected to be modified during a computational process.
 \item
   Derived commodities are more affected by modifications during this
   process, according to the flag of each figure.
 \end{itemize}
 
-Therefore, the steps of \emph{Sua filling} process affect the SUA
+Therefore, the steps of \emph{Sua Filling} process affect the SUA
 differently from line to line. Figure \ref{fig:f4} shows the general
-Workflow of the sua filling highlighting the distinction between primary
-and derived commodities.
+Workflow of the \emph{Sua Filling} highlighting the distinction between
+primary and derived commodities.
 
 \begin{figure}
 
@@ -818,44 +820,45 @@ and derived commodities.
 
 }
 
-\caption{\label{fig:f4}The Sua filling divesified workflow}\label{fig:f4}
+\caption{\label{fig:f4}The Sua Filling diversified workflow}\label{fig:f4}
 \end{figure}
 
 \subsection*{Step 1: Filling of production
 figures}\label{step-1-filling-of-production-figures}
 \addcontentsline{toc}{subsection}{Step 1: Filling of production figures}
 
-Only Derived commodities are involved in this process. The sua filling
-detect the Production figures that need to be filled or modified, by
-looking at the following \emph{Imbalance}:
+Only Derived commodities are involved in this process. The \emph{Sua
+Filling} detects the Production figures that need to be filled or
+modified, by looking at the following \emph{Imbalance}:
 
 \begin{equation}
 \label{eq:imbalance1}
-Imb_{1} = P_{ijt} + I_{ijt} - X_{ijt}
+Imb1_{ijt} = P_{ijt} + I_{ijt} - X_{ijt}
 \end{equation}
 
-where \(Imb_{1}\) is the Imbalance and is enumerated because is
+where \(Imb1_{ijt}\) is the Imbalance and is enumerated because is
 different from a second Imbalance that will enter into the process
 later. Here:
 
 \begin{itemize}
 \tightlist
 \item
-  If \(Imb_{1} < 0\) there is no supply enough for the export and this
-  is intepreted as the need for creating/incrementing the Production
-  figure. The new production figure (\(P^*_{ijt}\)) is computed as:
+  If \(Imb1_{ijt} < 0\) there is no supply enough for the export and
+  this is intepreted as the need for creating/incrementing the
+  Production figure. The new production figure (\(P^*_{ijt}\)) is
+  computed as:
 \end{itemize}
 
 \begin{equation}
 \label{eq:imbalance1}
- P^*_{ijt} = P_{ijt} + Imb_{1}
+ P^*_{ijt} = P_{ijt} + Imb1_{ijt}
 \end{equation}
 
 \begin{itemize}
 \tightlist
 \item
-  If \(Imb_{1} >= 0\) there is enough supply and, therefore, no need for
-  changing the production figure.
+  If \(Imb1_{ijt} >= 0\) there is enough supply and, therefore, no need
+  for changing the production figure.
 \end{itemize}
 
 The reason for excluding other Variables from the computation of the
@@ -863,7 +866,7 @@ imbalance here is that, at this step of the process, Trade variables are
 the most reliable and those for which, to the highest level of
 probability, there are all the figures filled. In Table 3 \emph{Imb1} of
 our example is reported. Notice that there are 3 rows with negative
-values, but one of them is considered Primary ommodity. Indeed,
+values, but one of them is considered a Primary commodity. Indeed,
 \emph{Mixes and dough for the preparation of baker's wares} is a
 commodity never processed and, therefore, is considered primary
 commodity and added to wheat in the FBS item \emph{Wheat and produts}.
@@ -872,7 +875,7 @@ Table 4.
 
 \begin{landscape}\begin{table}
 
-\caption{\label{tab:t2}Sua table with Imb1 (Example China Mainland, Wheat 2014)}
+\caption{\label{tab:t2}Sua table with Imb1 - China/Wheat/2014 example}
 \centering
 \resizebox{\linewidth}{!}{\fontsize{18}{20}\selectfont
 \begin{tabular}[t]{>{\raggedleft\arraybackslash}p{12em}|l|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\bfseries\em\leavevmode\color{red}}l}
@@ -905,7 +908,7 @@ bread & 15,485 & 2,897 & 4,210 &  & 14,175 & - &  &  & -3 &  &  & - & 14,172\\
 \hline
 pastry & 193,950 & 89,593 & 117,630 &  & 165,914 & - &  &  & -43 &  &  & - & 165,914\\
 \hline
-\multicolumn{14}{l}{\textsuperscript{*} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse,}\\
+\multicolumn{14}{l}{\textsuperscript{a} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse,}\\
 \multicolumn{14}{l}{L=Loss, ROU=Residual and other uses}\\
 \end{tabular}}
 \end{table}
@@ -913,7 +916,7 @@ pastry & 193,950 & 89,593 & 117,630 &  & 165,914 & - &  &  & -43 &  &  & - & 165
 
 \begin{landscape}\begin{table}
 
-\caption{\label{tab:t3}Sua table with Production filled/incremented (Example China Mainland, Wheat 2014)}
+\caption{\label{tab:t3}Sua table with Production filled/incremented - China/Wheat/2014 example}
 \centering
 \resizebox{\linewidth}{!}{\fontsize{18}{20}\selectfont
 \begin{tabular}[t]{>{\raggedleft\arraybackslash}p{12em}|l|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}}
@@ -946,8 +949,9 @@ bread & 15,485 & 2,897 & 4,210 &  & 14,175 & - &  &  & -3 &  &  & - & 14,172\\
 \hline
 pastry & 193,950 & 89,593 & 117,630 &  & 165,914 & - &  &  & -43 &  &  & - & 165,914\\
 \hline
-\multicolumn{14}{l}{\textsuperscript{*} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse,}\\
+\multicolumn{14}{l}{\textsuperscript{a} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse,}\\
 \multicolumn{14}{l}{L=Loss, ROU=Residual and other uses}\\
+\multicolumn{14}{l}{\textsuperscript{b} Starred figures are those that have changed from the previous table}\\
 \end{tabular}}
 \end{table}
 \end{landscape}
@@ -959,28 +963,28 @@ processing}\label{step-2-filling-of-food-processing}
 When Production has been checked, created or incremented, \emph{Food
 Processing} can be calculated. Food processing is the amount of the
 supply of a commodity processed into derived commodities. \emph{Food
-processing} is calculated for all the parent commodities as sum of the
-food processing of all the possible derived commodities. For example,
-Wheat in China is processed into Flour of Wheat, Bran of Wheatand
-Breakfast Cereals: Flour and Bran are produced during the same
+processing} is calculated for all the parent commodities as the sum of
+the food processing of all the possible derived commodities. For
+example, Wheat in China is processed into Flour of Wheat, Bran of Wheat
+and Breakfast Cereals: Flour and Bran are produced during the same
 production process (they are called \emph{co-products} or
 \emph{by-products}), therefore the same amount of wheat is used for
 producing all of them, Breakfast Cereals comes from a separate
 production process instead. Therefore, \emph{Food processing} of Wheat
-is given as sum of the amount of wheat's supply used for priducing Flour
-and Bran + The amount used for producing Breakfast Cereals. Calculation
-of Food processing happens by level, then after having calculated the
-amount for wheat, the amount of supply of flour of wheat used for
-producing Starch, Gluten, bread and the other derived of wheat flour
-becomes the \emph{Food processing} of flour of Wheat and so on, for any
-subsequent level.
+is given as the sum of the amount of wheat's supply used for producing
+Flour and Bran + The amount used for producing Breakfast Cereals.
+Calculation of Food processing happens by level, then after having
+calculated the amount for wheat, the amount of supply of flour of wheat
+used for producing Starch, Gluten, bread and the other derived of wheat
+flour becomes the \emph{Food processing} of flour of Wheat and so on,
+for any subsequent level.
 
 The formula for calculating \(FP\) is based on the production of the
 child product:
 
 \begin{equation}
 \label{eq:Food Processing}
-FP_{p_{ijt}} = \sum \limits_{c=1}^C\biggl(\frac{P_{c_{ijt}}}{eR_{p\to c}}\biggr)\times s_{cp}\times w_{c}
+FP_{pjt} = \sum \limits_{c=1}^C\biggl(\frac{P_{cjt}}{eR_{p\to c}}\biggr)\times s^{1}_{cp}\times w_{c}
 \end{equation}
 
 where:
@@ -988,24 +992,23 @@ where:
 \begin{itemize}
 \tightlist
 \item
-  \(FP_{p_{ijt}}\) is \emph{Food processing} of the generic parent
-  \(p\).
+  \(FP_{pjt}\) is \emph{Food processing} of the generic parent \(p\).
 \item
   \(c = 1,2,3...C\) are the \(C\) children \(c\) of parent \(p\).
 \item
-  \(P_{c_{ijt}}\) is the Production of Child \(c\).
+  \(P_{cjt}\) is the Production of Child \(c\).
 \item
   \(eR_{p\to c}\) is the \emph{extraction Rate} from parent \(p\) to
   child \(c\).
 \item
-  \(s_{cp}\) is the \emph{share} of child \(c\) from parent \(p\).
-  Shares here are defined as:
+  \(s^{1}_{cp}\) is the \emph{share} of child \(c\) from parent \(p\)
+  specific for Food Processing calculation. It is defined as:
 \end{itemize}
 
 \begin{quote}
 \begin{equation}
 \label{eq:shares}
-s_{cp} = \frac{availability1_{p(c)}}{\sum \limits_{p=1}^A{availability1_{p(c)}}}
+s^{1}_{cp} = \frac{availability1_{p(c)}}{\sum \limits_{p=1}^A{availability1_{p(c)}}}
 \end{equation}
 \end{quote}
 
@@ -1020,7 +1023,7 @@ availability will be found in a following step:
 \begin{quote}
 \begin{equation}
 \label{eq:availability 1}
-availability1_{p(c)} = (P_{p_{ijt}} + I_{p_{ijt}})\times eR_{p\to c}
+availability1_{p(c)} = (P_{pjt} + I_{pjt})\times eR_{p\to c}
 \end{equation}
 \end{quote}
 \end{quote}
@@ -1029,14 +1032,14 @@ availability1_{p(c)} = (P_{p_{ijt}} + I_{p_{ijt}})\times eR_{p\to c}
 \tightlist
 \item
   \(w_{c}\) is the \emph{weight} of child \(c\). This parameter is used
-  for identifying and treating co-product. Indeed, if the production of
-  two or more co-prodiucts is used for producing \emph{Food processing}
+  for identifying and treating co-products. Indeed, if the production of
+  two or more co-products is used for producing \emph{Food processing}
   of the parent commodity producing them, the result would be a Food
   processing twice the size of what it should be. This would happen
   because the two co-products are produced during the same process, in
-  other words, fromt he same amount of the parent commodity. For this to
+  other words, from the same amount of the parent commodity. For this to
   be taken into account, a weight is used, which is 1 for the commodity
-  that have to be considered for determining Food processing of parent
+  that has to be considered for determining Food processing of parent
   commodity and 0 for the child commodity that are co-products (equation
   \ref{eq:weight}). Please notice that, the co-products are still
   important in the standardization, because they contribute in the
@@ -1058,13 +1061,13 @@ w_{c} = 0      & \quad \text{if only calories have to be standardized}
 \end{quote}
 \end{quote}
 
-The following Table reports the commodity tree of the wheat/China
-example with the extracolumn reporting the \emph{weight} of each
-child-commodity.
+The following Table reports the commodity tree of the
+\emph{China/Wheat/2014} example with the extra-column reporting the
+\emph{weight} of each child-commodity.
 
 \begin{longtable}[]{@{}rllllll@{}}
-\caption{Commodity Tree Wheat China Mainland, 2014 with
-weights}\tabularnewline
+\caption{Commodity Tree with weights - China/Wheat/2014
+example}\tabularnewline
 \toprule
 Country & Year & ParentName & ChildName & eR & share &
 weight\tabularnewline
@@ -1109,7 +1112,7 @@ to this child (\(0.33\) and \(0.67\)) is equal to \(1\).
 
 Table 6 shows the SUA table after the two steps just described. Notice
 that, in the specific example, there was no need for the
-creation/incrementation of Production on any derived commodity because
+creation/increase of Production on any derived commodity because
 \(Imb1\) is positive for all commodities.
 
 From Table 5 and Table 6 here is, as example, the computation of
@@ -1118,14 +1121,14 @@ From Table 5 and Table 6 here is, as example, the computation of
 \begin{equation}
 \begin{multlined}
 \label{eq:wheatFP}
-FP_{wheat_{2014}} = \left(70,500,000/0.78\right)\times 1\times 1 +\left(21,414,729/0.8\right)\times 1\times 0 = 90,384,615
+FP_{wheatChina2014} = \left(70,500,000/0.78\right)\times 1\times 1 +\left(21,414,729/0.8\right)\times 1\times 0 = 90,384,615
 \end{multlined}
 \end{equation}
 
 \begin{equation}
 \begin{multlined}
 \label{eq:flourFP}
-FP_{flourW_{2014}} = \left(1,415,692/1\right)\times 1\times 1 +\left(15,486/1\right)\times 1\times 1 
+FP_{flourChina2014} = \left(1,415,692/1\right)\times 1\times 1 +\left(15,486/1\right)\times 1\times 1 
 +\left(193,950/1\right)\times 1\times 1
 +\\
 \left(239,816/0.75\right)\times 1\times 1 +
@@ -1136,13 +1139,13 @@ FP_{flourW_{2014}} = \left(1,415,692/1\right)\times 1\times 1 +\left(15,486/1\ri
 \begin{equation}
 \begin{multlined}
 \label{eq:starchFP}
-FP_{starchW_{2014}} = \left(158,665/1\right)\times 1\times 1 +\left(21,414,729/0.8\right)\times 1\times 0 = 158,665
+FP_{starchChina2014} = \left(158,665/1\right)\times 1\times 1 +\left(21,414,729/0.8\right)\times 1\times 0 = 158,665
 \end{multlined}
 \end{equation}
 
 \begin{landscape}\begin{table}
 
-\caption{\label{tab:t5}Sua table with Food Processing filled (Example China Mainland, Wheat 2014)}
+\caption{\label{tab:t5}Sua table with Food Processing filled - China/Wheat/2014 example}
 \centering
 \resizebox{\linewidth}{!}{\fontsize{18}{20}\selectfont
 \begin{tabular}[t]{>{\raggedleft\arraybackslash}p{12em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\bfseries\em\leavevmode\color{red}}l|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}}
@@ -1175,28 +1178,29 @@ bread & 15,485 & 2,897 & 4,210 &  & 14,175 &  &  &  & -3 &  &  & -\\
 \hline
 pastry & 193,950 & 89,593 & 117,630 &  & 165,914 &  &  &  & -43 &  &  & -\\
 \hline
-\multicolumn{13}{l}{\textsuperscript{*} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse,}\\
+\multicolumn{13}{l}{\textsuperscript{a} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse,}\\
 \multicolumn{13}{l}{L=Loss, ROU=Residual and other uses}\\
+\multicolumn{13}{l}{\textsuperscript{b} Starred figures are those that have changed from the previous table}\\
 \end{tabular}}
 \end{table}
 \end{landscape}
 
 \subsection*{Step 3: Filling of other missing
-utilizations}\label{step-3-filling-of-other-missing-utilizations}
+Utilizations}\label{step-3-filling-of-other-missing-utilizations}
 \addcontentsline{toc}{subsection}{Step 3: Filling of other missing
-utilizations}
+Utilizations}
 
 After \emph{Food processing} figures have been computed, the other
 variables have to be checked and either filled, increased or decreased.
 Only derived commodities enter this step. Primary commodities are
-excluded because for these commodities, the figures are normally more
+excluded because, for these commodities, the figures are normally more
 reliable and complete and, very often protected. Only the final
 balancing may affect Primary commodity figures. This step is based on
 the value of the following Imbalance:
 
 \begin{equation}
 \label{eq:imbalance2}
-Imb_{2} = P_{ijt} + I_{ijt} - X_{ijt} - \Delta St_{ijt} - Fo_{ijt} - Fe_{ijt} - Lo_{ijt} - Se_{ijt} - IU_{ijt} - T_{ijt}
+Imb2_{ijt} = P_{ijt} + I_{ijt} - X_{ijt} - \Delta St_{ijt} - Fo_{ijt} - Fe_{ijt} - Lo_{ijt} - Se_{ijt} - IU_{ijt} - T_{ijt}
 \end{equation}
 
 Table 7 reports \(Imb2\) for all the lines of the SUAs of our example.
@@ -1209,12 +1213,12 @@ Three different scenarios con be found (Figure 5):
 
 }
 
-\caption{\label{fig:f5}Scenarios of the sua filling}\label{fig:f5}
+\caption{\label{fig:f5}Scenarios of the *Sua Filling*}\label{fig:f5}
 \end{figure}
 
 \begin{landscape}\begin{table}
 
-\caption{\label{tab:t6}Sua table with Imb2 (Example China Mainland, Wheat 2014)}
+\caption{\label{tab:t6}Sua table with Imb2 - China/Wheat/2014 example}
 \centering
 \resizebox{\linewidth}{!}{\fontsize{18}{20}\selectfont
 \begin{tabular}[t]{>{\raggedleft\arraybackslash}p{10em}|l|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\bfseries\em\leavevmode\color{red}}l}
@@ -1247,7 +1251,7 @@ bread & 15,485 & 2,897 & 4,210 &  & 14,175 &  &  &  & -3 &  &  & - & 0\\
 \hline
 pastry & 193,950 & 89,593 & 117,630 &  & 165,914 &  &  &  & -43 &  &  & - & 42\\
 \hline
-\multicolumn{14}{l}{\textsuperscript{*} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss,}\\
+\multicolumn{14}{l}{\textsuperscript{a} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss,}\\
 \multicolumn{14}{l}{ROU=Residual and other uses}\\
 \end{tabular}}
 \end{table}
@@ -1255,7 +1259,7 @@ pastry & 193,950 & 89,593 & 117,630 &  & 165,914 &  &  &  & -43 &  &  & - & 42\\
 
 Please notice that, besides export and stock Variations, that are
 excluded from this step for the reasons previously explained, also Food
-Procesisng is excluded from the next steps, because \(FP\) is related to
+Processing is excluded from the next steps, because \(FP\) is related to
 the production figures of the children and to modify it, would detach
 this very important parent-children link.
 
@@ -1263,10 +1267,10 @@ this very important parent-children link.
 A)}}{Imbalance = 0 (Scenario A)}}\label{imbalance-0-scenario-a}
 \addcontentsline{toc}{subsubsection}{\emph{Imbalance = 0 (Scenario A)}}
 
-In this scenario the Imbalance is null, this meaning that there is
-enought supply for the existing utilizations. In This case the SUA line
-is balanced and nothig happens for the commodity. In Table 7 this is the
-case of \emph{Other Fructose and syrup} and \emph{wheat Gluten}.
+In this scenario, the Imbalance is null, this meaning that there is
+enought supply for the existing utilization. In this case, the SUA line
+is balanced and nothing happens for the commodity. In Table 7 this is
+the case of \emph{Other Fructose and syrup} and \emph{wheat Gluten}.
 
 \subsubsection*{\texorpdfstring{\emph{Imbalance \textless{} 0 (Scenario
 B)}}{Imbalance \textless{} 0 (Scenario B)}}\label{imbalance-0-scenario-b}
@@ -1274,61 +1278,63 @@ B)}}{Imbalance \textless{} 0 (Scenario B)}}\label{imbalance-0-scenario-b}
 (Scenario B)}}
 
 If this happens, it means that there is not enough supply for the
-commodity to be used in the way the SUA figures suggest. First of all it
-has to be rembered that, as said in a previous section, trade figures
-are never changed during the filling process, this meaning that, if
-there is a need for interveening on supply, only production figures
-might be taken into account. In this case, as shown in Figure
-\ref{fig:f6} a distinction as to be made as of the Production figure is
-protected or not.
+commodity to be used in the way the SUA figures suggest. In this case,
+as shown in Figure \ref{fig:f6} the algoritm tries to solve the eccess
+of utilization by reducing all the existing Utilizations by 30\% (except
+Exports\footnote{Stock is changed in this case, because this is just a
+  proportional reduction of values and does not need a time series
+  analysis}). If this is enough to cover the Utilization, the balancing
+line for that commodity is balanced and the process can go to the next
+step. Instead, after this reduction, there might be 2 different
+scenarios:
 
-\begin{itemize}
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  If Production figure is not protected, it is interpreted as if there
-  was not enough information for producing a correct production number,
-  therefore, this figure is changed, i.e.~created, if missing, or
-  incremented.
+  If this imbalance is still negative, it is checked if the production
+  figure is ``\emph{protected}'' or not:
+\end{enumerate}
+
+\begin{quote}
+-- If Production figure is not protected, it is interpreted as if there
+was not enough information for producing a correct production number,
+therefore, this figure is changed, i.e.~created, if missing, or
+incremented of an amount equal to \emph{Imb2}
+\end{quote}
+
+\begin{quote}
+-- If Production figure is protected, a warning is given that tells that
+there is an unsolvable problem and that all figures have to be checked
+because either the production protected figure is wrong, or the Trade or
+some utilization have to be changed.
+\end{quote}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
 \item
-  If Production figure is protected, it should never be touched,
-  therefore the algoritm tries to solve the eccess of utilization by
-  reducing all the existing utilizations by 30\% (except
-  Exports\footnote{Stock is changed in this case, because this is just a
-    proportional reduction of values and does not need a time series
-    analysis}). If this is enough to cover the Utilization, the
-  balancing line for that commodity is balanced and the process can go
-  to the next step. After the reduction by 30\%, the imbalance \(Imb2\)
-  is recalculated and it can give two different results:
-\end{itemize}
-
-\begin{quote}
--- If this imbalance is still negative a warning is given that tells
-that there is an unsolvable problem and that all figures have to be
-checked because either the production protected figure is wrong, or the
-Trade or some utilization have to be changed.
-\end{quote}
-
-\begin{quote}
--- If the imbalance becomes positive, the line falls into the Scenario C
-that will be explained shortly.
-\end{quote}
+  If the imbalance becomes positive, the line falls into the Scenario C
+  that will be explained shortly.
+\end{enumerate}
 
 \emph{Starch of Wheat} belongs to this very last case. Indeed, it has a
-negative Imbalance therefore its utilizations (except those utilizations
-that are completely excluded from this process) are reduced by 30\% of
-their values (see Table 8). After that happens, the Imb2 is recalculated
-and it is still negative, equal to \(74,204\) (this value is not
-reported in the table). In the following step, as the production is not
-protected, the new value of production is equal to:
+negative Imbalance, therefore, its Utilizations (except those
+Utilizations that are completely excluded from this process) are reduced
+by 30\% of their values (see Table 8). After that happens, the Imb2 is
+recalculated and it is still negative, equal to \(74,204\) (this value
+is not reported in the table). In the following step, as the production
+is not protected, the new value of production is equal to:
 
 \begin{equation}
 \label{eq:prod}
-P_{StarchW} = 239,816 + 74,204 = 314,020
+P_{StarchChina2014} = 239,816 + 74,204 = 314,020
 \end{equation}
 
 Remember that the commodity \emph{Mixes and dough for the preparation of
-baker's wares}is considered here as a primary commodity, therefore it
-will not balanced even if it has a negative imbalance.
+baker's wares} is considered here as a primary commodity, therefore it
+will not be balanced even if it has a negative imbalance.
 
 \begin{figure}
 
@@ -1341,7 +1347,7 @@ will not balanced even if it has a negative imbalance.
 
 \begin{landscape}\begin{table}
 
-\caption{\label{tab:t7}Sua table with utilizations filled (Example China Mainland, Wheat 2014)}
+\caption{\label{tab:t7}Sua table with Utilizations filled - China/Wheat/2014 example}
 \centering
 \resizebox{\linewidth}{!}{\fontsize{18}{20}\selectfont
 \begin{tabular}[t]{>{\raggedleft\arraybackslash}p{10em}|l|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\bfseries\em\leavevmode\color{red}}l}
@@ -1374,8 +1380,9 @@ bread & 15,485 & 2,897 & 4,210 &  & 14,175 &  &  &  & -3 &  &  & - & 0\\
 \hline
 pastry & 193,950 & 89,593 & 117,630 &  & **165,957** &  &  &  & **-42.75** &  &  & - & 0\\
 \hline
-\multicolumn{14}{l}{\textsuperscript{*} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss,}\\
+\multicolumn{14}{l}{\textsuperscript{a} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss,}\\
 \multicolumn{14}{l}{ROU=Residual and other uses}\\
+\multicolumn{14}{l}{\textsuperscript{b} Starred figures are those that have changed from the previous table}\\
 \end{tabular}}
 \end{table}
 \end{landscape}
@@ -1387,7 +1394,7 @@ C)}}{Imbalance \textgreater{} 0 (Scenario C)}}\label{imbalance-0-scenario-c}
 (Scenario C)}}
 
 When \(Imb2 >0\) there is an excess of supply that has to be distributed
-trought utilizations. Here:
+through Utilizations. Here:
 
 \begin{itemize}
 \tightlist
@@ -1401,19 +1408,20 @@ trought utilizations. Here:
 \end{itemize}
 
 \subsubsection*{\texorpdfstring{--\textgreater{} The \emph{Utilization
-table}}{--\textgreater{} The Utilization table}}\label{the-utilization-table}
+Table}}{--\textgreater{} The Utilization Table}}\label{the-utilization-table}
 \addcontentsline{toc}{subsubsection}{--\textgreater{} The
-\emph{Utilization table}}
+\emph{Utilization Table}}
 
-Utilization table is a Country/commodity table telling which
+\emph{Utilization Table} is a Country/commodity table telling which
 Utilizations historically have been active for each commodity and
 assigning a Rank and an inverse rank to each utilization based on its
-mean value over the period 2000-2013. Table 9 shows the Utilization
-table for \emph{Wheat and meslin flour} in China Mainland.
+mean value over the period 2000-2013. Table 9 shows the
+\emph{Utilization Table} for \emph{Wheat and meslin flour} in China
+Mainland.
 
 \begin{longtable}[]{@{}ccccc@{}}
-\caption{Utilization Table Wheat and meslin Flour China Mainland
-2014}\tabularnewline
+\caption{\emph{Utilization Table} Wheat and meslin Flour -
+China/Wheat/2014 example}\tabularnewline
 \toprule
 AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
 \midrule
@@ -1430,8 +1438,8 @@ AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
 \end{longtable}
 
 Where \(1248\) is the m49 code for China Mainland and \(23110\) is the
-cpc code of Wheat and Meslin Flour. The table tells the following
-information:
+CPC code of Wheat and Meslin Flour. The table tells the following pieces
+of information:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -1452,13 +1460,13 @@ information:
   \end{itemize}
 \item
   The biggest amount of availability of the reported commodity was used
-  for Human consumption, the second big for processing other commodity,
-  then for exports and, in the end, for increasing stocks.
+  for Human consumption, the second big for processing other
+  commodities, then for exports and, in the end, for increasing stocks.
 \end{enumerate}
 
-These informations are combined with the amount of \emph{Imb2} for
-filling the SUAs of each derived commodity according to a set of rules
-all falling into the, so called, \emph{Multiple Filler approach}.
+These pieces of information are combined with the amount of \emph{Imb2}
+for filling the SUAs of each derived commodity according to a set of
+rules all falling into the, so called, \emph{Multiple Filler approach}.
 
 \subsubsection*{\texorpdfstring{--\textgreater{} The \emph{Multiple
 Filler Approach} and the \emph{Inverse Ranking
@@ -1466,7 +1474,7 @@ Rule}}{--\textgreater{} The Multiple Filler Approach and the Inverse Ranking Rul
 \addcontentsline{toc}{subsubsection}{--\textgreater{} The \emph{Multiple
 Filler Approach} and the \emph{Inverse Ranking Rule}}
 
-This approach distribute the \(Imb2\) across utilizations, by the ules
+This approach distributes the \(Imb2\) across Utilizations, by the rules
 reported in Figure \ref{fig:f7}.
 
 \begin{figure}
@@ -1484,15 +1492,15 @@ As reported in the Figure, Three cases may happen:
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  If all the ranked utilizations are already filled, all of them are
+  If all the ranked Utilizations are already filled, all of them are
   increased proportionally to their values. \emph{Bran of Wheat} in our
-  example, belongs to this case. Utilization table for Bran of Wheat is
-  reported in Table 10
+  example, belongs to this case. \emph{Utilization Table} for Bran of
+  Wheat is reported in Table 10
 \end{enumerate}
 
 \begin{longtable}[]{@{}ccccc@{}}
-\caption{Utilization Table Bran ofWheat China Mainland
-2014}\tabularnewline
+\caption{\emph{Utilization Table} Bran of Wheat - China/Wheat/2014
+example}\tabularnewline
 \toprule
 AreaM49 & Element & ItemCpc & rank & rankInv\tabularnewline
 \midrule
@@ -1519,34 +1527,34 @@ therefore, all of them are increased proportionally to their values.
 \def\labelenumi{\arabic{enumi}.}
 \setcounter{enumi}{1}
 \item
-  If all the ranked utilizations are already filled but one, the all
+  If all the ranked Utilizations are already filled but one, the all
   imbalance goes to that commodity. In our Example, this is the case of
   \emph{Gluten Feed and meals} (Table 10).
 \item
   Finally, if more that one utilization is empty, the so called
   \textbf{\emph{Inverse Ranking rule}} is activated. This rule assigns
-  part of the imbalance to the ranked utilizations proportionally to the
+  part of the imbalance to the ranked Utilizations proportionally to the
   ranks. This happens by making use of the inverse rank of all the
-  utilizations that are ``activable'' and not excluded from the
+  Utilizations that are ``activable'' and not excluded from the
   procedure. The rule works for any number of ranks and independently
-  from the number of utilizations that have to be excluded.
+  from the number of Utilizations that have to be excluded.
 \end{enumerate}
 
 \begin{quote}
-The \emph{Inverse ranking rule} starts from the Utilization table with
-the addition of a column containing the \emph{rank weigth \(Wr\)}, as
-reported in the following table:
+The \emph{Inverse ranking rule} starts from the \emph{Utilization Table}
+with the addition of a column containing the \emph{rank weigth \(Wr\)},
+as reported in the following table:
 \end{quote}
 
 \begin{quote}
 \begin{center}
 \begin{tabular}{ c|c|c|c } 
 \hline
-element ($Ut_{i}$) & rank ($r_{i}$) & Inverse rank ($Ir_{i}$) & weight Rank ($Wr_{i}$)\\
+element ($Ut_{h}$) & rank ($r_{h}$) & Inverse rank ($Ir_{h}$) & weight Rank ($Wr_{h}$)\\
 \hline
 $Ut_{1}$ & $r_{1}$ & $Ir_{1}$  & $Wr_{1}$\\ 
 ... & ... & ... & ...\\ 
-$Ut_{i}$ & $r_{i}$ & $Ir_{i}$  & $Wr_{i}$\\ 
+$Ut_{h}$ & $r_{h}$ & $Ir_{h}$  & $Wr_{h}$\\ 
 ... & ... & ... & ...\\ 
 $Ut_{n}$ & $r_{n}$ & $Ir_{n}$  & $Wr_{n}$\\ 
 \hline
@@ -1562,12 +1570,12 @@ where:
 \begin{itemize}
 \tightlist
 \item
-  \(Ut_{i}\) is the generic utilization, with \(i=1,2,...n\)
+  \(Ut_{h}\) is the generic utilization, with \(h=1,2,...n\)
 \item
-  \(r_{i}\) is the rank of utilization \(Ut_{i}\), with \(i=1,2,...n\)
+  \(r_{h}\) is the rank of utilization \(Ut_{h}\), with \(h=1,2,...n\)
 \item
-  \(Ir_{i}\) is the Inverse rank of utilization \(Ut_{i}\), with
-  \(i=1,2,...n\) and is equal to:
+  \(hr_{h}\) is the Inverse rank of utilization \(Ut_{h}\), with
+  \(h=1,2,...n\) and is equal to:
 \end{itemize}
 \end{quote}
 
@@ -1575,7 +1583,7 @@ where:
 \begin{quote}
 \begin{equation}
 \label{eq:inverseRankequation}
-Ir_{i} = max(r)-r_{i}+1
+Ir_{h} = max(r)-r_{h}+1
 \end{equation}
 \end{quote}
 \end{quote}
@@ -1584,9 +1592,9 @@ Ir_{i} = max(r)-r_{i}+1
 \begin{itemize}
 \tightlist
 \item
-  \(Wr_{i}\) is the rank weight of utilization \(Ut_{i}\) and is equal
+  \(Wr_{h}\) is the rank weight of utilization \(Ut_{h}\) and is equal
   to 0 or 1 depending on the element being, respectively, exluded or not
-  from the sua filling (Table 11).
+  from the \emph{Sua Filling} (Table 11).
 \end{itemize}
 \end{quote}
 
@@ -1614,28 +1622,28 @@ Utilizations & Wr\tabularnewline
 \end{longtable}
 
 \begin{quote}
-The value \(Value_{i}\) assigned to the utilization of each commodity is
-calculated as a rank based proportion \(pR_{i}\) of the total \(Imb2\)
+The value \(V_{h}\) assigned to the Utilizations of each commodity is
+calculated as a rank based proportion \(pR_{h}\) of the total \(Imb2\)
 according to the following equation:
 \end{quote}
 
 \begin{quote}
 \begin{equation}
 \label{eq:inverseRank}
-Value_{i} = Imb2 \times pR_{i}
+V_{h} = Imb2 \times pR_{h}
 \end{equation}
 \end{quote}
 
 \begin{quote}
-with \(pR_{i}\) depending on \(\sum \limits_{i=1}^n Wr_{i}\):
+with \(pR_{h}\) depending on \(\sum \limits_{h=1}^n Wr_{h}\):
 \end{quote}
 
 \begin{quote}
 \begin{equation}
 \label{eq:weightRank}
 \begin{cases}
-pR_{i} = 0     & \quad \text{when} \quad \sum \limits_{i=1}^n Wr_{i} = 0\\
-pR_{i} = \frac{Ir_{i}\times we_{i}}{\sum \limits_{i=1}^n\left(Ir_{i}\times Wr_{i}\right)}     & \quad \text{when} \quad \sum \limits_{i=1}^n Wr_{i} > 0 
+pR_{h} = 0     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} = 0\\
+pR_{h} = \frac{Ir_{h}\times we_{h}}{\sum \limits_{i=1}^n\left(Ir_{h}\times Wr_{h}\right)}     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} > 0 
 \end{cases}
 \end{equation}
 \end{quote}
@@ -1645,13 +1653,13 @@ pR_{i} = \frac{Ir_{i}\times we_{i}}{\sum \limits_{i=1}^n\left(Ir_{i}\times Wr_{i
 
 \begin{quote}
 As an example consider the SUA line of \emph{Cocoa Beans} in Madagascar
-in 2014 (Table 12) and the Utilization table of the same
+in 2014 (Table 12) and the \emph{Utilization Table} of the same
 country/commodity combination (Table 13)
 \end{quote}
 
 \begin{longtable}[]{@{}cccccccccccccc@{}}
-\caption{Sua line of Cocoa Beans Madagascar 2014 - before Sua
-Filling}\tabularnewline
+\caption{Sua of Cocoa Beans Madagascar 2014 - before \emph{Sua
+Filling}}\tabularnewline
 \toprule
 itemName & P & I & X & DSt & Fo & FP & Fe & Se & T & IU & L & ROU &
 Imb2\tabularnewline
@@ -1668,7 +1676,8 @@ Imb2\tabularnewline
 \end{longtable}
 
 \begin{longtable}[]{@{}cccc@{}}
-\caption{Utilization table for Cocoa Beans Madagascar}\tabularnewline
+\caption{\emph{Utilization Table} for Cocoa Beans
+Madagascar}\tabularnewline
 \toprule
 Ut & r & Ir & Wr\tabularnewline
 \midrule
@@ -1686,16 +1695,17 @@ X & 1 & 5 & 0\tabularnewline
 \end{longtable}
 
 \begin{quote}
-Besides the excluded elements, there are 2 utilizations empty:
-\emph{food} and \emph{Industrial Use}. The Values of these two elements
-is calculated as folows and the result shown in Table 14:
+Besides the excluded elements, there are 2 Utilizations empty:
+\emph{food} and \emph{Industrial Use}. The Values \(V_{Fo}\) and
+\(V_{IU}\) of these two elements are calculated as follows and the
+result shown in Table 14:
 \end{quote}
 
 \begin{quote}
 \begin{equation}
 \begin{aligned}
 pR_{Fo} &= \frac{4\times 1}{0 + 0 + 4 + 3 + 0 + 0} = 4/7 = 0.57143 \\
-Value_{Fo} &= 1,832 \times 0.57143 = 1,047 
+V_{Fo} &= 1,832 \times 0.57143 = 1,047 
 \end{aligned}
 \end{equation}
 \end{quote}
@@ -1708,14 +1718,14 @@ Value_{Fo} &= 1,832 \times 0.57143 = 1,047
 \begin{aligned}
 \label{eq:VIUC}
 pR_{IU} &= \frac{3\times 1}{0 + 0 + 4 + 3 + 0 + 0} = 3/7 = 0.42857\\
-Value_{IU} &= 1,832 \times 0.42857 = 785
+V_{IU} &= 1,832 \times 0.42857 = 785
 \end{aligned}
 \end{equation}
 \end{quote}
 
 \begin{longtable}[]{@{}cccccccccccccc@{}}
-\caption{Sua line of Cocoa Beans Madagascar 2014 - after Sua
-Filling}\tabularnewline
+\caption{Sua line of Cocoa Beans Madagascar 2014 - after \emph{Sua
+Filling}}\tabularnewline
 \toprule
 itemName & P & I & X & DSt & Fo & FP & Fe & Se & T & IU & L & ROU &
 Imb2\tabularnewline
@@ -1732,15 +1742,39 @@ Imb2\tabularnewline
 \bottomrule
 \end{longtable}
 
-\subsection{The Sua Balanced}\label{the-sua-balanced}
+\section{The Sua Balanced}\label{the-sua-balanced}
 
-The table resulting after the Sua Filling is called \emph{Sua Balanced}.
-For the Example of China Mainland, wheat 2014 the \emph{Sua Balanced} is
-reported in Table 15
+The table resulting after the \emph{Sua Filling} is called \emph{Sua
+Balanced}. For the \emph{China/Wheat/2014} example the \emph{Sua
+Balanced} is reported in Table 15.
+
+The red lines are not balanced lines. Indeed, the \emph{Sua Filling}
+procedure does not interveene on all the commodities. It leaves
+unbalanced all the ``top level'' commodities falling in 2 main
+categories:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  The \emph{Primary commodities}. These are all the crop commodities,
+  like cereals, pulses, vegetables, fruits etc, that are often processed
+  in other commodities, like the wheat in flour of wheat.
+\item
+  The \emph{no tree} commodities. These commodities are excluded from
+  the list of commodities that are processed into something else, they
+  are often mixes of some other crop or commodity and used for specific
+  purposes, i.e. \emph{Mixes and dough for the preparation of baker's
+  wares} and \emph{Food preparations of Flour, Meal or Malt Extract}
+  from our example.
+\end{enumerate}
+
+Therefore 3 lines are not balanced in Table 15, belonging to these 2
+categories of ``not balanced'' commodities.
 
 \begin{landscape}\begin{table}
 
-\caption{\label{tab:t14}Sua Balanced (Example China Mainland, Wheat 2014)}
+\caption{\label{tab:t14}Sua Balanced - China/Wheat/2014 example}
 \centering
 \resizebox{\linewidth}{!}{\fontsize{18}{20}\selectfont
 \begin{tabular}[t]{r|l|l|l|l|l|l|l|l|l|l|l|l|l}
@@ -1773,35 +1807,11 @@ bread & 15,485 & 2,897 & 4,210 &  & 14,175 &  &  &  & -3 &  &  & - & 0\\
 \hline
 pastry & 193,950 & 89,593 & 117,630 &  & 165,957 &  &  &  & -42.75 &  &  & - & 0\\
 \hline
-\multicolumn{14}{l}{\textsuperscript{*} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss,}\\
+\multicolumn{14}{l}{\textsuperscript{a} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss,}\\
 \multicolumn{14}{l}{ROU=Residual and other uses}\\
 \end{tabular}}
 \end{table}
 \end{landscape}
-
-The red lines are not balanced lines. Indeed, the \emph{Sua Filling}
-procedure does not interveene on all the commodities. It leaves
-unbalanced all the ``top level'' commodities falling in 2 main
-categories:
-
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\tightlist
-\item
-  The \emph{Primary commodities}. These are all the crop commodities,
-  like cereals, pulses, vegetables, fruits etc, that are often processed
-  in other commodities, like the wheat in flour of wheat.
-\item
-  The \emph{no tree} commodities. These commodities are excluded from
-  the list of commodities that are processed into something else, they
-  are often mixes of some other crop or commodity and used for specific
-  purposes, i.e. \emph{Mixes and dough for the preparation of baker's
-  wares} and \emph{Food preparations of Flour, Meal or Malt Extract}
-  from our example.
-\end{enumerate}
-
-Therefore 3 lines are not balanced in Table 15, belonging to these 2
-categories of ``not balanced'' commodities.
 
 The reason for the exclusion of the \emph{zero-level} commodities form
 the filling stays in the circumstance for which the standardization will
@@ -1810,19 +1820,340 @@ a final \emph{balancing} procedure. In order not to intervene twice on
 these commodities, it has been decide to keep as smaller as possible the
 number correction, so to reduce error.
 
-\section{The Standardization}\label{the-standardization}
+\subsection*{Nutritive Values and DES
+calculation}\label{nutritive-values-and-des-calculation}
+\addcontentsline{toc}{subsection}{Nutritive Values and DES calculation}
+
+After the \emph{sua Balanced} table has been produced,
+\textbf{\emph{Nutritive values}} are calculated (\emph{Calories},
+\emph{Proteins} and \emph{Fats}), based on the Food availability
+produced during the \emph{Sua Filling}. These Variables are calculated
+for each Food Product of the SUA, based on official Nutritive Factors
+stored in the SWS. Values of Nutritive elements are stored in the system
+as:
+
+\begin{itemize}
+\tightlist
+\item
+  \(g/100g\), for Proteins and Fats
+\item
+  \(Kcal/100g\) for Calories.
+\end{itemize}
+
+As a consequence, the amount of Nutritive Elements for the number of
+Tonnes of Food is given by
+
+\begin{equation}
+\label{eq:Nutritive}
+\text{Nutritive value} = \text{Nutritive factor} \times \text{Food availability (tonnes)} \times 10,000
+\end{equation}
+
+In particular, after all Nutritive Values are calculated, only DES is
+reported for FBS's purposes, DES being given by:
+
+\begin{equation}
+\label{eq:des}
+ DES_{ijt} = \cfrac{\cfrac{Kcal_{ijt}}{Population_{jt}}}{365}
+\end{equation}
+
+where the \(i\) index runs over all countries, the \(j\) index over all
+commodities, and \(t\) over years.
+
+DES for the food commodities in the \emph{China/Wheat/2014} example are
+reported in Table 16
+
+\begin{longtable}[]{@{}ccc@{}}
+\caption{Sua Unbalanced DES - China/Wheat/2014 example}\tabularnewline
+\toprule
+itemName & Fo & DES\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+itemName & Fo & DES\tabularnewline
+\midrule
+\endhead
+Wheat & - & -\tabularnewline
+Wheat and meslin flo & 68,372,646 & 478.38\tabularnewline
+Mixes and doughs for & 0 & 0\tabularnewline
+Other Fructose and S & 0 & 0\tabularnewline
+Starch of Wheat & - & -\tabularnewline
+Wheat Gluten & - & -\tabularnewline
+Communion wafers, em & 16,239.38 & 0.1405\tabularnewline
+Uncooked pasta, not & 1,406,024 & 10.1699\tabularnewline
+Food Preparations of & 47,708.53 & 0.3545\tabularnewline
+Bran of Wheat & 16,689,929 & 70.0635\tabularnewline
+Gluten Feed and Meal & - & -\tabularnewline
+bread & 14,174.09 & 0.0696\tabularnewline
+pastry & 165,957 & 1.2069\tabularnewline
+\bottomrule
+\end{longtable}
+
+Figure \ref{fig:f8} Represents the steps following the \emph{Sua
+Filling}:
+
+\begin{figure}[H]
+
+{\centering \includegraphics{images/08_SuaBalanced} 
+
+}
+
+\caption{\label{fig:f8}Sua Balanced and the calculation of DES}\label{fig:f8}
+\end{figure}
+
+\section{Standardization}\label{standardization}
 
 The \emph{Standardization} is the process of transforming all the
-processed commodities in terms of their primary commodities, so to have
-all the existing food availability of a country, expressed in terms of
-the main commodities. Aggregation of data from a detailed product
-classification to a more comprehensive one is common practice for two
-reasons. The first reason is to reduce the amount of data, and the
-number of commodities involved, to a level and size more suited for
-analytical purposes. The second reason is, that by cancelling out the
-intermediate production of derived products against the input use of
-primary products, a clearer view emerges of the domestic availability of
-a product and its final uses.
+processed commodities in terms of their primary commodities and to add
+up all the calories of the food commodities, so to have all the existing
+food availability of a country, expressed in terms of the main
+commodities. Aggregation of data from a detailed product classification
+to a more comprehensive one is common practice for two reasons. The
+first reason is to reduce the amount of data, and the number of
+commodities involved, to a level and size more suited for analytical
+purposes. The second reason is, that by cancelling out the intermediate
+production of derived products against the input use of primary
+products, a clearer view emerges of the domestic availability of a
+product and its final uses.
+
+The standardization starts from the SUA table (reported, in its generic
+form, in Table 17)
+
+\begin {table}[H]
+\begin{center}
+\caption {Generic SUA for Standardization}
+
+\begin{tabular}{lllllllllllll}
+ & & & & & \\
+  \hline
+Item & $El_{1}$ & … & $El_{h}$ & … & $El_{n}$ & $Kcal$\\ 
+  \hline
+$parent_{p}$ & $V_{El_{1,pjt}}$ & … & $V_{El_{h,pjt}}$ & … & $V_{El_{n,pjt}}$ & $Kcal_{pjt}$\\ 
+$child_{1}$ & $V_{El_{1,jt1}}$ & … & $V_{El_{h,jt1}}$ & … & $V_{El_{n,jt1}}$ & $Kcal_{1jt}$\\ 
+… & … & … & … & … & … & … \\ 
+$child_{c}$ & $V_{El_{1,cjt}}$ & … & $V_{El_{h,cjt}}$ & … & $V_{El_{n,cjt}}$ & $Kcal_{cjt}$\\ 
+… & … & … & … & … & … & … \\ 
+$child_{C}$ & $V_{El_{1,Cjt}}$ & … & $V_{El_{h,Cjt}}$ & … & $V_{El_{n,Cjt}}$ & $Kcal_{pjt}$\\ 
+   \hline
+\end{tabular}
+\end{center}
+\end {table}
+
+where:
+
+\begin{itemize}
+\tightlist
+\item
+  \(c = 1,2,3...C\) are the \(C\) children \(c\) of parent \(p\),
+\item
+  \(V_{El_{h,cjt}}\) is Value of element \(h\) for child \(c\),
+\item
+  \(V_{El_{h,pjt}}\) is Value of element \(h\) for parent \(p\),
+\item
+  \(El_{h}\) is the generic Element of the generic child \(c\) of Parent
+  \(p\) in the range of elements involved in the Standardization.
+  Indeed, \(P\) and \(FP\) are excluded from this step of the process,
+\item
+  \(Kcal\) is the amount of Calories associated with the commodity. This
+  is positive only if the commodity is a food commodity.
+\end{itemize}
+
+Standardize a SUA is the process of:
+
+\begin{enumerate}
+\def\labelenumi{\alph{enumi}.}
+\tightlist
+\item
+  expressing all elments \(El_{k,c}\) of the children of a parent
+  commodity, in terms of their parent commodity,
+\item
+  Adding up all the calories of the food commodities and calculate DES.
+\end{enumerate}
+
+Elements are transformed in their parent commodity following the
+equation:
+
+\begin{equation}
+\begin{cases}
+\label{eq:Food Processing}
+ El_{h,pjt} = \sum \limits_{c=1}^C\biggl(\frac{V_{El_{h,cjt}}}{eR_{p\to c}}\biggr)\times s^{2}_{cp}\times w_{c}\\
+  \\
+ DES_{pjt} =  \cfrac{\cfrac{Kcal_{pjt} + \sum \limits_{c=1}^C Kcal_{cjt}}{Population_{jt}}}{365}
+\end{cases}
+\end{equation}
+
+\begin{quote}
+where:
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item
+  \(c = 1,2,3...C\) are the \(C\) children \(c\) of parent \(p\),
+\item
+  \(P_{cjt}\) is the Production of Child \(c\),
+\item
+  \(eR_{p\to c}\) is the \emph{extraction Rate} from parent \(p\) to
+  child \(c\),
+\item
+  \(w_{c}\) is the \emph{weight} of child \(c\),
+\item
+  \(Kcal_{pjt}\) are the Kcal of the parent commodity (if is a food
+  commodity),
+\item
+  \(Kcal_{cjt}\) are the Kcal of the child commodities,
+\item
+  \(s^{2}_{cp}\) is the \emph{share} of child \(c\) from parent \(p\)
+  and is based on a different availability from the previous one:
+\end{itemize}
+
+\begin{equation}
+\label{eq:shares}
+s^{2}_{cp} = \cfrac{availability2_{p(c)}}{\sum \limits_{p=1}^A{availability2_{p(c)}}}
+\end{equation}
+
+\begin{quote}
+where \(availability2_{p(c)}\) is the availability of each parent \(p\)
+of child \(c\) expressed in terms of \(c\) (as say in \emph{child
+equivalent}). Is is enumerated as \(2\) because is different from the
+one previously defined. Indeed, here The availability of each parent is
+the amount of that commodity available to be processed, i.e.~the Food
+processing, expressed in terms of child, therefore:
+\end{quote}
+
+\begin{quote}
+\begin{quote}
+\begin{equation}
+\label{eq:availability2}
+availability2_{p(c)} = FP_{pjt}\times eR_{p\to c}
+\end{equation}
+\end{quote}
+\end{quote}
+
+Table 18 shows the values of \(availability2\), \(eR\) and \emph{shares}
+and \emph{weights} of the \emph{China/Wheat/2014} example.
+
+\begin{longtable}[]{@{}cccccc@{}}
+\caption{Availabilities and shares of parent/child for
+Standardization}\tabularnewline
+\toprule
+Child & Parent & extractionRate & availability & share &
+weight\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+Child & Parent & extractionRate & availability & share &
+weight\tabularnewline
+\midrule
+\endhead
+Wheat and meslin flo & Wheat & 0.78 & 70,500,000 & 1.00 &
+1\tabularnewline
+Bran of Wheat & Wheat & 0.22 & 19,884,615 & 1.00 & 0\tabularnewline
+Uncooked pasta, not & Wheat & 0.78 & 72,458,146 & 1.00 &
+1\tabularnewline
+Germ of Wheat & Wheat & 0.02 & 1,920,221 & 1.00 & 0\tabularnewline
+bread & Wheat & 0.78 & 72,458,146 & 1.00 & 1\tabularnewline
+Bulgur & Wheat & 0.95 & 85,865,385 & 1.00 & 1\tabularnewline
+pastry & Wheat & 0.78 & 72,458,146 & 1.00 & 1\tabularnewline
+Starch of Wheat & Wheat & 0.58 & 54,343,610 & 1.00 & 1\tabularnewline
+Wheat Gluten & Wheat & 0.06 & 5,796,652 & 1.00 & 0\tabularnewline
+Communion wafers, em & Wheat & 0.78 & 72,458,146 & 1.00 &
+1\tabularnewline
+Other Fructose and S & Wheat & 0.58 & 54,502,275 & 1.00 &
+1\tabularnewline
+Gluten Feed and Meal & Wheat & 0.06 & 5,796,652 & 0.76 &
+0\tabularnewline
+Gluten Feed and Meal & Maize (corn) & 0.09 & 1,803,440 & 0.24 &
+0\tabularnewline
+\bottomrule
+\end{longtable}
+
+As you can see, comparing this table with Table 15:
+
+\begin{equation}
+\label{eq:avExample1}
+availability2_{wheat(flour)} = 90,384,615\times 0,78 = 70,500,000
+\end{equation}
+
+\begin{equation}
+\label{eq:avExample2}
+availability2_{wheat(bran)} = 90,384,615\times 0,22 = 19,884,615
+\end{equation}
+
+Moreover:
+
+\begin{equation}
+\label{eq:shareEx1}
+s^{2}_{Gluten,wheat} = \frac{5,796,652}{5,796,652 + 1,803,440} = 0.76
+\end{equation}\begin{equation}
+\label{eq:shareEx1}
+s^{2}_{Gluten,Maize} = \frac{1,803,440}{5,796,652 + 1,803,440} = 0.24
+\end{equation}
+
+By applying equations \ref{eq:Food Processing} to \ref{eq:availability2}
+to Table 15, Table 20 is obtained, which contains the so
+\emph{Standardized} Table, while the DES for the \emph{Sua Standardized}
+of Table 20 is reported in Table 19.
+
+\begin{longtable}[]{@{}cc@{}}
+\caption{DES of \emph{Sua Standardized} - China/Wheat/2014
+example}\tabularnewline
+\toprule
+itemName & DES\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+itemName & DES\tabularnewline
+\midrule
+\endhead
+Wheat & 560.0300\tabularnewline
+Mixes and doughs for & 0.0000\tabularnewline
+Food Preparations of & 0.3545\tabularnewline
+Notice that: &\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \emph{Production} remains untouched from the Standardization
+\item
+  The \emph{Sua Standardized} table contains more that 1 line, because,
+  besides the primary commodity thare are 2 \emph{``zero-level''}
+  commodities. All the \emph{``zero-level''} commodities will be added
+  up for producing the final aggregation at FBS level.
+\item
+  Still The Element ROU has not been touched in this step.
+\end{enumerate}
+
+\begin{landscape}\begin{table}
+
+\caption{\label{tab:t18}Sua Standardized}
+\centering
+\resizebox{\linewidth}{!}{\fontsize{18}{20}\selectfont
+\begin{tabular}[t]{>{\raggedleft\arraybackslash}p{10em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}|>{\raggedright\arraybackslash\leavevmode\color{black}}p{6em}}
+\hline
+\multicolumn{1}{r}{\textbf{itemName}} & \multicolumn{1}{c}{\textbf{P}} & \multicolumn{1}{c}{\textbf{I}} & \multicolumn{1}{c}{\textbf{X}} & \multicolumn{1}{c}{\textbf{DSt}} & \multicolumn{1}{c}{\textbf{Fo}} & \multicolumn{1}{c}{\textbf{FP}} & \multicolumn{1}{c}{\textbf{Fe}} & \multicolumn{1}{c}{\textbf{Se}} & \multicolumn{1}{c}{\textbf{T}} & \multicolumn{1}{c}{\textbf{IU}} & \multicolumn{1}{c}{\textbf{L}} & \multicolumn{1}{c}{\textbf{ROU}}\\
+\hline
+Wheat & 126,208,400 & **3,184,654** & **781,808** & 1,120,565 & **89,711,591** & **0** & **29,387,664** & 4,277,567 & **-22,766.5** & **2,994,755** & 2,713,000 & -\\
+\hline
+Mixes and doughs for & - & 6,496.91 & 38,071.88 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & -\\
+\hline
+Food Preparations of & - & 69,685.96 & 21,977.43 & 0 & 47,708.53 & 0 & 0 & 0 & -12.2958 & 0 & 0 & -\\
+\hline
+\multicolumn{13}{l}{\textsuperscript{a} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses}\\
+\multicolumn{13}{l}{\textsuperscript{b} Starred figures are those that have changed from the previous table}\\
+\end{tabular}}
+\end{table}
+\end{landscape}
+
+\section{The FBS Balancing}\label{the-fbs-balancing}
+
+\section{Recalculation of Nutritive
+Elements}\label{recalculation-of-nutritive-elements}
+
+\section{Final aggregation and DES
+calculation}\label{final-aggregation-and-des-calculation}
 
 
 \end{document}

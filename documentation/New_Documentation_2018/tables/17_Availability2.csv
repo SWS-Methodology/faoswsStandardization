@@ -1,0 +1,14 @@
+    Child, Parent, extractionRate, availability, share, weight
+ Wheat and meslin flo,        Wheat,0.78,"70,500,000",1,1
+        Bran of Wheat,        Wheat,0.22,"19,884,615",1,0
+"  Uncooked pasta, not",        Wheat,0.78,"72,458,146",1,1
+        Germ of Wheat,        Wheat,0.02,"1,920,221",1,0
+                bread,        Wheat,0.78,"72,458,146",1,1
+               Bulgur,        Wheat,0.95,"85,865,385",1,1
+               pastry,        Wheat,0.78,"72,458,146",1,1
+      Starch of Wheat,        Wheat,0.58,"54,343,610",1,1
+         Wheat Gluten,        Wheat,0.06,"5,796,652",1,0
+" Communion wafers, em",        Wheat,0.78,"72,458,146",1,1
+ Other Fructose and S,        Wheat,0.58,"54,502,275",1,1
+ Gluten Feed and Meal,        Wheat,0.06,"5,796,652",0.76,0
+ Gluten Feed and Meal, Maize (corn),0.09,"1,803,440",0.24,0
