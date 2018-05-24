@@ -166,6 +166,23 @@ The data of each variable are generally checked and imputed in time series. The 
 
 # Objects in the SWS (DEFINITIONS) {-}
 
+there are 8 main thypologies of objects that will be use in the present document. These  correspond to objects that are used in the SWS in managing processes: 
+
+ 1. ***Domain***: A domain is an area of work where other objects are grouped, by a common criterion of interest.
+ 2. ***Data***: In this framework, every information is grouped under this name, which will be characterized by its origin, whether it is collected or imputed. 
+ 3. ***Datasets***: 
+ 4. ***Data Tables***
+ 5. ***Modules***
+ 6. ***Plugin***
+ 7. ***Data Flow***
+ 8. ***Modules***
+ 
+For the purposes of this document the following notation will be used: 
+
+```{r f1, fig.align = "center", fig.pos = "H",out.width = "70%",  fig.cap = "\\label{fig:f2}Legend of Objects"}
+
+knitr::include_graphics("images/SwsFbs/01_actors.pdf")
+```
 
 
 # The Overall Workflow of the FBS
@@ -191,7 +208,7 @@ All the steps and the table will be described across the present document, after
   
 ```{r f9, fig.align = "center", fig.pos = "H",out.width = "80%",  fig.cap = "\\label{fig:f9}Standardization and Balancing Overall Workflow"}
 
-knitr::include_graphics("images/09_overall.pdf")
+knitr::include_graphics("images/StandBal/09_overall.pdf")
 ```
 
 
@@ -207,7 +224,7 @@ The majority of the commodities are produced from one (or more) commodity (/ies)
 
 ```{r f2, fig.align = "center", fig.pos = "H",  fig.cap = "\\label{fig:f2}Commodity Tree for Wheat in China mainland 2014"}
 
-knitr::include_graphics("images/02_WheatTree.pdf")
+knitr::include_graphics("images/StandBal/02_WheatTree.pdf")
 ```
 
 
@@ -238,10 +255,6 @@ In this initial account, food processing and ROU figures are not available (beca
 
 A ***module***, in the FBS Framework, is an R-script, written by an R-developer, for the execution of a set of operations (either data import, manipulation, imputation or estimation) required for compiling the time series of one variable. There is at least one module (there might be more) for each variable of the FBS. Each module produces figures that are collected in a dataset inside the ***Statistical Working System (SWS)***^[SWS is an internal Working System providing a platform for statisticians and statistical clers to collect, collate, validate and correct data. Moreover, the platfors supports the possibility of performing imputations of data based on statisticians' knowledge and development.].Output data of a module may become input data of another module, this circumstance creating a precise sequence for the execution of a complete FBS. In the present document, we are analyzing the workflow of the Standardization process as starts after all the modules have run and have produced reliable data or each variable. The detailed description of the workflow for the execution of all the modules of the FBS will be given in a separate document.^[[report the document when it will be available]].
 
-```{r f1, fig.cap = "\\label{fig:f1}Data Pull from datasets containing data for each separate variable"}
-knitr::include_graphics("images/01_pulldata.pdf")
-```
-
 
 
 ## the Initial Sua Unbalanced {-}
@@ -249,7 +262,7 @@ knitr::include_graphics("images/01_pulldata.pdf")
 After pulling all data, the process of compiling Food Balance Sheets is a non-complete supply-utilization account. The non-completeness of the SUAs is due to different reasons: first, as already said, some variables are not collected, nor estimated before the process begins, second there is the model for industrial use that does not impute or estimate data, but just collects data from different sources, this opening the strong possibility not to have values where they are supposed to exist and, also, not guaranteeing consistency of data over time. Thirdly, modules might, sometimes, fail in the imputation, because of the strong complexity and structural diversity of the input data. 
 
 ```{r t1, fig.cap=t1_cap}
-table=data.table(read.csv("tables/01_sua_unbalanced.csv"))
+table=data.table(read.csv("tables/StandBal/01_sua_unbalanced.csv"))
 landscape(knitr::kable(table,format="latex",caption = "Unbalanced Sua table - China/Wheat/2014 example",
              align = c("r",rep("l",length(colnames(table))-1)))) %>% 
   kable_styling(font_size = 18,latex_options=c("scale_down", full_width = T))%>%
