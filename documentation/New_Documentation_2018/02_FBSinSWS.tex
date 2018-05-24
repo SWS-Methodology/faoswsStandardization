@@ -123,8 +123,6 @@ Balance Sheets.
 \setcounter{tocdepth}{4}
 \tableofcontents
 }
-\newpage
-
 \listoftables
 
 \listoffigures
@@ -143,12 +141,11 @@ are published to elicit comments and to further discussion.
 This paper is dynamically generated on \today{} and is subject to
 changes and updates.
 
-\section*{The Overall Workflow of The
-FBS}\label{the-overall-workflow-of-the-fbs}
-\addcontentsline{toc}{section}{The Overall Workflow of The FBS}
+\section*{Variables of The FBS}\label{variables-of-the-fbs}
+\addcontentsline{toc}{section}{Variables of The FBS}
 
 The process of creating FBSs starts by collecting all data for the
-different variables of the Food Balance Sheet Framework\footnote{For
+different variables of the \emph{Food Balance Sheet} equation\footnote{For
   definitions and an extended description of the motivation behind the
   development of FBS, see FAO, 2001, \emph{Food Balance Sheets: A
   Handbook}, available at:
@@ -156,7 +153,200 @@ different variables of the Food Balance Sheet Framework\footnote{For
   19 January 2017. Moreover see \emph{Standardization \& Balancing for
   Food Balance Sheet Calculation}, in the \emph{Standardization \&
   Balancing} module's documentation on
-  \href{https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation}{\emph{GitHub}}}.
+  \href{https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation}{\emph{GitHub}}}:
+
+\begin{equation}
+\label{eq:balance1}
+P_{ijt} + I_{ijt} - X_{ijt} - \Delta St_{ijt} = FP_{ijt} + Fo_{ijt} + Fe_{ijt} + Lo_{ijt} + Se_{ijt} + IU_{ijt} + T_{ijt}  + ROU_{ijt}
+\end{equation}
+
+where the \(i\) index runs over all countries, the \(j\) index over all
+commodities, and \(t\) over years and where, dropping indices for
+brevity:
+
+\begin{itemize}
+\tightlist
+\item
+  \(P\)=Production
+\item
+  \(I\)=Imports
+\item
+  \(X\)=Exports
+\item
+  \(S\)=Stock level
+\item
+  \(\Delta St_{t}\) = Stock Variation = \(St_{t} - St_{t-1}\)
+\item
+  \(FP_{ijt}\) = Food Processing
+\item
+  \(Fo\)=Food availability
+\item
+  \(Fe\)=Feed
+\item
+  \(Lo\)=Losses
+\item
+  \(Se\)=Seed
+\item
+  \(IU\)=industrial use
+\item
+  \(T\)=Tourist consumption
+\item
+  \(ROU\)=Residual Other Use
+\item
+  \(TS = Total supply = P_{ijt} + I_{ijt} - \Delta St_{ijt}\)
+\end{itemize}
+
+At international level, the primary data source that FAO uses to compile
+the the Supply Utilization Accounts/Food Balance Sheets are the data as
+collected through the annual \emph{Agriculture Production
+Questionnaires}. Unfortunately, measured values are mostly limited to
+variables on the supply side (production, imports and exports), while,
+on the demand side, most values are imputed data\footnote{For more
+  details on FBS variables please see the latest version of the
+  \emph{Resource Book}}. The Variables of the FBS are:
+
+\begin{itemize}
+\item
+  \emph{Production (P)}: Data on production are data at farmgate level.
+  As data on production are very important for countries, these data are
+  very often survey-based data. Nevertheless, not all countries collect
+  data of production for all commodities. Therefore other data
+  collection methods are used, like records of private firms and
+  commodity organization. When no other data are available, Production
+  figures are imputed or estimated. Imputation and estimation procedures
+  depends on the specific commodity. There are different procedures for
+  crops and livestock but all based on an \emph{ensemble approach}.
+  Production data in the FBS framework are collected, imputed or
+  estimated for all the primary commodities and for a set of derived
+  commodities\footnote{See \emph{Production module} documentation for
+    more details on procedures and list of commodities}.
+\item
+  \emph{Import(I) and Export(X)}: Data on Trade are, mainly, official
+  from international trade databases, like UNSD and EUROSTAT, at HS6
+  commodity level\footnote{Harmonized Commodity Description and Coding
+    Systems (HS) is an internationalclassification of products held by
+    UNSD. Is made of six-digit level codes and used worldwide for
+    trading data classifications. See official
+    \href{https://unstats.un.org/unsd/tradekb/Knowledgebase/50018/Harmonized-Commodity-Description-and-Coding-Systems-HS}{\emph{HS6
+    UNSD webpage}} for mode details}. Official data are integrated with
+  supplementary data having the main aim of filling in all the
+  information hidden by the unrecorded trade and coming, mainly, from
+  trading partners. HS6 classification is more detailed than the used
+  CPC classiffication, therefore, these data are aggregated in CPC
+  commodities before being used in the standardization process\footnote{See
+    \href{https://github.com/SWS-Methodology/faoswsTrade/blob/master/vignettes/Documentation/tradeDocumentation.pdf}{\emph{Trade
+    module}} documentation for more details}.
+\item
+  \emph{Stock Variation (}\(\Delta St_{t})\): In the FBS framework,
+  stocks are considered as \emph{changes in stocks} from one time period
+  to the next. Moreover they are considered as a component of supply.
+  Therefore, the \(-\) sign indicates that the stock is decreased, which
+  means that the stocks are available as a supply, while the \(+\) sign
+  indicates that the stocks have increased and they are, therefore,
+  considered as a utilization for that commodity. Changes in stocks are
+  tipically limited to a short number of commodities, mainly grains,
+  pulses and sugar and, because they are very rarely measured by
+  country, figures are very often imputed or estimated\footnote{For a
+    complete list of stock commodities and for details about the
+    imputation methodology, please refer to specific documentation for
+    stock}. Estimation of \emph{changes in stock} is based on opening
+  stocks figures throught an approach that mantain time consistency of
+  available data and official data\footnote{All data are marked as
+    \emph{official}, \emph{semi-official} or \emph{unofficial},
+    depending on the source they come from, throught \emph{flags}. Flag
+    management is one of the core responsibilities of the \emph{Office
+    of the Chief Statistician} Department in FAO. Flags are used from
+    all the estimation procedure for distinguishing between different
+    level of reliability in the data. The most reliable data are used to
+    estimate missing or less reliable data.{[}this has to be better
+    specified{]}}.
+\item
+  \emph{Food availability (Fo)}: Food availability is defined as the
+  quantity of any substance that is available for human consumption at
+  the retail level by the country's resident population during a given
+  reference period. Official data of food availability come from
+  questionnaires, industrial ouptut surveys and household consumption or
+  expenditure surveys. When these sources of data are not available,
+  food availability data are imputated or estimated. Not all CPC
+  commodities are Food commodities, as not all commodities are used for
+  human consumption. Food commodities are divided in two main groups:
+  \emph{Food Estimates} and \emph{Food Residual} and estimated
+  differently depending on the pertaining group, respectively as linear
+  or logaritmic function of income elasticity of demand, GDP per capita,
+  and population, or as residual quantity of production and net trade
+  quantities\footnote{For a complete list of food commodities of the two
+    typologies and for details about the imputation methodology, please
+    refer to specific documentation for Food availablity}.
+\item
+  \emph{Feed (Fe)}: Feed demand is increasing because of the increase in
+  income of developing countries. Animal feed may vary among countries
+  due to the difference in livestock and the diversity of commodity used
+  for livestock's rations. Official feed demand data might be available
+  from specific questionnaires. Even when available, these data need to
+  be cross-checked against livestock availability in terms of
+  requirements. When official data, and also other sources of
+  semi-official data, are not available, feed data are estimated as a
+  function of livestock availability and livestock feed demand in terms
+  of energy and protein requirements, in accordance with an inventory of
+  the potential feed supply's products of any country.
+\item
+  \emph{Seed (Se)}: Official seed data may come from agricultural
+  surveys, while other sources of data might be found in some technical
+  publication. When data are not available these are estimated as a
+  function of a seeding rate and a sown area in the following year.
+\item
+  \emph{Tourism Consumption (T)}: Tourism consumption is considered here
+  as a separate utilization variable, while in the past it was included
+  in the ``other utilization'' catchall cathegory. Official data for
+  this variable are rare and may come from tourism offices or collected
+  by tourism boards through surveys. UNWTO is an alternative source of
+  data, but other authorities might also be used. Imputations and
+  estimations of tourist food are made as a function of food figures.
+\item
+  \emph{Industrial Use (IU)}: This variable refers to utilization of any
+  food items in any non-food industry. Non-food use of food commodities
+  is growing and is highly context and country specific. For this reason
+  there are not, at the moment, suggestions on how to impute and
+  estimate missing figures. As a consequence, Industrial data available
+  for Food Balance Sheets are only those coming from Official or
+  unofficial sources. At the moment the data used comes from USDA and
+  from questionnaries.
+\item
+  \emph{Loss (L)}: FAO has developed the Global Food Loss Index (GFLI)
+  that focuses on the supply-side aspects of improving the efficiency of
+  global food supply chains. The index is based on a set of primary
+  commodities that are key in agricultural production systems, including
+  crops, livestock, and fisheries. In order to track losses without
+  compounding production variability, losses are expressed as a
+  percentage and are aggregated using fixed quantities and prices. The
+  primary data source that FAO uses for compiling GFLI are loss factors
+  as collected by Questionnaires. Other sources are publications and
+  reports from subnational reports, academic institutions, international
+  organizations and so on. The missing data are imputed using a
+  hyerarchical model based on commodity groups\footnote{ask for links to
+    a proper documentation}.
+\item
+  \emph{Residual and other use (ROU)}: ROU is used to capture categories
+  of products that do not follow in any other category and that might be
+  considered ``not important'' for the FBS scope. Normally, these
+  residual commodities are different from country to country and for
+  this reason they fall in this variable. ROU are set not to be higher
+  that 5\% of total supply and are calculated at-post as absorbing
+  element, in the sense that it absorbs part or all of the imbalance
+  that may exist, at FBS commodity aggregate level, after the
+  standardization process. Any imbalance bigger than 5\% of total supply
+  is balanced thrugh a balancing mechanism that will be later specified.
+\item
+  \emph{Food Processing (FP)}: This variable represents the amount of
+  the availability of a commodity that enters a manufacturing process to
+  be transformed into a derived commodity. Food processing is not
+  officially measured, nor collected via official sources. This variable
+  is entirely calculated during the standardization process by applying
+  extraction rates to the amount of production of the derived commodity.
+  This will be better specified in section \emph{2-Step2} of the present
+  document.
+\end{itemize}
+
 The data of each variable are generally checked and imputed in time
 series. The set of operations required for creating/checking time series
 of data for each variable is called \emph{module}. A
@@ -173,14 +363,12 @@ inside the SWS for future uses or publication. Output data of a module
 may become input data of another module, this circumstance creating a
 precise sequence for the execution of a complete FBS.
 
-\section*{Definitions}\label{definitions}
-\addcontentsline{toc}{section}{Definitions}
+\section*{Objects in the SWS
+(DEFINITIONS)}\label{objects-in-the-sws-definitions}
+\addcontentsline{toc}{section}{Objects in the SWS (DEFINITIONS)}
 
-\section*{B. Standardization and
-Balancing}\label{b.-standardization-and-balancing}
-\addcontentsline{toc}{section}{B. Standardization and Balancing}
-
-\section{The Overall Workflow}\label{the-overall-workflow}
+\section{The Overall Workflow of the
+FBS}\label{the-overall-workflow-of-the-fbs}
 
 The \emph{Standardiation \& Balancing} process is presented in Figure
 \ref{fig:f9}. It involves 5 main steps and requires a some auxiliary
