@@ -29,6 +29,7 @@
             pdfborder={0 0 0},
             breaklinks=true}
 \urlstyle{same}  % don't use monospace font for urls
+\usepackage{longtable,booktabs}
 \usepackage{graphicx,grffile}
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
@@ -83,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{24 May 2018}
+  \date{25 May 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -363,9 +364,56 @@ inside the SWS for future uses or publication. Output data of a module
 may become input data of another module, this circumstance creating a
 precise sequence for the execution of a complete FBS.
 
-\section*{Objects in the SWS
-(DEFINITIONS)}\label{objects-in-the-sws-definitions}
-\addcontentsline{toc}{section}{Objects in the SWS (DEFINITIONS)}
+\section*{Definitions}\label{definitions}
+\addcontentsline{toc}{section}{Definitions}
+
+there are 8 main thypologies of objects that will be use in the present
+document. These correspond to objects that are used in the SWS in
+managing processes:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{\emph{Domain}}: A domain is an area of work where other
+  objects are grouped, by a common criterion of interest.
+\item
+  \textbf{\emph{Data}}: In this framework, every information is grouped
+  under this name, which will be characterized by its origin, whether it
+  is collected or created.
+\item
+  \textbf{\emph{Datasets}}: A dataset inside the SWS. Each Dataset can
+  belong only to one domain. Datasets allow for:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    metadata management,
+  \item
+    detailed data hystory
+  \end{itemize}
+\item
+  \textbf{\emph{Data Tables}}: Data Tables are less protected object
+  that can be easily modified and do not keep history of data.
+\item
+  \textbf{\emph{Modules}}: a Module is a process, writte, in this
+  context, in R, which performs different typologies of processes:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    data manipulation,
+  \item
+    statistical analysis,
+  \item
+    other kind of operations on data.
+  \end{itemize}
+\item
+  \textbf{\emph{Plugin}}: a Plugin is a module when it is integrated
+  inside the SWS and executable from any user.
+\item
+  \textbf{\emph{Data Flow}}: any information's flow or transfer.
+\end{enumerate}
 
 For the purposes of this document the following notation will be used:
 
@@ -375,271 +423,256 @@ For the purposes of this document the following notation will be used:
 
 }
 
-\caption{\label{fig:f2}Legend of Objects}\label{fig:f1}
+\caption{\label{fig:f1}Legend of Objects}\label{fig:f1}
 \end{figure}
 
-\section{The Overall Workflow of the
-FBS}\label{the-overall-workflow-of-the-fbs}
+\section*{The actors of the FBS in the
+SWS}\label{the-actors-of-the-fbs-in-the-sws}
+\addcontentsline{toc}{section}{The actors of the FBS in the SWS}
 
-The \emph{Standardiation \& Balancing} process is presented in Figure
-\ref{fig:f9}. It involves 5 main steps and requires a some auxiliary
-information table.
-
-The 5 steps are:
+In the compilation of FBS involves 11 domains:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  Data Pull,
+  Agriculture production
 \item
-  Sua Filling,
+  Trade
 \item
-  Standardization,
+  trade-input-data
 \item
-  Balancing,
+  Stock
 \item
-  FBS aggregation.
+  Industrial Use
+\item
+  Food Domain
+\item
+  Loss and Waste
+\item
+  Tourism Domain
+\item
+  SUA/FBS Domain
+\item
+  United Stated Department of Agriculture
+\item
+  Population
+\item
+  faostat\_datasets
 \end{enumerate}
 
-The additional information's tables are:
+Inside these domains 18 datasets and 11 data tables are involved, as
+represented in figures Figure \ref{fig:f2} and \ref{fig:f4}. Details on
+these objects will be provided along the document.
+
+\section*{The Overall Workflow of the
+FBS}\label{the-overall-workflow-of-the-fbs}
+\addcontentsline{toc}{section}{The Overall Workflow of the FBS}
+
+The workflow for compiling Food Balance Sheet is articulated and has
+dependencies, as some module to run properly might use data that are the
+output of other modules.
+
+Figure \ref{fig:f3} presents a simplistic representation of the overall
+Worflow. As shown, it consists of 8 propaedeutic steps that will be
+described in this document.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.9\linewidth]{images/SwsFbs/02_DatasetsDomains} 
+
+}
+
+\caption{\label{fig:f2}FBS Datasets and their domains in the SWS}\label{fig:f2}
+\end{figure}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.9\linewidth]{images/SwsFbs/04_DataTablesDomains} 
+
+}
+
+\caption{\label{fig:f4}FBS Datatables and their domains in the SWS}\label{fig:f4}
+\end{figure}
+
+\begin{figure}[H]
+
+{\centering \includegraphics{images/SwsFbs/03_DataFlow_all} 
+
+}
+
+\caption{\label{fig:f3}The overall workflow}\label{fig:f3}
+\end{figure}
+
+\section*{Flag Management in the FBS
+framework}\label{flag-management-in-the-fbs-framework}
+\addcontentsline{toc}{section}{Flag Management in the FBS framework}
+
+Distinction between sources of data in the overall process of poducing
+FBS is performed throught Flags. Flags in FAO play a fundamental role
+and are managed by the \emph{Office of the Chief Statistician} Division
+in FAO\footnote{link some documentation on Flags\ldots{} which one?}. In
+the context of FBS flags are used accordingly to a table (stored in teh
+SWS as Data table in the SUA/FBS domain) which set the combination of
+flags that are assciated to valid, invalid, official, unoffical
+estimated data, etc. Table 1 reports the Valid Flag combination in the
+SWS, taken from this Data Table.
+
+\begin{longtable}[]{@{}cccc@{}}
+\caption{Valid Flag combinations from Valid Flags table}\tabularnewline
+\toprule
+flagObservationStatus & flagMethod & Valid & Protected\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+flagObservationStatus & flagMethod & Valid & Protected\tabularnewline
+\midrule
+\endhead
+E & - & TRUE & FALSE\tabularnewline
+E & c & TRUE & TRUE\tabularnewline
+E & f & TRUE & TRUE\tabularnewline
+E & h & TRUE & TRUE\tabularnewline
+E & i & TRUE & FALSE\tabularnewline
+E & s & TRUE & FALSE\tabularnewline
+I & - & TRUE & FALSE\tabularnewline
+I & b & TRUE & FALSE\tabularnewline
+I & c & TRUE & TRUE\tabularnewline
+I & e & TRUE & FALSE\tabularnewline
+I & i & TRUE & FALSE\tabularnewline
+I & s & TRUE & FALSE\tabularnewline
+M & - & TRUE & FALSE\tabularnewline
+M & c & TRUE & FALSE\tabularnewline
+M & i & TRUE & FALSE\tabularnewline
+M & q & TRUE & FALSE\tabularnewline
+M & s & TRUE & FALSE\tabularnewline
+M & u & TRUE & FALSE\tabularnewline
+T & - & TRUE & TRUE\tabularnewline
+T & c & TRUE & TRUE\tabularnewline
+T & h & TRUE & TRUE\tabularnewline
+T & i & TRUE & FALSE\tabularnewline
+T & p & TRUE & TRUE\tabularnewline
+T & s & TRUE & FALSE\tabularnewline
+& - & TRUE & TRUE\tabularnewline
+& c & TRUE & TRUE\tabularnewline
+& h & TRUE & TRUE\tabularnewline
+& i & TRUE & FALSE\tabularnewline
+& p & TRUE & TRUE\tabularnewline
+& q & TRUE & TRUE\tabularnewline
+& s & TRUE & FALSE\tabularnewline
+\bottomrule
+\end{longtable}
+
+A specific agreement exists in this context for which all data coming
+from old methodology, which are often used for consistency and coherence
+with the past, are assigned a \emph{method flag} equal to \emph{``-''}.
+
+\section{Initial data and the first set of modules
+run}\label{initial-data-and-the-first-set-of-modules-run}
+
+\subsection{\texorpdfstring{The \emph{Agriculture-aproduction}
+dataset}{The Agriculture-aproduction dataset}}\label{the-agriculture-aproduction-dataset}
+
+The data collected throught the \emph{Agriculture Production
+Questionnaires} and from other official or semi-official sources are
+collected inside the \emph{Agriculture:aproduction} (i.e.
+\emph{agriculture domain}, \emph{aproduction} dataset) dataset. Here all
+data are collected from countries on:
 
 \begin{itemize}
 \tightlist
 \item
-  \emph{Utilization Table},
+  Area harvested
 \item
-  \emph{Zero-Weight} table,
+  Yield
 \item
-  \emph{cut} table,
+  Area sawn
 \item
-  \emph{Fbs Tree}.
+  Carcass weight
+\item
+  Livestock
+\item
+  Milking animals
+\item
+  Milking products
+\item
+  Seed qt
+\item
+  Crop Production qt
+\item
+  stocks qt
+\item
+  Industrial Use qt
+\item
+  Feed qt
+\item
+  Food availability qt
+\item
+  Losses qt
 \end{itemize}
 
-All the steps and the table will be described across the present
-document, after having introduced the the basic equation of FBS and the
-\emph{Commodity tree} which represents the structure of the set of
-commodity involved in the Food Balance Sheets.
-
-\begin{figure}[H]
-
-{\centering \includegraphics[width=0.8\linewidth]{images/StandBal/09_overall} 
-
-}
-
-\caption{\label{fig:f9}Standardization and Balancing Overall Workflow}\label{fig:f9}
-\end{figure}
-
-\section*{Commodity Tree}\label{commodity-tree}
-\addcontentsline{toc}{section}{Commodity Tree}
-
-The process of combining commodity balances for creating Food Balance
-Sheets is based on a structured and clear set of relationships between
-commodity given by the \emph{Commodity tree}. The majority of the
-commodities are produced from one (or more) commodity (/ies), called
-\emph{parent} commodity(/ies), and/or are themselfes parent of one (or
-more) \emph{child} (\emph{children}) commodity (/ies). These structure
-creates an intense and articulated network of relationships at different
-levels: primary commodities, like crops, are \emph{parent} commodities
-and, also, \emph{zero-level} commodities from which \emph{children}
-commodities of \emph{level-1} are produced, which are in turn, used to
-produce other commodities of a gradually \emph{``lower''} level. In
-commodtity trees, the bigger the level number, the lower the processing
-level. There are as many commodity trees as the number of process chains
-in a country. Fundamental characteristics of commodity trees
-are\footnote{For a more detailed description of commodity trees, please
-  see the specific documentation. The reference document, at the moment
-  is the \emph{tecnical conversion factor} document available in the
-  documentation folder on
-  \href{https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation}{\emph{GitHub}}}:
+It represents the main input dataset containing input-data of almost all
+domains (Trade is excluded as it takes data from different sources). It
+has a special role in the all FBS framework and its content and use is
+very delicate and not straightforward. In particular this dataset
+contains different typologies of data, some used as they are and other
+used for prosucing other data:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  Each commodity tree is represented as a flowchart of the kind
-  presented in Figure \ref{fig:f2} where:
+  Data on area harvested, yield, area sawn are used for estimating
+  missing production data and seed data;
+\item
+  Data on Crop Production, Industrial Use, Feed, Seed, Food and Losses
+  originally collected in this dataset are \emph{Protected}, which means
+  that they will be used for:
 
   \begin{itemize}
   \tightlist
   \item
-    \textbf{\emph{nodes}} represent commodities,
+    estimating missing production data,
   \item
-    \textbf{\emph{edges}} represent production processes ,
+    estimating missing seed data,
   \item
-    \textbf{\emph{joints}} indicate where a single production process
-    creates more that one commodity. These commodities are, then, called
-    \emph{by-products} or \emph{co-products}.
+    estimating missin feed data,
+  \item
+    directly used for the FBS calculation
   \end{itemize}
+\item
+  Data on Carcass weight, livestock, milking animals and milking
+  products are used by other modules for producing data on meat, milk
+  and eggs.
 \end{enumerate}
 
-\begin{figure}[H]
-
-{\centering \includegraphics{images/StandBal/02_WheatTree} 
-
-}
-
-\caption{\label{fig:f2}Commodity Tree for Wheat in China mainland 2014}\label{fig:f2}
-\end{figure}
+Indeed, three modules are run which have this dataset, as it is at the
+beginning of the overall process, as, unique or not, inpu:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
-\setcounter{enumi}{1}
-\item
-  Not all the countries have the same production processes, because
-  countries have different technologies and primary products
-  availabilities. Therefore, the commodity trees are not the same across
-  countries.
-\item
-  if a production process is active in a country, this is expressed
-  throught the existence of a conversion factor called
-  \textbf{\emph{extraction Rate}}. An Extraction rate (\(eR\))
-  represents how much amount of the child commodity is produced from 1
-  unit of parent commodity. It is expressed as a ratio of the processed
-  product obtained from the processing of the parent/originating
-  product.
-\item
-  Some child commodities can be produced starting from more that one
-  parent commodity. A second conversion factor exists representing the
-  amount of a child commodity that is produced from each parent
-  commodity. This conversion factor is called \textbf{\emph{Share}}.
-  Shares represent the amount of the child commodity that is produced
-  from the specified parent and are expressed as a ratio. Shares are
-  generically defined as:
-\end{enumerate}
-
-\begin{quote}
-\begin{equation}
-\label{eq:sharesGen}
-s_{cp} = \frac{availability_{p(c)}}{\sum \limits_{p=1}^A{availability_{p(c)}}}
-\end{equation}
-\end{quote}
-
-\begin{quote}
-where \(availability_{p(c)}\) is the availability of each parent \(p\)
-of child \(c\) expressed in terms of \(c\) (in \emph{child equivalent}).
-\end{quote}
-
-Commodity trees are presented in tables like Table 10, which represents
-the same example of Figure \ref{fig:f2}. In the table each production
-process is represented in a separate row.
-
-There are some concepts linked to the \emph{Commodity tree} framework:
-
-\begin{itemize}
 \tightlist
 \item
-  \textbf{\emph{Proxy-Primary}} commodities. These are a set of
-  commodities that are children of other commodities but, because they
-  are important in representing the food availability of a country, are
-  not aggregated to their primary commodities, but are kept separated.
-  These commodities are \emph{cut} from the tree of the primary
-  commodity/ies and, if they can be processed in other products, have
-  their own commodity tree. The name \emph{proxy-primary} is assigned
-  because they are considered as primary-commodities in the
-  \emph{Standardization \& Balancing} process.
+  Industrial use Module
 \item
-  \textbf{\emph{No-Tree}} commodities. These are \emph{zero-level}
-  commodities that are primary commodities and are never processed in
-  other products. As they are not involved in any production process,
-  there is no tree associated to them. Notice that, even a commodity
-  that is included in the commodity tree of one Country, might be a
-  No-tree commodity for another country or another year, if no
-  production processes have been activated for that specific Country or
-  year.
-\end{itemize}
+  crop Production Module
+\item
+  Livestock Module
+\end{enumerate}
 
-\section{Data Pull}\label{data-pull}
+\subsubsection{\texorpdfstring{\emph{Industrial use
+Module}}{Industrial use Module}}\label{industrial-use-module}
 
-The process of creating FBSs starts by considering the initial commodity
-balance for each CPC commodity, either primary and derived, with the
-different variables of the equation (as listed and briefly described in
-the previous section) filled with figures as available from official or
-other sources and from imputation and estimation methods, when applied.
-In other words, the process starts by pulling figures inside a so-called
-\emph{Sua Unbalanced}. In this initial account, food processing and ROU
-figures are not available (because they, by default, will be measured
-during the process), whereas the figures for all other variables have
-been already collected, imputed and estimated through a specific
-\emph{module} (Figure \ref{fig:f1}).
+\subsubsection{\texorpdfstring{\emph{crop Production
+Module}}{crop Production Module}}\label{crop-production-module}
 
-A \textbf{\emph{module}}, in the FBS Framework, is an R-script, written
-by an R-developer, for the execution of a set of operations (either data
-import, manipulation, imputation or estimation) required for compiling
-the time series of one variable. There is at least one module (there
-might be more) for each variable of the FBS. Each module produces
-figures that are collected in a dataset inside the
-\textbf{\emph{Statistical Working System (SWS)}}\footnote{SWS is an
-  internal Working System providing a platform for statisticians and
-  statistical clers to collect, collate, validate and correct data.
-  Moreover, the platfors supports the possibility of performing
-  imputations of data based on statisticians' knowledge and development.}.Output
-data of a module may become input data of another module, this
-circumstance creating a precise sequence for the execution of a complete
-FBS. In the present document, we are analyzing the workflow of the
-Standardization process as starts after all the modules have run and
-have produced reliable data or each variable. The detailed description
-of the workflow for the execution of all the modules of the FBS will be
-given in a separate document.\footnote{{[}report the document when it
-  will be available{]}}.
+\subsubsection{\texorpdfstring{\emph{Livestock
+Module}}{Livestock Module}}\label{livestock-module}
 
-\subsection*{the Initial Sua
-Unbalanced}\label{the-initial-sua-unbalanced}
-\addcontentsline{toc}{subsection}{the Initial Sua Unbalanced}
+\subsection{\texorpdfstring{\emph{Trade
+Module}}{Trade Module}}\label{trade-module}
 
-After pulling all data, the process of compiling Food Balance Sheets is
-a non-complete supply-utilization account. The non-completeness of the
-SUAs is due to different reasons: first, as already said, some variables
-are not collected, nor estimated before the process begins, second there
-is the model for industrial use that does not impute or estimate data,
-but just collects data from different sources, this opening the strong
-possibility not to have values where they are supposed to exist and,
-also, not guaranteeing consistency of data over time. Thirdly, modules
-might, sometimes, fail in the imputation, because of the strong
-complexity and structural diversity of the input data.
-
-\begin{landscape}\begin{table}
-
-\caption{\label{tab:t1}Unbalanced Sua table - China/Wheat/2014 example}
-\centering
-\resizebox{\linewidth}{!}{\fontsize{18}{20}\selectfont
-\begin{tabular}[t]{>{\raggedleft\arraybackslash}p{12em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}|>{\raggedright\arraybackslash}p{6em}}
-\hline
-\multicolumn{1}{r}{\textbf{itemName}} & \multicolumn{1}{c}{\textbf{P}} & \multicolumn{1}{c}{\textbf{I}} & \multicolumn{1}{c}{\textbf{X}} & \multicolumn{1}{c}{\textbf{DSt}} & \multicolumn{1}{c}{\textbf{Fo}} & \multicolumn{1}{c}{\textbf{FP}} & \multicolumn{1}{c}{\textbf{Fe}} & \multicolumn{1}{c}{\textbf{Se}} & \multicolumn{1}{c}{\textbf{T}} & \multicolumn{1}{c}{\textbf{IU}} & \multicolumn{1}{c}{\textbf{L}} & \multicolumn{1}{c}{\textbf{ROU}}\\
-\hline
-\em{Wheat} & \em{126,208,400} & \em{2,971,249} & \em{957} & \em{1,120,565} & \em{} & \em{-} & \em{29,181,617} & \em{4,277,567} & \em{} & \em{2,985,279} & \em{2,713,000} & \em{-}\\
-\hline
-Wheat and meslin flo & 70,500,000 & 33,055 & 188,674 &  & 67,300,000 & - &  &  & -17,345 &  &  & -\\
-\hline
-Mixes and doughs for &  & 6,497 & 38,072 &  & 0 & - & 0 &  & 0 &  &  & -\\
-\hline
-Other Fructose and S & 126,277 & 3,659 & 162,324 &  & 0 & - &  &  & 0 &  &  & -\\
-\hline
-Starch of Wheat & 239,816 & 11,035 & 40,311 &  &  & - & 172,196 &  &  & 7,919 &  & -\\
-\hline
-Wheat Gluten & 25,580 & 877 & 117,373 &  &  & - & 0 &  &  &  &  & -\\
-\hline
-Communion wafers & 13,263 & 8,796 & 5,822 &  & 16,241 & - &  &  & -4 &  &  & -\\
-\hline
-Uncooked pasta & 1,415,692 & 12,520 & 22,550 &  & 1,405,661 & - &  &  & -362 &  &  & -\\
-\hline
-Food Preparations of &  & 69,686 & 21,977 &  & 47,709 & - &  &  & -12 &  &  & -\\
-\hline
-Bran of Wheat & 21,414,279 & 156,359 & 2,200 &  & 16,500,000 & - & 4,827,244 &  & -4,252 &  &  & -\\
-\hline
-Gluten Feed and Meal & 793,740 & 160,231 & 529,333 &  &  & - &  &  &  &  &  & -\\
-\hline
-bread & 15,485 & 2,897 & 4,210 &  & 14,175 & - &  &  & -3 &  &  & -\\
-\hline
-pastry & 193,950 & 89,593 & 117,630 &  & 165,914 & - &  &  & -43 &  &  & -\\
-\hline
-\multicolumn{13}{l}{\textsuperscript{a} P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption,}\\
-\multicolumn{13}{l}{IU=IndustrialUse, L=Loss, ROU=Residual and other uses}\\
-\end{tabular}}
-\end{table}
-\end{landscape}
-
-S
+\subsubsection{Module on Crop
+production}\label{module-on-crop-production}
 
 
 \end{document}

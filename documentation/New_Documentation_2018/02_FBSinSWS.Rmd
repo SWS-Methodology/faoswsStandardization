@@ -65,7 +65,7 @@ library(xtable)
 # DEFINE ALL TABLE NAMES AND CAPTIONS
 table_nums <- captioner::captioner(prefix = "Table")
 t1_cap <- table_nums(name = "t1",
-                     caption = "Unbalanced Sua table - China/Wheat/2014 example")
+                     caption = "Valid Flag combinations from Valid Flags table")
 t2_cap <- table_nums(name = "t2", 
                         caption = "Sua table with Imb1 - China/Wheat/2014 example")
 
@@ -164,113 +164,131 @@ The primary data source that FAO uses for compiling GFLI are loss factors as col
 
 The data of each variable are generally checked and imputed in time series. The set of operations required for creating/checking time series of data for each variable is called *module*. A ***module***, in the FBS Framework, is an R-script, written by an R-developer and integrate inside the ***Statistical Working System (SWS)***^[SWS is an internal Working System providing a platform for statisticians and statistical clers to collect, collate, validate and correct data. Moreover, the platfors supports the possibility of performing imputations of data based on statisticians' knowledge and development.] by means of *plugins*. There is at least one module (there might be more) for each variable of the FBS. Each module produces figures that are collected in a dataset inside the SWS for future uses or publication. Output data of a module may become input data of another module, this circumstance creating a precise sequence for the execution of a complete FBS.
 
-# Objects in the SWS (DEFINITIONS) {-}
+# Definitions  {-}
 
 there are 8 main thypologies of objects that will be use in the present document. These  correspond to objects that are used in the SWS in managing processes: 
 
  1. ***Domain***: A domain is an area of work where other objects are grouped, by a common criterion of interest.
- 2. ***Data***: In this framework, every information is grouped under this name, which will be characterized by its origin, whether it is collected or imputed. 
- 3. ***Datasets***: 
- 4. ***Data Tables***
- 5. ***Modules***
- 6. ***Plugin***
- 7. ***Data Flow***
- 8. ***Modules***
- 
+ 2. ***Data***: In this framework, every information is grouped under this name, which will be characterized by its origin, whether it is collected or created. 
+ 3. ***Datasets***: A dataset inside the SWS. Each Dataset can belong only to one domain. Datasets allow for: 
+  * metadata management,
+  * detailed data hystory
+ 4. ***Data Tables***: Data Tables are less protected object that can be easily modified and do not keep history of data.
+ 5. ***Modules***: a Module is a process, writte, in this context, in R, which performs different typologies of processes: 
+  * data manipulation,
+  * statistical analysis, 
+  * other kind of operations on data.
+ 6. ***Plugin***: a Plugin is a module when it is integrated inside the SWS and executable from any user.
+ 7. ***Data Flow***: any information's flow or transfer.
+
 For the purposes of this document the following notation will be used: 
 
-```{r f1, fig.align = "center", fig.pos = "H",out.width = "70%",  fig.cap = "\\label{fig:f2}Legend of Objects"}
+```{r f1, fig.align = "center", fig.pos = "H",out.width = "70%",  fig.cap = "\\label{fig:f1}Legend of Objects"}
 
 knitr::include_graphics("images/SwsFbs/01_actors.pdf")
 ```
 
+# The actors of the FBS in the SWS {-}
 
-# The Overall Workflow of the FBS
+In the compilation of FBS involves 11 domains:
 
-The *Standardiation & Balancing* process is presented in Figure \ref{fig:f9}. It involves 5 main steps and requires a some auxiliary information table. 
-
-The 5 steps are: 
-
- 1. Data Pull, 
- 2. Sua Filling,
- 3. Standardization, 
- 4. Balancing,
- 5. FBS aggregation. 
-
-The additional information's tables are: 
-
- * *Utilization Table*,
- * *Zero-Weight* table,
- * *cut* table,
- * *Fbs Tree*.
+ 1. Agriculture production
+ 2. Trade
+ 3. trade-input-data
+ 4. Stock
+ 5. Industrial Use
+ 6. Food Domain
+ 7. Loss and Waste
+ 8. Tourism Domain
+ 9. SUA/FBS Domain
+ 10. United Stated Department of Agriculture
+ 11. Population
+ 12. faostat_datasets
  
-All the steps and the table will be described across the present document, after having introduced the the basic equation of FBS and the *Commodity tree* which represents the structure of the set of commodity involved in the Food Balance Sheets. 
-  
-```{r f9, fig.align = "center", fig.pos = "H",out.width = "80%",  fig.cap = "\\label{fig:f9}Standardization and Balancing Overall Workflow"}
+ 
+Inside these domains 18 datasets and 11 data tables are involved, as represented in figures Figure \ref{fig:f2} and \ref{fig:f4}. Details on these objects will be provided along the document.
 
-knitr::include_graphics("images/StandBal/09_overall.pdf")
+
+# The Overall Workflow of the FBS {-}
+
+The workflow for compiling Food Balance Sheet is articulated and has dependencies, as some module to run properly might use data that are the output of other modules. 
+
+Figure \ref{fig:f3} presents a simplistic representation of the overall Worflow. As shown, it consists of 8 propaedeutic steps that will be described in this document.
+
+```{r f2, fig.align = "center", fig.pos = "H",out.width = "90%",  fig.cap = "\\label{fig:f2}FBS Datasets and their domains in the SWS"}
+
+knitr::include_graphics("images/SwsFbs/02_DatasetsDomains.pdf")
 ```
 
+```{r f4, fig.align = "center", fig.pos = "H",out.width = "90%",  fig.cap = "\\label{fig:f4}FBS Datatables and their domains in the SWS"}
 
-# Commodity Tree {-}
-
-The process of combining commodity balances for creating Food Balance Sheets is based on a structured and clear set of relationships between commodity given by the *Commodity tree*.
-The majority of the commodities are produced from one (or more) commodity (/ies), called *parent* commodity(/ies), and/or are themselfes parent of one (or more) *child* (*children*) commodity (/ies). These structure creates an intense and articulated network of relationships at different levels: primary commodities, like crops, are *parent* commodities and, also, *zero-level* commodities from which *children* commodities of *level-1* are produced, which are in turn, used to produce other commodities of a gradually *"lower"* level. In commodtity trees, the bigger the level number, the lower the processing level. There are as many commodity trees as the number of process chains in a country. Fundamental characteristics of commodity trees are^[For a more detailed description of commodity trees, please see the specific documentation. The reference document, at the moment is the *tecnical conversion factor* document available in the documentation folder on [*GitHub*](https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation)]: 
-
- 1. Each commodity tree is represented as a flowchart of the kind presented in Figure \ref{fig:f2} where:
-  * ***nodes*** represent commodities, 
-  * ***edges*** represent production processes ,
-  * ***joints*** indicate where a single production process creates more that one commodity. These commodities are, then, called *by-products* or *co-products*.
-
-```{r f2, fig.align = "center", fig.pos = "H",  fig.cap = "\\label{fig:f2}Commodity Tree for Wheat in China mainland 2014"}
-
-knitr::include_graphics("images/StandBal/02_WheatTree.pdf")
+knitr::include_graphics("images/SwsFbs/04_DataTablesDomains.pdf")
 ```
 
+```{r f3, fig.align = "center", fig.pos = "H",  fig.cap = "\\label{fig:f3}The overall workflow"}
 
- 2. Not all the countries have the same production processes, because countries have different technologies and primary products availabilities. Therefore, the commodity trees are not the same across countries.
- 
- 3. if a production process is active in a country, this is expressed throught the existence of a conversion factor called ***extraction Rate***. An Extraction rate ($eR$) represents how much amount of the child commodity is produced from 1 unit of parent commodity. It is expressed as a ratio of the processed product obtained from the processing of the parent/originating product.
-  
- 4. Some child commodities can be produced starting from more that one parent commodity. A second conversion factor exists representing the amount of a child commodity that is produced from each parent commodity. This conversion factor is called ***Share***. Shares represent the amount of the child commodity that is produced from the specified parent and are expressed as a ratio. Shares are generically defined as: 
- 
-> \begin{equation}
-\label{eq:sharesGen}
-s_{cp} = \frac{availability_{p(c)}}{\sum \limits_{p=1}^A{availability_{p(c)}}}
-\end{equation}
-
-> where $availability_{p(c)}$ is the availability of each parent $p$ of child $c$ expressed in terms of $c$ (in *child equivalent*).
-
-Commodity trees are presented in tables like `r table_nums("t15",display = "cite")`, which represents the same example of Figure \ref{fig:f2}. In the table each production process is represented in a separate row. 
-
-There are some concepts linked to the *Commodity tree* framework: 
-
- * ***Proxy-Primary*** commodities. These are a set of commodities that are children of other commodities but, because they are important in representing the food availability of a country, are not aggregated to their primary commodities, but are kept separated. These commodities are *cut* from the tree of the primary commodity/ies and, if they can be processed in other products, have their own commodity tree. The name *proxy-primary* is assigned because they are considered as primary-commodities in the *Standardization & Balancing* process.
- * ***No-Tree*** commodities. These are *zero-level* commodities that are primary commodities and are never processed in other products. As they are not involved in any production process, there is no tree associated to them. Notice that, even a commodity that is included in the commodity tree of one Country, might be a No-tree commodity for another country or another year, if no production processes have been activated for that specific Country or year.
-
-# Data Pull
-
-The process of creating FBSs starts by considering the initial commodity balance for each CPC commodity, either primary and derived, with the different variables of the equation (as listed and briefly described in the previous section) filled with figures as available from official or other sources and from imputation and estimation methods, when applied. In other words, the process starts by pulling figures inside a so-called *Sua Unbalanced*.
-In this initial account, food processing and ROU figures are not available (because they, by default, will be measured during the process), whereas the figures for all other variables have been already collected, imputed and estimated through a specific *module* (Figure \ref{fig:f1}).
-
-A ***module***, in the FBS Framework, is an R-script, written by an R-developer, for the execution of a set of operations (either data import, manipulation, imputation or estimation) required for compiling the time series of one variable. There is at least one module (there might be more) for each variable of the FBS. Each module produces figures that are collected in a dataset inside the ***Statistical Working System (SWS)***^[SWS is an internal Working System providing a platform for statisticians and statistical clers to collect, collate, validate and correct data. Moreover, the platfors supports the possibility of performing imputations of data based on statisticians' knowledge and development.].Output data of a module may become input data of another module, this circumstance creating a precise sequence for the execution of a complete FBS. In the present document, we are analyzing the workflow of the Standardization process as starts after all the modules have run and have produced reliable data or each variable. The detailed description of the workflow for the execution of all the modules of the FBS will be given in a separate document.^[[report the document when it will be available]].
-
-
-
-## the Initial Sua Unbalanced {-}
-
-After pulling all data, the process of compiling Food Balance Sheets is a non-complete supply-utilization account. The non-completeness of the SUAs is due to different reasons: first, as already said, some variables are not collected, nor estimated before the process begins, second there is the model for industrial use that does not impute or estimate data, but just collects data from different sources, this opening the strong possibility not to have values where they are supposed to exist and, also, not guaranteeing consistency of data over time. Thirdly, modules might, sometimes, fail in the imputation, because of the strong complexity and structural diversity of the input data. 
-
-```{r t1, fig.cap=t1_cap}
-table=data.table(read.csv("tables/StandBal/01_sua_unbalanced.csv"))
-landscape(knitr::kable(table,format="latex",caption = "Unbalanced Sua table - China/Wheat/2014 example",
-             align = c("r",rep("l",length(colnames(table))-1)))) %>% 
-  kable_styling(font_size = 18,latex_options=c("scale_down", full_width = T))%>%
-  row_spec(0, bold=TRUE, align = c("r",rep('c',times=length(colnames(table))-1))) %>%
-  row_spec(1, italic=TRUE) %>%
-  column_spec(1,width = "12em")%>%
-  column_spec(2:length(colnames(table)),width = "6em")%>%
-  add_footnote( "P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",notation = "alphabet")
+knitr::include_graphics("images/SwsFbs/03_DataFlow_all.pdf")
 ```
 
-S
+# Flag Management in the FBS framework {-}
+
+Distinction between sources of data in the overall process of poducing FBS is performed throught Flags. Flags in FAO play a fundamental role and are managed by the *Office of the Chief Statistician* Division in FAO^[link some documentation on Flags... which one?].
+In the context of FBS flags are used accordingly to a table (stored in teh SWS as Data table in the SUA/FBS domain) which set the combination of flags that are assciated to valid, invalid, official, unoffical estimated data, etc. `r table_nums("t1",display = "cite")` reports the Valid Flag combination in the SWS, taken from this Data Table.
+
+```{r t1, fig.cap=t1_cap, fig.pos = "H"}
+table=data.table(read.csv("tables/SwsFbs/01_ValidFlagsValid.csv"))
+knitr::kable(table,caption = "Valid Flag combinations from Valid Flags table",
+             align = c(rep("c",length(colnames(table))-1)))
+
+```
+
+A specific agreement exists in this context for which all data coming from old methodology, which are often used for consistency and coherence with the past, are assigned a *method flag* equal to *"-"*.
+
+
+# Initial data and the first set of modules run
+
+## The *Agriculture-aproduction* dataset
+
+The data collected throught the *Agriculture Production Questionnaires* and from other official or semi-official sources are collected inside the *Agriculture:aproduction* (i.e. *agriculture domain*, *aproduction* dataset) dataset. Here all data are collected from countries on: 
+ 
+ * Area harvested 
+ * Yield
+ * Area sawn
+ * Carcass weight
+ * Livestock
+ * Milking animals
+ * Milking products
+ * Seed qt
+ * Crop Production qt
+ * stocks qt
+ * Industrial Use qt
+ * Feed qt
+ * Food availability qt
+ * Losses qt
+ 
+It represents the main input dataset containing input-data of almost all domains (Trade is excluded as it takes data from different sources). It has a special role in the all FBS framework and its content and use is very delicate and not straightforward. In particular this dataset contains different typologies of data, some used as they are and other used for prosucing other data: 
+
+ 1. Data on area harvested, yield, area sawn are used for estimating missing production data and seed data; 
+ 2. Data on Crop Production, Industrial Use, Feed, Seed, Food and Losses originally collected in this dataset are *Protected*, which means that they will be used for: 
+  * estimating missing production data,
+  * estimating missing seed data,
+  * estimating missin feed data,
+  * directly used for the FBS calculation
+ 3. Data on Carcass weight, livestock, milking animals and milking products are used by other modules for producing data on meat, milk and eggs. 
+
+Indeed, three modules are run which have this dataset, as it is at the beginning of the overall process, as, unique or not, inpu:
+
+ 1. Industrial use Module
+ 2. crop Production Module
+ 3. Livestock Module
+
+### *Industrial use Module*
+
+### *crop Production Module*
+
+### *Livestock Module*
+
+## *Trade Module*
+### Module on Crop production
+
+

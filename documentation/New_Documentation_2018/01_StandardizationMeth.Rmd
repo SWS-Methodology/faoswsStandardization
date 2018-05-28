@@ -20,7 +20,7 @@ author:
   Food and Agriculture Organization of the United Nations
   
 abstract: |
-  This vignette provides a description of the Workflow of the Standardization and Balancing Procedure: This represents the process of aggregating and balancing all the accounts of individual products to their primary equivalents. Other documents will cover technical aspects.
+  This vignette provides a description of the Standardization and Balancing Procedure: This represents the process of aggregating and balancing all the accounts of individual products to their primary equivalents. Other documents will cover the overall Food Balance Sheet workflow and some, more detailed, technical aspect.
 date: "`r format(Sys.time(), '%e %B %Y')`"
 geometry: margin=1in
 output:
@@ -168,8 +168,8 @@ changes and updates.
 
 A food balance sheet can be defined as an aggregated and analytical data set that "presents a comprehensive picture of the pattern of a country's food supply during a specified reference period."^[For this definition and a more extended description of the motivation behind the development of FBS, see FAO, 2001, *Food Balance Sheets: A Handbook*, available at: http://www.fao.org/docrep/003/X9892E/X9892E00.HTM. Accessed on 19 January 2017.] FBS are presented as products accounts, where the quantities allocated to all the sources of total supply must be equal to the quantities allocated to all the sources of utilization. This balance is compiled for every food item consumed within a country at primary commodity equivalent basis, and all of the primary commodity equivalent balances are then combined into a single overall FBS. FBSs are, then, expressed in terms of per capita supply for each food item by dividing by the country's population, with the per capita supplies being expressed both in terms of quantity and, through the application of food conversion factors, in terms of caloric value, protein, and fat content. These per capita estimates of caloric value for individual food products are then summed to obtain the total daily per capita Dietary Energy Supply (DES) of a country.
 
-While FBS are typically only published at the primary commodity equivalent level to facilitate interpretation, they are created for all the commodities, accordingly to the *Central Product Classification* (***CPC***) System^[The CPC represents a comprehensive classification of products into a system of categories that are both exhaustive and mutually exclusive. It is based on a set of internationally agreed concepts, definitions, principles and classification rules. The custodian of this classification is the UNSD. For more information, see the  [*Guidelines on International Classifications for Agricultural Statistics*](http://gsars.org/wp-content/uploads/2015/12/Guidelines-for-Int-Classifications-on-Agricultural-Statistics-web.pdf) and the [*UNSD official document on CPC Vesion 2.1*](https://unstats.un.org/unsd/cr/downloads/CPCv2.1_complete%28PDF%29_English.pdf)].
-Indeed, a balance for wheat alone would in most cases include little or no food use, because wheat is commonly processed into flour before it is consumed by humans, and flour is then used to produce various other derived products such as bread, pastries and pasta. Because there is both supply and demand both for the primary commodity and the derived commodities, individual accounts are kept for all of prducts. 
+While FBS are typically only published at the primary commodity equivalent level to facilitate interpretation, they are created for all the commodities, accordingly to the *Central Product Classification* (***CPC***) System^[The CPC represents a comprehensive classification of products into a system of categories that are both exhaustive and mutually exclusive. It is based on a set of internationally agreed concepts, definitions, principles and classification rules. The custodian of this classification is the UNSD. For more information, see the  [*Guidelines on International Classifications for Agricultural Statistics*](http://gsars.org/wp-content/uploads/2015/12/Guidelines-for-Int-Classifications-on-Agricultural-Statistics-web.pdf) and the [*UNSD official document on CPC Version 2.1*](https://unstats.un.org/unsd/cr/downloads/CPCv2.1_complete%28PDF%29_English.pdf)].
+Indeed, a balance for wheat alone would in most cases include little or no food use, because wheat is commonly processed into flour before it is consumed by humans, and flour is then used to produce various other derived products such as bread, pastries and pasta. Because there is both supply and demand both for the primary commodity and the derived commodities, individual accounts are kept for all of products. 
 Individual accounts for commodities are called *Supply-Utilization Accounts* (***SUA***) and the process of obtaining FBS starting from SUAs is the ***Standardization & Balancing*** process. 
 
 ## The Balancing equation and its variables {-}
@@ -204,12 +204,12 @@ where the $i$ index runs over all countries, the $j$ index over all commodities,
 
 
 All variables are expressed in the same measurement unit: ***metric tonnes***.
-At international level, the primary data source that FAO uses to compile the the Supply Utilization Accounts/Food Balance Sheets are the data as collected through the annual *Agriculture Production Questionnaires*. Unfortunately, measured values are mostly limited to variables on the supply side (production, imports and exports), while, on the demand side, most values are imputed data^[For more details on FBS variables please see the latest version of the *Resource Book*, the documentation on *Food Balance Sheet workflow in the Statistical Working System* to be found on [*GitHub*](https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation) and [*Bitbucket*](https://sdlc.fao.org/bitbucket/projects) and specific documentation available about inputation of all variables]:
+At international level, the primary data source that FAO uses to compile the the Supply Utilization Accounts/Food Balance Sheets are the data as collected through the annual *Agriculture Production Questionnaires*. Unfortunately, measured values are mostly limited to variables on the supply side (production, imports and exports), while, on the demand side, most values are imputed data^[For more details on FBS variables please see the latest version of the *Resource Book*, the documentation on *Food Balance Sheet workflow in the Statistical Working System* to be found on [*GitHub*](https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation) and [*Bitbucket*](https://sdlc.fao.org/bitbucket/projects) and specific documentation available about imputation of all variables]:
 
 # Commodity Tree {-}
 
 The process of combining commodity balances for creating Food Balance Sheets is based on a structured and clear set of relationships between commodity given by the *Commodity tree*.
-The majority of the commodities are produced from one (or more) commodity (/ies), called *parent* commodity(/ies), and/or are themselfes parent of one (or more) *child* (*children*) commodity (/ies). These structure creates an intense and articulated network of relationships at different levels: primary commodities, like crops, are *parent* commodities and, also, *zero-level* commodities from which *children* commodities of *level-1* are produced, which are in turn, used to produce other commodities of a gradually *"lower"* level. In commodtity trees, the bigger the level number, the lower the processing level. There are as many commodity trees as the number of process chains in a country. Fundamental characteristics of commodity trees are^[For a more detailed description of commodity trees, please see the specific documentation. The reference document, at the moment is the *tecnical conversion factor* document available in the documentation folder on [*GitHub*](https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation)]: 
+The majority of the commodities are produced from one (or more) commodity (/ies), called *parent* commodity(/ies), and/or are themselves parent of one (or more) *child* (*children*) commodity (/ies). These structure creates an intense and articulated network of relationships at different levels: primary commodities, like crops, are *parent* commodities and, also, *zero-level* commodities from which *children* commodities of *level-1* are produced, which are in turn, used to produce other commodities of a gradually *"lower"* level. In commodity trees, the bigger the level number, the lower the processing level. There are as many commodity trees as the number of process chains in a country. Fundamental characteristics of commodity trees are^[For a more detailed description of commodity trees, please see the specific documentation. The reference document, at the moment is the *tecnical conversion factor* document available in the documentation folder on [*GitHub*](https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation)]: 
 
  1. Each commodity tree is represented as a flowchart of the kind presented in Figure \ref{fig:f2} where:
   * ***nodes*** represent commodities, 
@@ -224,7 +224,7 @@ knitr::include_graphics("images/StandBal/02_WheatTree.pdf")
 
  2. Not all the countries have the same production processes, because countries have different technologies and primary products availabilities. Therefore, the commodity trees are not the same across countries.
  
- 3. if a production process is active in a country, this is expressed throught the existence of a conversion factor called ***extraction Rate***. An Extraction rate ($eR$) represents how much amount of the child commodity is produced from 1 unit of parent commodity. It is expressed as a ratio of the processed product obtained from the processing of the parent/originating product.
+ 3. if a production process is active in a country, this is expressed through the existence of a conversion factor called ***extraction Rate***. An Extraction rate ($eR$) represents how much amount of the child commodity is produced from 1 unit of parent commodity. It is expressed as a ratio of the processed product obtained from the processing of the parent/originating product.
   
  4. Some child commodities can be produced starting from more that one parent commodity. A second conversion factor exists representing the amount of a child commodity that is produced from each parent commodity. This conversion factor is called ***Share***. Shares represent the amount of the child commodity that is produced from the specified parent and are expressed as a ratio. Shares are generically defined as: 
  
@@ -279,7 +279,7 @@ knitr::include_graphics("images/StandBal/09_overall.pdf")
 The process of creating FBSs starts by considering the initial commodity balance for each CPC commodity, either primary and derived, with the different variables of the equation (as listed and briefly described in the previous section) filled with figures as available from official or other sources and from imputation and estimation methods, when applied. In other words, the process starts by pulling figures inside a so-called *Sua Unbalanced*.
 In this initial account, food processing and ROU figures are not available (because they, by default, will be measured during the process), whereas the figures for all other variables have been already collected, imputed and estimated through a specific *module* (Figure \ref{fig:f1}).
 
-A ***module***, in the FBS Framework, is an R-script, written by an R-developer, for the execution of a set of operations (either data import, manipulation, imputation or estimation) required for compiling the time series of one variable. There is at least one module (there might be more) for each variable of the FBS. Each module produces figures that are collected in a dataset inside the ***Statistical Working System (SWS)***^[SWS is an internal Working System providing a platform for statisticians and statistical clers to collect, collate, validate and correct data. Moreover, the platfors supports the possibility of performing imputations of data based on statisticians' knowledge and development.].Output data of a module may become input data of another module, this circumstance creating a precise sequence for the execution of a complete FBS. In the present document, we are analyzing the workflow of the Standardization process as starts after all the modules have run and have produced reliable data or each variable. The detailed description of the workflow for the execution of all the modules of the FBS will be given in a separate document.^[[report the document when it will be available]].
+A ***module***, in the FBS Framework, is an R-script, written by an R-developer, for the execution of a set of operations (either data import, manipulation, imputation or estimation) required for compiling the time series of one variable. There is at least one module (there might be more) for each variable of the FBS. Each module produces figures that are collected in a dataset inside the ***Statistical Working System (SWS)***^[SWS is an internal Working System providing a platform for statisticians and statistical clerks to collect, collate, validate and correct data. Moreover, the platform supports the possibility of performing imputations of data based on statisticians' knowledge and development.].Output data of a module may become input data of another module, this circumstance creating a precise sequence for the execution of a complete FBS. In the present document, we are analyzing the workflow of the Standardization process as starts after all the modules have run and have produced reliable data or each variable. The detailed description of the workflow for the execution of all the modules of the FBS will be given in a separate document.^[[report the document when it will be available]].
 
 ```{r f1, fig.cap = "\\label{fig:f1}Data Pull from datasets containing data for each separate variable"}
 knitr::include_graphics("images/StandBal/01_pulldata.pdf")
@@ -287,7 +287,7 @@ knitr::include_graphics("images/StandBal/01_pulldata.pdf")
 
 
 
-## the Initial Sua Unbalanced {-}
+## The Initial Sua Unbalanced {-}
 
 After pulling all data, the process of compiling Food Balance Sheets is a non-complete supply-utilization account. The non-completeness of the SUAs is due to different reasons: first, as already said, some variables are not collected, nor estimated before the process begins, second there is the model for industrial use that does not impute or estimate data, but just collects data from different sources, this opening the strong possibility not to have values where they are supposed to exist and, also, not guaranteeing consistency of data over time. Thirdly, modules might, sometimes, fail in the imputation, because of the strong complexity and structural diversity of the input data. 
 
@@ -320,7 +320,7 @@ There are unbalanced SUAs for all combinations of commodity tree/country/year.
 
 The Standardization, i.e. the conversion of the variables of any child commodity in primary-equivalent commodity, requires all variables of the SUAs to be filled (except for ROU, which is a residual variable and is imputed at the very last step of the process), "all variables" meaning "all variables that are supposed to be filled". Indeed, not all variables have to exist for all commodities. Consider maize as an example: if there is no figure of *food availability* for maize, that does not mean that there is a missing figure because maize is rarely used for human consumption directly. However, in some country people do eat raw maize and, therefore, for those countries, a food figure is expected and, if missing, that has to be taken into account. 
 
-A simplifided workflow of *Sua Filling* is reported in Figure \ref{fig:f3}. 
+A simplified workflow of *Sua Filling* is reported in Figure \ref{fig:f3}. 
 
 ```{r f3, fig.align = "center", fig.pos = "H", out.width = "60%", fig.cap = "\\label{fig:f3}The Sua Filling simplified workflow"}
 
@@ -372,7 +372,7 @@ Imb1_{ijt} = P_{ijt} + I_{ijt} - X_{ijt}
 
 where $Imb1_{ijt}$ is the Imbalance and is enumerated because is different from a second Imbalance that will enter into the process later. Here: 
 
- * If $Imb1_{ijt} < 0$ there is no supply enough for the export and this is intepreted as the need for creating/incrementing the Production figure. The new production figure ($P^*_{ijt}$) is computed as: 
+ * If $Imb1_{ijt} < 0$ there is no supply enough for the export and this is interpreted as the need for creating/increment the Production figure. The new production figure ($P^*_{ijt}$) is computed as: 
  
  \begin{equation}
 \label{eq:imbalance1}
@@ -449,7 +449,7 @@ availability1_{p(c)} = (P_{pjt} + I_{pjt})\times eR_{p\to c}
 >>\begin{equation}
 \label{eq:weight}
 \begin{cases}
-    w_{c} = 1      & \quad \text{if boht quantity and calories have to be standardized} \\
+    w_{c} = 1      & \quad \text{if both quantity and calories have to be standardized} \\
     w_{c} = 0      & \quad \text{if only calories have to be standardized}
 \end{cases}
 \end{equation}
@@ -527,7 +527,7 @@ Imb2_{ijt} = P_{ijt} + I_{ijt} - X_{ijt} - \Delta St_{ijt} - FP_{ijt} - Fo_{ijt}
 
 Three different scenarios con be found (Figure 5): 
 
-```{r f5, fig.align = "center", out.width = "80%", fig.cap = "\\label{fig:f5}Scenarios of the *Sua Filling*"}
+```{r f5, fig.align = "center", out.width = "80%", fig.cap = "\\label{fig:f5}Scenarios of the Sua Filling"}
 
 knitr::include_graphics("images/StandBal/05_ScenariosFilling.pdf")
 
@@ -550,12 +550,12 @@ Please notice that, besides export and stock Variations, that are excluded from 
 
 ### *Imbalance = 0 (Scenario A)* {-}
 
-In this scenario, the Imbalance is null, this meaning that there is enought supply for the existing utilization. In this case, the SUA line is balanced and nothing happens for the commodity. In `r table_nums("t6",display = "cite")` this is the case of *Other Fructose and syrup* and *wheat Gluten*.
+In this scenario, the Imbalance is null, this meaning that there is enough supply for the existing utilization. In this case, the SUA line is balanced and nothing happens for the commodity. In `r table_nums("t6",display = "cite")` this is the case of *Other Fructose and syrup* and *wheat Gluten*.
 
 
 ### *Imbalance < 0 (Scenario B)* {-}
 
-If this happens, it means that there is not enough supply for the commodity to be used in the way the SUA figures suggest. In this case, as shown in Figure \ref{fig:f6} the algoritm tries to solve the eccess of utilization by reducing all the existing Utilizations by 30% (except Exports^[Stock is changed in this case, because this is just a proportional reduction of values and does not need a time series analysis]). If this is enough to cover the Utilization, the balancing line for that commodity is balanced and the process can go to the next step. Instead, after this reduction, there might be 2 different scenarios: 
+If this happens, it means that there is not enough supply for the commodity to be used in the way the SUA figures suggest. In this case, as shown in Figure \ref{fig:f6} the algorithm tries to solve the excess of utilization by reducing all the existing Utilizations by 30% (except Exports^[Stock is changed in this case, because this is just a proportional reduction of values and does not need a time series analysis]). If this is enough to cover the Utilization, the balancing line for that commodity is balanced and the process can go to the next step. Instead, after this reduction, there might be 2 different scenarios: 
 
  1. If this imbalance is still negative, it is checked if the production figure is "*protected*" or not: 
  
@@ -764,7 +764,7 @@ knitr::kable(table,caption = "Sua line of Cocoa Beans Madagascar 2014 - after *S
 
 The table resulting after the *Sua Filling* is called *Sua Balanced*. For the  *China/Wheat/2014* example the *Sua Balanced* is reported in `r table_nums("t14",display = "cite")`.
 
-The red lines are not balanced lines. Indeed, the *Sua Filling* procedure does not interveene on all the commodities. It leaves unbalanced all the "top level" commodities falling in 2 main categories:
+The red lines are not balanced lines. Indeed, the *Sua Filling* procedure does not intervene on all the commodities. It leaves unbalanced all the "top level" commodities falling in 2 main categories:
 
  1. The *Primary commodities*. These are all the crop commodities, like cereals, pulses, vegetables, fruits etc, that are often processed in other commodities, like the wheat in flour of wheat.
  2. The *no tree* commodities. These commodities are excluded from the list of commodities that are processed into something else, they are often mixes of some other crop or commodity and used for specific purposes, i.e. *Mixes and dough for the preparation of baker's wares* and *Food preparations of Flour, Meal or Malt Extract* from our example.
@@ -870,7 +870,7 @@ where:
 
 Standardize a SUA is the process of:
 
- a. expressing all elments $El_{k,c}$ of the children of a parent commodity, in terms of their parent commodity,
+ a. expressing all elements $El_{k,c}$ of the children of a parent commodity, in terms of their parent commodity,
  b. Adding up all the calories of the food commodities and calculate DES.
  
  
@@ -956,9 +956,9 @@ Notice that *Production* remains untouched from the Standardization process and 
 
 ## The "Fbs Standardized" table {-}
 
-The stadardized table is called *Fbs Standardized* and is composed of more than 1 line, because, besides the primary commodity thare are 2 more typologies of commodities, both : 
+The standardized table is called *Fbs Standardized* and is composed of more than 1 line, because, besides the primary commodity there are 2 more typologies of commodities, both : 
 
- * *No-tree* commodities, that are also *"zero-level"* commodities, appear here as they were in the previous step. Indeed, as these are not procesed, the standardization does not change any of the element's values.
+ * *No-tree* commodities, that are also *"zero-level"* commodities, appear here as they were in the previous step. Indeed, as these are not processed, the standardization does not change any of the element's values.
  * *Proxy-primary* commodities. The Child commodities defined as *proxy-primary* are cut from their trees immediately before the standardization begins. They are treated as primary commodities and appear here together with the primaries. 
 
 `r table_nums("t18",display = "cite")` and `r table_nums("t24",display = "cite")`
@@ -976,7 +976,7 @@ landscape(knitr::kable(table,format="latex",caption = "Sua Standardized",
 
 # The FBS Balancing
 
-The balancing of Standardized Sua in the new framework is based on the idea that each variable of equation \ref{eq:balance1} includes a measurement error, so that the equation can be rewritten as follows: 
+The balancing of Standardized Sua in the new framework is based on the idea that, at this step of the overall process, a *little* imbalance has been cumulated, due to the errors of each variable. Therefore, equation \ref{eq:balance1} can be rewritten, in its balanced form, as: 
 
 
 \begin{equation}
@@ -998,9 +998,9 @@ where (dropping the indices for brevity):
  * $IU^* = IU \pm adj_{IU}$
  * $T^* = T \pm adj_{T}$
 
-and where each *adjustment ($adj_{el \in E}$)* is an balancing adjustment proportional to the measurement error (*ME*) of each element $el \in E = \{P,I,X,\Delta St, FP,Fo,Fe,Lo,Se,IU,T,ROU\}$
+and where each *adjustment ($adj_{el \in E}$)* is a balancing adjustment calculated satrting from the measurement error (*ME*) of each element $el \in E = \{P,I,X,\Delta St, FP,Fo,Fe,Lo,Se,IU,T,ROU\}$.
 
-The balancing mechanism is a two step process aimed at modify each value proportionally to the *ME*. It start with the definition of the percentages of *Measurement Errors ($p_{ME}$)* for each element as reported in the following Table:
+In particular, the balancing mechanism is a two step process aimed at modify each value proportionally to the *ME*. It start with the definition of the percentages of *Measurement Errors ($p_{ME}$)* for each element as reported in the following Table:
 
 ```{r t21, fig.cap=t21_cap, fig.pos = "H"}
 table=data.table(read.csv("tables/StandBal/21_measurementErrors.csv",header = FALSE,check.names = FALSE))
@@ -1011,7 +1011,7 @@ knitr::kable(table,caption = "Measurement Errors percentages",
 ```
 
 
-$ROU$ is not included int his table because ROU is created in this step in a slighlty different way. 
+$ROU$ is not included int his table because ROU is created in this step in a slightly different way. 
 
 Indeed, the *final balancing* happens according to the following steps:
 
@@ -1085,13 +1085,13 @@ knitr::kable(table,caption = "Final Balancing - China/Wheat/2014 - Food Preparat
 
 ```
 
-# Final aggregation:FBS items and FBS aggregates
+# Final aggregation: FBS items and FBS aggregates
 
 The Food Balance Sheets have to be expressed in *FBS* items.The conversion from CPC to FBS is a simple aggregation based on an aggregation table, called ***Fbs Tree***, an extract of which is reported in  `r table_nums("t23",display = "cite")`.
 
 After the Balancing happens, the CPC commodities are aggregated on the basis of the classifications of FBS commodities reported in the table. 3 different level of aggregations are performed: 
 
- 1. at FBS item LEevel, 
+ 1. at FBS item level, 
  2. At FBS group level
  3. at FBS family level
  4. at the Total (By country) FBS Level.
@@ -1181,13 +1181,14 @@ landscape(knitr::kable(table,format="latex",caption = "FBS Final Aggregations - 
   add_footnote("P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",notation = "alphabet")
 ```
 
-# Conclusions and future work {-}
+# Room for improvement  {-}
 
 The methodology presented in this document is the result of the teamwork of the ESS *methodological team* and *data team*. Still some aspects of the methodology have to be fully tested and might require adjustments and/or debug. 
-Nevertheless, this methodology has been used for producung FBS of year 2016. 
 
-# Related documentation {-}
+Some aspects that might need revision and/or update are: 
 
-Here a list of the documents related to the present one: 
+ 1. How to manage the balancing of *stock variation* during the sua Filling. As said across the document, figures of stock variation are not touched during the sua filling. While this appeared the only way of treating stocks in the present version of the methodology, some effort might be taken in the future for letting also stock being included in the process.
+ 2. How to manage the imbalance. A check on the amount of imbalance might be added before the balancing happens, so to warn in case of huge imbalance, for the need of revision at input-data level.
 
-1. 
+This methodology has been used for producing FBS of year 2016. 
+

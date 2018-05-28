@@ -84,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{24 May 2018}
+  \date{28 May 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -116,10 +116,11 @@ Food and Agriculture Organization of the United Nations}
 \begin{document}
 \maketitle
 \begin{abstract}
-This vignette provides a description of the Workflow of the
-Standardization and Balancing Procedure: This represents the process of
-aggregating and balancing all the accounts of individual products to
-their primary equivalents. Other documents will cover technical aspects.
+This vignette provides a description of the Standardization and
+Balancing Procedure: This represents the process of aggregating and
+balancing all the accounts of individual products to their primary
+equivalents. Other documents will cover the overall Food Balance Sheet
+workflow and some, more detailed, technical aspect.
 \end{abstract}
 
 {
@@ -186,13 +187,13 @@ Classification} (\textbf{\emph{CPC}}) System\footnote{The CPC represents
   \href{http://gsars.org/wp-content/uploads/2015/12/Guidelines-for-Int-Classifications-on-Agricultural-Statistics-web.pdf}{\emph{Guidelines
   on International Classifications for Agricultural Statistics}} and the
   \href{https://unstats.un.org/unsd/cr/downloads/CPCv2.1_complete\%28PDF\%29_English.pdf}{\emph{UNSD
-  official document on CPC Vesion 2.1}}}. Indeed, a balance for wheat
+  official document on CPC Version 2.1}}}. Indeed, a balance for wheat
 alone would in most cases include little or no food use, because wheat
 is commonly processed into flour before it is consumed by humans, and
 flour is then used to produce various other derived products such as
 bread, pastries and pasta. Because there is both supply and demand both
 for the primary commodity and the derived commodities, individual
-accounts are kept for all of prducts. Individual accounts for
+accounts are kept for all of products. Individual accounts for
 commodities are called \emph{Supply-Utilization Accounts}
 (\textbf{\emph{SUA}}) and the process of obtaining FBS starting from
 SUAs is the \textbf{\emph{Standardization \& Balancing}} process.
@@ -265,7 +266,7 @@ data\footnote{For more details on FBS variables please see the latest
   on
   \href{https://github.com/SWS-Methodology/faoswsStandardization/tree/master/documentation}{\emph{GitHub}}
   and \href{https://sdlc.fao.org/bitbucket/projects}{\emph{Bitbucket}}
-  and specific documentation available about inputation of all variables}:
+  and specific documentation available about imputation of all variables}:
 
 \section*{Commodity Tree}\label{commodity-tree}
 \addcontentsline{toc}{section}{Commodity Tree}
@@ -274,14 +275,14 @@ The process of combining commodity balances for creating Food Balance
 Sheets is based on a structured and clear set of relationships between
 commodity given by the \emph{Commodity tree}. The majority of the
 commodities are produced from one (or more) commodity (/ies), called
-\emph{parent} commodity(/ies), and/or are themselfes parent of one (or
+\emph{parent} commodity(/ies), and/or are themselves parent of one (or
 more) \emph{child} (\emph{children}) commodity (/ies). These structure
 creates an intense and articulated network of relationships at different
 levels: primary commodities, like crops, are \emph{parent} commodities
 and, also, \emph{zero-level} commodities from which \emph{children}
 commodities of \emph{level-1} are produced, which are in turn, used to
 produce other commodities of a gradually \emph{``lower''} level. In
-commodtity trees, the bigger the level number, the lower the processing
+commodity trees, the bigger the level number, the lower the processing
 level. There are as many commodity trees as the number of process chains
 in a country. Fundamental characteristics of commodity trees
 are\footnote{For a more detailed description of commodity trees, please
@@ -329,7 +330,7 @@ are\footnote{For a more detailed description of commodity trees, please
   countries.
 \item
   if a production process is active in a country, this is expressed
-  throught the existence of a conversion factor called
+  through the existence of a conversion factor called
   \textbf{\emph{extraction Rate}}. An Extraction rate (\(eR\))
   represents how much amount of the child commodity is produced from 1
   unit of parent commodity. It is expressed as a ratio of the processed
@@ -491,8 +492,8 @@ might be more) for each variable of the FBS. Each module produces
 figures that are collected in a dataset inside the
 \textbf{\emph{Statistical Working System (SWS)}}\footnote{SWS is an
   internal Working System providing a platform for statisticians and
-  statistical clers to collect, collate, validate and correct data.
-  Moreover, the platfors supports the possibility of performing
+  statistical clerks to collect, collate, validate and correct data.
+  Moreover, the platform supports the possibility of performing
   imputations of data based on statisticians' knowledge and development.}.Output
 data of a module may become input data of another module, this
 circumstance creating a precise sequence for the execution of a complete
@@ -510,9 +511,9 @@ given in a separate document.\footnote{{[}report the document when it
 separate variable}
 \end{figure}
 
-\subsection*{the Initial Sua
+\subsection*{The Initial Sua
 Unbalanced}\label{the-initial-sua-unbalanced}
-\addcontentsline{toc}{subsection}{the Initial Sua Unbalanced}
+\addcontentsline{toc}{subsection}{The Initial Sua Unbalanced}
 
 After pulling all data, the process of compiling Food Balance Sheets is
 a non-complete supply-utilization account. The non-completeness of the
@@ -613,7 +614,7 @@ rarely used for human consumption directly. However, in some country
 people do eat raw maize and, therefore, for those countries, a food
 figure is expected and, if missing, that has to be taken into account.
 
-A simplifided workflow of \emph{Sua Filling} is reported in Figure
+A simplified workflow of \emph{Sua Filling} is reported in Figure
 \ref{fig:f3}.
 
 \begin{figure}[H]
@@ -750,9 +751,8 @@ later. Here:
 \tightlist
 \item
   If \(Imb1_{ijt} < 0\) there is no supply enough for the export and
-  this is intepreted as the need for creating/incrementing the
-  Production figure. The new production figure (\(P^*_{ijt}\)) is
-  computed as:
+  this is interpreted as the need for creating/increment the Production
+  figure. The new production figure (\(P^*_{ijt}\)) is computed as:
 \end{itemize}
 
 \begin{equation}
@@ -960,7 +960,7 @@ availability1_{p(c)} = (P_{pjt} + I_{pjt})\times eR_{p\to c}
 \begin{equation}
 \label{eq:weight}
 \begin{cases}
-w_{c} = 1      & \quad \text{if boht quantity and calories have to be standardized} \\
+w_{c} = 1      & \quad \text{if both quantity and calories have to be standardized} \\
 w_{c} = 0      & \quad \text{if only calories have to be standardized}
 \end{cases}
 \end{equation}
@@ -1119,7 +1119,7 @@ Three different scenarios con be found (Figure 5):
 
 }
 
-\caption{\label{fig:f5}Scenarios of the *Sua Filling*}\label{fig:f5}
+\caption{\label{fig:f5}Scenarios of the Sua Filling}\label{fig:f5}
 \end{figure}
 
 \begin{landscape}\begin{table}
@@ -1174,7 +1174,7 @@ A)}}{Imbalance = 0 (Scenario A)}}\label{imbalance-0-scenario-a}
 \addcontentsline{toc}{subsubsection}{\emph{Imbalance = 0 (Scenario A)}}
 
 In this scenario, the Imbalance is null, this meaning that there is
-enought supply for the existing utilization. In this case, the SUA line
+enough supply for the existing utilization. In this case, the SUA line
 is balanced and nothing happens for the commodity. In Table 7 this is
 the case of \emph{Other Fructose and syrup} and \emph{wheat Gluten}.
 
@@ -1185,7 +1185,7 @@ B)}}{Imbalance \textless{} 0 (Scenario B)}}\label{imbalance-0-scenario-b}
 
 If this happens, it means that there is not enough supply for the
 commodity to be used in the way the SUA figures suggest. In this case,
-as shown in Figure \ref{fig:f6} the algoritm tries to solve the eccess
+as shown in Figure \ref{fig:f6} the algorithm tries to solve the excess
 of utilization by reducing all the existing Utilizations by 30\% (except
 Exports\footnote{Stock is changed in this case, because this is just a
   proportional reduction of values and does not need a time series
@@ -1657,7 +1657,7 @@ Balanced}. For the \emph{China/Wheat/2014} example the \emph{Sua
 Balanced} is reported in Table 15.
 
 The red lines are not balanced lines. Indeed, the \emph{Sua Filling}
-procedure does not interveene on all the commodities. It leaves
+procedure does not intervene on all the commodities. It leaves
 unbalanced all the ``top level'' commodities falling in 2 main
 categories:
 
@@ -1871,7 +1871,7 @@ Standardize a SUA is the process of:
 \def\labelenumi{\alph{enumi}.}
 \tightlist
 \item
-  expressing all elments \(El_{k,c}\) of the children of a parent
+  expressing all elements \(El_{k,c}\) of the children of a parent
   commodity, in terms of their parent commodity,
 \item
   Adding up all the calories of the food commodities and calculate DES.
@@ -2024,8 +2024,8 @@ process and \emph{ROU} are still untouched.
 table}{The Fbs Standardized table}}\label{the-fbs-standardized-table}
 \addcontentsline{toc}{subsection}{The ``Fbs Standardized'' table}
 
-The stadardized table is called \emph{Fbs Standardized} and is composed
-of more than 1 line, because, besides the primary commodity thare are 2
+The standardized table is called \emph{Fbs Standardized} and is composed
+of more than 1 line, because, besides the primary commodity there are 2
 more typologies of commodities, both :
 
 \begin{itemize}
@@ -2033,8 +2033,8 @@ more typologies of commodities, both :
 \item
   \emph{No-tree} commodities, that are also \emph{``zero-level''}
   commodities, appear here as they were in the previous step. Indeed, as
-  these are not procesed, the standardization does not change any of the
-  element's values.
+  these are not processed, the standardization does not change any of
+  the element's values.
 \item
   \emph{Proxy-primary} commodities. The Child commodities defined as
   \emph{proxy-primary} are cut from their trees immediately before the
@@ -2068,8 +2068,10 @@ Food Preparations of & - & 69,685.96 & 21,977.43 & 0 & 47,708.53 & 0 & 0 & 0 & -
 \section{The FBS Balancing}\label{the-fbs-balancing}
 
 The balancing of Standardized Sua in the new framework is based on the
-idea that each variable of equation \ref{eq:balance1} includes a
-measurement error, so that the equation can be rewritten as follows:
+idea that, at this step of the overall process, a \emph{little}
+imbalance has been cumulated, due to the errors of each variable.
+Therefore, equation \ref{eq:balance1} can be rewritten, in its balanced
+form, as:
 
 \begin{equation}
 \label{eq:balance3}
@@ -2104,14 +2106,15 @@ where (dropping the indices for brevity):
   \(T^* = T \pm adj_{T}\)
 \end{itemize}
 
-and where each \emph{adjustment (\(adj_{el \in E}\))} is an balancing
-adjustment proportional to the measurement error (\emph{ME}) of each
-element \(el \in E = \{P,I,X,\Delta St, FP,Fo,Fe,Lo,Se,IU,T,ROU\}\)
+and where each \emph{adjustment (\(adj_{el \in E}\))} is a balancing
+adjustment calculated satrting from the measurement error (\emph{ME}) of
+each element
+\(el \in E = \{P,I,X,\Delta St, FP,Fo,Fe,Lo,Se,IU,T,ROU\}\).
 
-The balancing mechanism is a two step process aimed at modify each value
-proportionally to the \emph{ME}. It start with the definition of the
-percentages of \emph{Measurement Errors (\(p_{ME}\))} for each element
-as reported in the following Table:
+In particular, the balancing mechanism is a two step process aimed at
+modify each value proportionally to the \emph{ME}. It start with the
+definition of the percentages of \emph{Measurement Errors (\(p_{ME}\))}
+for each element as reported in the following Table:
 
 \begin{longtable}[]{@{}cc@{}}
 \caption{Measurement Errors percentages}\tabularnewline
@@ -2139,7 +2142,7 @@ Element & \(p_{ME}\)\tabularnewline
 \end{longtable}
 
 \(ROU\) is not included int his table because ROU is created in this
-step in a slighlty different way.
+step in a slightly different way.
 
 Indeed, the \emph{final balancing} happens according to the following
 steps:
@@ -2326,8 +2329,8 @@ Preparations}\tabularnewline
 \bottomrule
 \end{longtable}
 
-\section{Final aggregation:FBS items and FBS
-aggregates}\label{final-aggregationfbs-items-and-fbs-aggregates}
+\section{Final aggregation: FBS items and FBS
+aggregates}\label{final-aggregation-fbs-items-and-fbs-aggregates}
 
 The Food Balance Sheets have to be expressed in \emph{FBS} items.The
 conversion from CPC to FBS is a simple aggregation based on an
@@ -2342,7 +2345,7 @@ different level of aggregations are performed:
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  at FBS item LEevel,
+  at FBS item level,
 \item
   At FBS group level
 \item
@@ -2444,25 +2447,33 @@ GRAND TOTAL & 1,940,733,489 & 177,486,138 & 27,427,634 & 9,948,701 & 1,272,788,6
 \end{table}
 \end{landscape}
 
-\section*{Conclusions and future
-work}\label{conclusions-and-future-work}
-\addcontentsline{toc}{section}{Conclusions and future work}
+\section*{Room for improvement}\label{room-for-improvement}
+\addcontentsline{toc}{section}{Room for improvement}
 
 The methodology presented in this document is the result of the teamwork
 of the ESS \emph{methodological team} and \emph{data team}. Still some
 aspects of the methodology have to be fully tested and might require
-adjustments and/or debug. Nevertheless, this methodology has been used
-for producung FBS of year 2016.
+adjustments and/or debug.
 
-\section*{Related documentation}\label{related-documentation}
-\addcontentsline{toc}{section}{Related documentation}
-
-Here a list of the documents related to the present one:
+Some aspects that might need revision and/or update are:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
+\tightlist
 \item
+  How to manage the balancing of \emph{stock variation} during the sua
+  Filling. As said across the document, figures of stock variation are
+  not touched during the sua filling. While this appeared the only way
+  of treating stocks in the present version of the methodology, some
+  effort might be taken in the future for letting also stock being
+  included in the process.
+\item
+  How to manage the imbalance. A check on the amount of imbalance might
+  be added before the balancing happens, so to warn in case of huge
+  imbalance, for the need of revision at input-data level.
 \end{enumerate}
+
+This methodology has been used for producing FBS of year 2016.
 
 
 \end{document}
