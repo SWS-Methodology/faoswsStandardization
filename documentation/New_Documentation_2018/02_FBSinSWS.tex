@@ -84,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{25 May 2018}
+  \date{30 May 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -479,7 +479,7 @@ described in this document.
 
 \begin{figure}[H]
 
-{\centering \includegraphics[width=0.9\linewidth]{images/SwsFbs/02_DatasetsDomains} 
+{\centering \includegraphics{images/SwsFbs/02_DatasetsDomains} 
 
 }
 
@@ -488,7 +488,7 @@ described in this document.
 
 \begin{figure}[H]
 
-{\centering \includegraphics[width=0.9\linewidth]{images/SwsFbs/04_DataTablesDomains} 
+{\centering \includegraphics[width=0.6\linewidth]{images/SwsFbs/04_DataTablesDomains} 
 
 }
 
@@ -646,7 +646,7 @@ used for prosucing other data:
 \end{enumerate}
 
 Indeed, three modules are run which have this dataset, as it is at the
-beginning of the overall process, as, unique or not, inpu:
+beginning of the overall process, as, unique or not, input:
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -659,20 +659,292 @@ beginning of the overall process, as, unique or not, inpu:
   Livestock Module
 \end{enumerate}
 
-\subsubsection{\texorpdfstring{\emph{Industrial use
+\subsection{\texorpdfstring{\emph{Industrial use
 Module}}{Industrial use Module}}\label{industrial-use-module}
 
-\subsubsection{\texorpdfstring{\emph{crop Production
+Industrial Use module, takes data of \emph{Agriculture:aproduction} as
+input, together with data from another dataset, containing information
+on industrial use of some production commodities from \emph{USDA}
+(United States Department of Agriculture), named \emph{``Production
+supply and distirbution''} in the SWS. Moreover, a datatable is used,
+which allows for conversion of codes from the USDA dataset to the CPC
+classification used by FAO. All data aggregated in this module are, then
+saved, inside a different dataset: \emph{Industrial Use} creating the
+following Data Flow for the Industrial USe module:
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.55\linewidth]{images/SwsFbs/05_industrialModule} 
+
+}
+
+\caption{\label{fig:f5}Industrial Use Module data-flow}\label{fig:f5}
+\end{figure}
+
+\subsection{\texorpdfstring{\emph{crop Production
 Module}}{crop Production Module}}\label{crop-production-module}
 
-\subsubsection{\texorpdfstring{\emph{Livestock
+The module of crop production takes data form
+\emph{Agriculture:aproduction} as input ad writes back the imputed data
+on the same dataset, as reported in figure \ref{fig:f6}.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.5\linewidth]{images/SwsFbs/06_cropProduction} 
+
+}
+
+\caption{\label{fig:f6}crop production data-flow}\label{fig:f6}
+\end{figure}
+
+\subsection{\texorpdfstring{\emph{Livestock
 Module}}{Livestock Module}}\label{livestock-module}
+
+Also this module takes data form \emph{Agriculture:aproduction} as input
+ad writes back the imputed data on the same dataset, as reported in
+figure \ref{fig:f7}.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.5\linewidth]{images/SwsFbs/07_Livestock} 
+
+}
+
+\caption{\label{fig:f7}Livestock module data-flow}\label{fig:f7}
+\end{figure}
 
 \subsection{\texorpdfstring{\emph{Trade
 Module}}{Trade Module}}\label{trade-module}
 
-\subsubsection{Module on Crop
-production}\label{module-on-crop-production}
+Trade module runs independently from the others. It uses COMTRADE data
+from UNSD and data from EUROSTAT, which are stored as datatables in the
+SWS, and writes on a separate dataset. The trade Module writes the
+imputed data in the \emph{Total trade} dataset, as reported in figure
+\ref{fig:f8}.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.45\linewidth]{images/SwsFbs/08_trade} 
+
+}
+
+\caption{\label{fig:f8}Trade module data-flow}\label{fig:f8}
+\end{figure}
+
+\section{Second set of modules}\label{second-set-of-modules}
+
+Once the \emph{Agriculture:aproduction} dataset has been updated with
+crop production data and livestock data, other 3 modules can be run,
+which uses the figures imputed in the previous step.
+
+\subsection{\texorpdfstring{\emph{Milk \&
+Eggs}}{Milk \& Eggs}}\label{milk-eggs}
+
+This module is run at this step because it uses, as input data,
+livestock's figure from \emph{Agriculture:aproduction} and it writes
+back figures on the same dataset (figure \ref{fig:f9}).
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.36\linewidth]{images/SwsFbs/09_milkEggs} 
+
+}
+
+\caption{\label{fig:f9}Milk and Eggs module data-flow}\label{fig:f9}
+\end{figure}
+
+\subsection{\texorpdfstring{\emph{Seed
+Module}}{Seed Module}}\label{seed-module}
+
+See figure \ref{fig:f10}.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.35\linewidth]{images/SwsFbs/10_seed} 
+
+}
+
+\caption{\label{fig:f10}Seed module data-flow}\label{fig:f10}
+\end{figure}
+
+\subsection{\texorpdfstring{\emph{Feed
+Module}}{Feed Module}}\label{feed-module}
+
+See figure \ref{fig:f11}.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.3\linewidth]{images/SwsFbs/11_feed} 
+
+}
+
+\caption{\label{fig:f11}Feed module data-flow}\label{fig:f11}
+\end{figure}
+
+\subsection{\texorpdfstring{\emph{Loss
+Module}}{Loss Module}}\label{loss-module}
+
+Also this module uses crop primaries Gigures from the
+\emph{Agriculture:aproduction} dataset but, instead of saving back to
+the same dataset, it saves in the \emph{LossWaste:loss} dataset .
+Moreover, it uses oxternal information on percentage factors, which are
+stored in a datatable (figure \ref{fig:f12}).
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.45\linewidth]{images/SwsFbs/12_loss} 
+
+}
+
+\caption{\label{fig:f12}Loss module data-flow}\label{fig:f12}
+\end{figure}
+
+\section{Third set of modules}\label{third-set-of-modules}
+
+\subsection{\texorpdfstring{\emph{Stock Variation
+Module}}{Stock Variation Module}}\label{stock-variation-module}
+
+The module of stocks requires input data from
+\emph{Agriculture:aproduction} and from \emph{trade:Total trade}. It
+writes in the \emph{Stok:stocksdata} dataset (figure \ref{fig:f13}).
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.45\linewidth]{images/SwsFbs/13_stock} 
+
+}
+
+\caption{\label{fig:f13}Loss module data-flow}\label{fig:f13}
+\end{figure}
+
+\section{Fourth set of modules}\label{fourth-set-of-modules}
+
+\subsection{\texorpdfstring{\emph{Derived production
+Module}}{Derived production Module}}\label{derived-production-module}
+
+This module has been developed long after the other modules were already
+developed. It has been developed with two aims:
+
+1.Imputing production figures for some derived commodities the
+production of which is needed from the food module,
+
+2.Imputing the figures for commodities the production of which has to be
+published in official publications.
+
+The data flow for this module is reported in figure \ref{fig:f14}.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.6\linewidth]{images/SwsFbs/14_derived} 
+
+}
+
+\caption{\label{fig:f14}derived commodities module data-flow}\label{fig:f14}
+\end{figure}
+
+\section{Fifth set of modules}\label{fifth-set-of-modules}
+
+\subsection{\texorpdfstring{\emph{Food
+Module}}{Food Module}}\label{food-module}
+
+Food module uses two different imputation procedures, called
+\emph{``food Residual''} and \emph{``food estimate''}. A data table,
+called \emph{food classification} assigns commodities to the different
+proceures and the procedures require different dataset, as reported in
+figure \ref{fig:f14}.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.8\linewidth]{images/SwsFbs/15_food} 
+
+}
+
+\caption{\label{fig:f15}food module data-flow}\label{fig:f15}
+\end{figure}
+
+\section{Sixth set of modules}\label{sixth-set-of-modules}
+
+\subsection{\texorpdfstring{\emph{Tourism consumption
+Module}}{Tourism consumption Module}}\label{tourism-consumption-module}
+
+As reported in figure \ref{fig:f15},imputation of Tourism consumption
+requires information regarding:
+
+\begin{itemize}
+\tightlist
+\item
+  food quantities,
+\item
+  nutritive factors,
+\item
+  population,
+\item
+  consumption habits of tourists and
+\item
+  tourist flow.
+\end{itemize}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.6\linewidth]{images/SwsFbs/16_tourism} 
+
+}
+
+\caption{\label{fig:f16}Tourism module data-flow}\label{fig:f16}
+\end{figure}
+
+\section{Seventh step: the Data Pull}\label{seventh-step-the-data-pull}
+
+After all variables have been imputed, data coming from all output
+dataset are combined in another dataset, which will be the starting
+point of the following step. Notice that, from the
+\emph{agriculture:aproduction} dataset data of more that one variable
+are pulled:
+
+\begin{itemize}
+\tightlist
+\item
+  crop production,
+\item
+  livestok,
+\item
+  milk and eggs,
+\item
+  production of derived commodities,
+\item
+  seed,
+\item
+  feed.
+\end{itemize}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.9\linewidth]{images/SwsFbs/17_pulldata} 
+
+}
+
+\caption{\label{fig:f17}Data pulling}\label{fig:f17}
+\end{figure}
+
+\section{\texorpdfstring{Last Step: \emph{Standardization and Balancing
+Module}}{Last Step: Standardization and Balancing Module}}\label{last-step-standardization-and-balancing-module}
+
+The module that performs Standardization and Balancing takes, as first
+input, the data pulled together in the previous step. This module is
+long and articulated and is described in detail in a separate document.
+Here a general data flow is presented (figure \ref{fig:f18}). This data
+flow wants to underline that the module make use of 4 data-tables, 2
+data-sets besides the main one. Moreover, it writes on 3 dofferent
+output datasets.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.8\linewidth]{images/SwsFbs/18_standBAl} 
+
+}
+
+\caption{\label{fig:f18}Standardization and Balancing data-flow}\label{fig:f18}
+\end{figure}
 
 
 \end{document}

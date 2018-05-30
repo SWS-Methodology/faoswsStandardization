@@ -1181,7 +1181,7 @@ landscape(knitr::kable(table,format="latex",caption = "FBS Final Aggregations - 
   add_footnote("P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing, Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",notation = "alphabet")
 ```
 
-# Room for improvement  {-}
+# Room/needs for improvement  {-}
 
 The methodology presented in this document is the result of the teamwork of the ESS *methodological team* and *data team*. Still some aspects of the methodology have to be fully tested and might require adjustments and/or debug. 
 
@@ -1189,6 +1189,7 @@ Some aspects that might need revision and/or update are:
 
  1. How to manage the balancing of *stock variation* during the sua Filling. As said across the document, figures of stock variation are not touched during the sua filling. While this appeared the only way of treating stocks in the present version of the methodology, some effort might be taken in the future for letting also stock being included in the process.
  2. How to manage the imbalance. A check on the amount of imbalance might be added before the balancing happens, so to warn in case of huge imbalance, for the need of revision at input-data level.
+ 3. The user might need to change figures in the *sua unbalanced* table. If it happens, an additional module should exists that synchronize back the figures in the original data-sets. In this way, the new figures will be available the following year, as starting point of new imputations.
 
 This methodology has been used for producing FBS of year 2016. 
 

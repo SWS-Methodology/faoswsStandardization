@@ -215,12 +215,12 @@ The workflow for compiling Food Balance Sheet is articulated and has dependencie
 
 Figure \ref{fig:f3} presents a simplistic representation of the overall Worflow. As shown, it consists of 8 propaedeutic steps that will be described in this document.
 
-```{r f2, fig.align = "center", fig.pos = "H",out.width = "90%",  fig.cap = "\\label{fig:f2}FBS Datasets and their domains in the SWS"}
+```{r f2, fig.align = "center", fig.pos = "H",  fig.cap = "\\label{fig:f2}FBS Datasets and their domains in the SWS"}
 
 knitr::include_graphics("images/SwsFbs/02_DatasetsDomains.pdf")
 ```
 
-```{r f4, fig.align = "center", fig.pos = "H",out.width = "90%",  fig.cap = "\\label{fig:f4}FBS Datatables and their domains in the SWS"}
+```{r f4, fig.align = "center", fig.pos = "H",out.width = "60%",  fig.cap = "\\label{fig:f4}FBS Datatables and their domains in the SWS"}
 
 knitr::include_graphics("images/SwsFbs/04_DataTablesDomains.pdf")
 ```
@@ -276,19 +276,184 @@ It represents the main input dataset containing input-data of almost all domains
   * directly used for the FBS calculation
  3. Data on Carcass weight, livestock, milking animals and milking products are used by other modules for producing data on meat, milk and eggs. 
 
-Indeed, three modules are run which have this dataset, as it is at the beginning of the overall process, as, unique or not, inpu:
+Indeed, three modules are run which have this dataset, as it is at the beginning of the overall process, as, unique or not, input:
 
  1. Industrial use Module
  2. crop Production Module
  3. Livestock Module
 
-### *Industrial use Module*
+## *Industrial use Module*
 
-### *crop Production Module*
+Industrial Use module, takes data of *Agriculture:aproduction* as input, together with data from another dataset, containing information on industrial use of some production commodities from *USDA* (United States Department of Agriculture), named *"Production supply and distirbution"* in the SWS. Moreover, a datatable is used, which allows for conversion of codes from the USDA dataset to the CPC classification used by FAO. All data aggregated in this module are, then saved, inside a different dataset: *Industrial Use* creating the following Data Flow for the Industrial USe module: 
 
-### *Livestock Module*
+
+```{r f5, fig.align = "center", fig.pos = "H", out.width = "55%",  fig.cap = "\\label{fig:f5}Industrial Use Module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/05_industrialModule.pdf")
+```
+
+
+## *crop Production Module*
+
+The module of crop production takes data form *Agriculture:aproduction* as input ad writes back the imputed data on the same dataset, as reported in figure \ref{fig:f6}.
+
+
+```{r f6, fig.align = "center", fig.pos = "H", out.width = "50%",  fig.cap = "\\label{fig:f6}crop production data-flow"}
+
+knitr::include_graphics("images/SwsFbs/06_cropProduction.pdf")
+```
+
+
+## *Livestock Module*
+
+Also this module takes data form *Agriculture:aproduction* as input ad writes back the imputed data on the same dataset, as reported in figure \ref{fig:f7}.
+
+
+```{r f7, fig.align = "center", fig.pos = "H", out.width = "50%",  fig.cap = "\\label{fig:f7}Livestock module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/07_Livestock.pdf")
+```
+
 
 ## *Trade Module*
-### Module on Crop production
+
+Trade module runs independently from the others. It uses COMTRADE data from UNSD and data from EUROSTAT, which are stored as datatables in the SWS, and writes on a separate dataset. The trade Module writes the imputed data in the *Total trade* dataset, as reported in figure \ref{fig:f8}.
+
+
+```{r f8, fig.align = "center", fig.pos = "H", out.width = "45%",  fig.cap = "\\label{fig:f8}Trade module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/08_trade.pdf")
+```
+
+
+# Second set of modules
+
+Once the *Agriculture:aproduction* dataset has been updated with crop production data and livestock data, other 3 modules can be run, which uses the figures imputed in the previous step.
+
+## *Milk & Eggs*
+
+This module is run at this step because it uses, as input data, livestock's figure from *Agriculture:aproduction* and it writes back figures on the same dataset (figure \ref{fig:f9}).
+
+```{r f9, fig.align = "center", fig.pos = "H", out.width = "36%",  fig.cap = "\\label{fig:f9}Milk and Eggs module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/09_milkEggs.pdf")
+```
+
+
+## *Seed Module*
+
+See figure \ref{fig:f10}.
+
+
+```{r f10, fig.align = "center", fig.pos = "H", out.width = "35%",  fig.cap = "\\label{fig:f10}Seed module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/10_seed.pdf")
+```
+
+
+## *Feed Module*
+
+See figure \ref{fig:f11}.
+
+
+```{r f11, fig.align = "center", fig.pos = "H", out.width = "30%",  fig.cap = "\\label{fig:f11}Feed module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/11_feed.pdf")
+```
+
+
+## *Loss Module*
+
+Also this module uses crop primaries Gigures from the *Agriculture:aproduction* dataset but, instead of saving back to the same dataset, it saves in the *LossWaste:loss* dataset . Moreover, it uses oxternal information on percentage factors, which are stored in a datatable (figure \ref{fig:f12}).
+
+
+```{r f12, fig.align = "center", fig.pos = "H", out.width = "45%",  fig.cap = "\\label{fig:f12}Loss module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/12_loss.pdf")
+```
+
+# Third set of modules
+
+## *Stock Variation Module*
+
+The module of stocks requires input data from *Agriculture:aproduction* and from *trade:Total trade*. It writes in the *Stok:stocksdata* dataset (figure \ref{fig:f13}).
+
+```{r f13, fig.align = "center", fig.pos = "H", out.width = "45%",  fig.cap = "\\label{fig:f13}Loss module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/13_stock.pdf")
+```
+
+# Fourth set of modules
+
+## *Derived production Module*
+
+This module has been developed long after the other modules were already developed. It has been developed with two aims:
+
+ 1.Imputing production figures for some derived commodities the production of which is needed from the food module,
+ 
+ 2.Imputing the figures for commodities the production of which has to be published in official publications.
+
+The data flow for this module is reported in figure \ref{fig:f14}.
+
+```{r f14, fig.align = "center", fig.pos = "H", out.width = "60%",  fig.cap = "\\label{fig:f14}derived commodities module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/14_derived.pdf")
+```
+
+# Fifth set of modules
+
+## *Food Module*
+
+Food module uses two different imputation procedures, called *"food Residual"* and *"food estimate"*. A data table, called *food classification* assigns commodities to the different proceures and the procedures require different dataset, as reported in figure \ref{fig:f14}.
+
+```{r f15, fig.align = "center", fig.pos = "H", out.width = "80%",  fig.cap = "\\label{fig:f15}food module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/15_food.pdf")
+```
+
+
+# Sixth set of modules
+
+## *Tourism consumption Module*
+
+As reported in figure \ref{fig:f15},imputation of Tourism consumption requires information regarding: 
+
+ * food quantities,
+ * nutritive factors,
+ * population,
+ * consumption habits of tourists and
+ * tourist flow.
+
+```{r f16, fig.align = "center", fig.pos = "H", out.width = "60%",  fig.cap = "\\label{fig:f16}Tourism module data-flow"}
+
+knitr::include_graphics("images/SwsFbs/16_tourism.pdf")
+```
+
+
+# Seventh step: the Data Pull
+
+After all variables have been imputed, data coming from all output dataset are combined in another dataset, which will be the starting point of the following step. Notice that, from the *agriculture:aproduction* dataset data of more that one variable are pulled: 
+
+ * crop production,
+ * livestok,
+ * milk and eggs,
+ * production of derived commodities,
+ * seed,
+ * feed.
+
+```{r f17, fig.align = "center", fig.pos = "H", out.width = "90%",  fig.cap = "\\label{fig:f17}Data pulling"}
+
+knitr::include_graphics("images/SwsFbs/17_pulldata.pdf")
+```
+
+
+# Last Step: *Standardization and Balancing Module*
+
+The module that performs Standardization and Balancing takes, as first input, the data pulled together in the previous step. This module is long and articulated and is described in detail in a separate document. Here a general data flow is presented (figure \ref{fig:f18}). This data flow wants to underline that the module make use of 4 data-tables, 2 data-sets besides the main one. Moreover, it writes on 3 dofferent output datasets.  
+
+```{r f18, fig.align = "center", fig.pos = "H", out.width = "80%",  fig.cap = "\\label{fig:f18}Standardization and Balancing data-flow"}
+
+knitr::include_graphics("images/SwsFbs/18_standBAl.pdf")
+```
 
 
