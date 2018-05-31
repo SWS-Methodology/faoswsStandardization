@@ -84,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{28 May 2018}
+  \date{30 May 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -324,10 +324,9 @@ are\footnote{For a more detailed description of commodity trees, please
 \def\labelenumi{\arabic{enumi}.}
 \setcounter{enumi}{1}
 \item
-  Not all the countries have the same production processes, because
-  countries have different technologies and primary products
-  availabilities. Therefore, the commodity trees are not the same across
-  countries.
+  Not all the countries have the same production processes: countries
+  have different technologies and primary products availabilities.
+  Therefore, the commodity trees are not the same across countries.
 \item
   if a production process is active in a country, this is expressed
   through the existence of a conversion factor called
@@ -417,9 +416,9 @@ There are some concepts linked to the \emph{Commodity tree} framework:
   other products. As they are not involved in any production process,
   there is no tree associated to them. Notice that, even a commodity
   that is included in the commodity tree of one Country, might be a
-  No-tree commodity for another country or another year, if no
-  production processes have been activated for that specific Country or
-  year.
+  No-tree commodity for another country or another year. This happens if
+  no production processes have been activated for that specific Country
+  or year.
 \end{itemize}
 
 \section*{Standardization and
@@ -473,16 +472,16 @@ The additional information's tables are:
 \section{Data Pull}\label{data-pull}
 
 The process of creating FBSs starts by considering the initial commodity
-balance for each CPC commodity, either primary and derived, with the
-different variables of the equation (as listed and briefly described in
-the previous section) filled with figures as available from official or
-other sources and from imputation and estimation methods, when applied.
-In other words, the process starts by pulling figures inside a so-called
-\emph{Sua Unbalanced}. In this initial account, food processing and ROU
-figures are not available (because they, by default, will be measured
-during the process), whereas the figures for all other variables have
-been already collected, imputed and estimated through a specific
-\emph{module} (Figure \ref{fig:f1}).
+balance for each CPC commodity, either primary and derived. In the
+balance the different variables of the equation (as listed and briefly
+described in the previous section) are filled with figures as available
+from official or other sources and from imputation and estimation
+methods, when applied. In other words, the process starts by pulling
+figures inside a so-called \emph{Sua Unbalanced}. In this initial
+account, food processing and ROU figures are not available (because
+they, by default, will be measured during the process), whereas the
+figures for all other variables have been already collected, imputed and
+estimated through a specific \emph{module} (Figure \ref{fig:f1}).
 
 A \textbf{\emph{module}}, in the FBS Framework, is an R-script, written
 by an R-developer, for the execution of a set of operations (either data
@@ -500,9 +499,9 @@ circumstance creating a precise sequence for the execution of a complete
 FBS. In the present document, we are analyzing the workflow of the
 Standardization process as starts after all the modules have run and
 have produced reliable data or each variable. The detailed description
-of the workflow for the execution of all the modules of the FBS will be
-given in a separate document.\footnote{{[}report the document when it
-  will be available{]}}.
+of the workflow for the execution of all the modules of the FBS is given
+in a separate document.\footnote{{[}report the document when it will be
+  available{]}}.
 
 \begin{figure}[htbp]
 \centering
@@ -518,13 +517,14 @@ Unbalanced}\label{the-initial-sua-unbalanced}
 After pulling all data, the process of compiling Food Balance Sheets is
 a non-complete supply-utilization account. The non-completeness of the
 SUAs is due to different reasons: first, as already said, some variables
-are not collected, nor estimated before the process begins, second there
-is the model for industrial use that does not impute or estimate data,
-but just collects data from different sources, this opening the strong
-possibility not to have values where they are supposed to exist and,
-also, not guaranteeing consistency of data over time. Thirdly, modules
-might, sometimes, fail in the imputation, because of the strong
-complexity and structural diversity of the input data.
+are not collected, nor estimated before the process begins. Second,
+there is the model for industrial use that does not impute or estimate
+data, but just collects data from different sources \footnote{this
+  opening the strong possibility not to have values where they are
+  supposed to exist and, also, not guaranteeing consistency of data over
+  time}. Third, modules might, sometimes, fail in the imputation,
+because of the strong complexity and structural diversity of the input
+data.
 
 \begin{landscape}\begin{table}
 
@@ -605,8 +605,8 @@ rationale}\label{main-rules-and-the-rationale}
 The Standardization, i.e.~the conversion of the variables of any child
 commodity in primary-equivalent commodity, requires all variables of the
 SUAs to be filled (except for ROU, which is a residual variable and is
-imputed at the very last step of the process), ``all variables'' meaning
-``all variables that are supposed to be filled''. Indeed, not all
+imputed at the very last step of the process). ``All variables'' here
+means ``all variables that are supposed to be filled''. Indeed, not all
 variables have to exist for all commodities. Consider maize as an
 example: if there is no figure of \emph{food availability} for maize,
 that does not mean that there is a missing figure because maize is
@@ -628,8 +628,8 @@ A simplified workflow of \emph{Sua Filling} is reported in Figure
 
 \emph{Food Processing} needs to be computed first and it does not come
 from any module. For the food processing to be correctly computed, a
-check on the other variables has to be performed, in order to be sure
-that the food processing might be correctly imputed. In particular,
+check on the other variables has to be performed first, in order to be
+sure that the food processing might be correctly imputed. In particular,
 Production is checked first, as the \emph{Food Processing} figure of any
 commodity is based on the production one. Then \emph{Food processing}
 can be computed and, after that, other missing figures, if existing, are
@@ -656,9 +656,9 @@ Not all the variables (supplies and Utilizations) are to be filled:
 \tightlist
 \item
   Trade (import and Export) data are shared with countries and published
-  by FAO. Therefore these figures have a separate process of validation
-  that makes them reliable enough not to be questioned during the
-  standardization process.
+  by FAO. These figures have a separate process of validation that makes
+  them reliable enough not to be questioned during the standardization
+  process.
 \item
   Production figures of primary commodities are also published by FAO.
   As previously mentioned, production values can have various flags
@@ -680,25 +680,26 @@ is taken from FBSs and SUAs of past years. FBSs published with the
 previous methodology and their corresponding SUAs can give information
 about which are the Utilizations supposed to be active for every single
 commodity in each country.\\
-Therefore, these pieces of information have to be given externally, as
-the process is automated and there is non-human knowledge intervening in
-training the machine that is performing the calculations. The previous
+These pieces of information have to be given externally, as the process
+is automated and there is non-human knowledge intervening in training
+the machine that is performing the calculations. The previous
 methodology used for compiling FBS made massive use of manual
 interventions while the new methodology tries to avoid it, but taking
 advantage of the work and effort of the country experts that compiled
 the FBSs in the past. Past information is embedded in the new
-methodology through the use of the \emph{Utilization Table} which helps
-to identify which variables have to be filled, commodity by commodity,
-while the amount of them to be assigned to figures is identified through
-a set of rules, known as \emph{Sua Filling}. This procedure makes use of
-the imbalance between supply and utilization values for each commodity
-and fills the figures that have been recognized as missing from the
-\textbf{\emph{Utilization Table}}. The filling procedure assigns figures
-using an ad-hoc algorithm, called \textbf{\emph{Inverse Ranking}},
-designed for dimensioning the figures in accordance with the importance
-they had in the past FBSs, as suggested also from the \emph{Utilization
-Table} through ranks associated to each variable. As a consequence, all
-the commodities entering the \emph{Sua Filling} procedure are eventually
+methodology through the use of the \emph{Utilization Table}. These
+tables helps to identify which variables have to be filled, commodity by
+commodity. moreover, the amount of them to be assigned to figures is
+identified through a set of rules, known as \emph{Sua Filling}. This
+procedure makes use of the imbalance between supply and utilization
+values for each commodity and fills the figures that have been
+recognized as missing from the \textbf{\emph{Utilization Table}}. The
+filling procedure assigns figures using an ad-hoc algorithm, called
+\textbf{\emph{Inverse Ranking}}. This algorithm is designed for
+dimensioning the figures in accordance with the importance they had in
+the past FBSs, as suggested also from the \emph{Utilization Table}
+through ranks associated to each variable. As a consequence, all the
+commodities entering the \emph{Sua Filling} procedure are eventually
 balanced.
 
 Not all the commodities enter the process the same way. In particular, a
@@ -872,10 +873,10 @@ supply of a commodity processed into derived commodities. \emph{Food
 processing} is calculated for all the parent commodities as the sum of
 the food processing of all the possible derived commodities. For
 example, Wheat in China is processed into Flour of Wheat, Bran of Wheat
-and Breakfast Cereals: Flour and Bran are produced during the same
+and Breakfast Cereals. Flour and Bran are produced during the same
 production process (they are called \emph{co-products} or
-\emph{by-products}), therefore the same amount of wheat is used for
-producing all of them, Breakfast Cereals comes from a separate
+\emph{by-products}), meaning that the same amount of wheat is used for
+producing all of them. Breakfast Cereals comes from a separate
 production process instead. Therefore, \emph{Food processing} of Wheat
 is given as the sum of the amount of wheat's supply used for producing
 Flour and Bran + The amount used for producing Breakfast Cereals.
@@ -942,14 +943,14 @@ availability1_{p(c)} = (P_{pjt} + I_{pjt})\times eR_{p\to c}
   two or more co-products is used for producing \emph{Food processing}
   of the parent commodity producing them, the result would be a Food
   processing twice the size of what it should be. This would happen
-  because the two co-products are produced during the same process, in
-  other words, from the same amount of the parent commodity. For this to
-  be taken into account, a weight is used, which is 1 for the commodity
-  that has to be considered for determining Food processing of parent
-  commodity and 0 for the child commodity that are co-products (equation
+  because the two co-products are produced during the same process, from
+  the same amount of the parent commodity. For this to be taken into
+  account, a weight is used, which is 1 for the commodity that has to be
+  considered for determining Food processing of parent commodity and 0
+  for the child commodities that are co-products (equation
   \ref{eq:weight}). Please notice that, the co-products are still
   important in the standardization, because they contribute in the
-  creation of the calories availability of the country, therefore, these
+  creation of the calories availability of the country. These
   commodities (Also called \emph{zero weight} commodities) are
   multiplied by 0 only when quantities are treated, they will instead be
   considered when calories will be taken into account:
@@ -1010,11 +1011,11 @@ China, Mainland & 2014 & Bran of Maize & Gluten Feed and Meal & 1.00 &
 \end{longtable}
 
 Shares lower than \(1\) mean that the child commodity might be produced
-also from other parents and, therefore, the reported ratio represents
-the ratio of that commodity that is produced from the reported parent.
-For example, \emph{Gluten Feed and Meal} is produced from \emph{Wheat
-Gluten} and from \emph{Bran of maize}. The sum of the shares associated
-to this child (\(0.33\) and \(0.67\)) is equal to \(1\).
+also from other parents and the reported ratio represents the ratio of
+that commodity that is produced from the reported parent. For example,
+\emph{Gluten Feed and Meal} is produced from \emph{Wheat Gluten} and
+from \emph{Bran of maize}. The sum of the shares associated to this
+child (\(0.33\) and \(0.67\)) is equal to \(1\).
 
 Table 6 shows the SUA table after the two steps just described. Notice
 that, in the specific example, there was no need for the
@@ -1100,7 +1101,7 @@ After \emph{Food processing} figures have been computed, the other
 variables have to be checked and either filled, increased or decreased.
 Only derived commodities enter this step. Primary commodities are
 excluded because, for these commodities, the figures are normally more
-reliable and complete and, very often protected. Only the final
+reliable and complete and, very often, protected. Only the final
 balancing may affect Primary commodity figures. This step is based on
 the value of the following Imbalance:
 
@@ -1165,9 +1166,9 @@ pastry & 193,950 & 89,593 & 117,630 &  & 165,914 &  &  &  & -43 &  &  & - & 42\\
 
 Please notice that, besides export and stock Variations, that are
 excluded from this step for the reasons previously explained, also Food
-Processing is excluded from the next steps, because \(FP\) is related to
-the production figures of the children and to modify it, would detach
-this very important parent-children link.
+Processing is excluded from the next steps: \(FP\) is related to the
+production figures of the children and to modify it, would detach this
+very important parent-children link.
 
 \subsubsection*{\texorpdfstring{\emph{Imbalance = 0 (Scenario
 A)}}{Imbalance = 0 (Scenario A)}}\label{imbalance-0-scenario-a}
@@ -1204,8 +1205,8 @@ scenarios:
 
 \begin{quote}
 -- If Production figure is not protected, it is interpreted as if there
-was not enough information for producing a correct production number,
-therefore, this figure is changed, i.e.~created, if missing, or
+was not enough information for producing a correct production
+number.This figure is then changed, i.e.~created, if missing, or
 incremented of an amount equal to \emph{Imb2}
 \end{quote}
 
@@ -1721,12 +1722,11 @@ pastry & 193,950 & 89,593 & 117,630 &  & 165,957 &  &  &  & -42.75 &  &  & - & 0
 \end{table}
 \end{landscape}
 
-The reason for the exclusion of the \emph{zero-level} commodities form
-the filling stays in the circumstance for which the standardization will
-affect the figures of the primary commodities, this opening the need for
-a final \emph{balancing} procedure. In order not to intervene twice on
-these commodities, it has been decide to keep as smaller as possible the
-number correction, so to reduce error.
+\emph{Zero-level} commodities are excluded form the filling because the
+standardization will affect the figures of the primary commodities, this
+opening the need for a final \emph{balancing} procedure. In order not to
+intervene twice on these commodities, it has been decide to keep as
+smaller as possible the number correction, so to reduce error.
 
 \subsection*{Nutritive Values and DES
 calculation}\label{nutritive-values-and-des-calculation}
@@ -1813,8 +1813,8 @@ Filling}:
 The \emph{Standardization} is the process of transforming all the
 processed commodities in terms of their primary (or
 \emph{proxy-primary}) commodities and to add up all the calories of the
-food commodities, so to have all the existing food availability of a
-country, expressed in terms of the main commodities. Aggregation of data
+food commodities. This produces all the existing food availability of a
+country expressed in terms of the main commodities. Aggregation of data
 from a detailed product classification to a more comprehensive one is
 common practice for two reasons. The first reason is to reduce the
 amount of data, and the number of commodities involved, to a level and
@@ -2447,8 +2447,8 @@ GRAND TOTAL & 1,940,733,489 & 177,486,138 & 27,427,634 & 9,948,701 & 1,272,788,6
 \end{table}
 \end{landscape}
 
-\section*{Room for improvement}\label{room-for-improvement}
-\addcontentsline{toc}{section}{Room for improvement}
+\section*{Room/needs for improvement}\label{roomneeds-for-improvement}
+\addcontentsline{toc}{section}{Room/needs for improvement}
 
 The methodology presented in this document is the result of the teamwork
 of the ESS \emph{methodological team} and \emph{data team}. Still some
@@ -2471,6 +2471,12 @@ Some aspects that might need revision and/or update are:
   How to manage the imbalance. A check on the amount of imbalance might
   be added before the balancing happens, so to warn in case of huge
   imbalance, for the need of revision at input-data level.
+\item
+  The user might need to change figures in the \emph{sua unbalanced}
+  table. If it happens, an additional module should exists that
+  synchronize back the figures in the original data-sets. In this way,
+  the new figures will be available the following year, as starting
+  point of new imputations.
 \end{enumerate}
 
 This methodology has been used for producing FBS of year 2016.

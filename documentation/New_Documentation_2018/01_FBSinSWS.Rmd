@@ -166,7 +166,7 @@ The data of each variable are generally checked and imputed in time series. The 
 
 # Definitions  {-}
 
-there are 8 main thypologies of objects that will be use in the present document. These  correspond to objects that are used in the SWS in managing processes: 
+There are 8 main thypologies of objects that will be use in the present document. These  correspond to objects that are used in the SWS in managing processes: 
 
  1. ***Domain***: A domain is an area of work where other objects are grouped, by a common criterion of interest.
  2. ***Data***: In this framework, every information is grouped under this name, which will be characterized by its origin, whether it is collected or created. 
@@ -446,6 +446,7 @@ After all variables have been imputed, data coming from all output dataset are c
 knitr::include_graphics("images/SwsFbs/17_pulldata.pdf")
 ```
 
+A description of the *data pull* plugin is given in a separate document.
 
 # Last Step: *Standardization and Balancing Module*
 
