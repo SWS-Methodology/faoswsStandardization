@@ -84,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{30 May 2018}
+  \date{1 June 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -477,11 +477,13 @@ balance the different variables of the equation (as listed and briefly
 described in the previous section) are filled with figures as available
 from official or other sources and from imputation and estimation
 methods, when applied. In other words, the process starts by pulling
-figures inside a so-called \emph{Sua Unbalanced}. In this initial
-account, food processing and ROU figures are not available (because
-they, by default, will be measured during the process), whereas the
-figures for all other variables have been already collected, imputed and
-estimated through a specific \emph{module} (Figure \ref{fig:f1}).
+figures inside a so-called \emph{Sua Unbalanced}.
+
+In this initial account, food processing and ROU figures are not
+available (because they, by default, will be measured during the
+process), whereas the figures for all other variables have been already
+collected, imputed and estimated through a specific \emph{module}
+(Figure \ref{fig:f1}).
 
 A \textbf{\emph{module}}, in the FBS Framework, is an R-script, written
 by an R-developer, for the execution of a set of operations (either data
@@ -592,8 +594,13 @@ China in 2014. In particular, our example represents the commodity tree
 of Wheat in China in 2014 and is displayed, in its graphical form, in
 Figure \ref{fig:f2}.
 
-There are unbalanced SUAs for all combinations of commodity
-tree/country/year.
+A \emph{SUA} also contains other commodities, when existing, that are
+associated to the primary commodity inside an FBS item. In our example,
+the \emph{SUA} table includes the commodity \emph{Mixes and dough for
+the preparation of baker's wares} because it is included in theFBS
+commodity \emph{WHEAT \& PRODUCTS}. That commodity is in the \emph{SUA}
+of Wheat even if is not processed from wheat directly and is not
+processed in any commodity.
 
 \section{\texorpdfstring{The \emph{Sua
 Filling}}{The Sua Filling}}\label{the-sua-filling}
@@ -1550,7 +1557,7 @@ with \(pR_{h}\) depending on \(\sum \limits_{h=1}^n Wr_{h}\):
 \label{eq:weightRank}
 \begin{cases}
 pR_{h} = 0     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} = 0\\
-pR_{h} = \frac{Ir_{h}\times we_{h}}{\sum \limits_{i=1}^n\left(Ir_{h}\times Wr_{h}\right)}     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} > 0 
+pR_{h} = \frac{Ir_{h}\times Wr_{h}}{\sum \limits_{i=1}^n\left(Ir_{h}\times Wr_{h}\right)}     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} > 0 
 \end{cases}
 \end{equation}
 \end{quote}
@@ -2144,8 +2151,17 @@ Element & \(p_{ME}\)\tabularnewline
 \(ROU\) is not included int his table because ROU is created in this
 step in a slightly different way.
 
-Indeed, the \emph{final balancing} happens according to the following
-steps:
+Indeed, the \emph{final balancing} happens according to the Residual and
+Other Uses is set equal to the Imbalance steps (figure \ref{fig:f10}:
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.8\linewidth]{images/StandBal/11_ScenariosFinalBal} 
+
+}
+
+\caption{\label{fig:f10}Scenatios of the final balancing}\label{fig:f10}
+\end{figure}
 
 \textbf{1.} If \(Imb2 > 0\):
 

@@ -4,7 +4,7 @@ title:   |
     | for Food Balance Sheet Calculation
     |  
 header-includes:
-- \usepackage{draftwatermark}   
+- \usepackage{draftwatermark}
 - \usepackage{makeidx}
 - \makeindex
 - \usepackage{float} #use the 'float' package
@@ -276,7 +276,8 @@ knitr::include_graphics("images/StandBal/09_overall.pdf")
 
 # Data Pull
 
-The process of creating FBSs starts by considering the initial commodity balance for each CPC commodity, either primary and derived. In the balance the different variables of the equation (as listed and briefly described in the previous section) are filled with figures as available from official or other sources and from imputation and estimation methods, when applied. In other words, the process starts by pulling figures inside a so-called *Sua Unbalanced*.
+The process of creating FBSs starts by considering the initial commodity balance for each CPC commodity, either primary and derived. In the balance the different variables of the equation (as listed and briefly described in the previous section) are filled with figures as available from official or other sources and from imputation and estimation methods, when applied. In other words, the process starts by pulling figures inside a so-called *Sua Unbalanced*. 
+
 In this initial account, food processing and ROU figures are not available (because they, by default, will be measured during the process), whereas the figures for all other variables have been already collected, imputed and estimated through a specific *module* (Figure \ref{fig:f1}).
 
 A ***module***, in the FBS Framework, is an R-script, written by an R-developer, for the execution of a set of operations (either data import, manipulation, imputation or estimation) required for compiling the time series of one variable. There is at least one module (there might be more) for each variable of the FBS. Each module produces figures that are collected in a dataset inside the ***Statistical Working System (SWS)***^[SWS is an internal Working System providing a platform for statisticians and statistical clerks to collect, collate, validate and correct data. Moreover, the platform supports the possibility of performing imputations of data based on statisticians' knowledge and development.].Output data of a module may become input data of another module, this circumstance creating a precise sequence for the execution of a complete FBS. In the present document, we are analyzing the workflow of the Standardization process as starts after all the modules have run and have produced reliable data or each variable. The detailed description of the workflow for the execution of all the modules of the FBS is given in a separate document.^[[report the document when it will be available]].
@@ -284,8 +285,6 @@ A ***module***, in the FBS Framework, is an R-script, written by an R-developer,
 ```{r f1, fig.cap = "\\label{fig:f1}Data Pull from datasets containing data for each separate variable"}
 knitr::include_graphics("images/StandBal/01_pulldata.pdf")
 ```
-
-
 
 ## The Initial Sua Unbalanced {-}
 
@@ -312,7 +311,7 @@ Supply utilization accounts are typically organized into tables where the SUA fo
 
 All these relationships represent the *Commodity tree* of wheat in China in 2014. In particular, our example represents the commodity tree of Wheat in China in 2014 and is displayed, in its graphical form, in Figure \ref{fig:f2}.
 
-There are unbalanced SUAs for all combinations of commodity tree/country/year. 
+A *SUA* also contains other commodities, when existing, that are associated to the primary commodity inside an FBS item. In our example, the *SUA* table includes the commodity *Mixes and dough for the preparation of baker's wares* because it is included in theFBS commodity *WHEAT \& PRODUCTS*. That commodity is in the *SUA* of Wheat even if is not processed from wheat directly and is not processed in any commodity.
 
 # The *Sua Filling*
 
@@ -710,7 +709,7 @@ V_{h} = Imb2 \times pR_{h}
 \label{eq:weightRank}
 \begin{cases}
    pR_{h} = 0     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} = 0\\
-   pR_{h} = \frac{Ir_{h}\times we_{h}}{\sum \limits_{i=1}^n\left(Ir_{h}\times Wr_{h}\right)}     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} > 0 
+   pR_{h} = \frac{Ir_{h}\times Wr_{h}}{\sum \limits_{i=1}^n\left(Ir_{h}\times Wr_{h}\right)}     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} > 0 
 \end{cases}
 \end{equation}
 
@@ -1013,7 +1012,15 @@ knitr::kable(table,caption = "Measurement Errors percentages",
 
 $ROU$ is not included int his table because ROU is created in this step in a slightly different way. 
 
-Indeed, the *final balancing* happens according to the following steps:
+Indeed, the *final balancing* happens according to the Residual and Other Uses is set equal to the Imbalance steps (figure \ref{fig:f10}:
+
+
+```{r f10, fig.align = "center", fig.pos = "H", out.width = "80%",  fig.cap = "\\label{fig:f10}Scenatios of the final balancing"}
+
+knitr::include_graphics("images/StandBal/11_ScenariosFinalBal.pdf")
+
+```
+
 
  **1.** If $Imb2 > 0$:
  
