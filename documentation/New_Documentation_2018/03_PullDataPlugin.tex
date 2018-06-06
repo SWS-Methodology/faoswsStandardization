@@ -83,7 +83,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{1 June 2018}
+  \date{5 June 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -147,8 +147,8 @@ changes and updates.
 \addcontentsline{toc}{section}{The Data flow}
 
 This is the first step of the Standardization and Balancing, the step in
-which data coming from all output dataset are combined in another
-dataset, which will be the starting point of the following step. It is
+which data coming from all output data-set are combined in another
+data-set, which will be the starting point of the following step. It is
 represented in figure \ref{fig:f1}
 
 \begin{figure}[H]
@@ -168,7 +168,7 @@ pulled:
 \item
   crop production,
 \item
-  livestok,
+  livestock,
 \item
   milk and eggs,
 \item
@@ -182,7 +182,7 @@ pulled:
 \section*{Plug-in}\label{plug-in}
 \addcontentsline{toc}{section}{Plug-in}
 
-A general descriprion of all the objects of the \emph{SWS} is given in
+A general description of all the objects of the \emph{SWS} is given in
 the document \emph{Food Balance Sheet workflow in the Statistical
 Working System}. A plug-in, in this framework, is an executable process.
 In this document, the steps for executing the \emph{pullDataToSUA}
@@ -214,7 +214,7 @@ plugin are explained:
 session}\label{define-dimendions-of-the-session}
 
 For the Pulling of the data, a session has to be opened in the
-\emph{target} dataset, which is the \emph{suafbs:sua\_unbalanced}.
+\emph{target} data-set, which is the \emph{suafbs:sua\_unbalanced}.
 Therefore \emph{SUA/FBS} domain and \emph{sua\_unbalanced} have to be
 selected from the screen:
 
@@ -254,7 +254,7 @@ countries}. In this example \emph{China, Mainland} is selected.
 \caption{\label{fig:f6}Select Country/ies}\label{fig:f6}
 \end{figure}
 
-All elements here have to be seleted (figure \ref{fig:f7}) and all
+All elements here have to be selected (figure \ref{fig:f7}) and all
 items(\ref{fig:f8}). The years to be selected depend on the interest of
 the user.
 
@@ -298,11 +298,11 @@ When all Variables have been defined, the query can be run:
 
 \section{The session}\label{the-session}
 
-The new swssion is reported in figure \ref{fig:f11}. Items are in the
-``codelis order'', which means in the way they are stored in the SWS.
+The new session is reported in figure \ref{fig:f11}. Items are in the
+``code-list order'', which means in the way they are stored in the SWS.
 This means that they have a numerical order but there might be some
 codes in a position not consistent with their number, just because they
-have been inserted in a different moment in the codelist.
+have been inserted in a different moment in the code-list.
 
 \begin{figure}[H]
 
@@ -314,13 +314,13 @@ have been inserted in a different moment in the codelist.
 \end{figure}
 
 \emph{At the moment this dataset is filled with data coming from the old
-system (dataset ``suaValidated2015''), from 2010 to 2013 for}
-\textbf{\emph{all countries}}. On these set of data, some changes are
-made from the users when the FBS are validated. If a data pull is
-performed in this time range for these countries, the data taken from
-old system would be overwritten. Is very important to look at the
-hystory of data and ask for clarofocation to the las persons who saved
-data.
+system (dataset ``suaValidated2015''), from 2000 to 2013 for}
+\textbf{\emph{all countries}}\emph{and New data from 2014 onward}. On
+these set of data, some changes are made from the users when the FBS are
+validated. If a data pull is performed in this time range for these
+countries, the data taken from old system would be overwritten. Is very
+important to look at the history of data and ask for clarification to
+the last persons who saved data.
 
 \section{Open the plug-in window.}\label{open-the-plug-in-window.}
 
@@ -357,7 +357,7 @@ In the \texttt{script} session, select the plug-in
 \caption{\label{fig:f14}Select Plug-in}\label{fig:f14}
 \end{figure}
 
-This will authomatically bring to a sub-window where the other variables
+This will automatically bring to a sub-window where the other variables
 of this plugin can be selected (figure \ref{fig:f15}).
 
 \begin{figure}[H]
@@ -373,8 +373,8 @@ of this plugin can be selected (figure \ref{fig:f15}).
 \tightlist
 \item
   \texttt{First\ Year}: the year from which data have to be pulled. As
-  previously said, in this dataset there are Validated and old data up
-  tp 2013, therefore in this example 2014 is selected as first year.
+  previously said, in this data-set there are Validated and old data up
+  to 2013, therefore in this example 2014 is selected as first year.
 \item
   \texttt{Last\ Year}: the last year until which the data have to be
   pulled.
@@ -396,7 +396,7 @@ imply that another window is opened for the selection of the time of
 execution.
 
 When the plug-in has finished to run, a window appears on the screen and
-an email is sento to the user (figure \ref{fig:f18}).
+an email is sent to the user (figure \ref{fig:f18}).
 
 \begin{figure}[H]
 

@@ -439,7 +439,7 @@ s^{1}_{cp} = \frac{availability1_{p(c)}}{\sum \limits_{p=1}^A{availability1_{p(c
 
 >>\begin{equation}
 \label{eq:availability 1}
-availability1_{p(c)} = (P_{pjt} + I_{pjt})\times eR_{p\to c}
+availability1_{p(c)} = (P_{pjt} + I_{pjt} - X_{pjt})\times eR_{p\to c}
 \end{equation}
 
 
@@ -832,44 +832,44 @@ knitr::include_graphics("images/StandBal/08_SuaBalanced.pdf")
 
 The *Standardization* is the process of transforming all the processed commodities in terms of their primary (or *proxy-primary*) commodities and to add up all the calories of the food commodities. This produces all the existing food availability of a country expressed in terms of the main commodities. Aggregation of data from a detailed product classification to a more comprehensive one is common practice for two reasons. The first reason is to reduce the amount of data, and the number of commodities involved, to a level and size more suited for analytical purposes. The second reason is, that by cancelling out the intermediate production of derived products against the input use of primary products, a clearer view emerges of the domestic availability of a product and its final uses.
 
-The standardization starts from the SUA table (reported, in its generic form, in `r table_nums("t16",display = "cite")`)
-
 ```{r t16, fig.cap=t16_cap, fig.pos = "H",results="asis"}
 
 ```
 
 \begin {table}[H]
 \begin{center}
-\caption {Generic SUA for Standardization}
+\caption {Generic SUA for Standardization for country j and time t}
 
 \begin{tabular}{lllllllllllll}
 & & & & & \\
  \hline
-Item & $El_{1}$ & ... & $El_{h}$ & ...& $El_{n}$ & $Kcal$\\ 
+Item & $el^{*}_{1}$ & ... & $el^{*}_{h}$ & ...& $el^{*}_{n}$ & $Kcal$\\ 
  \hline
-$parent_{p}$ & $V_{El_{1,pjt}}$ & ...& $V_{El_{h,pjt}}$ & ...& $V_{El_{n,pjt}}$ & $Kcal_{pjt}$\\ 
-$child_{1}$ & $V_{El_{1,jt1}}$ & ... & $V_{El_{h,jt1}}$ & ...& $V_{El_{n,jt1}}$ & $Kcal_{1jt}$\\ 
+$parent_{p}$ & $V_{p1}$ & ...& $V_{ph}$ & ...& $V_{pn}$ & $Kcal_{p}$\\ 
+$child_{1}$ & $V_{11}$ & ... & $V_{1h}$ & ...& $V_{1n}$ & $Kcal_{1}$\\ 
 ... & ... & ... & ... & ... & ... & ... & \\ 
-$child_{c}$ & $V_{El_{1,cjt}}$ & ... & $V_{El_{h,cjt}}$ & ...& $V_{El_{n,cjt}}$ & $Kcal_{cjt}$\\ 
+$child_{c}$ & $V_{c1}$ & ... & $V_{ch}$ & ...& $V_{cn}$ & $Kcal_{c}$\\ 
 ... & ... & ... & ... & ... & ... & ... & \\ 
-$child_{C}$ & $V_{El_{1,Cjt}}$ & ... & $V_{El_{h,Cjt}}$ & ...& $V_{El_{n,Cjt}}$ & $Kcal_{pjt}$\\ 
+$child_{C}$ & $V_{C1}$ & ... & $V_{Ch}$ & ...& $V_{Cn}$ & $Kcal_{C}$\\ 
  \hline
 \end{tabular}
 \end{center}
 \end {table}
 
-
-where: 
+The standardization starts from the SUA table reported, in its generic form, in `r table_nums("t16",display = "cite")`,where country and time indexes are omitted and where: 
 
  * $c = 1,2,3...C$ are the $C$ children $c$ of parent $p$,
- * $V_{El_{h,cjt}}$ is Value of element $h$ for child  $c$,
- * $V_{El_{h,pjt}}$ is Value of element $h$ for parent  $p$,
- * $El_{h}$ is the generic Element of the generic child $c$ of Parent $p$ in the range of elements involved in the Standardization. Indeed, $P$ and $FP$ are excluded from this step of the process,
+ * $V_{ch}$ is Value of element $h$ for child  $c$,
+ * $V_{ph}$ is Value of element $h$ for parent  $p$,
+ * $el^{*}_{h}$ is the generic Element of the generic child $c$ of Parent $p$ in the range of elements involved in the Standardization. Indeed, $P$ and $FP$ are excluded from this step of the process: 
+
+>$el^{*} \in E^{*} = \{I,X,\Delta St, ,Fo,Fe,Lo,Se,IU,T,ROU\}$
+
  * $Kcal$ is the amount of Calories associated with the commodity. This is positive only if the commodity is a food commodity.
 
 Standardize a SUA is the process of:
 
- a. expressing all elements $El_{k,c}$ of the children of a parent commodity, in terms of their parent commodity,
+ a. expressing the vales of all elements $V_{ch}$ of the children of a parent commodity, in terms of their parent commodity,
  b. Adding up all the calories of the food commodities and calculate DES.
  
  
@@ -879,19 +879,19 @@ Elements are transformed in their parent commodity following the equation:
 \begin{equation}
 \begin{cases}
 \label{eq:Food Processing}
- El_{h,pjt} = \sum \limits_{c=1}^C\biggl(\frac{V_{El_{h,cjt}}}{eR_{p\to c}}\biggr)\times s^{2}_{cp}\times w_{c}\\
+ V_{ph} = \sum \limits_{c=1}^C\biggl(\frac{V_{ch}}{eR_{p\to c}}\biggr)\times s^{2}_{cp}\times w_{c}\\
   \\
- DES_{pjt} =  \cfrac{\cfrac{Kcal_{pjt} + \sum \limits_{c=1}^C Kcal_{cjt}}{Population_{jt}}}{365}
+ DES_{p} =  \cfrac{\cfrac{Kcal_{p} + \sum \limits_{c=1}^C Kcal_{c}}{Population}}{365}
 \end{cases}
 \end{equation}
 
-> where: 
+> where, for country $j$ and time $t$: 
 
  * $c = 1,2,3...C$ are the $C$ children $c$ of parent $p$,
  * $eR_{p\to c}$ is the *extraction Rate* from parent $p$ to child $c$, 
  * $w_{c}$ is the *weight* of child $c$,
- * $Kcal_{pjt}$ are the Kcal of the parent commodity (if is a food commodity),
- * $Kcal_{cjt}$ are the Kcal of the child commodities,
+ * $Kcal_{p}$ are the Kcal of the parent commodity (if is a food commodity),
+ * $Kcal_{c}$ are the Kcal of the child commodities,
  * $s^{2}_{cp}$ is the *share* of child $c$ from parent $p$ and is based on a different availability from the previous one: 
 
 \begin{equation}
@@ -904,11 +904,8 @@ s^{2}_{cp} = \cfrac{availability2_{p(c)}}{\sum \limits_{p=1}^A{availability2_{p(
 
 >>\begin{equation}
 \label{eq:availability2}
-availability2_{p(c)} = FP_{pjt}\times eR_{p\to c}
+availability2_{p(c)} = FP_{p}\times eR_{p\to c}
 \end{equation}
-
-
-`r table_nums("t17",display = "cite")` shows the values of $availability2$, $eR$ and *shares* and *weights* of the *China/Wheat/2014* example.
 
 ```{r t17, fig.cap=t17_cap, fig.pos = "H"}
 table=data.table(read.csv("tables/StandBal/17_Availability2.csv"),check.names = FALSE)
@@ -917,7 +914,11 @@ knitr::kable(table,caption = "Availabilities and shares of parent/child for Stan
 
 ```
 
-As you can see, comparing this table with `r table_nums("t14",display = "cite")`: 
+
+
+`r table_nums("t17",display = "cite")` shows the values of $availability2$, $eR$ and *shares* and *weights* of the *China/Wheat/2014* example.
+
+Comparing this table with `r table_nums("t14",display = "cite")`: 
 
 \begin{equation}
 \label{eq:avExample1}
@@ -999,13 +1000,13 @@ where (dropping the indices for brevity):
 
 and where each *adjustment ($adj_{el \in E}$)* is a balancing adjustment calculated satrting from the measurement error (*ME*) of each element $el \in E = \{P,I,X,\Delta St, FP,Fo,Fe,Lo,Se,IU,T,ROU\}$.
 
-In particular, the balancing mechanism is a two step process aimed at modify each value proportionally to the *ME*. It start with the definition of the percentages of *Measurement Errors ($p_{ME}$)* for each element as reported in the following Table:
+In particular, the balancing mechanism is a two step process aimed at modify each value proportionally to the *ME*. It start with the definition of the percentages of *Measurement Errors ($MEp_{el \in E}$)* for each element as reported in the following Table:
 
 ```{r t21, fig.cap=t21_cap, fig.pos = "H"}
 table=data.table(read.csv("tables/StandBal/21_measurementErrors.csv",header = FALSE,check.names = FALSE))
 knitr::kable(table,caption = "Measurement Errors percentages",
              align = c(rep("c",length(colnames(table))-1)),
-             col.names = c("Element", "$p_{ME}$"))
+             col.names = c("$el$", "$MEp_{el}$"))
 
 ```
 
@@ -1040,14 +1041,14 @@ knitr::include_graphics("images/StandBal/11_ScenariosFinalBal.pdf")
 
 >>\begin{equation}
 \label{eq:badj1}
-adj_{el \in E} = Imb2 \times Value_{el} \times p_{adj_{el}}
+adj_{el \in E} = Imb2 \times V_{el} \times p_{adj_{el}}
 \end{equation}
 
 >>with 
 
 >>\begin{equation}
 \label{eq:badj2}
-p_{adj_{el}} =\cfrac{p_{ME}}{\sum \limits_{el \in E} (Value_{el} \times p_{ME})}
+p_{adj_{el}} =\cfrac{MEp_{el}}{\sum \limits_{el \in E} (V_{el} \times MEp_{el \in E})}
 \end{equation}
 
 >>and 
@@ -1068,7 +1069,7 @@ p_{adj_{el}} =\cfrac{p_{ME}}{\sum \limits_{el \in E} (Value_{el} \times p_{ME})}
 
 After the balancing happens, the value of Food availability might have changed, therefore, the Nutritive values have to be adjusted accordingly. The *Balanced Nutritive values* are obtained through a proportion. For the *DES*, this proportion is given by: 
 
-$Fo^* : Fo = DES^* : DES \rightarrow DES* = DES \times \cfrac{Fo^*}{Fo}$
+$V^*_{Fo} : V_{Fo} = DES^* : DES \rightarrow DES^* = DES \times \cfrac{V^*_{Fo}}{V_{Fo}}$
 
 `r table_nums("t22",display = "cite")` reports all the steps of the final balancing in the China/Wheat/2014 example for *Wheat*, including the final adjustment of the DES. 
 

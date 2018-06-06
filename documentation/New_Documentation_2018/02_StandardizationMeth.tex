@@ -84,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{1 June 2018}
+  \date{6 June 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -937,7 +937,7 @@ availability will be found in a following step:
 \begin{quote}
 \begin{equation}
 \label{eq:availability 1}
-availability1_{p(c)} = (P_{pjt} + I_{pjt})\times eR_{p\to c}
+availability1_{p(c)} = (P_{pjt} + I_{pjt} - X_{pjt})\times eR_{p\to c}
 \end{equation}
 \end{quote}
 \end{quote}
@@ -1830,43 +1830,49 @@ cancelling out the intermediate production of derived products against
 the input use of primary products, a clearer view emerges of the
 domestic availability of a product and its final uses.
 
-The standardization starts from the SUA table (reported, in its generic
-form, in Table 17)
-
 \begin {table}[H]
 \begin{center}
-\caption {Generic SUA for Standardization}
+\caption {Generic SUA for Standardization for country j and time t}
 
 \begin{tabular}{lllllllllllll}
 & & & & & \\
  \hline
-Item & $El_{1}$ & ... & $El_{h}$ & ...& $El_{n}$ & $Kcal$\\ 
+Item & $el^{*}_{1}$ & ... & $el^{*}_{h}$ & ...& $el^{*}_{n}$ & $Kcal$\\ 
  \hline
-$parent_{p}$ & $V_{El_{1,pjt}}$ & ...& $V_{El_{h,pjt}}$ & ...& $V_{El_{n,pjt}}$ & $Kcal_{pjt}$\\ 
-$child_{1}$ & $V_{El_{1,jt1}}$ & ... & $V_{El_{h,jt1}}$ & ...& $V_{El_{n,jt1}}$ & $Kcal_{1jt}$\\ 
+$parent_{p}$ & $V_{p1}$ & ...& $V_{ph}$ & ...& $V_{pn}$ & $Kcal_{p}$\\ 
+$child_{1}$ & $V_{11}$ & ... & $V_{1h}$ & ...& $V_{1n}$ & $Kcal_{1}$\\ 
 ... & ... & ... & ... & ... & ... & ... & \\ 
-$child_{c}$ & $V_{El_{1,cjt}}$ & ... & $V_{El_{h,cjt}}$ & ...& $V_{El_{n,cjt}}$ & $Kcal_{cjt}$\\ 
+$child_{c}$ & $V_{c1}$ & ... & $V_{ch}$ & ...& $V_{cn}$ & $Kcal_{c}$\\ 
 ... & ... & ... & ... & ... & ... & ... & \\ 
-$child_{C}$ & $V_{El_{1,Cjt}}$ & ... & $V_{El_{h,Cjt}}$ & ...& $V_{El_{n,Cjt}}$ & $Kcal_{pjt}$\\ 
+$child_{C}$ & $V_{C1}$ & ... & $V_{Ch}$ & ...& $V_{Cn}$ & $Kcal_{C}$\\ 
  \hline
 \end{tabular}
 \end{center}
 \end {table}
 
-where:
+The standardization starts from the SUA table reported, in its generic
+form, in Table 17,where country and time indexes are omitted and where:
 
 \begin{itemize}
 \tightlist
 \item
   \(c = 1,2,3...C\) are the \(C\) children \(c\) of parent \(p\),
 \item
-  \(V_{El_{h,cjt}}\) is Value of element \(h\) for child \(c\),
+  \(V_{ch}\) is Value of element \(h\) for child \(c\),
 \item
-  \(V_{El_{h,pjt}}\) is Value of element \(h\) for parent \(p\),
+  \(V_{ph}\) is Value of element \(h\) for parent \(p\),
 \item
-  \(El_{h}\) is the generic Element of the generic child \(c\) of Parent
-  \(p\) in the range of elements involved in the Standardization.
-  Indeed, \(P\) and \(FP\) are excluded from this step of the process,
+  \(el^{*}_{h}\) is the generic Element of the generic child \(c\) of
+  Parent \(p\) in the range of elements involved in the Standardization.
+  Indeed, \(P\) and \(FP\) are excluded from this step of the process:
+\end{itemize}
+
+\begin{quote}
+\(el^{*} \in E^{*} = \{I,X,\Delta St, ,Fo,Fe,Lo,Se,IU,T,ROU\}\)
+\end{quote}
+
+\begin{itemize}
+\tightlist
 \item
   \(Kcal\) is the amount of Calories associated with the commodity. This
   is positive only if the commodity is a food commodity.
@@ -1878,8 +1884,8 @@ Standardize a SUA is the process of:
 \def\labelenumi{\alph{enumi}.}
 \tightlist
 \item
-  expressing all elements \(El_{k,c}\) of the children of a parent
-  commodity, in terms of their parent commodity,
+  expressing the vales of all elements \(V_{ch}\) of the children of a
+  parent commodity, in terms of their parent commodity,
 \item
   Adding up all the calories of the food commodities and calculate DES.
 \end{enumerate}
@@ -1890,14 +1896,14 @@ equation:
 \begin{equation}
 \begin{cases}
 \label{eq:Food Processing}
- El_{h,pjt} = \sum \limits_{c=1}^C\biggl(\frac{V_{El_{h,cjt}}}{eR_{p\to c}}\biggr)\times s^{2}_{cp}\times w_{c}\\
+ V_{ph} = \sum \limits_{c=1}^C\biggl(\frac{V_{ch}}{eR_{p\to c}}\biggr)\times s^{2}_{cp}\times w_{c}\\
   \\
- DES_{pjt} =  \cfrac{\cfrac{Kcal_{pjt} + \sum \limits_{c=1}^C Kcal_{cjt}}{Population_{jt}}}{365}
+ DES_{p} =  \cfrac{\cfrac{Kcal_{p} + \sum \limits_{c=1}^C Kcal_{c}}{Population}}{365}
 \end{cases}
 \end{equation}
 
 \begin{quote}
-where:
+where, for country \(j\) and time \(t\):
 \end{quote}
 
 \begin{itemize}
@@ -1910,10 +1916,10 @@ where:
 \item
   \(w_{c}\) is the \emph{weight} of child \(c\),
 \item
-  \(Kcal_{pjt}\) are the Kcal of the parent commodity (if is a food
+  \(Kcal_{p}\) are the Kcal of the parent commodity (if is a food
   commodity),
 \item
-  \(Kcal_{cjt}\) are the Kcal of the child commodities,
+  \(Kcal_{c}\) are the Kcal of the child commodities,
 \item
   \(s^{2}_{cp}\) is the \emph{share} of child \(c\) from parent \(p\)
   and is based on a different availability from the previous one:
@@ -1937,13 +1943,10 @@ processing, expressed in terms of child, therefore:
 \begin{quote}
 \begin{equation}
 \label{eq:availability2}
-availability2_{p(c)} = FP_{pjt}\times eR_{p\to c}
+availability2_{p(c)} = FP_{p}\times eR_{p\to c}
 \end{equation}
 \end{quote}
 \end{quote}
-
-Table 18 shows the values of \(availability2\), \(eR\) and \emph{shares}
-and \emph{weights} of the \emph{China/Wheat/2014} example.
 
 \begin{longtable}[]{@{}cccccc@{}}
 \caption{Availabilities and shares of parent/child for
@@ -1980,7 +1983,10 @@ Gluten Feed and Meal & Maize (corn) & 0.09 & 1,803,440 & 0.24 &
 \bottomrule
 \end{longtable}
 
-As you can see, comparing this table with Table 15:
+Table 18 shows the values of \(availability2\), \(eR\) and \emph{shares}
+and \emph{weights} of the \emph{China/Wheat/2014} example.
+
+Comparing this table with Table 15:
 
 \begin{equation}
 \label{eq:avExample1}
@@ -2120,17 +2126,18 @@ each element
 
 In particular, the balancing mechanism is a two step process aimed at
 modify each value proportionally to the \emph{ME}. It start with the
-definition of the percentages of \emph{Measurement Errors (\(p_{ME}\))}
-for each element as reported in the following Table:
+definition of the percentages of \emph{Measurement Errors
+(\(MEp_{el \in E}\))} for each element as reported in the following
+Table:
 
 \begin{longtable}[]{@{}cc@{}}
 \caption{Measurement Errors percentages}\tabularnewline
 \toprule
-Element & \(p_{ME}\)\tabularnewline
+\(el\) & \(MEp_{el}\)\tabularnewline
 \midrule
 \endfirsthead
 \toprule
-Element & \(p_{ME}\)\tabularnewline
+\(el\) & \(MEp_{el}\)\tabularnewline
 \midrule
 \endhead
 \(P\) & \(0.1\%\)\tabularnewline
@@ -2198,7 +2205,7 @@ Other Uses is set equal to the Imbalance steps (figure \ref{fig:f10}:
 \begin{quote}
 \begin{equation}
 \label{eq:badj1}
-adj_{el \in E} = Imb2 \times Value_{el} \times p_{adj_{el}}
+adj_{el \in E} = Imb2 \times V_{el} \times p_{adj_{el}}
 \end{equation}
 \end{quote}
 \end{quote}
@@ -2213,7 +2220,7 @@ with
 \begin{quote}
 \begin{equation}
 \label{eq:badj2}
-p_{adj_{el}} =\cfrac{p_{ME}}{\sum \limits_{el \in E} (Value_{el} \times p_{ME})}
+p_{adj_{el}} =\cfrac{MEp_{el}}{\sum \limits_{el \in E} (V_{el} \times MEp_{el \in E})}
 \end{equation}
 \end{quote}
 \end{quote}
@@ -2254,7 +2261,7 @@ changed, therefore, the Nutritive values have to be adjusted
 accordingly. The \emph{Balanced Nutritive values} are obtained through a
 proportion. For the \emph{DES}, this proportion is given by:
 
-\(Fo^* : Fo = DES^* : DES \rightarrow DES* = DES \times \cfrac{Fo^*}{Fo}\)
+\(V^*_{Fo} : V_{Fo} = DES^* : DES \rightarrow DES^* = DES \times \cfrac{V^*_{Fo}}{V_{Fo}}\)
 
 Table 22 reports all the steps of the final balancing in the
 China/Wheat/2014 example for \emph{Wheat}, including the final
@@ -2263,16 +2270,16 @@ adjustment of the DES.
 \begin{longtable}[]{@{}rllllllll@{}}
 \caption{Final Balancing - China/Wheat/2014 - Wheat}\tabularnewline
 \toprule
-\boldmath\(el\) & \boldmath\(Value_{el \in E}\) & \boldmath\(p_{ME}\) &
-\boldmath\(Value_{el} \times p_{ME}\) & \boldmath\(p_{adj_{el}}\) &
-\boldmath\(adj_{el \in E}\) & \boldmath\(Value^*_{el \in E}\) &
+\boldmath\(el\) & \boldmath\(V_{el \in E}\) & \boldmath\(p_{ME}\) &
+\boldmath\(V_{el} \times p_{ME}\) & \boldmath\(p_{adj_{el}}\) &
+\boldmath\(adj_{el \in E}\) & \boldmath\(V^*_{el \in E}\) &
 \boldmath\(DES\) & \boldmath\(DES^*\)\tabularnewline
 \midrule
 \endfirsthead
 \toprule
-\boldmath\(el\) & \boldmath\(Value_{el \in E}\) & \boldmath\(p_{ME}\) &
-\boldmath\(Value_{el} \times p_{ME}\) & \boldmath\(p_{adj_{el}}\) &
-\boldmath\(adj_{el \in E}\) & \boldmath\(Value^*_{el \in E}\) &
+\boldmath\(el\) & \boldmath\(V_{el \in E}\) & \boldmath\(p_{ME}\) &
+\boldmath\(V_{el} \times p_{ME}\) & \boldmath\(p_{adj_{el}}\) &
+\boldmath\(adj_{el \in E}\) & \boldmath\(V^*_{el \in E}\) &
 \boldmath\(DES\) & \boldmath\(DES^*\)\tabularnewline
 \midrule
 \endhead
@@ -2313,14 +2320,14 @@ element \emph{ROU}.
 \caption{Final Balancing - China/Wheat/2014 - Food
 Preparations}\tabularnewline
 \toprule
-\boldmath\(el\) & \boldmath\(Value_{el \in E}\) &
-\boldmath\(Value^*_{el \in E}\) & \boldmath\(DES\) &
+\boldmath\(el\) & \boldmath\(V_{el \in E}\) &
+\boldmath\(V^*_{el \in E}\) & \boldmath\(DES\) &
 \boldmath\(DES^*\)\tabularnewline
 \midrule
 \endfirsthead
 \toprule
-\boldmath\(el\) & \boldmath\(Value_{el \in E}\) &
-\boldmath\(Value^*_{el \in E}\) & \boldmath\(DES\) &
+\boldmath\(el\) & \boldmath\(V_{el \in E}\) &
+\boldmath\(V^*_{el \in E}\) & \boldmath\(DES\) &
 \boldmath\(DES^*\)\tabularnewline
 \midrule
 \endhead
@@ -2338,8 +2345,8 @@ Preparations}\tabularnewline
 \(ROU\) & - & 12 & - & -\tabularnewline
 \boldmath\(Imb2\) & \textbf{12} & \textbf{\emph{0}} & - &
 -\tabularnewline
-\boldmath\(TS\) & \textbf{47,709} & - & - & -\tabularnewline
-\boldmath\(TS \times 0.05\) & \textbf{2,385} & & &\tabularnewline
+\boldmath\(TS\) & \textbf{69,685.96} & - & - & -\tabularnewline
+\boldmath\(TS \times 0.05\) & \textbf{3,484.298} & & &\tabularnewline
 \boldmath\(|Imb2| < TS \times 0.05\) & \textbf{TRUE} & &
 &\tabularnewline
 \bottomrule

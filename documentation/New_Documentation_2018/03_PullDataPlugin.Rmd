@@ -80,7 +80,7 @@ changes and updates.
 
 # The Data flow {-}
 
-This is the first step of the Standardization and Balancing, the step in which data coming from all output dataset are combined in another dataset, which will be the starting point of the following step. It is represented in figure \ref{fig:f1}
+This is the first step of the Standardization and Balancing, the step in which data coming from all output data-set are combined in another data-set, which will be the starting point of the following step. It is represented in figure \ref{fig:f1}
 
 ```{r f1, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f1}Data pulling"}
 
@@ -90,7 +90,7 @@ knitr::include_graphics("images/pullData/01_pulldata.pdf")
 Notice that, from *agriculture production* the following Data are pulled: 
 
  * crop production,
- * livestok,
+ * livestock,
  * milk and eggs,
  * production of derived commodities,
  * seed,
@@ -98,7 +98,7 @@ Notice that, from *agriculture production* the following Data are pulled:
 
 # Plug-in {-}
 
-A general descriprion of all the objects of the *SWS* is given in the document *Food Balance Sheet workflow in the Statistical Working System*. A plug-in, in this framework, is an executable process. In this document, the steps for executing the *pullDataToSUA* plugin are explained:
+A general description of all the objects of the *SWS* is given in the document *Food Balance Sheet workflow in the Statistical Working System*. A plug-in, in this framework, is an executable process. In this document, the steps for executing the *pullDataToSUA* plugin are explained:
 
 # Log-in in the SWS
 
@@ -116,7 +116,7 @@ knitr::include_graphics("images/pullData/03_NewSession2.PNG")
 
 # Define dimendions of the session
 
-For the Pulling of the data, a session has to be opened in the *target* dataset, which is the *suafbs:sua_unbalanced*. Therefore *SUA/FBS* domain and *sua_unbalanced* have to be selected from the screen:
+For the Pulling of the data, a session has to be opened in the *target* data-set, which is the *suafbs:sua_unbalanced*. Therefore *SUA/FBS* domain and *sua_unbalanced* have to be selected from the screen:
 
 ```{r f4, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f4}Select Domain"}
 
@@ -139,7 +139,7 @@ The query has to be done only on the country for which the Pull data has to be p
 knitr::include_graphics("images/pullData/06_selectCountry.PNG")
 ```
 
-All elements here have to be seleted (figure \ref{fig:f7}) and all items(\ref{fig:f8}).
+All elements here have to be selected (figure \ref{fig:f7}) and all items(\ref{fig:f8}).
 The years to be selected depend on the interest of the user.
 
 ```{r f7, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f7}Select all Elements"}
@@ -167,14 +167,14 @@ knitr::include_graphics("images/pullData/10_wait.PNG")
 
 # The session
 
-The new swssion is reported in figure \ref{fig:f11}. Items are in the "codelis order", which means in the way they are stored in the SWS. This means that they have a numerical order but there might be some codes in a position not consistent with their number, just because they have been inserted in a different moment in the codelist.
+The new session is reported in figure \ref{fig:f11}. Items are in the "code-list order", which means in the way they are stored in the SWS. This means that they have a numerical order but there might be some codes in a position not consistent with their number, just because they have been inserted in a different moment in the code-list.
 
 ```{r f11, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f11}The new Session"}
 
 knitr::include_graphics("images/pullData/11_session.PNG")
 ```
 
-*At the moment this dataset is filled with data coming from the old system (dataset "suaValidated2015"), from 2010 to 2013 for* ***all countries***. On these set of data, some changes are made from the users when the FBS are validated. If a data pull is performed in this time range for these countries, the data taken from old system would be overwritten. Is very important to look at the hystory of data and ask for clarofocation to the las persons who saved data.
+*At the moment this dataset is filled with data coming from the old system (dataset "suaValidated2015"), from 2000 to 2013 for* ***all countries****and New data from 2014 onward*. On these set of data, some changes are made from the users when the FBS are validated. If a data pull is performed in this time range for these countries, the data taken from old system would be overwritten. Is very important to look at the history of data and ask for clarification to the last persons who saved data.
 
 
 # Open the plug-in window.
@@ -199,7 +199,7 @@ knitr::include_graphics("images/pullData/13_pluginWindow.PNG")
 knitr::include_graphics("images/pullData/14_selectPlugin.PNG")
 ```
 
-This will authomatically bring to a sub-window where the other variables of this plugin can be selected (figure \ref{fig:f15}).
+This will automatically bring to a sub-window where the other variables of this plugin can be selected (figure \ref{fig:f15}).
 
 ```{r f15, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f15}Select other parameters"}
 
@@ -207,7 +207,7 @@ knitr::include_graphics("images/pullData/15_selectyearsCountries.PNG")
 ```
 
 
- * `First Year`: the year from which data have to be pulled. As previously said, in this dataset there are Validated and old data up tp 2013, therefore in this example 2014 is selected as first year. 
+ * `First Year`: the year from which data have to be pulled. As previously said, in this data-set there are Validated and old data up to 2013, therefore in this example 2014 is selected as first year. 
  * `Last Year`: the last year until which the data have to be pulled.
  * `countries to pull`: plugin could be run on "session countries" or "all countries". Time of execution has to be taken into account in this case. To run this plugin on all countries might require almost an hour and generate a session so big that the SWS is not able to handle it.
 
@@ -216,7 +216,7 @@ knitr::include_graphics("images/pullData/15_selectyearsCountries.PNG")
 
 In the *Execution mode* section of the window, the option *`Synchronous`* is selected as default. This option imply that, when the *`Launch R plugin`* button is clicked, the run starts immediately. The other option, *`Scheduled`*, imply that another window is opened for the selection of the time of execution.
 
-When the plug-in has finished to run, a window appears on the screen and an email is sento to the user (figure \ref{fig:f18}).
+When the plug-in has finished to run, a window appears on the screen and an email is sent to the user (figure \ref{fig:f18}).
 
 ```{r f16, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f16}Launch plug-in"}
 

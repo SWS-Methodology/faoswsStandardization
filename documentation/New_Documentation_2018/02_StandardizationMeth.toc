@@ -1,0 +1,26 @@
+\contentsline {subsection}{Disclaimer}{3}{section*.4}
+\contentsline {section}{The Food Balance Sheet Framework}{3}{section*.5}
+\contentsline {subsection}{Definitions}{3}{section*.6}
+\contentsline {subsection}{The Balancing equation and its variables}{3}{section*.7}
+\contentsline {section}{Commodity Tree}{4}{section*.8}
+\contentsline {section}{Standardization and Balancing}{6}{section*.10}
+\contentsline {section}{\numberline {1}Data Pull}{7}{section.1}
+\contentsline {subsection}{The Initial Sua Unbalanced}{8}{section*.13}
+\contentsline {section}{\numberline {2}The \emph {Sua Filling}}{10}{section.2}
+\contentsline {subsection}{Main rules and the rationale}{10}{section*.15}
+\contentsline {subsection}{Step 1: Filling of production figures}{12}{section*.18}
+\contentsline {subsection}{Step 2: Filling of food processing}{15}{section*.21}
+\contentsline {subsection}{Step 3: Filling of other missing Utilizations}{18}{section*.23}
+\contentsline {subsubsection}{\emph {Imbalance = 0 (Scenario A)}}{20}{section*.26}
+\contentsline {subsubsection}{\emph {Imbalance \textless {} 0 (Scenario B)}}{20}{section*.27}
+\contentsline {subsubsection}{\emph {Imbalance \textgreater {} 0 (Scenario C)}}{23}{section*.30}
+\contentsline {subsubsection}{--\textgreater {} The \emph {Utilization Table}}{23}{section*.31}
+\contentsline {subsubsection}{--\textgreater {} The \emph {Multiple Filler Approach} and the \emph {Inverse Ranking Rule}}{23}{section*.32}
+\contentsline {subsection}{The ``Sua Balanced'' table}{26}{section*.34}
+\contentsline {subsection}{Nutritive Values and DES calculation}{28}{section*.36}
+\contentsline {section}{\numberline {3}Standardization}{29}{section.3}
+\contentsline {subsection}{The ``Fbs Standardized'' table}{31}{section*.39}
+\contentsline {section}{\numberline {4}The FBS Balancing}{33}{section.4}
+\contentsline {subsection}{Nutritive Values updates}{35}{section*.42}
+\contentsline {section}{\numberline {5}Final aggregation: FBS items and FBS aggregates}{36}{section.5}
+\contentsline {section}{Room/needs for improvement}{38}{section*.45}
