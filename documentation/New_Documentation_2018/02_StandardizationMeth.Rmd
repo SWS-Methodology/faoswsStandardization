@@ -986,8 +986,8 @@ P^*_{ijt} + I^*_{ijt} - X^*_{ijt} - \Delta St^*_{ijt} = FP^*_{ijt} + Fo^*_{ijt} 
 
 where (dropping the indices for brevity): 
 
- * $P^* = P \pm adj_{P}$
- * $I^* = I \pm adj_{I}$
+ * $P^* = P \mp adj_{P}$
+ * $I^* = I \mp adj_{I}$
  * $X^* = X \pm adj_{X}$
  * $\Delta St^* = \Delta St \pm adj_{\Delta St}$
  * $FP^* = FP \pm adj_{FP}$
@@ -1016,7 +1016,7 @@ $ROU$ is not included int his table because ROU is created in this step in a sli
 Indeed, the *final balancing* happens according to the Residual and Other Uses is set equal to the Imbalance steps (figure \ref{fig:f10}:
 
 
-```{r f10, fig.align = "center", fig.pos = "H", out.width = "80%",  fig.cap = "\\label{fig:f10}Scenatios of the final balancing"}
+```{r f10, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f10}Scenarios of the final balancing"}
 
 knitr::include_graphics("images/StandBal/11_ScenariosFinalBal.pdf")
 
@@ -1058,12 +1058,11 @@ p_{adj_{el}} =\cfrac{MEp_{el}}{\sum \limits_{el \in E} (V_{el} \times MEp_{el \i
 \sum \limits_{el \in E} p_{adj_{el}} = 1
 \end{equation}
 
-
->>Equation \ref{eq:badj3} being assured by the two steps approach. 
+>>adjustmens here are considered with Positive sign for utilizations and negative for Supply.
 
  **2.** If Imbalance is Negative: $Imb2 < 0$ 
 
->*ROU* is not activated and the other elements are balanced accordingly to equations \ref{eq:badj1} to \ref{eq:badj3}
+>*ROU* is not activated and the other elements are balanced accordingly to equations \ref{eq:badj1} to \ref{eq:badj3}, with the opposite sign.
 
 ## Nutritive Values updates {-}
 

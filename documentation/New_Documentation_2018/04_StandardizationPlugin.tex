@@ -84,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{6 June 2018}
+  \date{7 June 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -558,7 +558,7 @@ window in figure \ref{fig:f27}.
 There are 3 \emph{Dataset} sections. These are made for specifying the
 sessions in which output data have to be saved. The name of the dataset
 is reported in the fist line, while the name of the sessions are in the
-followin lines (figure \ref{fig:f28}). From the drop-down menu, elect
+following lines (figure \ref{fig:f28}). From the drop-down menu, elect
 the session you are working in (figures \ref{fig:f28} and
 \ref{fig:f29}).
 
@@ -571,6 +571,15 @@ the session you are working in (figures \ref{fig:f28} and
 \caption{\label{fig:f28}Plug-in parameters - 2}\label{fig:f28}
 \end{figure}
 
+ALso the time range has to be selected here, which may or may not be the
+same as the time range of the session. In this example, the session has
+the time range 2010-2016 but the standardization is run for the period
+2014-2016.
+
+Finally, also the cuntries have to be selected. In particular, is
+possibel to select \emph{all countries} or \emph{session countries}
+(figure \ref{fig:f29}).
+
 \begin{figure}[H]
 
 {\centering \includegraphics[width=1\linewidth]{images/standPlugin/28_parametersPI3} 
@@ -579,6 +588,9 @@ the session you are working in (figures \ref{fig:f28} and
 
 \caption{\label{fig:f29}Plug-in parameters - 3}\label{fig:f29}
 \end{figure}
+
+After all parameters are set, just launch the plug-in (figure
+\ref{fig:f30}).
 
 \begin{figure}[H]
 
@@ -589,7 +601,29 @@ the session you are working in (figures \ref{fig:f28} and
 \caption{\label{fig:f30}Launch Plug-in}\label{fig:f30}
 \end{figure}
 
-\section{Run the Plug-in}\label{run-the-plug-in}
+\section{Plug-in Run}\label{plug-in-run}
+
+While the plug-in runs, some email are sent to the user who launhes it:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Commodity tree download and check
+\end{enumerate}
+
+\begin{quote}
+the first email tells that the Commodity tree has been correclty
+downoaded. Moreover it also tells that the extraction rates are valid.
+This message is sent because the standardization plug-in performs a
+validity check on extraction rates. If extraction rates are outside some
+specified range or if there are wrong flag combinations, the process
+stops. This validation is needed because both \(eR\) and Shares might be
+manually changed from any user. If some error is introduced, it has to
+be checked otherwise FBS might have inconsistent or wrong results. The
+first validation only check extraction Rates. For this reason the
+message says taht also a check on shares is needed.
+\end{quote}
 
 \begin{figure}[H]
 
@@ -600,6 +634,24 @@ the session you are working in (figures \ref{fig:f28} and
 \caption{\label{fig:f31}Tree Validation email - 1}\label{fig:f31}
 \end{figure}
 
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  Check on shares
+\end{enumerate}
+
+\begin{quote}
+Shares also migh be manually changed by any user. A second check is
+introduce for shares. The validation function checks if shares sum up to
+1 by child. If the check runs correctly, the email is sent (figure
+\ref{fig:f32}), if not, the plug-in stops running. The two checks are
+kept separated because the R-functions that perform these validity cheks
+might be separatedly needed by other modules and plug-ins\footnote{Developers
+  always tries to keep functions general}.
+\end{quote}
+
 \begin{figure}[H]
 
 {\centering \includegraphics[width=1\linewidth]{images/standPlugin/32_email2} 
@@ -608,6 +660,45 @@ the session you are working in (figures \ref{fig:f28} and
 
 \caption{\label{fig:f32}Tree Validation email - 2}\label{fig:f32}
 \end{figure}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  The plugin runs correctly BUT SOME PRODUCTION FIGURES HAVE BEEN
+  CHANGED during the SUA Filling.
+\end{enumerate}
+
+\begin{quote}
+As discussed, it might happen that, if Utilization \textgreater{}
+supplies and it is not enough to reduce utilizations for balancing one
+SUA line, the module DO CHANGE OFFICIAL PRODUCTION FIGURES. In this
+case, the changed figures are saved in a csv file and sent by email.
+This email represents a Warning: Those SUA have to be double-checked and
+corrected. An example of the csv file follows. That file contains the
+entire SUA in which the production value is changed, by
+Country/commodity/year combination. This file is only for visualization.
+The changes have to be performed directly in the SWS.
+\end{quote}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{3}
+\tightlist
+\item
+  Final Email
+\end{enumerate}
+
+\begin{quote}
+The plug-in may require a lomg time to run, depending on how many
+countries are in the session and, also, from the sWS congestion. As a
+consequece, the session may expire in the meantime, making it difficult
+to understand when the plug-in ends running. The sending of an email
+tells when the plug-in has run correctly (\ref{fig:f34}). If the user is
+still on the session when it happens, a message is, also visualized on
+the screen (\ref{fig:f33}).
+\end{quote}
 
 \begin{figure}[H]
 
@@ -631,6 +722,11 @@ the session you are working in (figures \ref{fig:f28} and
 
 \subsection{fbs\_balanced session}\label{fbs_balanced-session}
 
+Values have changed IN THE TIME RANGE FOR WHICH THE PLUGIN HAS RUN
+(2014:2016), therefore red signs will appear in the cell of the selected
+time range. In our example, nothing changes in the time range 2010-2013
+(\ref{fig:f35}).
+
 \begin{figure}[H]
 
 {\centering \includegraphics[width=1\linewidth]{images/standPlugin/35_finalSession} 
@@ -641,6 +737,11 @@ the session you are working in (figures \ref{fig:f28} and
 \end{figure}
 
 \subsection{fbs\_standardized session}\label{fbs_standardized-session}
+
+Values have changed IN THE TIME RANGE FOR WHICH THE PLUGIN HAS RUN
+(2014:2016), therefore red signs will appear in the cell of the selected
+time range. In our example, nothing changes in the time range 2010-2013
+(\ref{fig:f36}).
 
 \begin{figure}[H]
 
@@ -653,7 +754,10 @@ the session you are working in (figures \ref{fig:f28} and
 
 \subsection{sua\_balanced session}\label{sua_balanced-session}
 
-update session
+Here values have changed IN THE TIME RANGE FOR WHICH THE PLUGIN HAS RUN
+(2014:2016), therefore red signs will appear in the cell of the selected
+time range. Nothing is changed in the other time ranges, instead: the
+same data as sua\_unbalanced are shown for years up to 2013.
 
 \begin{figure}[H]
 
@@ -666,7 +770,13 @@ update session
 
 \subsection{sua\_unbalanced session}\label{sua_unbalanced-session}
 
+This is the input dataset, therefore no changes in values happen in this
+table.
+
 \section{Final Save into the SWS}\label{final-save-into-the-sws}
+
+For the new figures to be used in following steps, the data have to be
+saved to the database.
 
 \begin{figure}[H]
 

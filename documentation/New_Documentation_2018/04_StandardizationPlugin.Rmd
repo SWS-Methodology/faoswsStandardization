@@ -314,14 +314,14 @@ knitr::include_graphics("images/standPlugin/25_selectPlugin2.PNG")
 knitr::include_graphics("images/standPlugin/26_parametersPI1.PNG")
 ```
 
-There are 3 *Dataset* sections. These are made for specifying the sessions in which output data have to be saved. The name of the dataset is reported in the fist line, while the name of the sessions are in the followin lines (figure \ref{fig:f28}). From the drop-down menu, elect the session you are working in (figures \ref{fig:f28} and \ref{fig:f29}).
+There are 3 *Dataset* sections. These are made for specifying the sessions in which output data have to be saved. The name of the dataset is reported in the fist line, while the name of the sessions are in the following lines (figure \ref{fig:f28}). From the drop-down menu, elect the session you are working in (figures \ref{fig:f28} and \ref{fig:f29}).
 
 ```{r f28, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f28}Plug-in parameters - 2"}
 
 knitr::include_graphics("images/standPlugin/27_parametersPI2.PNG")
 ```
 
-ALso the time range has to be selected here, which may or may not be the same as the time range you have selected in the session. In our example, the session has the time range 2010-2016 but the standardization is run for the period 2014-2016.
+ALso the time range has to be selected here, which may or may not be the same as the time range of the session. In this example, the session has the time range 2010-2016 but the standardization is run for the period 2014-2016.
 
 
 Finally, also the cuntries have to be selected. In particular, is possibel to select *all countries* or *session countries* (figure \ref{fig:f29}).
@@ -341,17 +341,35 @@ knitr::include_graphics("images/standPlugin/29_launch.PNG")
 
 # Plug-in Run
 
+While the plug-in runs, some email are sent to the user who launhes it:
 
+1. Commodity tree download and check
+
+> the first email tells that the Commodity tree has been correclty downoaded. Moreover it also tells that the extraction rates are valid. This message is sent because the standardization plug-in performs a validity check on extraction rates. If extraction rates are outside some specified range or if there are wrong flag combinations, the process stops. This validation is needed because both $eR$ and Shares might be manually changed from any user. If some error is introduced, it has to be checked otherwise FBS might have inconsistent or wrong results.
+The first validation only check extraction Rates. For this reason the message says taht also a check on shares is needed.
 
 ```{r f31, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f31}Tree Validation email - 1"}
 
 knitr::include_graphics("images/standPlugin/31_email1.PNG")
 ```
 
+2. Check on shares
+
+> Shares also migh be manually changed by any user. A second check is introduce for shares. The validation function checks if shares sum up to 1 by child. If the check runs correctly, the email is sent (figure \ref{fig:f32}), if not, the plug-in stops running. The two checks are kept separated because the R-functions that perform these validity cheks might be separatedly needed by other modules and plug-ins^[Developers always tries to keep functions general]. 
+
 ```{r f32, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f32}Tree Validation email - 2"}
 
 knitr::include_graphics("images/standPlugin/32_email2.PNG")
 ```
+
+3. The plugin runs correctly BUT SOME PRODUCTION FIGURES HAVE BEEN CHANGED during the SUA Filling.
+
+> As discussed, it might happen that, if Utilization > supplies and it is not enough to reduce utilizations for balancing one SUA line, the module DO CHANGE OFFICIAL PRODUCTION FIGURES. In this case, the changed figures are saved in a csv file and sent by email.
+> This email represents a Warning: Those SUA have to be double-checked and corrected. An example of the csv file follows. That file contains the entire SUA in which the production value is changed, by Country/commodity/year combination. This file is only for visualization. The changes have to be performed directly in the SWS.
+
+4. Final Email 
+
+> The plug-in may require a lomg time to run, depending on how many countries are in the session and, also, from the sWS congestion. As a consequece, the session may expire in the meantime, making it difficult to understand when the plug-in ends running. The sending of an email tells when the plug-in has run correctly (\ref{fig:f34}). If the user is still on the session when it happens, a message is, also visualized on the screen (\ref{fig:f33}).
 
 ```{r f33, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f33}Run message"}
 
@@ -367,12 +385,16 @@ knitr::include_graphics("images/standPlugin/34_finalEmail.PNG")
 
 ## fbs_balanced session
 
+Values have changed IN THE TIME RANGE FOR WHICH THE PLUGIN HAS RUN (2014:2016), therefore red signs will appear in the cell of the selected time range. In our example, nothing changes in the time range 2010-2013 (\ref{fig:f35}).
+
 ```{r f35, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f35}The session after the Run"}
 
 knitr::include_graphics("images/standPlugin/35_finalSession.PNG")
 ```
 
 ## fbs_standardized session
+
+Values have changed IN THE TIME RANGE FOR WHICH THE PLUGIN HAS RUN (2014:2016), therefore red signs will appear in the cell of the selected time range. In our example, nothing changes in the time range 2010-2013 (\ref{fig:f36}).
 
 ```{r f36, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f36}fbs standardized after the plug-in run"}
 
@@ -381,20 +403,20 @@ knitr::include_graphics("images/standPlugin/37_fbsStandAfter.PNG")
 
 ## sua_balanced session
 
-update session 
+Here values have changed IN THE TIME RANGE FOR WHICH THE PLUGIN HAS RUN (2014:2016), therefore red signs will appear in the cell of the selected time range. Nothing is changed in the other time ranges, instead: the same data as sua_unbalanced are shown for years up to 2013.
 
 ```{r f37, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f37}sua balanced after the plug-in run"}
 
 knitr::include_graphics("images/standPlugin/38_suaBalancedAfter.PNG")
 ```
 
-
 ## sua_unbalanced session
 
-
+This is the input dataset, therefore no changes in values happen in this table. 
 
 # Final Save into the SWS
 
+For the new figures to be used in following steps, the data have to be saved to the database.
 
 ```{r f38, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f38}Save Back to the SWS"}
 

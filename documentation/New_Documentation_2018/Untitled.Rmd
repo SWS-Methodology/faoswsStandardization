@@ -1,0 +1,95 @@
+---
+title:   |
+    | Standardization & Balancing
+    | `Commodity Tree` dataset
+    |  content and usage in the Food Blance Sheet framework
+    |
+header-includes:
+- \usepackage{draftwatermark}
+- \usepackage{makeidx}
+- \makeindex
+- \usepackage{float} #use the 'float' package
+- \floatplacement{figure}{H} #make every figure with caption = h
+- \usepackage{amsmath}
+- \usepackage{amssymb}
+- \usepackage{amsthm}
+- \usepackage{mathtools}
+- \usepackage{caption}
+
+author:
+- Cristina Muschitiello\
+  Food and Agriculture Organization of the United Nations
+
+abstract: |
+  This vignette provides a description of the `Commodity Treee` dataset: it plays a key role in the Standardization and Balancing and has been completely renewed in the new Food Balancing Framework. A description is given in this document, functional to the Standardization and Balancing Process.
+
+keywords: "Commodity Tree, FBS, CPC, shares, extraction Rates, conversion factors"
+
+date: "`r format(Sys.time(), '%e %B %Y')`"
+
+geometry: margin=1in
+
+output:
+  pdf_document:
+    keep_tex: true
+    fig_caption: yes
+    includes:
+      in_header: header.tex
+    pandoc_args: [
+    --tab-stop=2
+    ]
+    number_sections: true
+    toc: true
+    toc_depth: 4
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+# local({
+# r <- getOption("repos")
+# r["faoswsCRAN"] <- "http://hqlprsws1.hq.un.fao.org/fao-sws-cran/"
+# options(repos = r)
+# })
+## load the library
+# library(faosws)
+# library(faoswsUtil)
+# library(faoswsBalancing)
+# library(faoswsStandardization)
+library(tinytex)
+library(data.table)
+library(igraph)
+library(stringr)
+library(dplyr)
+library(MASS) 
+library(lattice)
+library(reshape2)
+library(kableExtra)
+library(captioner)
+library(xtable)
+```
+
+
+\newpage
+
+\listoftables
+
+\listoffigures
+
+\newpage
+
+## Disclaimer {-}
+
+This Working Paper should not be reported as representing the official view of
+the FAO. The views expressed in this Working Paper are those of the
+author and do not necessarily represent those of the FAO or FAO
+policy. Working Papers describe research in progress by the authors and
+are published to elicit comments and to further discussion.
+
+This paper is dynamically generated on \today{} and is subject to
+changes and updates.
+
+
+# The Food Balance Sheet Framework {-}
+
+## Definitions {-}
+
+A food balance sheet can be defined as an aggregated and analytical data set that "presents a comprehensive picture of the pattern of a country's food supply during a specified reference period."^[For this definition and a more extended description of the motivation behind the development of FBS, see FAO, 2001, *Food Balance Sheets: A Handbook*, available at: http://www.fao.org/docrep/003/X9892E/X9892E00.HTM. Accessed on 19 January 2017.] FBS are presented as products accounts, where the quantities allocated to all the sources of total supply must be equal to the quantities allocated to all the sources of utilization. This balance is compiled for every food item consumed within a country at primary commodity equivalent basis, and all of the primary commodity equivalent balances are then combined into a single overall FBS. FBSs are, then, expressed in terms of per capita supply for each food item by dividing by the country's population, with the per capita supplies being expressed both in terms of quantity and, through the application of food conversion factors, in terms of caloric value, protein, and fat content. These per capita estimates of caloric value for individual food products are then summed to obtain the total daily per capita Dietary Energy Supply (DES) of a country.
