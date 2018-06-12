@@ -2,7 +2,7 @@
 title:   |
     | Standardization & Balancing
     | `Commodity Tree` dataset
-    | content and usage in the Food Blance Sheet framework
+    | Content and usage in the Food Blance Sheet framework
     |
 header-includes:
 - \usepackage{draftwatermark}

@@ -1,0 +1,102 @@
+---
+title:   |
+    | Standardization & Balancing Documentation
+    | List of documents
+    |  
+header-includes:
+- \usepackage{draftwatermark}   
+- \usepackage{makeidx}
+- \makeindex
+- \usepackage{float} #use the 'float' package
+- \floatplacement{figure}{H} #make every figure with caption = h
+- \usepackage{amsmath}
+- \usepackage{amssymb}
+- \usepackage{amsthm}
+- \usepackage{mathtools}
+author:
+- Cristina Muschitiello\
+
+  Food and Agriculture Organization of the United Nations
+  
+abstract: |
+  A list and brief descritpion of the documents linked to the Standardization and Balancing in the Food Balance sheet framework is given.
+date: "`r format(Sys.time(), '%e %B %Y')`"
+geometry: margin=1in
+output:
+  pdf_document:
+    keep_tex: true
+    fig_caption: yes
+    includes:
+      in_header: header.tex
+    pandoc_args: [
+    --tab-stop=2
+    ]
+    number_sections: true
+    toc: false
+    toc_depth: 4
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tinytex)
+library(data.table)
+library(igraph)
+library(stringr)
+library(dplyr)
+library(MASS) 
+library(lattice)
+library(reshape2)
+library(kableExtra)
+library(captioner)
+library(xtable)
+```
+
+
+## Disclaimer {-}
+
+This Working Paper should not be reported as representing the official view of
+the FAO. The views expressed in this Working Paper are those of the
+author and do not necessarily represent those of the FAO or FAO
+policy. Working Papers describe research in progress by the authors and
+are published to elicit comments and to further discussion.
+
+This paper is dynamically generated on \today{} and is subject to
+changes and updates.
+
+
+# Introduction {-}
+
+The words *Standardization and Balancing* are used for defining the process of combining commodity balances for creating Food Balance Sheets. Th FBS framework is defined in a dedicate document that explains all the steps for creating FBS starting from the initial data collection. The methodology of *Standardization and Balancing* is, then explained in a dedicate document. The process is based on a structured and clear set of relationships between commodities given by the, so called, *Commodity tree* which is also explained in a dedicated document. The *Standardization and Balancing* generates balances for FBS commodities at different levels of aggregation: by FBS item, by group, by family and Total (by country).
+There are 3 main plug-ins connected to this process: 
+
+ 1. `pullDataToSUA` which created the input dataset for the process
+ 2. `Full Standardization and Balancing`, which performs all the steps of the process and saves data in different sessions on 3 different output datasets
+ 3. `printTree`. This plug-in performs the all process and saves the different outputs, plus some detail about commodity tree, extraction rates and shares, for a single *country-year-FBS item* combination. 
+ 
+All documents describing different aspects of the process are listed here.
+
+# Food Balance Sheet workflow in the Statistical Working System
+
+This documents presents the overall workflow for the production of Food Balance Sheet inside the SWS. The different SWS's objects involved in the creation of FBSs are presented and dependencies explained. 
+
+# Standardization & Balancing for Food Balance Sheet Calculation
+
+This document explains all the Standardization and balancing process from a methodological point of view. All steps are explained and formalized. No details are contained regarding the R script or the plug-in in the SWS. Methodology is presented here. 
+
+# `faoswsStandardization`: `PullDataToSUA` plug-in
+
+Pulling data inside the dataset that is the starting point for Standardization and Balancing: is the first step of the entire process. It is first introduced in the Document n.1 while document n.2 presents what has to be pulled. Here All steps for executing it in the sws are presented. The plug-in is a module contained in the *faoswsStandardization* package.
+
+# `faoswsStandardization`: `Full Standardization and Balancing`. Data-sets content and plug-in execution
+
+The plug-in for executing the *Standardization and Balancing* is presented here in all its steps. The plug-in is a module contained in the *faoswsStandardization* package.
+
+# Standardization & Balancing: `Commodity Tree` dataset. Content and usage in the Food Balance Sheet framework
+
+Commodity Tree is one of the most important datasets in the process of producing FBS. It is mentioned in all documents and briefly described. Here it is fully presented, together with some functions for validating its content, that are contained in the *faoswsUtil* package.
+
+# `faoswsStandardization`: `Print tree` plug-in
+
+This documents describes how to execute the `Print Tree` plug-in and its content. This plug-in produces a txt doumnt containing all the tables related to the Standardization and Balancing, for a single FBS item. 
+
+# Standardization & Balancing: `Utilization Table` data table. Content and usage in the Food Balance Sheet framework
+
