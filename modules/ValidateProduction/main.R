@@ -16,7 +16,6 @@
 ##' * stock (stock) 
 ##' * Trade:
 ##' in november 2017, for urgent purposes, as it was not possible to validate all the new Trade data
-##' it has been decided to use:
 
 
 ##'
