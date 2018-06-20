@@ -1,0 +1,9 @@
+,Flag Combination,Meaning
+,,
+Extraction rates,"(T , -) ", validated up do 2013 - protected
+,"(E , t) ", copied from 2014 onwards - not protected but that do not change during standardization process
+,"(E , f) ", manually changed by the user – protected
+,,
+Shares,"(E , -) "," coming from old methodology - NOT protected. These values will be overwritten at any run of the module, except the values of oils, which are kept, unless manually changed"
+,"(E , f) ", manually changed by the user - protected
+,"(I , i) ", calculated by the module - not protected

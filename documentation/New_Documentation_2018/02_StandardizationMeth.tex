@@ -84,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{6 June 2018}
+  \date{14 June 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -2082,7 +2082,20 @@ Food Preparations of & - & 69,685.96 & 21,977.43 & 0 & 47,708.53 & 0 & 0 & 0 & -
 
 The balancing of Standardized Sua in the new framework is based on the
 idea that, at this step of the overall process, a \emph{little}
-imbalance has been cumulated, due to the errors of each variable.
+imbalance has been cumulated, due to the errors of each variable. The
+FBS equation can be tought as being composed by each variable and its
+measurement error (\(ME\)).
+
+\begin{multline}
+\label{eq:balance_b}
+    P + ME_{P} + I + ME_{I} - \Delta St + ME_{\Delta St} = X + ME_{X} + Fo +ME_{Fo} + Fe + ME_{Fe} + Lo + ME_{Lo} \\
+    + Se + ME_{Se} + IU + ME_{IU} + T + ME_{T} + ROU + ME_{ROU}
+\end{multline}
+
+BEcause is not possible to know the \(ME\) a-priori, an approach is
+based that computes adjustment values for each variable proportionally
+to some \emph{a-priori allowed percentages of variation}
+
 Therefore, equation \ref{eq:balance1} can be rewritten, in its balanced
 form, as:
 
@@ -2096,9 +2109,9 @@ where (dropping the indices for brevity):
 \begin{itemize}
 \tightlist
 \item
-  \(P^* = P \pm adj_{P}\)
+  \(P^* = P \mp adj_{P}\)
 \item
-  \(I^* = I \pm adj_{I}\)
+  \(I^* = I \mp adj_{I}\)
 \item
   \(X^* = X \pm adj_{X}\)
 \item
@@ -2120,24 +2133,22 @@ where (dropping the indices for brevity):
 \end{itemize}
 
 and where each \emph{adjustment (\(adj_{el \in E}\))} is a balancing
-adjustment calculated satrting from the measurement error (\emph{ME}) of
-each element
+adjustment calculated starting from \emph{a-priori allowed percentages
+of variation} for each element
 \(el \in E = \{P,I,X,\Delta St, FP,Fo,Fe,Lo,Se,IU,T,ROU\}\).
 
-In particular, the balancing mechanism is a two step process aimed at
-modify each value proportionally to the \emph{ME}. It start with the
-definition of the percentages of \emph{Measurement Errors
-(\(MEp_{el \in E}\))} for each element as reported in the following
-Table:
+The process is a two-step process. It start with the definition of the
+\emph{allowed percentages of variation} \emph{(\(varP_{el \in E}\))} for
+each element as reported in the following Table:
 
 \begin{longtable}[]{@{}cc@{}}
 \caption{Measurement Errors percentages}\tabularnewline
 \toprule
-\(el\) & \(MEp_{el}\)\tabularnewline
+\(el\) & \(varP_{el}\)\tabularnewline
 \midrule
 \endfirsthead
 \toprule
-\(el\) & \(MEp_{el}\)\tabularnewline
+\(el\) & \(varP_{el}\)\tabularnewline
 \midrule
 \endhead
 \(P\) & \(0.1\%\)\tabularnewline
@@ -2163,11 +2174,11 @@ Other Uses is set equal to the Imbalance steps (figure \ref{fig:f10}:
 
 \begin{figure}[H]
 
-{\centering \includegraphics[width=0.8\linewidth]{images/StandBal/11_ScenariosFinalBal} 
+{\centering \includegraphics[width=1\linewidth]{images/StandBal/11_ScenariosFinalBal} 
 
 }
 
-\caption{\label{fig:f10}Scenatios of the final balancing}\label{fig:f10}
+\caption{\label{fig:f10}Scenarios of the final balancing}\label{fig:f10}
 \end{figure}
 
 \textbf{1.} If \(Imb2 > 0\):
@@ -2220,7 +2231,7 @@ with
 \begin{quote}
 \begin{equation}
 \label{eq:badj2}
-p_{adj_{el}} =\cfrac{MEp_{el}}{\sum \limits_{el \in E} (V_{el} \times MEp_{el \in E})}
+p_{adj_{el}} =\cfrac{varP_{el}}{\sum \limits_{el \in E} (V_{el} \times varP_{el \in E})}
 \end{equation}
 \end{quote}
 \end{quote}
@@ -2242,7 +2253,8 @@ and
 
 \begin{quote}
 \begin{quote}
-Equation \ref{eq:badj3} being assured by the two steps approach.
+adjustmens here are considered with Positive sign for utilizations and
+negative for Supply.
 \end{quote}
 \end{quote}
 
@@ -2250,7 +2262,8 @@ Equation \ref{eq:badj3} being assured by the two steps approach.
 
 \begin{quote}
 \emph{ROU} is not activated and the other elements are balanced
-accordingly to equations \ref{eq:badj1} to \ref{eq:badj3}
+accordingly to equations \ref{eq:badj1} to \ref{eq:badj3}, with the
+opposite sign.
 \end{quote}
 
 \subsection*{Nutritive Values updates}\label{nutritive-values-updates}
@@ -2270,15 +2283,15 @@ adjustment of the DES.
 \begin{longtable}[]{@{}rllllllll@{}}
 \caption{Final Balancing - China/Wheat/2014 - Wheat}\tabularnewline
 \toprule
-\boldmath\(el\) & \boldmath\(V_{el \in E}\) & \boldmath\(p_{ME}\) &
-\boldmath\(V_{el} \times p_{ME}\) & \boldmath\(p_{adj_{el}}\) &
+\boldmath\(el\) & \boldmath\(V_{el \in E}\) & \boldmath\(varP\) &
+\boldmath\(V_{el} \times varP\) & \boldmath\(p_{adj_{el}}\) &
 \boldmath\(adj_{el \in E}\) & \boldmath\(V^*_{el \in E}\) &
 \boldmath\(DES\) & \boldmath\(DES^*\)\tabularnewline
 \midrule
 \endfirsthead
 \toprule
-\boldmath\(el\) & \boldmath\(V_{el \in E}\) & \boldmath\(p_{ME}\) &
-\boldmath\(V_{el} \times p_{ME}\) & \boldmath\(p_{adj_{el}}\) &
+\boldmath\(el\) & \boldmath\(V_{el \in E}\) & \boldmath\(varP\) &
+\boldmath\(V_{el} \times varP\) & \boldmath\(p_{adj_{el}}\) &
 \boldmath\(adj_{el \in E}\) & \boldmath\(V^*_{el \in E}\) &
 \boldmath\(DES\) & \boldmath\(DES^*\)\tabularnewline
 \midrule
@@ -2315,6 +2328,8 @@ adjustment of the DES.
 The balancing of the commodity \emph{Food Preparations of} is reported
 in Table 23. In this case, the imbalance is positive and absorbed by the
 element \emph{ROU}.
+
+\newpage
 
 \begin{longtable}[]{@{}rllll@{}}
 \caption{Final Balancing - China/Wheat/2014 - Food

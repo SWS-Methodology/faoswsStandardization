@@ -1,13 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
-	<Name>Standardization&BalancingNew</Name>
-	<Description>Standardize SUA data for the Food Balance Sheets</Description>
+	<Name>Import SUA</Name>
+	<Description>Import SUA data from the agriculture production, trade, etc. tables</Description>
 	<Category>Computation</Category>
 	<Authors>
 		<Author>
-			<Name>Cristina Muschitiello</Name>
-			<Mail>cristina.muschitiello@fao.org</Mail>
+			<Name>Josh Browning</Name>
+			<Mail>joshua.browning@fao.org</Mail>
 		</Author>
 	</Authors>
 	<Params>
@@ -17,7 +17,7 @@
             <Description>The start of the computation period</Description>
             <Compulsory>true</Compulsory>
             <Min>1961</Min>
-            <Max>2015</Max>
+            <Max>2013</Max>
     </Param>
     <Param xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Number">
             <Code>endYear</Code>
@@ -25,20 +25,20 @@
             <Description>The end of the computation period</Description>
             <Compulsory>true</Compulsory>
             <Min>1961</Min>
-            <Max>2015</Max>
+            <Max>2013</Max>
     </Param>
 	</Params>
 	<Datasets>
-        <MainDataset>
-            <Code>fbs_balanced_</Code>
-        </MainDataset>
-        <Dataset>
-            <Code>sua_balanced</Code>
-        </Dataset>
-        <Dataset>
-            <Code>fbs_standardized</Code>
-        </Dataset>
-    </Datasets>
-    <InteractiveValidation>false</InteractiveValidation>
-    <Background>false</Background>
+		<MainDataset>
+			<Code>sua</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementSuaFbs</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemSuaFbs</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
 </RScript>

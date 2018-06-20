@@ -311,7 +311,7 @@ Supply utilization accounts are typically organized into tables where the SUA fo
 
 All these relationships represent the *Commodity tree* of wheat in China in 2014. In particular, our example represents the commodity tree of Wheat in China in 2014 and is displayed, in its graphical form, in Figure \ref{fig:f2}.
 
-A *SUA* also contains other commodities, when existing, that are associated to the primary commodity inside an FBS item. In our example, the *SUA* table includes the commodity *Mixes and dough for the preparation of baker's wares* because it is included in theFBS commodity *WHEAT \& PRODUCTS*. That commodity is in the *SUA* of Wheat even if is not processed from wheat directly and is not processed in any commodity.
+A *SUA* also contains other commodities, when existing, that are associated to the primary commodity inside an FBS item. In our example, the *SUA* table includes the commodity *Mixes and dough for the preparation of baker's wares* because it is included in the FBS commodity *WHEAT \& PRODUCTS*. That commodity is in the *SUA* of Wheat even if is not processed from wheat directly and is not processed in any commodity.
 
 # The *Sua Filling*
 
@@ -976,9 +976,17 @@ landscape(knitr::kable(table,format="latex",caption = "Sua Standardized",
 
 # The FBS Balancing
 
-The balancing of Standardized Sua in the new framework is based on the idea that, at this step of the overall process, a *little* imbalance has been cumulated, due to the errors of each variable. Therefore, equation \ref{eq:balance1} can be rewritten, in its balanced form, as: 
+The balancing of Standardized Sua in the new framework is based on the idea that, at this step of the overall process, a *little* imbalance has been cumulated, due to the errors of each variable. The FBS equation can be thought as being composed by each variable and its measurement error ($ME$).
 
+\begin{multline}
+\label{eq:balance_b}
+    P + ME_{P} + I + ME_{I} - \Delta St + ME_{\Delta St} = X + ME_{X} + Fo +ME_{Fo} + Fe + ME_{Fe} + Lo + ME_{Lo} \\
+    + Se + ME_{Se} + IU + ME_{IU} + T + ME_{T} + ROU + ME_{ROU}
+\end{multline}
 
+Because is not possible to know the $ME$ a-priori, an approach is based that computes adjustment values for each variable proportionally to some *a-priori allowed percentages of variation*
+
+Therefore, equation \ref{eq:balance1} can be rewritten, in its balanced form, as: 
 \begin{equation}
 \label{eq:balance3}
 P^*_{ijt} + I^*_{ijt} - X^*_{ijt} - \Delta St^*_{ijt} = FP^*_{ijt} + Fo^*_{ijt} + Fe^*_{ijt} + Lo^*_{ijt} + Se^*_{ijt} + IU^*_{ijt} + T^*_{ijt}  + ROU^*_{ijt}
@@ -986,8 +994,8 @@ P^*_{ijt} + I^*_{ijt} - X^*_{ijt} - \Delta St^*_{ijt} = FP^*_{ijt} + Fo^*_{ijt} 
 
 where (dropping the indices for brevity): 
 
- * $P^* = P \pm adj_{P}$
- * $I^* = I \pm adj_{I}$
+ * $P^* = P \mp adj_{P}$
+ * $I^* = I \mp adj_{I}$
  * $X^* = X \pm adj_{X}$
  * $\Delta St^* = \Delta St \pm adj_{\Delta St}$
  * $FP^* = FP \pm adj_{FP}$
@@ -998,15 +1006,15 @@ where (dropping the indices for brevity):
  * $IU^* = IU \pm adj_{IU}$
  * $T^* = T \pm adj_{T}$
 
-and where each *adjustment ($adj_{el \in E}$)* is a balancing adjustment calculated satrting from the measurement error (*ME*) of each element $el \in E = \{P,I,X,\Delta St, FP,Fo,Fe,Lo,Se,IU,T,ROU\}$.
+and where each *adjustment ($adj_{el \in E}$)* is a balancing adjustment calculated starting from *a-priori allowed percentages of variation* for each element $el \in E = \{P,I,X,\Delta St, FP,Fo,Fe,Lo,Se,IU,T,ROU\}$.
 
-In particular, the balancing mechanism is a two step process aimed at modify each value proportionally to the *ME*. It start with the definition of the percentages of *Measurement Errors ($MEp_{el \in E}$)* for each element as reported in the following Table:
+The process is a two-step process. It start with the definition of the *allowed percentages of variation* *($varP_{el \in E}$)* for each element as reported in the following Table:
 
 ```{r t21, fig.cap=t21_cap, fig.pos = "H"}
 table=data.table(read.csv("tables/StandBal/21_measurementErrors.csv",header = FALSE,check.names = FALSE))
 knitr::kable(table,caption = "Measurement Errors percentages",
              align = c(rep("c",length(colnames(table))-1)),
-             col.names = c("$el$", "$MEp_{el}$"))
+             col.names = c("$el$", "$varP_{el}$"))
 
 ```
 
@@ -1016,7 +1024,7 @@ $ROU$ is not included int his table because ROU is created in this step in a sli
 Indeed, the *final balancing* happens according to the Residual and Other Uses is set equal to the Imbalance steps (figure \ref{fig:f10}:
 
 
-```{r f10, fig.align = "center", fig.pos = "H", out.width = "80%",  fig.cap = "\\label{fig:f10}Scenatios of the final balancing"}
+```{r f10, fig.align = "center", fig.pos = "H", out.width = "100%",  fig.cap = "\\label{fig:f10}Scenarios of the final balancing"}
 
 knitr::include_graphics("images/StandBal/11_ScenariosFinalBal.pdf")
 
@@ -1048,7 +1056,7 @@ adj_{el \in E} = Imb2 \times V_{el} \times p_{adj_{el}}
 
 >>\begin{equation}
 \label{eq:badj2}
-p_{adj_{el}} =\cfrac{MEp_{el}}{\sum \limits_{el \in E} (V_{el} \times MEp_{el \in E})}
+p_{adj_{el}} =\cfrac{varP_{el}}{\sum \limits_{el \in E} (V_{el} \times varP_{el \in E})}
 \end{equation}
 
 >>and 
@@ -1058,12 +1066,11 @@ p_{adj_{el}} =\cfrac{MEp_{el}}{\sum \limits_{el \in E} (V_{el} \times MEp_{el \i
 \sum \limits_{el \in E} p_{adj_{el}} = 1
 \end{equation}
 
-
->>Equation \ref{eq:badj3} being assured by the two steps approach. 
+>>adjustments here are considered with Positive sign for utilization and negative for Supply.
 
  **2.** If Imbalance is Negative: $Imb2 < 0$ 
 
->*ROU* is not activated and the other elements are balanced accordingly to equations \ref{eq:badj1} to \ref{eq:badj3}
+>*ROU* is not activated and the other elements are balanced accordingly to equations \ref{eq:badj1} to \ref{eq:badj3}, with the opposite sign.
 
 ## Nutritive Values updates {-}
 
@@ -1084,6 +1091,7 @@ knitr::kable(table,caption = "Final Balancing - China/Wheat/2014 - Wheat",
 
 The balancing of the commodity *Food Preparations of* is reported in `r table_nums("t24",display = "cite")`. In this case, the imbalance is positive and absorbed by the element *ROU*.
 
+\newpage
 
 ```{r t24, fig.cap=t24_cap, fig.pos = "H",results="asis"}
 table=data.table(read.csv("tables/StandBal/24_sua_balancedF.csv",check.names = FALSE))
