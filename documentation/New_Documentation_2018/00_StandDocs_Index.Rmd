@@ -72,13 +72,16 @@ There are 3 main plug-ins connected to this process:
 All documents describing different aspects of the process are listed here. Also links are reported to the documents.
 
 # Food Balance Sheet workflow in the Statistical Working System
+
 ***Document Name and link***: [*01_StandDocs_FBSinSWS.pdf*](https://github.com/SWS-Methodology/faoswsStandardization/blob/master/documentation/New_Documentation_2018/01_StandDocs_FBSinSWS.pdf)
+
 
 This documents presents the overall workflow for the production of Food Balance Sheet inside the SWS. The different SWS's objects involved in the creation of FBSs are presented and dependencies explained. 
 
 
 
 # Standardization & Balancing for Food Balance Sheet Calculation
+
 ***Document Name and link***: [*02_StandDocs_Methodology.pdf*](https://github.com/SWS-Methodology/faoswsStandardization/blob/master/documentation/New_Documentation_2018/02_StandDocs_Methodology.pdf)
 
 This document explains all the Standardization and balancing process from a methodological point of view. All steps are explained and formalized. No details are contained regarding the R script or the plug-in in the SWS. Methodology is presented here. 
@@ -91,6 +94,7 @@ Pulling data inside the data-set that is the starting point for Standardization 
 
 # `faoswsStandardization`: `Full Standardization and Balancing`. Data-sets content and plug-in execution
 ***Document Name and link***: [*04_StandDocs_StandardizationPlugin.pdf*](https://github.com/SWS-Methodology/faoswsStandardization/blob/master/documentation/New_Documentation_2018/04_StandDocs_StandardizationPlugin.pdf)
+
 
 The plug-in for executing the *Standardization and Balancing* is presented here in all its steps. The plug-in is a module contained in the *faoswsStandardization* package.
 
@@ -108,6 +112,14 @@ This documents describes how to execute the `Print Tree` plug-in and its content
 
 ***Document Name and link***: [*07_StandDocs_UtilizationTable.pdf*](https://github.com/SWS-Methodology/faoswsStandardization/blob/master/documentation/New_Documentation_2018/07_StandDocs_UtilizationTable.pdf)
 
+
+***Other links***: [*Download UtilizationTableApp from Share Point (select the zip file and download it)*](https://unfao-my.sharepoint.com/:u:/g/personal/cristina_muschitiello_fao_org/EY8G-QNTrfBBjtm-4duSCY8BT8Ebp7ODhyMqgVE4Phz77A?e=vJzHPg)
+***Document Name and link***: [*06_StandDocs_PrintTreePlugin.pdf*]()
+
+This documents describes how to execute the `Print Tree` plug-in and its content. This plug-in produces a txt document containing all the tables related to the Standardization and Balancing, for a single FBS item. 
+
+# Standardization & Balancing: `Utilization Table` data table. Data-table and Shiny App description
+***Document Name and link***: [*07_StandDocs_UtilizationTable.pdf*](https://github.com/SWS-Methodology/faoswsStandardization/blob/master/documentation/New_Documentation_2018/07_StandDocs_UtilizationTable.pdf)
 
 ***Other links***: [*Download UtilizationTableApp from Share Point (select the zip file and download it)*](https://unfao-my.sharepoint.com/:u:/g/personal/cristina_muschitiello_fao_org/EY8G-QNTrfBBjtm-4duSCY8BT8Ebp7ODhyMqgVE4Phz77A?e=vJzHPg)
 
