@@ -26,7 +26,6 @@ library(faoswsUtil)
 library(sendmailR)
 library(dplyr)
 library(faoswsUtil)
-library(faoswsBalancing)
 library(faoswsStandardization)
 library(faoswsFlag)
 
@@ -132,12 +131,55 @@ impute_feed<-impute_feed %>% mutate(impute=supply*mean_ratio)
 impute_feed<-impute_feed[,c(1:7,16)] 
 impute_feed<-impute_feed[,c(1,2,3,4,8,6,7)] 
 colnames(impute_feed)[5]<-"Value"
-impute_feed[,6]<-c("I")
+impute_feed[,6]<-c("E")
 impute_feed[,7]<-c("e")
 
 
-impute_feed<-as.data.table(impute_feed)
-stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = impute_feed, waitTimeout = 2000000)
+## seed
+seed<-sua_unb %>% filter(measuredElementSuaFbs==5525)
+seed<-seed %>% mutate(outl=abs(ratio-mean_ratio)>0.05)
+outl_seed<-seed %>% filter((outl==T & timePointYears>2013) )
+impute_seed<-outl_seed %>% filter(supply>=0 & mean_ratio>=0 & mean_ratio<=1)
+#outl_feed %>% filter(supply<0 | mean_ratio<0 | mean_ratio>1) %>% write.csv( file = "feed_to_check.csv")
+impute_seed<-impute_seed %>% mutate(impute=supply*mean_ratio)
+#impute_feed %>% write.csv( file = "feed_outliers.csv")
+impute_seed<-impute_seed[,c(1:7,16)] 
+impute_seed<-impute_seed[,c(1,2,3,4,8,6,7)] 
+colnames(impute_seed)[5]<-"Value"
+impute_seed[,6]<-c("E")
+impute_seed[,7]<-c("e")
+
+
+
+
+## loss careful supply definition changes
+sua_unb2<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(supply=prod+imp)
+sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% mutate(ratio=Value/supply)
+sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
+
+
+loss<-sua_unb %>% filter(measuredElementSuaFbs==5016)
+loss<-loss %>% mutate(outl=abs(ratio-mean_ratio)>0.05)
+outl_loss<-loss %>% filter((outl==T & timePointYears>2013) )
+impute_loss<-outl_loss %>% filter(supply>=0 & mean_ratio>=0 & mean_ratio<=1)
+impute_loss<-impute_loss %>% mutate(impute=supply*mean_ratio)
+impute_loss<-impute_loss[,c(1:7,16)] 
+impute_loss<-impute_loss[,c(1,2,3,4,8,6,7)] 
+colnames(impute_loss)[5]<-"Value"
+impute_loss[,6]<-c("E")
+impute_loss[,7]<-c("e")
+
+
+
+
+
+################################################################
+#####  save data                                           #####
+################################################################
+impute=rbind(impute_feed,impute_seed,impute_loss)
+out<-as.data.table(impute)
+
+stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
 paste0(stats$inserted, " observations written, ",
        stats$ignored, " weren't updated, ",
        stats$discarded, " had problems.")
