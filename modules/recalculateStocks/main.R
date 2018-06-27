@@ -26,7 +26,7 @@ library(faoswsUtil)
 library(sendmailR)
 library(dplyr)
 library(faoswsUtil)
-#library(faoswsStandardization)
+library(faoswsStandardization)
 library(faoswsFlag)
 
 
