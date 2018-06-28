@@ -12,6 +12,8 @@ library(faosws)
 library(data.table)
 library(faoswsUtil)
 library(sendmailR)
+library(dplyr)
+library(faoswsFlag)
 
 
 ## set up for the test environment and parameters
@@ -116,18 +118,18 @@ setnames(foodData,"Value", "food")
 #Prepare geo codes to pull only food classification for the countries the user defines. 
 #This saves a lot of time.
 
-# geoCodes_classification <- copy(selectedGEOCode)%>%
-#   as.character %>%
-#     shQuote(type = "sh") %>%
-#     paste0(collapse = ", ")
+geoCodes_classification <- copy(selectedGEOCode)%>%
+  as.character %>%
+    shQuote(type = "sh") %>%
+    paste0(collapse = ", ")
 
 
 
 
 
 # Pull food  classifications only for the countries the user defines. 
-# food_classification_country_specific <- ReadDatatable("food_classification_country_specific", where = paste0("geographic_area_m49 IN (", geoCodes_classification, ")"))
-food_classification_country_specific <- ReadDatatable("food_classification_country_specific")
+food_classification_country_specific <- ReadDatatable("food_classification_country_specific", where = paste0("geographic_area_m49 IN (", geoCodes_classification, ")"))
+# food_classification_country_specific <- ReadDatatable("food_classification_country_specific")
 
 
 setnames(food_classification_country_specific, 
@@ -276,3 +278,4 @@ cat("Save the final data...\n")
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = dataTosave, waitTimeout = 1800)
 
 paste0("Food Residual are over-written with the updated values!!! ")
+
