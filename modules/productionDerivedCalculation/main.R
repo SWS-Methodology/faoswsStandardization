@@ -334,6 +334,7 @@ for(geo in   seq_along(allCountries)){
                                    timePointYears = timeDim)
             )
             sua_unbalancedData = GetData(sua_un_key)
+            if(nrow(sua_unbalancedData) > 1) {
             ############################################################################################################################            
             # dataSuaRestricted=dataSuaRestricted[timePointYears<2014]
             # dataSuaRestricted=rbind(dataSuaRestricted,sua_unbalancedData )
@@ -616,9 +617,10 @@ for(geo in   seq_along(allCountries)){
                 
                 
                 
-            } 
-        }    
-    } 
+            }
+            }
+        }
+        } 
     
     
     
