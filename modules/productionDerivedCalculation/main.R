@@ -317,11 +317,13 @@ for(geo in   seq_along(allCountries)){
             productionCode="5510"
             seedCode="5525"
             stocksCode = "5071"
+            FeedCode = "5520"
+            LossCode = "5016"
             
             message("Pulling data from SUA_unbalanced")
             
             geoDim = Dimension(name = "geographicAreaM49", keys = currentGeo)
-            eleDim = Dimension(name = "measuredElementSuaFbs", keys = c(productionCode, seedCode, importCode, exportCode,stocksCode))
+            eleDim = Dimension(name = "measuredElementSuaFbs", keys = c(productionCode, seedCode, importCode, exportCode,stocksCode,FeedCode,LossCode))
             
             itemKeys = primaryInvolvedDescendents
             itemDim = Dimension(name = "measuredItemFbsSua", keys = itemKeys)
