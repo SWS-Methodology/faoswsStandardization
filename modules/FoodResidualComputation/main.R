@@ -54,11 +54,13 @@ top48FBSCountries = c(4,24,50,68,104,120,140,144,148,1248,170,178,218,320,
                       524,562,566,586,604,608,716,646,686,762,834,764,800,
                       854,704,231,887,894,760,862,860)
 
-selectedCountries = setdiff(geoKeys,top48FBSCountries)
+top48FBSCountries<-as.character(top48FBSCountries)
+
+selectedCountries = setdiff(geoKeys,top48FBSCountries) #229
 
 
 
-##Select the countries based on the user input parameter
+# ##Select the countries based on the user input parameter
 selectedGEOCode =
   switch(geoM49,
          "session" = sessionCountries,
@@ -108,6 +110,9 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
 #Pull SUA Data
 
 suaData = GetData(key)
+
+
+
 
 #Pull only food data in order to create a dataframe with the CPC COdes for food
 foodData=subset(suaData, measuredElementSuaFbs == "5141")
@@ -316,16 +321,18 @@ for (j in cols)
 timeSeriesData[primary == "not-primary", foodHat_nonprimary := netSupply - (stock+feed+seed+loss+industrial+tourist)]
 
 
+##########################
 
 
 
 #Compute new food residual estimate . The calcualtions are done only for the unprotected food figures. 
 
-timeSeriesData[Protected == FALSE & primary == "primary" & netSupply > 0, 
-               foodHat:= netSupply]
 
-timeSeriesData[Protected == FALSE & primary == "primary"  & netSupply <= 0, 
-               foodHat := 0]
+# timeSeriesData[Protected == FALSE & primary == "primary" & netSupply > 0, 
+#                foodHat:= netSupply]
+# 
+# timeSeriesData[Protected == FALSE & primary == "primary"  & netSupply <= 0, 
+#                foodHat := 0]
 
 
 timeSeriesData[Protected == FALSE & primary == "not-primary" & foodHat_nonprimary > 0 , 
