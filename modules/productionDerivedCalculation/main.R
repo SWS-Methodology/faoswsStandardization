@@ -497,7 +497,7 @@ for(geo in   seq_along(allCountries)){
                 
                 inputOutputdata[shareDownUp=="NaN",shareDownUp:=0]
                 inputOutputdata$PG1 = NA
-                inputOutputdata=calculateProcessingShare(inputOutputdata, param=params)
+                inputOutputdata=calculateProcessingShare2(inputOutputdata, param=params)
                 
                 ##-------------------------------------------------------------------------------------------------------------------------------------    
                 

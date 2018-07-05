@@ -8,7 +8,7 @@
 ##'
 
 # Modified by NW to include shares greater than one
-calculateProcessingShare=function(data, printSharesGraterThan1=TRUE, param){
+calculateProcessingShare2=function(data, printSharesGraterThan1=TRUE, param){
                                   
     
 ##Check that data contains all the necessary columns    
