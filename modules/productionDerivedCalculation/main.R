@@ -106,6 +106,12 @@ if(!file.exists(dir_to_save_plot)){
     dir.create(dir_to_save_plot, recursive = TRUE)
 }
 
+dir_to_save_shares <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA", paste0("validation", gsub("/", "_",swsContext.username)),"shares")
+
+if(!file.exists(dir_to_save_shares)){
+  dir.create(dir_to_save_shares, recursive = TRUE)
+}
+
 
 
 
@@ -245,6 +251,8 @@ for(geo in   seq_along(allCountries)){
         ##'  I delete all the connection where no extraction  rate is available:
         tree=tree[!is.na(extractionRate)]
         tree=tree[extractionRate!=0]
+        if(nrow(tree)<1)
+        {message(paste0("The commodity-tree conteins only ZERO extraction rates in the country: "), currentGeo)}else{
         ##'  I associate the level to each parent-child combination, this operation is done by country-year combinations
         ##'  because the commodity tree may change across countries and over time. 
         
@@ -323,7 +331,19 @@ for(geo in   seq_along(allCountries)){
             message("Pulling data from SUA_unbalanced")
             
             geoDim = Dimension(name = "geographicAreaM49", keys = currentGeo)
-            eleDim = Dimension(name = "measuredElementSuaFbs", keys = c(productionCode, seedCode, importCode, exportCode,stocksCode,FeedCode,LossCode))
+            eleDim = Dimension(name = "measuredElementSuaFbs", keys = c("5510",
+                                                                        "5610",
+                                                                        "5071",
+                                                                        "5023",
+                                                                        "5910",
+                                                                        "5016",
+                                                                        "5165",
+                                                                        "5520",
+                                                                        "5525",
+                                                                        "5164",
+                                                                        "5166",
+                                                                        "5141",
+                                                                        "5113"))
             
             itemKeys = primaryInvolvedDescendents
             itemDim = Dimension(name = "measuredItemFbsSua", keys = itemKeys)
@@ -352,7 +372,6 @@ for(geo in   seq_along(allCountries)){
             #                             elementCol = "measuredElementSuaFbs")
             data = elementCodesToNames(data = sua_unbalancedData, itemCol = "measuredItemFbsSua",
                                        elementCol = "measuredElementSuaFbs")
-            
             ##'  Add all the missing PRODUCTION row: if the production of a derived product does not exist it even if it is created by this 
             ##'  routine cannot be stored in the SUA table and consequently all the commodities that belongs to its descendents are not estimates
             ##'  or are estimated using only the TRADE and neglecting an important part of the supply components.
@@ -453,9 +472,7 @@ for(geo in   seq_along(allCountries)){
             ##'   Subset PRODUCTION data
             ##dataProcessed=dataProcessed[geographicAreaM49==currentGeo]
             #dataProcessed[,timePointYears:=as.numeric(timePointYears)]
-            
-            
-            
+            data$PG1 = NA
             for(lev in (seq_along(levels)-1))  {
                 ##'  Loop by level
                 treeCurrentLevel=tree[processingLevel==lev]
@@ -479,7 +496,7 @@ for(geo in   seq_along(allCountries)){
                 
                 
                 inputOutputdata[shareDownUp=="NaN",shareDownUp:=0]
-                
+                inputOutputdata$PG1 = NA
                 inputOutputdata=calculateProcessingShare(inputOutputdata, param=params)
                 
                 ##-------------------------------------------------------------------------------------------------------------------------------------    
@@ -497,16 +514,20 @@ for(geo in   seq_along(allCountries)){
                 ##'   at each loop we compute production for the following level, this prodution
                 ##'   should be used in the following loop to compute the availabilities
                 
-                updateData=inputOutputdata[,.(geographicAreaM49, timePointYears, measuredItemChildCPC, newImputation)]
+                updateData=inputOutputdata[,.(geographicAreaM49, timePointYears, measuredItemChildCPC, newImputation, PG1)]
                 updateData[, newImputation:=sum(newImputation,na.rm = TRUE), by=c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")]
                 updateData=unique(updateData)
                 
                 
                 ##'  I change the column names bacause the commodities that now are children will be parent in the next loop
                 setnames(updateData,"measuredItemChildCPC","measuredItemParentCPC")
-                
+
                 ##'  I merge the new results into the SUA table
                 data=merge(data,updateData, by=c("geographicAreaM49", "timePointYears", "measuredItemParentCPC"), all.x=TRUE)
+                data$PG1.x[is.na(data$PG1.x)] = data$PG1.y[is.na(data$PG1.x)]
+                data$PG1= data$PG1.x
+                data[,PG1.x:=NULL]
+                data[,PG1.y:=NULL]
                 ##'   Olnly non-protected production figures have to be overwritten:
                 
                 
@@ -610,6 +631,7 @@ for(geo in   seq_along(allCountries)){
             
             ## Save all the intermediate output country by country:
             
+
             if(!CheckDebug()){
                 
                 
@@ -621,6 +643,7 @@ for(geo in   seq_along(allCountries)){
                 
             }
             }
+        }
         }
         } 
     
@@ -649,8 +672,10 @@ output=rbindlist(allLevels)
 ##'   The following lines create the dataset useful for validation purposes:
 ##'   I want to sum the newImputation into the totNewImputation, but I want to keep
 ##'   all the constributions to double check the final result
+BadProcessingShares = output[PG1==TRUE,]
 
 if(CheckDebug()){
+    
     output[,  totNewImputation := sum(newImputation, na.rm = TRUE),
            by =c ("geographicAreaM49","measuredItemChildCPC","timePointYears")]
     
@@ -666,6 +691,9 @@ if(CheckDebug()){
     # dir.create(directory)
     # fileForValidation2(outPutforValidation,SUAdata=data ,  dir=directory)
     write.csv(outPutforValidation,"C:/Work/SWS/FBS/Production/DerivedProduction/Output/outPutforValidation.csv")
+    if (nrow(BadProcessingShares)>1) {
+    write.csv(BadProcessingShares,"C:/Work/SWS/FBS/Production/DerivedProduction/Output/BadProcessingShares.csv")
+    }
     
     ##'  For validation purposes it is extremly important to produce validation files filtered for those 47
     ##'  commodies plut flours (that are upposed to be pubblished)
@@ -713,11 +741,24 @@ if(CheckDebug()){
 
 ##Plots goes directly to the shared folder
 
-if(!CheckDebug() & Validation_Param==1){
+if(!CheckDebug()){
     
-    res_plot = try(plotResult(toPlot, toPubblish=toBePubblished, pathToSave= dir_to_save_plot))
+  if(nrow(BadProcessingShares) > 0) {
     
+    try(write.csv(BadProcessingShares, file=file.path(dir_to_save_shares,"BadShares.csv"), row.names = FALSE), silent = TRUE)
+    
+  }
+  
 }
+
+if(!CheckDebug()){
+  
+  res_plot = try(plotResult(toPlot, toPubblish=toBePubblished, pathToSave= dir_to_save_plot))
+  
+}
+
+
+
 #-------------------------------------------------------------------------------------------------------------------------------------    
 ##'   Save back
 
@@ -756,8 +797,12 @@ body = paste0("The plug-in has saved the Production imputation in your session."
               "You can browse charts and intermediate csv files in the shared folder: ",
               dir_to_save)
 
-
 sendmail(from = from, to = to, subject = subject, msg = body)
 
-
-print("The plugin ran successfully!")
+if (nrow(BadProcessingShares) > 0) {
+  print("Plugin ran successfully, but some shares are greater than 1!  Check validaton files")
+  
+}
+if (nrow(BadProcessingShares) == 0){
+  print("The plugin ran successfully!")
+}
