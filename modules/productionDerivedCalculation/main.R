@@ -91,7 +91,7 @@ sessionKey = swsContext.datasets[[1]]
 
 
 #dir_to_save <- "//hqfile4/ESS/Team_working_folder/B_C/3. SUA_FBS/Validation/Output/"
-dir_to_save <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA",paste0("validation", gsub("/", "_",swsContext.username)))
+dir_to_save <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA",paste0("validation_", gsub("/", "_",substr(swsContext.username,11, nchar(swsContext.username)))))
 
 if(!file.exists(dir_to_save)){
     dir.create(dir_to_save, recursive = TRUE)
@@ -99,14 +99,14 @@ if(!file.exists(dir_to_save)){
 
 
 # dir_to_save_plot <- file.path(R_SWS_SHARE_PATH, "processedItem", paste0("validation", gsub("/", "_",swsContext.username)),"plot")
-dir_to_save_plot <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA", paste0("validation", gsub("/", "_",swsContext.username)),"plot")
+dir_to_save_plot <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA", paste0("validation_", gsub("/", "_",substr(swsContext.username,11, nchar(swsContext.username)))),"plot")
 # dir_to_save_plot <- "//hqfile4/ESS/Team_working_folder/B_C/3. SUA_FBS/Validation/Plot"
 
 if(!file.exists(dir_to_save_plot)){
     dir.create(dir_to_save_plot, recursive = TRUE)
 }
 
-dir_to_save_shares <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA", paste0("validation", gsub("/", "_",swsContext.username)),"shares")
+dir_to_save_shares <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA", paste0("validation_", gsub("/", "_",substr(swsContext.username,11, nchar(swsContext.username)))),"shares")
 
 if(!file.exists(dir_to_save_shares)){
   dir.create(dir_to_save_shares, recursive = TRUE)
@@ -118,7 +118,7 @@ if(!file.exists(dir_to_save_shares)){
 # dir_to_save_output <- file.path(R_SWS_SHARE_PATH, "processedItem",paste0("validation", gsub("/", "_",swsContext.username)), "output")
 #dir_to_save_output <- "//hqfile4/ESS/Team_working_folder/B_C/3. SUA_FBS/Validation/Output/"
 
-dir_to_save_output <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA",paste0("validation", gsub("/", "_",swsContext.username)), "output")
+dir_to_save_output <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA",paste0("validation_", gsub("/", "_",substr(swsContext.username,11, nchar(swsContext.username)))), "output")
 
 if(!file.exists(dir_to_save_output)){
     dir.create(dir_to_save_output, recursive = TRUE)
@@ -128,7 +128,7 @@ if(!file.exists(dir_to_save_output)){
 
 # dir_to_save_recovery<- file.path(R_SWS_SHARE_PATH, "processedItem",paste0("validation", gsub("/", "_",swsContext.username)), "recovery")
 # dir_to_save_recovery <- "//hqfile4/ESS/Team_working_folder/B_C/3. SUA_FBS/Validation/Recovery/"
-dir_to_save_recovery<- file.path(R_SWS_SHARE_PATH, "processedItem_SUA",paste0("validation", gsub("/", "_",swsContext.username)), "recovery")
+dir_to_save_recovery<- file.path(R_SWS_SHARE_PATH, "processedItem_SUA",paste0("validation_", gsub("/", "_",substr(swsContext.username,11, nchar(swsContext.username)))), "recovery")
 
 if(!file.exists(dir_to_save_recovery)){
     dir.create(dir_to_save_recovery, recursive = TRUE)
@@ -789,20 +789,25 @@ SaveData(domain = sessionKey@domain,
          dataset = sessionKey@dataset,
          data =  imputed[!geographicAreaM49%in%top48FBSCountries])
 
-## Initiate email
-from = "sws@fao.org"
-to = swsContext.userEmail
-subject = "Derived-Products imputation plugin has correctly run"
-body = paste0("The plug-in has saved the Production imputation in your session.",
-              "You can browse charts and intermediate csv files in the shared folder: ",
-              dir_to_save)
-
-sendmail(from = from, to = to, subject = subject, msg = body)
-
 if (nrow(BadProcessingShares) > 0) {
-  print("Plugin ran successfully, but some shares are greater than 1!  Check validaton files")
+  from = "sws@fao.org"
+  to = swsContext.userEmail
+  subject = "Derived-Products imputation plugin has correctly run"
+  body = paste0("The plug-in has saved the Production imputation in your session.",
+                "However, some shares are greater than 1.  Please check these at: ",
+                dir_to_save_shares)
+  sendmail(from = from, to = to, subject = subject, msg = body)
   
 }
 if (nrow(BadProcessingShares) == 0){
   print("The plugin ran successfully!")
+  ## Initiate email
+  from = "sws@fao.org"
+  to = swsContext.userEmail
+  subject = "Derived-Products imputation plugin has correctly run"
+  body = paste0("The plug-in has saved the Production imputation in your session.",
+                "You can browse charts and intermediate csv files in the shared folder: ",
+                dir_to_save)
+  
+  sendmail(from = from, to = to, subject = subject, msg = body)
 }
