@@ -1,10 +1,11 @@
-#This script overwrites the food value for "food Residual"  only if the figures are unprotected. 
+#This script overwrites the food value for "food Residual" (given the item is not a priamry item)  only if the figures are unprotected. Otherwise, figures are
+#not touched. 
 
 
 #First, it takes into consideration food values of food residual items in sua unbalanced table. 
 #Then,it selects only the unprotected food figures with the help of the flag validation  table. 
-#Next, it overwrites those food estimates with the new food estimates computed with the updated production and trade data as
-#netSupply = (prodcution + import - export). Then, net supply becomes the new estimated food residual. Finally, these updated data are overwritten in sua unbalanced table.
+#Next, it overwrites those food estimates with the new food estimates computed with the updated production, trade and utilization elements data as
+#foodHat = (prodcution + import - export- (feed+seed+tourist+loss+industrial+stock)). Then, foodHat becomes the new estimated food residual. Finally, these updated data are overwritten in sua unbalanced table.
 
 
 ## load the libraries
