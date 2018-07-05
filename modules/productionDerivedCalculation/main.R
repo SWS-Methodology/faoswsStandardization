@@ -794,7 +794,7 @@ if (nrow(BadProcessingShares) > 0) {
   to = swsContext.userEmail
   subject = "Derived-Products imputation plugin has correctly run"
   body = paste0("The plug-in has saved the Production imputation in your session.",
-                "However, some shares are greater than 1.  Please check these at: ",
+                "  However, some shares are greater than 1.  Please check these at: ",
                 dir_to_save_shares)
   sendmail(from = from, to = to, subject = subject, msg = body)
   
