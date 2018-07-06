@@ -751,7 +751,7 @@ if(!CheckDebug()){
   
 }
 
-if(!CheckDebug()){
+if(!CheckDebug() & swsContext.computationParams$Validation=="1"){
   
   res_plot = try(plotResult(toPlot, toPubblish=toBePubblished, pathToSave= dir_to_save_plot))
   
