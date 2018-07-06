@@ -106,6 +106,15 @@ if(!file.exists(dir_to_save_plot)){
     dir.create(dir_to_save_plot, recursive = TRUE)
 }
 
+# dir_to_save_plot <- file.path(R_SWS_SHARE_PATH, "processedItem", paste0("validation", gsub("/", "_",swsContext.username)),"plot")
+dir_to_save_neg <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA", paste0("validation_", gsub("/", "_",substr(swsContext.username,11, nchar(swsContext.username)))),"neg")
+# dir_to_save_plot <- "//hqfile4/ESS/Team_working_folder/B_C/3. SUA_FBS/Validation/Plot"
+
+if(!file.exists(dir_to_save_neg)){
+  dir.create(dir_to_save_neg, recursive = TRUE)
+}
+
+
 dir_to_save_shares <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA", paste0("validation_", gsub("/", "_",substr(swsContext.username,11, nchar(swsContext.username)))),"shares")
 
 if(!file.exists(dir_to_save_shares)){
@@ -356,7 +365,7 @@ for(geo in   seq_along(allCountries)){
                                    timePointYears = timeDim)
             )
             sua_unbalancedData = GetData(sua_un_key)
-            if(nrow(sua_unbalancedData) > 1) {
+            if(nrow(sua_unbalancedData[measuredElementSuaFbs=="5510",]) > 1) {
             ############################################################################################################################            
             # dataSuaRestricted=dataSuaRestricted[timePointYears<2014]
             # dataSuaRestricted=rbind(dataSuaRestricted,sua_unbalancedData )
@@ -485,8 +494,9 @@ for(geo in   seq_along(allCountries)){
                 
                 ##'  Calculate share down up. Please note that currentData contains the SUA table.
                 ##'  NW: use all SUA components
-                dataMergeTree=calculateShareDownUp(data=data,tree=treeCurrentLevel,
-                                                   params=params, printNegativeAvailability=TRUE,useAllSUAcomponents=TRUE)
+                dataMergeTree=calculateShareDownUp2(data=data,tree=treeCurrentLevel,
+                                                   params=params, printDirectory = dir_to_save_neg,
+                                                   printNegativeAvailability=TRUE,useAllSUAcomponents=TRUE)
                 
                 
                 ##'  Here I merge the SUA table (already merged with tree), with the PRODUCTION DATA
@@ -751,7 +761,7 @@ if(!CheckDebug()){
   
 }
 
-if(!CheckDebug()){
+if(!CheckDebug() & swsContext.computationParams$Validation=="1"){
   
   res_plot = try(plotResult(toPlot, toPubblish=toBePubblished, pathToSave= dir_to_save_plot))
   
@@ -794,7 +804,7 @@ if (nrow(BadProcessingShares) > 0) {
   to = swsContext.userEmail
   subject = "Derived-Products imputation plugin has correctly run"
   body = paste0("The plug-in has saved the Production imputation in your session.",
-                "However, some shares are greater than 1.  Please check these at: ",
+                "  However, some shares are greater than 1.  Please check these at: ",
                 dir_to_save_shares)
   sendmail(from = from, to = to, subject = subject, msg = body)
   
