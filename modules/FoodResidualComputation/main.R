@@ -204,7 +204,7 @@ checkTotFood = foodDataMerge[, list(totFood = sum(food)),
                              by = list(geographicAreaM49, timePointYears)]
 
 
-checkTotFood = nameData("food", "fooddatafs", checkTotFood)
+checkTotFood = nameData("suafbs", "sua_unbalanced", checkTotFood)
 # checkTotFood[totFood == 0, .N, c("geographicAreaM49", "geographicAreaM49_description")]
 # checkTotFood[timePointYears %in% referenceYearRange & totFood == 0, .N, geographicAreaM49]
 excludeCountry = unique(checkTotFood[totFood == 0]$geographicAreaM49)
