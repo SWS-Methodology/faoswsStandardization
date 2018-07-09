@@ -210,6 +210,7 @@ itemKeysChild=GetCodeList(domain = "suafbs", dataset = "ess_fbs_commodity_tree2"
 elemKeys=c("5423")
 
 allCountries=areaKeys
+allCountries="484"
 ##'  Seven Pilot countries
 # allCountries=c("454", "686", "1248", "716","360", "392", "484")
 
@@ -683,7 +684,7 @@ output=rbindlist(allLevels)
 ##'   I want to sum the newImputation into the totNewImputation, but I want to keep
 ##'   all the constributions to double check the final result
 BadProcessingShares = output[PG1==TRUE,]
-BadProcessingShares = BadProcessingShares[Year>=imputationStartYear,]
+BadProcessingShares = BadProcessingShares[BadProcessingShares$Year>=imputationStartYear,]
 
 if(CheckDebug()){
     
