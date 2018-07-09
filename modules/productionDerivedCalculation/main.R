@@ -683,6 +683,7 @@ output=rbindlist(allLevels)
 ##'   I want to sum the newImputation into the totNewImputation, but I want to keep
 ##'   all the constributions to double check the final result
 BadProcessingShares = output[PG1==TRUE,]
+BadProcessingShares = BadProcessingShares[Year>=imputationStartYear,]
 
 if(CheckDebug()){
     
