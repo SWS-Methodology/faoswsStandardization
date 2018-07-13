@@ -210,7 +210,6 @@ itemKeysChild=GetCodeList(domain = "suafbs", dataset = "ess_fbs_commodity_tree2"
 elemKeys=c("5423")
 
 allCountries=areaKeys
-allCountries="484"
 ##'  Seven Pilot countries
 # allCountries=c("454", "686", "1248", "716","360", "392", "484")
 
