@@ -340,26 +340,15 @@ for(geo in   seq_along(allCountries)){
             message("Pulling data from SUA_unbalanced")
             
             geoDim = Dimension(name = "geographicAreaM49", keys = currentGeo)
-            # eleDim = Dimension(name = "measuredElementSuaFbs", keys = c("5510",
-            #                                                             "5610",
-            #                                                             "5071",
-            #                                                             "5023",
-            #                                                             "5910",
-            #                                                             "5016",
-            #                                                             "5165",
-            #                                                             "5520",
-            #                                                             "5525",
-            #                                                             "5164",
-            #                                                             "5166",
-            #                                                             "5141",
-            #                                                             "5113"))
-            
             eleDim = Dimension(name = "measuredElementSuaFbs", keys = c("5510",
                                                                         "5610",
                                                                         "5071",
                                                                         "5023",
                                                                         "5910",
+                                                                        "5016",
                                                                         "5165",
+                                                                        "5520",
+                                                                        "5525",
                                                                         "5164",
                                                                         "5166",
                                                                         "5141",
@@ -507,7 +496,7 @@ for(geo in   seq_along(allCountries)){
                 ##'  NW: use all SUA components
                 dataMergeTree=calculateShareDownUp2(data=data,tree=treeCurrentLevel,
                                                    params=params, printDirectory = dir_to_save_neg,
-                                                   printNegativeAvailability=TRUE,useAllSUAcomponents=TRUE)
+                                                   printNegativeAvailability=TRUE,useAllSUAcomponents=FALSE)
                 
                 
                 ##'  Here I merge the SUA table (already merged with tree), with the PRODUCTION DATA

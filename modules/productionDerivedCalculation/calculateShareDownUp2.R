@@ -1,4 +1,4 @@
-calculateShareDownUp2 = function(data,tree, printNegativeAvailability=TRUE , params, printDirectory = NULL, useAllSUAcomponents=TRUE)
+calculateShareDownUp2 = function(data,tree, printNegativeAvailability=TRUE , params, printDirectory = NULL, useAllSUAcomponents=FALSE)
   
 {
   ##Checks
@@ -29,11 +29,11 @@ calculateShareDownUp2 = function(data,tree, printNegativeAvailability=TRUE , par
                                              ifelse(measuredElementSuaFbs == params$productionCode, 1,
                                                     ifelse(measuredElementSuaFbs == params$importCode, 1,
                                                            ifelse(measuredElementSuaFbs == params$exportCode , -1, 
-                                                                  ifelse(measuredElementSuaFbs == params$stockCode, -1,
+                                                                  ifelse(measuredElementSuaFbs == params$stockCode, -1,0))))),
                                                                          ##     ifelse(measuredElementSuaFbs == params$foodCode, -1,
                                                                          ##     ifelse(measuredElementSuaFbs == params$feedCode , -1,
                                                                          ##     ifelse(measuredElementSuaFbs == params$wasteCode, -1,
-                                                                         ifelse(measuredElementSuaFbs == params$seedCode, -1 ,0)))))),
+                                                                         ##     ifelse(measuredElementSuaFbs == params$seedCode, -1 ,0)))))),
                   ##     ifelse(measuredElementSuaFbs == params$industrialCode, -1,
                   ##     ifelse(measuredElementSuaFbs == params$touristCode, -1, 0))))))))))),
                   by = c(params$geoVar,params$yearVar,params$parentVar,params$childVar)]
