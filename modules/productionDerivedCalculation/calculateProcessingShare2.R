@@ -45,7 +45,8 @@ processingShareParamenters=defaultImputationParameters()
 processingShareParamenters$imputationValueColumn="processingShare"
 processingShareParamenters$imputationFlagColumn="processingShareFlagObservationStatus"
 processingShareParamenters$imputationMethodColumn="processingShareFlagMethod"
-processingShareParamenters$byKey=c("geographicAreaM49", "measuredItemChildCPC", "measuredItemParentCPC")
+#processingShareParamenters$byKey=c("geographicAreaM49", "measuredItemChildCPC", "measuredItemParentCPC")
+processingShareParamenters$byKey=c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")
 processingShareParamenters$estimateNoData=FALSE
 
 
@@ -76,7 +77,8 @@ counts=counts[,c(param$geoVar, param$childVar, param$parentVar), with=FALSE]
 data=data[counts, ,on=c(param$geoVar, param$childVar, param$parentVar)]
 
 ## impute processingSharing
-data=imputeVariable(data,processingShareParamenters)
+data=arrange(data,geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,timePointYears)
+data=imputeVariable(as.data.table(data),processingShareParamenters)
 
 
 
