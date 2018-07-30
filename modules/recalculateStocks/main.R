@@ -49,7 +49,7 @@ library(faoswsFlag)
 # stocksCode = c("5071","5113")
 # 
 # ## set up for the test environment and parameters
- R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
+R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 
 if(CheckDebug()){
   message("Not on server, so setting up environment...")
@@ -101,46 +101,64 @@ suaData = GetData(sessionKey,omitna=F)
 ###########################################################
 ##### calculate historical ratios                     #####
 ###########################################################
-
-sua_unb<- suaData %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(Meanold=mean(Value[timePointYears<2014],na.rm=T))
-sua_unb$Meanold[is.na(sua_unb$Meanold)]<-0
-sua_unb$Value[is.na(sua_unb$Value)]<-0
-
-
 # 
-##
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
-sua_unb$prod[is.na(sua_unb$prod)]<-0
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(imp=sum(Value[measuredElementSuaFbs==5610]))
-sua_unb$imp[is.na(sua_unb$imp)]<-0
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(exp=sum(Value[measuredElementSuaFbs==5910]))
-sua_unb$exp[is.na(sua_unb$exp)]<-0
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(supply=prod+imp-exp)
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% mutate(ratio=Value/supply)
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
+# sua_unb<- suaData %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(Meanold=mean(Value[timePointYears<2014],na.rm=T))
+# sua_unb$Meanold[is.na(sua_unb$Meanold)]<-0
+# sua_unb$Value[is.na(sua_unb$Value)]<-0
+# 
+# 
+# # 
+# ##
+# sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
+# sua_unb$prod[is.na(sua_unb$prod)]<-0
+# sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(imp=sum(Value[measuredElementSuaFbs==5610]))
+# sua_unb$imp[is.na(sua_unb$imp)]<-0
+# sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(exp=sum(Value[measuredElementSuaFbs==5910]))
+# sua_unb$exp[is.na(sua_unb$exp)]<-0
+# sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(supply=prod+imp-exp)
+# sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% mutate(ratio=Value/supply)
+# sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
 
 
 ## mutate(pchange2=(Value/lag(Value))-1)
-stocksvar<-suaData %>% filter((measuredElementSuaFbs==5071 | measuredElementSuaFbs==5113) & timePointYears>2013)
+stocksvar<-suaData %>% filter((measuredElementSuaFbs=="5071" | measuredElementSuaFbs=="5113") & timePointYears>2013)
 #stocksvar <- stocksvar %>% group_by(geographicAreaM49,measuredItemFbsSua) %>% arrange(timePointYears) %>% mutate(cumstocks=cumsum(Value))
 stockswide<- stocksvar %>% dcast(geographicAreaM49+measuredItemFbsSua+timePointYears~measuredElementSuaFbs,value.var="Value")
 stockswide$`5071`[is.na(stockswide$`5071`)]<-0
 stockswide["stocksnew"]<-stockswide["5113"]
-stockswide <- stockswide %>% group_by(geographicAreaM49,measuredItemFbsSua)  %>%  mutate(stocksnew=lag(stocksnew)+lag(`5071`))
+
+
+
+###########
+esum <- function(x,y) mapply("+", x,y)
+esum2 <- function(x,y) x+y
+
+
+#stockswide <- stockswide %>% group_by(geographicAreaM49,measuredItemFbsSua)  %>%  mutate(stocksnew=lag(stocksnew)+lag(`5071`))
+#stockswide <- stockswide %>% group_by(geographicAreaM49,measuredItemFbsSua)  %>%  mutate(stocksnew=Reduce(sum, `5071`, init = 0, accumulate = TRUE)[-1])
+#stockswide <- stockswide %>% group_by(geographicAreaM49,measuredItemFbsSua)  %>%  mutate(stocksnew=Reduce(esum, list(lag(stocksnew),lag(`5071`)),accumulate = T))
+stockswide <- stockswide %>% group_by(geographicAreaM49,measuredItemFbsSua)  %>%  mutate(stocksnew =  cumsum(ifelse(is.na(lag(`5071`)), 0, lag(`5071`))) +`5113`[timePointYears==2014])
+
+
 stockswide <- stockswide %>%   mutate(changedStock=(abs(`5113`-stocksnew)>10 & stocksnew>0))
 stockswide<- stockswide %>%  filter(changedStock==T)
 stockswide[,"5113"]<-stockswide[,"stocksnew"]
-stockswide[,c("stocksnew","changedStock","5071")]<-NULL
+
+stockswide=as.data.table(stockswide)
+
+stockswide[,c("stocksnew","changedStock","5071"):=NULL]
+
+
 stockslong<-melt(stockswide, id=c("geographicAreaM49","measuredItemFbsSua", "timePointYears"))
 colnames(stockslong)[4]<-"measuredElementSuaFbs"
 colnames(stockslong)[5]<-"Value"
 
-stockslong["flagObservationStatus"] <- "E"
-stockslong["flagMethod"] <- "e"
-stockslong[,"measuredElementSuaFbs"] <- "5113"
+stockslong[,"flagObservationStatus":="E"] 
+stockslong[,"flagMethod":="e"]
+stockslong[,measuredElementSuaFbs:=as.character(measuredElementSuaFbs)] 
 
-
-stockslong<-stockslong[,colnames(suaData)]
+setcolorder(stockslong, colnames(suaData))
+#stockslong<-stockslong[,colnames(suaData)]
 
 
 ################################################################
@@ -148,8 +166,10 @@ stockslong<-stockslong[,colnames(suaData)]
 ################################################################
 impute=stockslong
 out<-as.data.table(impute)
+out$measuredElementSuaFbs<-as.character(out$measuredElementSuaFbs)
 
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
+
 paste0(stats$inserted, " observations written, ",
        stats$ignored, " weren't updated, ",
        stats$appended, " were updated, ",
