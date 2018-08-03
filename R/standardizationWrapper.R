@@ -607,37 +607,12 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                        specificTree = FALSE,
                                        cut=cutItems,
                                        additiveElements = nutrientElements)
-  ####################################################
-  ####################################################
-  ####################################################
-  ####################################################
+  # ###################################################
+
+    data2keep=copy(data.table(data.frame(data)))
   
-  dataRice=data[measuredItemSuaFbs=="0113"]
-  dataRice[,measuredItemSuaFbs:="23161.02"]
-  dataRice[!(measuredElementSuaFbs%in%c(nutrientElements)),Value:=Value*0.667]
- 
-  
-  data0113 = copy(data.table(data.frame(data)))
-  
-  data23161 = copy(data.table(data.frame(dataRice)))
-  
-  dataBoth=rbind(data0113,data23161)
-  
-  dataNew=dataBoth[measuredItemSuaFbs!="0113"]
-  
-  data2keep=copy(data.table(data.frame(dataNew)))
-  
-  ####################################################
-  ####################################################
-  ####################################################
-  ####################################################
-  
-  # data2keep=copy(data.table(data.frame(data)))
-  
-  ####################################################
-  ####################################################
-  data=data.table(data.frame(copy(dataBoth)))
-  
+  # ###################################################
+
   setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
 
   standDatawide = dcast(data, geographicAreaM49 +timePointYears + measuredItemFbsSua
@@ -713,9 +688,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   # this generates problems when doing the saving back of the second step.
 
   data=copy(data.table(data.frame(data2keep)))
-  #### DATA NORMAL WITH RICE ################# 1 ########### END
-  
-  
   data=data[!grepl("f???_",measuredItemSuaFbs)]
   
 
@@ -864,7 +836,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data[!(nutrientElement), Value := balancedValue]
   
   data2keep=data.table(data.frame(data)) ###################!!!!!!!!!!!!!!!!!!!!!!DATA
-  
+   
 #############################################################################  
   setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
   standData=data.table(data.frame(data))
@@ -896,6 +868,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
 
   data=nameData("suafbs","sua_unbalanced",data,except = c("measuredElementSuaFbs","geographicAreaM49","timePointYears"))
   setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
+  
+  #######################################################
+  
+
   if(length(printCodes) > 0){
     cat("\n\nfbs_balanced:")
     data = markUpdated(new = data, old = old, standParams = p)
@@ -910,14 +886,43 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
 
   ## STEP 6: Update calories of processed products proportionally based on
   ## updated food element values.
-  # data[(nutrientElement), Value := Value * foodAdjRatio]
-  
-  
+
   data=copy(data.table(data.frame(data2keep)))   ###################!!!!!!!!!!!!!!!!!!!!!!DATA
   
   data[(nutrientElement), Value := ifelse(((!is.na(Value))&is.na(foodAdjRatio)),Value, Value * foodAdjRatio)]
   
   data2keep=data.table(data.frame(data)) ###################!!!!!!!!!!!!!!!!!!!!!!DATA
+  
+  ####################################################
+  ####################################################
+  ####################################################
+  ####################################################
+  # CRISTINA 08/03/2018
+  # Express the final value of Rice in Milled equivalent
+  
+  dataRice=data[measuredItemSuaFbs=="0113"]
+  dataRice[,measuredItemSuaFbs:="23161.02"]
+  dataRice[!(measuredElementSuaFbs%in%c(nutrientElements)),Value:=Value*0.667]
+  
+  
+  data0113 = copy(data.table(data.frame(data)))
+  
+  data23161 = copy(data.table(data.frame(dataRice)))
+  
+  dataBoth=rbind(data0113,data23161)
+  
+  dataNew=dataBoth[measuredItemSuaFbs!="0113"]
+  
+  data2keep=copy(data.table(data.frame(dataNew)))
+  
+  ####################################################
+  ####################################################
+  ####################################################
+  ####################################################
+  ###################################################
+  ###################################################
+  data=data.table(data.frame(copy(dataBoth)))
+  
   
   #############################################################################  
   setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
@@ -949,21 +954,35 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data=data.table(data.frame(data2print))
   setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
   #############################################################################  
-
+  setnames(data,"measuredItemSuaFbs","measuredItemFbsSua")
+  data=nameData("suafbs","sua_unbalanced",data,except = c("measuredElementSuaFbs","geographicAreaM49","timePointYears"))
+  setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
+  
+  data0113Print = data[measuredItemSuaFbs!="23161.02"]
+  
   if(length(printCodes) > 0){
-    setnames(data,"measuredItemSuaFbs","measuredItemFbsSua")
-    data=nameData("suafbs","sua_unbalanced",data,except = c("measuredElementSuaFbs","geographicAreaM49","timePointYears"))
-    setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
     
     cat("\n\nfbs_balanced with updated nutrient values:")
-    data = markUpdated(new = data, old = old, standParams = p)
-    old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
-    printSUATableNames(data = data, standParams = p, printCodes = printCodes,
+    data0113Print = markUpdated(new = data0113Print, old = old, standParams = p)
+    old = copy(data0113Print[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
+    printSUATableNames(data = data0113Print, standParams = p, printCodes = printCodes,
                   printProcessing = TRUE,
                   nutrientElements = "DESfoodSupply_kCd")
-    data[, updateFlag := NULL]
+    data0113Print[, updateFlag := NULL]
   }
-
+  
+  data23610Print = data[measuredItemSuaFbs!="0113"]
+  
+  if(length(printCodes) > 0 & "0113"%in%printCodes){
+    
+    cat("\n\nfbs_balanced with updated nutrient values and Rice in Milled equivalent:")
+    data23610Print = markUpdated(new = data23610Print, old = old, standParams = p)
+    old = copy(data23610Print[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
+    printSUATableNames(data = data23610Print, standParams = p, printCodes = printCodes,
+                       printProcessing = TRUE,
+                       nutrientElements = "DESfoodSupply_kCd")
+    data23610Print[, updateFlag := NULL]
+  }
   
   data=copy(data.table(data.frame(data2keep)))   ###################!!!!!!!!!!!!!!!!!!!!!!DATA
   data[, c("balancedValue", "nutrientElement", "foodAdjRatio") := NULL]
