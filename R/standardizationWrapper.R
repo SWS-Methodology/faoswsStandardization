@@ -477,7 +477,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     })
   }
     data2keep=copy(data.table(data.frame(data)))
- 
+    
   ##################### 
     setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
     standData=data.table(data.frame(data))
@@ -518,7 +518,15 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                   printProcessing = TRUE)
     }
     data=data.table(data.frame(data2keep2))
+  
     
+  #####################
+  # Computing Rice
+  # To express Rice Paddy in mille equivalent: 
+    # 1. Again put the data in wide form
+    
+    
+  
   #####################
   roundNum = function(x){
     if(is.na(x)){
@@ -599,10 +607,37 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                        specificTree = FALSE,
                                        cut=cutItems,
                                        additiveElements = nutrientElements)
-  data2keep=copy(data.table(data.frame(data)))
+  ####################################################
+  ####################################################
+  ####################################################
+  ####################################################
+  
+  dataRice=data[measuredItemSuaFbs=="0113"]
+  dataRice[,measuredItemSuaFbs:="23161.02"]
+  dataRice[!(measuredElementSuaFbs%in%c(nutrientElements)),Value:=Value*0.667]
+ 
+  
+  data0113 = copy(data.table(data.frame(data)))
+  
+  data23161 = copy(data.table(data.frame(dataRice)))
+  
+  dataBoth=rbind(data0113,data23161)
+  
+  dataNew=dataBoth[measuredItemSuaFbs!="0113"]
+  
+  data2keep=copy(data.table(data.frame(dataNew)))
   
   ####################################################
   ####################################################
+  ####################################################
+  ####################################################
+  
+  # data2keep=copy(data.table(data.frame(data)))
+  
+  ####################################################
+  ####################################################
+  data=data.table(data.frame(copy(dataBoth)))
+  
   setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
 
   standDatawide = dcast(data, geographicAreaM49 +timePointYears + measuredItemFbsSua
@@ -639,30 +674,53 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
   
   
+  
   ####################################################
-  data2keep2=data.table(data.frame(data))
   setnames(data,"measuredItemSuaFbs","measuredItemFbsSua")
   data=nameData("suafbs","sua_unbalanced",data,except = c("measuredElementSuaFbs","geographicAreaM49","timePointYears"))
   setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
   
+  data0113Print = data[measuredItemSuaFbs!="23161.02"]
   
   if(length(printCodes) > 0){
     # cat("\nSUA table after standardization (BEFORE PROTECTED CORRECTION:)")
     cat("\n\nfbs_standardized")
-    data = markUpdated(new = data, old = old, standParams = p)
-    old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
-    printSUATableNames(data = data, standParams = p,
+    data0113Print = markUpdated(new = data0113Print, old = old, standParams = p)
+    old = copy(data0113Print[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
+    printSUATableNames(data = data0113Print, standParams = p,
                   printCodes = printCodes,
                   nutrientElements = "DESfoodSupply_kCd",
                   printProcessing = TRUE)
   }
-  data=data.table(data.frame(data2keep2))
-    #### CRISTINA delete the FoodMAnufacturin rows for the cut items 
-  # because these have the code with the prefix f???_ 
-  # this generates problems when doing the saving back of the second step.
   
+  data23610Print = data[measuredItemSuaFbs!="0113"]
+  
+  
+  if(length(printCodes) > 0 & "0113"%in%printCodes){
+    # cat("\nSUA table after standardization (BEFORE PROTECTED CORRECTION:)")
+    cat("\n\nfbs_standardized with Rice Quantites expressed in Milled equivalent")
+    data23610Print = markUpdated(new = data23610Print, old = old, standParams = p)
+    old = copy(data23610Print[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
+    printSUATableNames(data = data23610Print, standParams = p,
+                       printCodes = printCodes,
+                       nutrientElements = "DESfoodSupply_kCd",
+                       printProcessing = TRUE)
+  }
+  
+  
+    #### CRISTINA delete the FoodMAnufacturin rows for the cut items
+  # because these have the code with the prefix f???_
+  # this generates problems when doing the saving back of the second step.
+
   data=copy(data.table(data.frame(data2keep)))
+  #### DATA NORMAL WITH RICE ################# 1 ########### END
+  
+  
   data=data[!grepl("f???_",measuredItemSuaFbs)]
+  
+
+  ############################################################
+  
   
   ### Second intermediate Save  
   message("Attempting to save unbalanced FBS data...")

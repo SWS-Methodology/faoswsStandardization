@@ -17,6 +17,7 @@ library(MASS)
 library(lattice)
 library(reshape2)
 library(sendmailR)
+library(knitr)
 
 if(packageVersion("faoswsStandardization") < package_version('0.1.0')){
   stop("faoswsStandardization is out of date")
@@ -31,7 +32,7 @@ if (CheckDebug()) {
   
   # Read settings file sws.yml in working directory. See 
   # sws.yml.example for more information
-  PARAMS <- ReadSettings("modules/printStandTree/sws.yml")
+  PARAMS <- ReadSettings("modules/printTree/sws.yml")
   message("Connecting to server: ", PARAMS[["current"]])
   
   R_SWS_SHARE_PATH = PARAMS[["share"]]
@@ -541,7 +542,7 @@ tree=tree[!is.na(measuredItemChildCPC)]
 ## Update tree by setting some edges to "F", computing average extraction rates
 ## when missing, and bringing in extreme extraction rates
 
-FPCommodities <- c( "01499.06", "01921.01")
+FPCommodities <- c( "01499.06", "01921.01","0113")
 
 # These commodities are forwards processed instead of backwards processed:
 #        code             description type
@@ -614,6 +615,22 @@ nutrientData[geographicAreaM49%in%c("756","300","250","372","276")&measuredItemS
 nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElement=="1001",Value:=310]
 nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElement=="1003",Value:=23]
 nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElement=="1005",Value:=23]
+
+# ####################################
+# ### CRISTINA 08/01/2018
+# ### In order to express rice in Milled quivalent, Kcalories of Milled are assigned to Rice paddy.
+# ### A proportion will later adjust the quantities using Extraction Rates
+# 
+# milled=nutrientData[measuredItemSuaFbs=="23161.02",Value,by=c("measuredElement","geographicAreaM49","measuredItemSuaFbs")]
+# milled[,measuredItemSuaFbs:="0113"]
+# setnames(milled,"Value","ValueMilled")
+# 
+# nutrientData=merge(nutrientData,milled,by=c("measuredElement","geographicAreaM49","measuredItemSuaFbs"),all = TRUE)
+# nutrientData[!is.na(ValueMilled),Value:=ValueMilled]
+# nutrientData[,ValueMilled:=NULL]
+# ####################################
+
+
 
 #################################################################
 #################################################################
@@ -782,6 +799,8 @@ for (i in seq_len(nrow(uniqueLevels))) {
   standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))] 
   
 } 
+
+
 
 message((proc.time() - ptm)[3])
 
