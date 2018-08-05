@@ -48,7 +48,7 @@
 ##' @return the Value column of the passed data.table is updated 
 ##'   
 
-suaFillingPP = function(data, p = p, tree=tree,
+suaFilling_percentAllPrimary_allNEgative = function(data, p = p, tree=tree,
                       primaryCommodities = c(), stockCommodities = c(),
                       debugFile= NULL,
                       utilizationTable=c(), 
@@ -559,7 +559,7 @@ suaFillingPP = function(data, p = p, tree=tree,
   
   
   # data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
-  data=rbind(dataNoImbP,dataNegImbP,dataNoImb,,dataNegImb,dataPosImbAll)
+  data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataNegImb,dataPosImbAll)
   
   data[, c("imbalance","sumUtils","sumSup") := NULL]   
   

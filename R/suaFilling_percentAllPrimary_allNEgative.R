@@ -48,7 +48,7 @@
 ##' @return the Value column of the passed data.table is updated 
 ##'   
 
-suaFilling = function(data, p = p, tree=tree,
+suaFilling_percentAllPrimary_NoNEgative = function(data, p = p, tree=tree,
                       primaryCommodities = c(), stockCommodities = c(),
                       debugFile= NULL,
                       utilizationTable=c(), 
@@ -165,25 +165,7 @@ suaFilling = function(data, p = p, tree=tree,
     # create OR increase production any time is not sufficient to cover Import-Export
     dataNegImb[get(p$elementVar)==p$productionCode & ProtectedProd==FALSE,
                newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
-  
-    if("newValue" %in% colnames(dataPosImbP)){
-      dataPosImbP[!is.na(newValue),Value:=newValue]
-      # dataPosImbP[,newValue:=NULL]
-      dataPosImbP=dataPosImbP[,1:18,with=FALSE]
-    }
-    if("newValue" %in% colnames(dataNegImb)){
-      dataNegImb[!is.na(newValue),Value:=newValue]
-      # dataPosImbP[,newValue:=NULL]
-      dataNegImb=dataNegImb[,1:18,with=FALSE]
-    }
-    if("newValue" %in% colnames(dataPosImb)){
-      dataPosImb[!is.na(newValue),Value:=newValue]
-      # dataPosImbP[,newValue:=NULL]
-      dataPosImb=dataPosImb[,1:18,with=FALSE]
-    }
-    data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
-    
-    }  ### This refers only to the FIrst LOOP
+  }
   
   if (loop1==FALSE) {
     ######################### NEW VERSION 12/06/2017
@@ -545,6 +527,7 @@ suaFilling = function(data, p = p, tree=tree,
       
     }
     
+  }  #this brackets refer only at the second loop
   
   # if("newValue" %in% colnames(dataPosImbP)){
   #   dataPosImbP[!is.na(newValue),Value:=newValue]
@@ -564,9 +547,6 @@ suaFilling = function(data, p = p, tree=tree,
   
   # data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
   data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataNegImb,dataPosImbAll)
-  
-  }  #this brackets refer only at the second loop
-  
   
   data[, c("imbalance","sumUtils","sumSup") := NULL]   
   

@@ -186,7 +186,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ## Add in elements not in the tree, as they are essentially parents
   nonTreeEl = data[[p$itemVar]]
   nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
-  primaryEl = c(primaryEl, nonTreeEl)
+  # primaryEl = c(primaryEl, nonTreeEl)
+
   
   data[, ProtectedProd := any(get(standParams$elementVar) == standParams$productionCode &
                                 Official==TRUE),
