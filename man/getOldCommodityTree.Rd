@@ -20,3 +20,4 @@ A data.table of the commodity tree.
 This function pulls the old commodity trees from the SWS.  These trees are
 constructed from the extraction rate and shares data from the AUPUS domain.
 }
+

@@ -2,7 +2,6 @@
 % Please edit documentation in R/printSUATable.R, R/printSUATableNames.R
 \name{roundNum}
 \alias{roundNum}
-\alias{roundNum}
 \title{Round numbers}
 \usage{
 roundNum(x)
@@ -24,3 +23,4 @@ Helper function for rounding numbers for display.
 
 Helper function for rounding numbers for display.
 }
+

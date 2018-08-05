@@ -17,3 +17,4 @@ The function doesn't return anything, but send mail
 This function simply snd email to the user, 
 with the result of the check on shares
 }
+

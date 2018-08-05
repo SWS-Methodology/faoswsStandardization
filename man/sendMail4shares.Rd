@@ -17,3 +17,4 @@ message with the status of shares
 This function simply snd email to the user, 
 with the result of the check on shares
 }
+

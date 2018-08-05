@@ -36,3 +36,4 @@ A data.table containing the final balanced and standardized SUA
 \description{
 calculateShares
 }
+

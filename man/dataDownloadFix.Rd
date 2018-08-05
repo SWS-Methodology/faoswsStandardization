@@ -26,3 +26,4 @@ is not possible to know if a code 2351f has to be standardized to cane or beet, 
 in the standardization process cane and beet have to be considered as a unique code (2351f)
 This function makes checks and harmonize sugar codes
 }
+

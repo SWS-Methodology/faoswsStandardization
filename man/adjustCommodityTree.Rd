@@ -63,3 +63,4 @@ extraction rates were manually adjusted, sometimes to extreme values.
 Thus, we need a consistent way to modify those rates, and the logic for
 adjusting those rates is contained in this function.
 }
+
