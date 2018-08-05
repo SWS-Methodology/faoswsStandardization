@@ -48,7 +48,7 @@
 ##' @return the Value column of the passed data.table is updated 
 ##'   
 
-suaFilling = function(data, p = p, tree=tree,
+suaFilling_original = function(data, p = p, tree=tree,
                       primaryCommodities = c(), stockCommodities = c(),
                       debugFile= NULL,
                       utilizationTable=c(), 
@@ -143,7 +143,7 @@ suaFilling = function(data, p = p, tree=tree,
   
   dataPrimary = data[(get(p$itemVar) %in% primaryCommodities)]
   dataNoImbP = dataPrimary[imbalance<=imbalanceThreshold&imbalance>=(-imbalanceThreshold)] # never touched
-  dataNegImbP = dataPrimary[imbalance < (-imbalanceThreshold)]
+  dataNegImbP = dataPrimary[imbalance < (-imbalanceThreshold)] # never touched
   dataPosImbP = dataPrimary[imbalance > imbalanceThreshold]
   
   dataNoPrimary = data[!(get(p$itemVar) %in% primaryCommodities)]
@@ -179,26 +179,15 @@ suaFilling = function(data, p = p, tree=tree,
     #    to their value in respect to other utilization
     
     # if the reduction of maximum 30% is enought to cover all imbalance
-    dataNegImb_ptol=rbind(dataNegImb[abs(imbalance)<=(pTolerance*sumUtils)],
-                          dataNegImbP[abs(imbalance)<=(pTolerance*sumUtils)])
-    
-    
-    
-    # dataNegImb_ptol=dataNegImb[abs(imbalance)<=(pTolerance*sumUtils)]
+    dataNegImb_ptol=dataNegImb[abs(imbalance)<=(pTolerance*sumUtils)]
     dataNegImb_ptol[,newValue:= ifelse(is.na(Value),NA,
                                        ifelse(get(p$elementVar)%in%eleToExclude,NA,
                                               Value-abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup)))))]  
     # if the all imbalance is NOT covered by the 30% of the all utilization
     # reduce the utilizations by 30% anyway
+    dataNegImb_Noptol=dataNegImb[ # Production existing (either officiali or not)
+      abs(imbalance)>(pTolerance*sumUtils)]
     
-    dataNegImb_Noptol=rbind(dataNegImb[ # Production existing (either officiali or not)
-      abs(imbalance)>(pTolerance*sumUtils)],
-      dataNegImbP[ # Production existing (either officiali or not)
-        abs(imbalance)>(pTolerance*sumUtils)])
-    
-    # dataNegImb_Noptol=dataNegImb[ # Production existing (either officiali or not)
-    #   abs(imbalance)>(pTolerance*sumUtils)]
-    # 
     dataNegImb_Noptol[,newValue:= ifelse(is.na(Value),NA,
                                          ifelse(get(p$elementVar)%in%eleToExclude,NA,
                                                 Value-(pTolerance*(Value))))]
@@ -207,11 +196,9 @@ suaFilling = function(data, p = p, tree=tree,
     dataNegImb_Noptol[,Value:=ifelse(!is.na(newValue),newValue,Value)]
     dataNegImb_Noptol[,newValue:=NULL]
     
-    dataNegImbAll=rbind(dataNegImb_ptol,dataNegImb_Noptol)
-    dataNegImbComm=dataNegImbAll[,measuredItemSuaFbs]
     
-    # dataNegImb=rbind(dataNegImb_ptol,dataNegImb_Noptol)
-    # dataNegImbComm=dataNegImb[,measuredItemSuaFbs]
+    dataNegImb=rbind(dataNegImb_ptol,dataNegImb_Noptol)
+    dataNegImbComm=dataNegImb[,measuredItemSuaFbs]
     ############################################################################################
     ############################################################################################
     ############################################################################################
@@ -221,7 +208,7 @@ suaFilling = function(data, p = p, tree=tree,
     # First reconstruct the data
     
     data=data[!(measuredItemSuaFbs%in%dataNegImbComm)]
-    data=rbind(data,dataNegImbAll)
+    data=rbind(data,dataNegImb)
     
     # Then start again
     ## Supply-Utilization = imbalance
@@ -404,21 +391,12 @@ suaFilling = function(data, p = p, tree=tree,
                                  &!(get(p$elementVar)%in%eleToExclude)
                                  &!is.na(rank)&(is.na(Value)|Value==0),Value])>1){
               # allora in base alla seguente funzione dei rank e rank inversi:
-              
-              # allora assegna il valore in base alla percentuale 
-              sumPercent = sum(dataPosImb[measuredItemSuaFbs==i
-                                          &!(get(p$elementVar)%in%eleToExclude)
-                                          &!is.na(rank)&(is.na(Value)|Value==0),percent])
+              sumRank = sum(dataPosImb[measuredItemSuaFbs==i
+                                       &!(get(p$elementVar)%in%eleToExclude)
+                                       &!is.na(rank)&(is.na(Value)|Value==0),rankInv])
               dataPosImb[measuredItemSuaFbs==i
                          &!(get(p$elementVar)%in%eleToExclude)
-                         &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(percent/sumPercent)]
-              
-              # sumRank = sum(dataPosImb[measuredItemSuaFbs==i
-              #                          &!(get(p$elementVar)%in%eleToExclude)
-              #                          &!is.na(rank)&(is.na(Value)|Value==0),rankInv])
-              # dataPosImb[measuredItemSuaFbs==i
-              #            &!(get(p$elementVar)%in%eleToExclude)
-              #            &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(rankInv/sumRank)]
+                         &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(rankInv/sumRank)]
             }
           }
         }
@@ -536,17 +514,17 @@ suaFilling = function(data, p = p, tree=tree,
   if("newValue" %in% colnames(dataPosImbP)){
     dataPosImbP[!is.na(newValue),Value:=newValue]
     # dataPosImbP[,newValue:=NULL]
-    dataPosImbP=dataPosImbP[,1:18,with=FALSE]
+    dataPosImbP=dataPosImbP[,1:17,with=FALSE]
   }
   if("newValue" %in% colnames(dataNegImb)){
     dataNegImb[!is.na(newValue),Value:=newValue]
     # dataPosImbP[,newValue:=NULL]
-    dataNegImb=dataNegImb[,1:18,with=FALSE]
+    dataNegImb=dataNegImb[,1:17,with=FALSE]
   }
   if("newValue" %in% colnames(dataPosImb)){
     dataPosImb[!is.na(newValue),Value:=newValue]
     # dataPosImbP[,newValue:=NULL]
-    dataPosImb=dataPosImb[,1:18,with=FALSE]
+    dataPosImb=dataPosImb[,1:17,with=FALSE]
   }
   data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
   

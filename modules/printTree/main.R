@@ -92,7 +92,7 @@ selectedGEOCode =
   switch(geoM49,
          "session" = sessionCountries,
          "all" = geoKeys)
-areaKeys = selectedGEOCode
+areaKeys = selectedGEOCode 
 ##############################################################
 ############ DOWNLOAD AND VALIDATE TREE ######################
 ##############################################################
@@ -637,11 +637,15 @@ nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElemen
 #################################################################
 message("Download Utilization Table from SWS...")
 
-utilizationTable=ReadDatatable("utilization_table")
+# utilizationTable=ReadDatatable("utilization_table")
+utilizationTable=ReadDatatable("utilization_table_percent")
 utilizationTable=data.table(utilizationTable)
 
+# setnames(utilizationTable,colnames(utilizationTable),c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", 
+#                                                        "rank", "rankInv"))
+
 setnames(utilizationTable,colnames(utilizationTable),c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", 
-                                                       "rank", "rankInv"))
+                                                       "percent","rank", "rankInv"))
 
 message("Download zero Weight from SWS...")
 
