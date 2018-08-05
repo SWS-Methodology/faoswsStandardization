@@ -524,7 +524,9 @@ nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElemen
 #################################################################
 message("Download Utilization Table from SWS...")
 
-utilizationTable=ReadDatatable("utilization_table")
+# utilizationTable=ReadDatatable("utilization_table")
+utilizationTable=ReadDatatable("utilization_table_percent")
+
 utilizationTable=data.table(utilizationTable)
 
 setnames(utilizationTable,colnames(utilizationTable),c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", 

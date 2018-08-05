@@ -97,16 +97,17 @@ sendMail4shares=function(tree){
       return(message(paste0(dim(tree[severity>0])[1]," shares changed")))
     }
     
-  }else{  # End of case for which flags and/or figures are invalid
-    if(!CheckDebug()){
-      body = paste("Valid shares")
-      sendmailR::sendmail(from = "sws@fao.org",
-                          to = swsContext.userEmail,
-                          subject = sprintf("Share successfully checked and saved in the session"),
-                          msg = strsplit(body,"\n")[[1]])
-      
-    }
-    return(message("Valid Shares"))
   }
+  # else{  # End of case for which flags and/or figures are invalid
+  #   if(!CheckDebug()){
+  #     body = paste("Valid shares")
+  #     sendmailR::sendmail(from = "sws@fao.org",
+  #                         to = swsContext.userEmail,
+  #                         subject = sprintf("Share successfully checked and saved in the session"),
+  #                         msg = strsplit(body,"\n")[[1]])
+  #     
+  #   }
+  #   return(message("Valid Shares"))
+  # }
 
 }
