@@ -165,7 +165,7 @@ suaFilling = function(data, p = p, tree=tree,
     # create OR increase production any time is not sufficient to cover Import-Export
     dataNegImb[get(p$elementVar)==p$productionCode & ProtectedProd==FALSE,
                newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
-  
+    
     if("newValue" %in% colnames(dataPosImbP)){
       dataPosImbP[!is.na(newValue),Value:=newValue]
       # dataPosImbP[,newValue:=NULL]
@@ -183,7 +183,7 @@ suaFilling = function(data, p = p, tree=tree,
     }
     data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
     
-    }  ### This refers only to the FIrst LOOP
+  }  ### This refers only to the FIrst LOOP
   
   if (loop1==FALSE) {
     ######################### NEW VERSION 12/06/2017
@@ -365,23 +365,23 @@ suaFilling = function(data, p = p, tree=tree,
     # actualCommodities = dataPosImb[,unique(measuredItemSuaFbs)]
     
     actualCommodities = dataPosImbAll[,unique(measuredItemSuaFbs)]
-                              
-                              
+    
+    
     for (i in actualCommodities){
       # If none of the utilization is activable based in the utilization Table
       if(length(dataPosImbAll[measuredItemSuaFbs==i
-                           &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
-                           &!is.na(rank),Value])==0){
+                              &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
+                              &!is.na(rank),Value])==0){
         # conventionally put all on food (As was in the previous version of the new module)
         # this a very rare case but can happen
         dataPosImbAll[measuredItemSuaFbs==i
-                   &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
-                     get(p$elementVar)==p$foodCode,newValue:=imbalance]
+                      &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
+                        get(p$elementVar)==p$foodCode,newValue:=imbalance]
       }else{
         # Se tutti i Value sono popolati
         if(length(dataPosImbAll[measuredItemSuaFbs==i
-                             &!(get(p$elementVar)%in%eleToExclude)
-                             &!is.na(rank)&(is.na(Value)),Value])==0){
+                                &!(get(p$elementVar)%in%eleToExclude)
+                                &!is.na(rank)&(is.na(Value)),Value])==0){
           # distribuisci inbalance proporzionalmente ai value stessi (considerando anche quelli che non hanno 
           # eventualmente ranking)
           # e diminuendo lo stock negativo, se presente
@@ -392,37 +392,37 @@ suaFilling = function(data, p = p, tree=tree,
           #                     &Value>0,Value],na.rm=TRUE)
           # 
           dataPosImbAll[measuredItemSuaFbs==i
-                     &!(get(p$elementVar)%in%eleToExclude)
-                     # &!is.na(rank)                              ############### change 5/15/2018
-                     &Value!=0,
-                     newValue:=ifelse(is.na(Value),NA,
-                                      Value+Value*(imbalance/(sumUtils+(sumSupstock-sumSup))))]
+                        &!(get(p$elementVar)%in%eleToExclude)
+                        # &!is.na(rank)                              ############### change 5/15/2018
+                        &Value!=0,
+                        newValue:=ifelse(is.na(Value),NA,
+                                         Value+Value*(imbalance/(sumUtils+(sumSupstock-sumSup))))]
         }else{
           #se un valore non 'e popolato e non 'e stock
           if(length(dataPosImbAll[measuredItemSuaFbs==i
-                               &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
-                               &!is.na(rank)&(is.na(Value)|Value==0),Value])==1){
+                                  &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
+                                  &!is.na(rank)&(is.na(Value)|Value==0),Value])==1){
             # metti tutto l' imbalance in questo elemento
             
             dataPosImbAll[measuredItemSuaFbs==i
-                       &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&!is.na(rank)
-                       &(is.na(Value)|Value==0),
-                       newValue:=imbalance]
+                          &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&!is.na(rank)
+                          &(is.na(Value)|Value==0),
+                          newValue:=imbalance]
             
           }else{
             # se c'e piu' di un elemento non popolato
             if(length(dataPosImbAll[measuredItemSuaFbs==i
-                                 &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
-                                 &!is.na(rank)&(is.na(Value)|Value==0),Value])>1){
+                                    &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
+                                    &!is.na(rank)&(is.na(Value)|Value==0),Value])>1){
               # allora in base alla seguente funzione dei rank e rank inversi: NON PIU'
               
               # allora assegna il valore in base alla percentuale 
               sumPercent = sum(dataPosImbAll[measuredItemSuaFbs==i
-                                          &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
-                                          &!is.na(rank)&(is.na(Value)|Value==0),percent])
+                                             &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
+                                             &!is.na(rank)&(is.na(Value)|Value==0),percent])
               dataPosImbAll[measuredItemSuaFbs==i
-                         &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
-                         &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(percent/sumPercent)]
+                            &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
+                            &!is.na(rank)&(is.na(Value)|Value==0),newValue:=imbalance*(percent/sumPercent)]
               
               # sumRank = sum(dataPosImb[measuredItemSuaFbs==i
               #                          &!(get(p$elementVar)%in%eleToExclude)
@@ -545,26 +545,26 @@ suaFilling = function(data, p = p, tree=tree,
       
     }
     
-  
-  # if("newValue" %in% colnames(dataPosImbP)){
-  #   dataPosImbP[!is.na(newValue),Value:=newValue]
-  #   # dataPosImbP[,newValue:=NULL]
-  #   dataPosImbP=dataPosImbP[,1:17,with=FALSE]
-  # }
-  if("newValue" %in% colnames(dataNegImb)){
-    dataNegImb[!is.na(newValue),Value:=newValue]
-    # dataPosImbP[,newValue:=NULL]
-    dataNegImb=dataNegImb[,1:18,with=FALSE]
-  }
-  if("newValue" %in% colnames(dataPosImbAll)){
-    dataPosImbAll[!is.na(newValue),Value:=newValue]
-    dataPosImbAll=dataPosImbAll[,1:18,with=FALSE]
-  }
-  
-  
-  # data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
-  data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataNegImb,dataPosImbAll)
-  
+    
+    # if("newValue" %in% colnames(dataPosImbP)){
+    #   dataPosImbP[!is.na(newValue),Value:=newValue]
+    #   # dataPosImbP[,newValue:=NULL]
+    #   dataPosImbP=dataPosImbP[,1:17,with=FALSE]
+    # }
+    if("newValue" %in% colnames(dataNegImb)){
+      dataNegImb[!is.na(newValue),Value:=newValue]
+      # dataPosImbP[,newValue:=NULL]
+      dataNegImb=dataNegImb[,1:18,with=FALSE]
+    }
+    if("newValue" %in% colnames(dataPosImbAll)){
+      dataPosImbAll[!is.na(newValue),Value:=newValue]
+      dataPosImbAll=dataPosImbAll[,1:18,with=FALSE]
+    }
+    
+    
+    # data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
+    data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataNegImb,dataPosImbAll)
+    
   }  #this brackets refer only at the second loop
   
   
