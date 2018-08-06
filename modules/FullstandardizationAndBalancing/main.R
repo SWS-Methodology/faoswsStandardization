@@ -974,6 +974,6 @@ to = swsContext.userEmail
 subject = "Full Standardization and Balancing completed"
 body = "The plug-in has saved the data in your sessions"
 
-if(!CheckDebug()){sendmail(from = from, to = to, subject = subject, msg = body)}
+if(!CheckDebug()){sendMailR::sendmail(from = from, to = to, subject = subject, msg = body)}
 paste0("Email sent to ", swsContext.userEmail)
 

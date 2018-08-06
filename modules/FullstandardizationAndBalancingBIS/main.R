@@ -546,7 +546,6 @@ cutItems=ReadDatatable("cut_items2")[,cpc_code]
 # cutItems=data.table(cutItems)
 
 message("Download fbsTree from SWS...")
-
 fbsTree=ReadDatatable("fbs_tree")
 fbsTree=data.table(fbsTree)
 setnames(fbsTree,colnames(fbsTree),c( "fbsID1", "fbsID2", "fbsID3","fbsID4", "measuredItemSuaFbs"))
@@ -1035,6 +1034,6 @@ to = swsContext.userEmail
 subject = "Full Standardization and Balancing completed"
 body = "The plug-in has saved the data in your sessions"
 
-if(!CheckDebug()){sendmail(from = from, to = to, subject = subject, msg = body)}
+if(!CheckDebug()){sendMailR::sendmail(from = from, to = to, subject = subject, msg = body)}
 paste0("Email sent to ", swsContext.userEmail)
 

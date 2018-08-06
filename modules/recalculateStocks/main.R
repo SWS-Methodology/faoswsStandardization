@@ -185,6 +185,6 @@ to = swsContext.userEmail
 subject = "Stocks recalculation plug-in has correctly run"
 body = "The plug-in has saved the SUAs in your session"
 
-sendmail(from, to, subject , body)
+sendMailR::sendmail(from, to, subject , body)
 paste0("Email sent to ", swsContext.userEmail)
 

@@ -494,7 +494,7 @@ for(geo in   seq_along(allCountries)){
                 
                 ##'  Calculate share down up. Please note that currentData contains the SUA table.
                 ##'  NW: use all SUA components
-                dataMergeTree=calculateShareDownUp2(data=data,tree=treeCurrentLevel,
+                dataMergeTree=calculateShareDownUpFBS(data=data,tree=treeCurrentLevel,
                                                    params=params, printDirectory = dir_to_save_neg,
                                                    printNegativeAvailability=TRUE,useAllSUAcomponents=FALSE)
                 
@@ -507,7 +507,7 @@ for(geo in   seq_along(allCountries)){
                 
                 inputOutputdata[shareDownUp=="NaN",shareDownUp:=0]
                 inputOutputdata$PG1 = NA
-                inputOutputdata=calculateProcessingShare2(inputOutputdata, param=params)
+                inputOutputdata=calculateProcessingShareFBS(inputOutputdata, param=params)
                 
                 ##-------------------------------------------------------------------------------------------------------------------------------------    
                 
@@ -792,7 +792,7 @@ imputed=imputed[,.(measuredElement,geographicAreaM49, measuredItemChildCPC,
 ##' protected figures
 ##' 
 imputed=imputed[timePointYears>=imputationStartYear]
-ensureProtectedData2(imputed, returnData = FALSE)
+ensureProtectedDataFBS(imputed, returnData = FALSE)
 setnames(imputed, "measuredElement", "measuredElementSuaFbs")
 setnames(imputed, "measuredItemChildCPC", "measuredItemFbsSua")
 
@@ -807,7 +807,7 @@ if (nrow(BadProcessingShares) > 0) {
   body = paste0("The plug-in has saved the Production imputation in your session.",
                 "  However, some shares are greater than 1.  Please check these at: ",
                 dir_to_save_shares)
-  sendmail(from = from, to = to, subject = subject, msg = body)
+  sendMailR::sendmail(from = from, to = to, subject = subject, msg = body)
   
 }
 if (nrow(BadProcessingShares) == 0){
@@ -820,5 +820,5 @@ if (nrow(BadProcessingShares) == 0){
                 "You can browse charts and intermediate csv files in the shared folder: ",
                 dir_to_save)
   
-  sendmail(from = from, to = to, subject = subject, msg = body)
+  sendMailR::sendmail(from = from, to = to, subject = subject, msg = body)
 }

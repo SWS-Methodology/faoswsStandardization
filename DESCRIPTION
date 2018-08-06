@@ -23,7 +23,7 @@ swsDatasetDepends: agriculture:aproduction, trade:total_trade_CPC,
          tourism:tourismprod, suafbs:sua, faostat_one:FS1_SUA,
          faostat_one:aupus_share_fs, faostat_one:input_from_proc_fs,
          SWS_R_SHARE/browning/elementCodes.csv
-swsModuleDepends: faoswsProduction, faoswsTrade, faoswsStock, faoswsFood,
-         faoswsFeed, faoswsSeed, faoswsTourist, faoswsLoss, faoswsIndustrial
+swsModuleDepends: faoswsProduction, faoswsTrade, faoswsStock, faoswsFood,faoswsUtils,
+         faoswsFeed, faoswsSeed, faoswsTourist, faoswsLoss, faoswsIndustrial,sendMailR
 ZipData: no
 RoxygenNote: 5.0.1

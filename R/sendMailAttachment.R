@@ -5,6 +5,8 @@
 ##' 
 ##' @param fileToSend If existing, are the SUA of the commodity for which
 ##' the change of the production figure was required in order to Fill the SUA
+##' @param name namefile
+##' @param textBody content of the message
 ##' 
 ##' @return The function doesn't return anything, but send mail 
 ##' 
