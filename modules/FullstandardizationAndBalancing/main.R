@@ -75,6 +75,7 @@ endYear = swsContext.computationParams$endYear
 geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = as.character(startYear:endYear)
+outlierMail = swsContext.computationParams$checks
 
 ##  Get data configuration and session
 sessionKey_fbsBal = swsContext.datasets[[1]]
@@ -952,6 +953,32 @@ setcolorder(popSWS,colnames(standData))
 standData=data.table(rbind(standData,popSWS))
 standData=standData[!(measuredItemSuaFbs%in%c("S2901")& !(measuredElementSuaFbs%in%c("664","674","684","511")))]
 standData=standData[!(measuredItemSuaFbs%in%c("2903","2941")& !(measuredElementSuaFbs%in%c("664","674","684")))]
+
+
+
+##############  detects outliers at fbs group level and sends mail
+
+if(outlierMail=="Yes"){
+  
+  balData = subset(standData, measuredElementSuaFbs %in% c("664"))
+  
+  balData = balData[,perc.change:= 100*(Value/shift(Value, type="lead")-1), by=c("geographicAreaM49","measuredItemSuaFbs")]
+  
+  
+  balData = subset(balData, (shift(Value, type="lead")>5 | Value>5) & abs(perc.change)>10 & timePointYears>2013)
+  
+  balData=balData[order(Value,perc.change,timePointYears,decreasing = T)]
+  
+  #balData=nameData("suafbs","fbs_balanced_",balData)
+  
+  bodyFBSGroupOutliers= paste("The Email contains a list of items where the caloric intakes increases more than 10% in abslolute value at FBS group level.",
+                              "Consider it as a list of items where to start the validation.",
+                              sep='\n')
+  
+  sendMailAttachment(balData,"FBS_BAL_Outliers",bodyFBSGroupOutliers)
+}
+
+############################
 
 
 
