@@ -323,7 +323,7 @@ A simplified workflow of *Sua Filling* is reported in Figure \ref{fig:f3}.
 
 ```{r f3, fig.align = "center", fig.pos = "H", out.width = "60%", fig.cap = "\\label{fig:f3}The Sua Filling simplified workflow"}
 
-knitr::include_graphics("images/StandBal/03b_SuaFilling.pdf")
+knitr::include_graphics("images/StandBal/03b_suaFilling.pdf")
 
 ```
 
@@ -343,16 +343,19 @@ Not all the variables (supplies and Utilizations) are to be filled:
  
 Information about the remaining variables, which are all Utilizations, is taken from FBSs and SUAs of past years. 
 FBSs published with the previous methodology and their corresponding SUAs can give information about which are the Utilizations supposed to be active for every single commodity in each country.  
-These pieces of information have to be given externally, as the process is automated and there is non-human knowledge intervening in training the machine that is performing the calculations. The previous methodology used for compiling FBS made massive use of manual interventions while the new methodology tries to avoid it, but taking advantage of the work and effort of the country experts that compiled the FBSs in the past. Past information is embedded in the new methodology through the use of the *Utilization Table*. These tables  help identifying which variables have to be filled, commodity by commodity. Moreover, the amount of them to be assigned to figures is identified through a set of rules. This procedure makes use of the imbalance between supply and utilization values for each commodity and fills the figures that have been recognized as missing from the ***Utilization Table***. The filling procedure assigns figures using an ad-hoc algorithm designed for dimensioning the figures in accordance with the importance they had in the past FBSs. This *importance* is suggested by a weight given as a percentage based on the median value that each utilization had in the time range 2000 - 2013. All the commodities entering the *Sua Filling* procedure are eventually balanced.  
+These pieces of information have to be given externally, as the process is automated and there is non-human knowledge intervening in training the machine that is performing the calculations. The previous methodology used for compiling FBS made massive use of manual interventions while the new methodology tries to avoid it, but taking advantage of the work and effort of the country experts that compiled the FBSs in the past. Past information is embedded in the new methodology through the use of the *Utilization Table*. These tables  help identifying which variables have to be filled, commodity by commodity. Moreover, the amount of them to be assigned to figures is identified through a set of rules, known as *Sua Filling*. This procedure makes use of the imbalance between supply and utilization values for each commodity and fills the figures that have been recognized as missing from the ***Utilization Table***. The filling procedure assigns figures using an ad-hoc algorithm, called ***Inverse Ranking***. This algorithm is designed for dimensioning the figures in accordance with the importance they had in the past FBSs, as suggested also from the *Utilization Table* through ranks associated to each variable. As a consequence, all the commodities entering the *Sua Filling* procedure are eventually balanced.  
 
-Not all the commodities enter the process the same way. In particular, while derived commodities always enter the filling procedure, primary commodities are not changed when the change might affect Production and trade figures. Indeed, Trade and production figures are normally published before the FBSs are calculated, therefore theis values cannot be modifyed. 
+Not all the commodities enter the process the same way. In particular, a distinction is made between primary commodities and derived commodities: 
 
-Figure \ref{fig:f4} shows the general Workflow of the *Sua Filling* highlighting the distinction between primary and derived commodities.
+ * Primary commodities are normally the commodities for which more reliable figures are produced. Moreover, FAO often publishes information about primary commodities, therefore values are not expected to be modified during a computational process.
+ * Derived commodities are more affected by modifications during this process, according to the flag of each figure. 
+
+Therefore, the steps of *Sua Filling* process affect the SUA differently from line to line. Figure \ref{fig:f4} shows the general Workflow of the *Sua Filling* highlighting the distinction between primary and derived commodities.
 
 
 ```{r f4, fig.align = "center", out.width = "65%", fig.cap = "\\label{fig:f4}The Sua Filling diversified workflow"}
 
-knitr::include_graphics("images/StandBal/04_SuaFilling2.pdf")
+knitr::include_graphics("images/StandBal/04b_SuaFilling2.pdf")
 
 ```
 
@@ -511,7 +514,7 @@ landscape(knitr::kable(table,format="latex",caption = "Sua table with Food Proce
 
 ## Step 3: Filling of other missing Utilizations {-}
 
-After *Food processing* figures have been computed, the other variables have to be checked and either filled, increased or decreased. 
+After *Food processing* figures have been computed, the other variables have to be checked and either filled, increased or decreased. Only derived commodities enter this step. Primary commodities are excluded because, for these commodities, the figures are normally more reliable and complete and, very often, protected. Only the final balancing may affect Primary commodity figures.
 This step is based on the value of the following Imbalance:
 
 \begin{equation}
@@ -551,13 +554,9 @@ In this scenario, the Imbalance is null, this meaning that there is enough suppl
 
 ### *Imbalance < 0 (Scenario B)* {-}
 
-If this happens, it means that there is not enough supply for the commodity to be used in the way the SUA figures suggest. In this case, as shown in Figure \ref{fig:f6} the algorithm tries to solve the excess of utilization by reducing all the existing Utilizations by 30%, except Exports and Food Processing. The reason for exluding Food PRocessing is that this variable is linked with production of the following levels and to modify it would breack thatlink.Stock is changed in this case, because this is just a proportional reduction of values and does not need a time series analysis.
+If this happens, it means that there is not enough supply for the commodity to be used in the way the SUA figures suggest. In this case, as shown in Figure \ref{fig:f6} the algorithm tries to solve the excess of utilization by reducing all the existing Utilizations by 30% (except Exports^[Stock is changed in this case, because this is just a proportional reduction of values and does not need a time series analysis]). If this is enough to cover the Utilization, the balancing line for that commodity is balanced and the process can go to the next step. Instead, after this reduction, there might be 2 different scenarios: 
 
-This steps affects any commodity with negative imbalance (either Primary or derived). If this is enough to cover the Utilization, the balancing line for that commodity is balanced and the process can go to the next step. Instead, after this reduction, there might be 2 different scenarios: 
-
- 1. If this imbalance is still negative and the commodity is a primary commodity, the SUA line remains unbalanced. 
- 
- 2. If the imbalance is still negative but the commodity is a derived commodity, it is checked if the production figure is "*protected*" or not: 
+ 1. If this imbalance is still negative, it is checked if the production figure is "*protected*" or not: 
  
 
 > -- If Production figure is not protected, it is interpreted as if there was not enough information for producing a correct production number.This figure is then changed, i.e. created, if missing, or incremented of an amount equal to *Imb2*
@@ -565,7 +564,7 @@ This steps affects any commodity with negative imbalance (either Primary or deri
 > -- If Production figure is protected, a warning is given that tells that there is an unsolvable problem and that all figures have to be checked because either the production protected figure is wrong, or the Trade or some utilization have to be changed. 
 
  
- 3. If the imbalance becomes positive, the line falls into the Scenario C that will be explained shortly.
+ 2. If the imbalance becomes positive, the line falls into the Scenario C that will be explained shortly.
 
 
 *Starch of Wheat* belongs to this very last case. Indeed, it has a negative Imbalance, therefore, its Utilizations (except those Utilizations that are completely excluded from this process) are reduced by 30% of their values (see `r table_nums("t7", display = "cite")`). After that happens, the Imb2 is recalculated and it is still negative, equal to $74,204$ (this value is not reported in the table). In the following step, as the production is not protected, the new value of production is equal to: 
@@ -579,7 +578,7 @@ Remember that the commodity *Mixes and dough for the preparation of baker's ware
 
 ```{r f6, fig.align = "center", fig.cap = "\\label{fig:f5}Workflow of Sua Filling when there is a negative imbalance"}
 
-knitr::include_graphics("images/StandBal/06_NegativeImbalance.pdf")
+knitr::include_graphics("images/StandBal/06b_NegativeImbalance.pdf")
 
 ```
 
@@ -634,7 +633,7 @@ This approach distributes the $Imb2$ across Utilizations, by the rules reported 
 
 ```{r f7, fig.align = "center",  fig.cap = "\\label{fig:f5}Workflow of Sua Filling when there is a positive imbalance"}
 
-knitr::include_graphics("images/StandBal/07_PositiveImbalance.pdf")
+knitr::include_graphics("images/StandBal/07b_PositiveImbalance.pdf")
 
 ```
 

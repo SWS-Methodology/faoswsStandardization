@@ -29,7 +29,6 @@
             pdfborder={0 0 0},
             breaklinks=true}
 \urlstyle{same}  % don't use monospace font for urls
-\usepackage{longtable,booktabs}
 \usepackage{graphicx,grffile}
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
@@ -74,17 +73,18 @@
 }
 
 \setlength{\droptitle}{-2em}
+
   \title{Food Balance Sheet workflow\\
 in the Statistical Working System}
-  \pretitle{\vspace{\droptitle}\centering\huge}
+    \pretitle{\vspace{\droptitle}\centering\huge}
   \posttitle{\par}
-  \author{Cristina Muschitiello\\
+    \author{Cristina Muschitiello\\
 Food and Agriculture Organization of the United Nations}
-  \preauthor{\centering\large\emph}
+    \preauthor{\centering\large\emph}
   \postauthor{\par}
-  \predate{\centering\large\emph}
+      \predate{\centering\large\emph}
   \postdate{\par}
-  \date{21 June 2018}
+    \date{5 August 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -519,49 +519,78 @@ flags that are associated to valid, invalid, official, unofficial
 estimated data, etc. Table 1 reports the Valid Flag combination in the
 SWS, taken from this Data Table.
 
-\begin{longtable}[]{@{}cccc@{}}
-\caption{Valid Flag combinations from Valid Flags table}\tabularnewline
-\toprule
-flagObservationStatus & flagMethod & Valid & Protected\tabularnewline
-\midrule
-\endfirsthead
-\toprule
-flagObservationStatus & flagMethod & Valid & Protected\tabularnewline
-\midrule
-\endhead
-E & - & TRUE & FALSE\tabularnewline
-E & c & TRUE & TRUE\tabularnewline
-E & f & TRUE & TRUE\tabularnewline
-E & h & TRUE & TRUE\tabularnewline
-E & i & TRUE & FALSE\tabularnewline
-E & s & TRUE & FALSE\tabularnewline
-I & - & TRUE & FALSE\tabularnewline
-I & b & TRUE & FALSE\tabularnewline
-I & c & TRUE & TRUE\tabularnewline
-I & e & TRUE & FALSE\tabularnewline
-I & i & TRUE & FALSE\tabularnewline
-I & s & TRUE & FALSE\tabularnewline
-M & - & TRUE & FALSE\tabularnewline
-M & c & TRUE & FALSE\tabularnewline
-M & i & TRUE & FALSE\tabularnewline
-M & q & TRUE & FALSE\tabularnewline
-M & s & TRUE & FALSE\tabularnewline
-M & u & TRUE & FALSE\tabularnewline
-T & - & TRUE & TRUE\tabularnewline
-T & c & TRUE & TRUE\tabularnewline
-T & h & TRUE & TRUE\tabularnewline
-T & i & TRUE & FALSE\tabularnewline
-T & p & TRUE & TRUE\tabularnewline
-T & s & TRUE & FALSE\tabularnewline
-& - & TRUE & TRUE\tabularnewline
-& c & TRUE & TRUE\tabularnewline
-& h & TRUE & TRUE\tabularnewline
-& i & TRUE & FALSE\tabularnewline
-& p & TRUE & TRUE\tabularnewline
-& q & TRUE & TRUE\tabularnewline
-& s & TRUE & FALSE\tabularnewline
-\bottomrule
-\end{longtable}
+\begin{table}
+
+\caption{\label{tab:t1}Valid Flag combinations from Valid Flags table}
+\centering
+\begin{tabular}[t]{c|c|c|c}
+\hline
+flagObservationStatus & flagMethod & Valid & Protected\\
+\hline
+E & - & TRUE & FALSE\\
+\hline
+E & c & TRUE & TRUE\\
+\hline
+E & f & TRUE & TRUE\\
+\hline
+E & h & TRUE & TRUE\\
+\hline
+E & i & TRUE & FALSE\\
+\hline
+E & s & TRUE & FALSE\\
+\hline
+I & - & TRUE & FALSE\\
+\hline
+I & b & TRUE & FALSE\\
+\hline
+I & c & TRUE & TRUE\\
+\hline
+I & e & TRUE & FALSE\\
+\hline
+I & i & TRUE & FALSE\\
+\hline
+I & s & TRUE & FALSE\\
+\hline
+M & - & TRUE & FALSE\\
+\hline
+M & c & TRUE & FALSE\\
+\hline
+M & i & TRUE & FALSE\\
+\hline
+M & q & TRUE & FALSE\\
+\hline
+M & s & TRUE & FALSE\\
+\hline
+M & u & TRUE & FALSE\\
+\hline
+T & - & TRUE & TRUE\\
+\hline
+T & c & TRUE & TRUE\\
+\hline
+T & h & TRUE & TRUE\\
+\hline
+T & i & TRUE & FALSE\\
+\hline
+T & p & TRUE & TRUE\\
+\hline
+T & s & TRUE & FALSE\\
+\hline
+ & - & TRUE & TRUE\\
+\hline
+ & c & TRUE & TRUE\\
+\hline
+ & h & TRUE & TRUE\\
+\hline
+ & i & TRUE & FALSE\\
+\hline
+ & p & TRUE & TRUE\\
+\hline
+ & q & TRUE & TRUE\\
+\hline
+ & s & TRUE & FALSE\\
+\hline
+\end{tabular}
+\end{table}
 
 A specific agreement exists in this context for which all data coming
 from old methodology, which are often used for consistency and coherence
