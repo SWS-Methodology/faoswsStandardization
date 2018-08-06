@@ -543,8 +543,11 @@ utilizationTable=ReadDatatable("utilization_table_percent")
 
 utilizationTable=data.table(utilizationTable)
 
+# setnames(utilizationTable,colnames(utilizationTable),c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", 
+#                                                        "rank", "rankInv"))
+
 setnames(utilizationTable,colnames(utilizationTable),c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", 
-                                                       "rank", "rankInv"))
+                                                       "percent","rank", "rankInv"))
 
 message("Download zero Weight from SWS...")
 
