@@ -807,7 +807,8 @@ if (nrow(BadProcessingShares) > 0) {
   body = paste0("The plug-in has saved the Production imputation in your session.",
                 "  However, some shares are greater than 1.  Please check these at: ",
                 dir_to_save_shares)
-  sendMailR::sendmail(from = from, to = to, subject = subject, msg = body)
+  sendmailR::sendmail(from = from, to = to, subject = subject, msg = body)
+  paste0("Email sent to ", swsContext.userEmail)
   
 }
 if (nrow(BadProcessingShares) == 0){
@@ -820,5 +821,7 @@ if (nrow(BadProcessingShares) == 0){
                 "You can browse charts and intermediate csv files in the shared folder: ",
                 dir_to_save)
   
-  sendMailR::sendmail(from = from, to = to, subject = subject, msg = body)
+  sendmailR::sendmail(from = from, to = to, subject = subject, msg = body)
+  paste0("Email sent to ", swsContext.userEmail)
+  
 }

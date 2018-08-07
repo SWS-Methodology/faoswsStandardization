@@ -75,6 +75,7 @@ endYear = swsContext.computationParams$endYear
 geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = as.character(startYear:endYear)
+outlierMail = swsContext.computationParams$checks
 
 ##  Get data configuration and session
 sessionKey_fbsBal = swsContext.datasets[[1]]
@@ -181,9 +182,9 @@ if(!CheckDebug()){
   CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
   
   datatoClean=GetData(sessionKey_suabal)
-
+  
   datatoClean=datatoClean[timePointYears%in%yearVals]
-
+  
   datatoClean[, Value := NA_real_]
   datatoClean[, CONFIG$flags := NA_character_]
   
@@ -202,7 +203,7 @@ if(!CheckDebug()){
   datatoClean[, CONFIG$flags := NA_character_]
   
   SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
-
+  
   ## CLEAN fbs_balanced
   message("wipe fbs_balanced session")
   
@@ -319,18 +320,18 @@ p=params
 ### Compute availability and SHARE  
 
 data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                           ifelse(get(p$elementVar) == p$productionCode, 1,
-                           ifelse(get(p$elementVar) == p$importCode, 1,
-                           ifelse(get(p$elementVar) == p$exportCode, -1,
-                           ifelse(get(p$elementVar) == p$stockCode, 0,
-                           ifelse(get(p$elementVar) == p$foodCode, 0,
-                           ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                           ifelse(get(p$elementVar) == p$feedCode, 0,
-                           ifelse(get(p$elementVar) == p$wasteCode, 0,
-                           ifelse(get(p$elementVar) == p$seedCode, 0,
-                           ifelse(get(p$elementVar) == p$industrialCode, 0,
-                           ifelse(get(p$elementVar) == p$touristCode, 0,
-                           ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
+                             ifelse(get(p$elementVar) == p$productionCode, 1,
+                                    ifelse(get(p$elementVar) == p$importCode, 1,
+                                           ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                  ifelse(get(p$elementVar) == p$stockCode, 0,
+                                                         ifelse(get(p$elementVar) == p$foodCode, 0,
+                                                                ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                                                                       ifelse(get(p$elementVar) == p$feedCode, 0,
+                                                                              ifelse(get(p$elementVar) == p$wasteCode, 0,
+                                                                                     ifelse(get(p$elementVar) == p$seedCode, 0,
+                                                                                            ifelse(get(p$elementVar) == p$industrialCode, 0,
+                                                                                                   ifelse(get(p$elementVar) == p$touristCode, 0,
+                                                                                                          ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
      by = c(p$mergeKey)]
 
 
@@ -467,8 +468,8 @@ tree = merge(tree, itemMap, by = "measuredItemParentCPC")
 ## Remove missing elements
 data = data[!is.na(measuredElementSuaFbs), ]
 data=data[,c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49", 
-              "timePointYears", "Value", "flagObservationStatus", "flagMethod", 
-              "Valid", "Protected", "Official", "type"),with=FALSE]
+             "timePointYears", "Value", "flagObservationStatus", "flagMethod", 
+             "Valid", "Protected", "Official", "type"),with=FALSE]
 
 #######################################################
 # save the initial data locally for future reports
@@ -841,54 +842,56 @@ if(!CheckDebug()){
   unlink(paste0(basedir,"/debugFile/Batch_",batchnumber))
 }
 
-
-################### balancing check
-stanData2<-AfterST_BeforeFBSbal
-########################################## CHECK IMBALANCE
-stanData2[, imbalance := sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
-                               ifelse(measuredElementSuaFbs == "5510", 1,
-                                      ifelse(measuredElementSuaFbs == "5610", 1,
-                                             ifelse(measuredElementSuaFbs == "5910", -1,
-                                                    ifelse(measuredElementSuaFbs == "5071", -1,
-                                                           ifelse(measuredElementSuaFbs == "5141", -1,
-                                                                  ifelse(measuredElementSuaFbs == "5023", -1,
-                                                                         ifelse(measuredElementSuaFbs == "5520", -1,
-                                                                                ifelse(measuredElementSuaFbs == "5016", -1,
-                                                                                       ifelse(measuredElementSuaFbs == "5525", -1,
-                                                                                              ifelse(measuredElementSuaFbs == "5165", -1,
-                                                                                                     ifelse(measuredElementSuaFbs == "5164", -1,
-                                                                                                            ifelse(measuredElementSuaFbs == "5166", -1,0))))))))))))),
-          by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
-
-
-#
-
-stanData2[, perc.imbalance := imbalance/sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
-                               ifelse(measuredElementSuaFbs == 5510, 1,
-                                      ifelse(measuredElementSuaFbs == 5610, 1,
-                                             ifelse(measuredElementSuaFbs == 5910, -1,
-                                                    ifelse(measuredElementSuaFbs == 5071, -1,
-                                                           ifelse(measuredElementSuaFbs == 5141, 0,
-                                                                  ifelse(measuredElementSuaFbs == 5023, 0,
-                                                                         ifelse(measuredElementSuaFbs == 5520, 0,
-                                                                                ifelse(measuredElementSuaFbs == 5016, 0,
-                                                                                       ifelse(measuredElementSuaFbs == 5525, 0,
-                                                                                              ifelse(measuredElementSuaFbs == 5165, 0,
-                                                                                                     ifelse(measuredElementSuaFbs == 5164, 0,
-                                                                                                            ifelse(measuredElementSuaFbs == 5166, 0,0))))))))))))),
-          by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
-
-
-imbalances=copy(stanData2)
-setkeyv(imbalances,c('geographicAreaM49','measuredItemFbsSua','timePointYears'))
-imbalancesToSend <- subset(unique(imbalances), select = c('geographicAreaM49','measuredItemFbsSua','timePointYears','imbalance', 'perc.imbalance'))
-
-imbalancesToSend <- subset(imbalancesToSend, abs(perc.imbalance)>0.2 & abs(imbalance)>10000)
-imbalancesToSend<-nameData("suafbs","fbs_standardized",imbalancesToSend)
-bodyImbalances= paste("The Email contains a list of imbalances exceeding 20% of supply, for total amounts higher than 10 thousand tonnes",
-                      sep='\n')
-
-sendMailAttachment(imbalancesToSend,"Imbalances",bodyImbalances)
+if(outlierMail=="Yes"){
+  ################### balancing check
+  stanData2<-AfterST_BeforeFBSbal
+  ########################################## CHECK IMBALANCE
+  stanData2[, imbalance := sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
+                                 ifelse(measuredElementSuaFbs == "5510", 1,
+                                        ifelse(measuredElementSuaFbs == "5610", 1,
+                                               ifelse(measuredElementSuaFbs == "5910", -1,
+                                                      ifelse(measuredElementSuaFbs == "5071", -1,
+                                                             ifelse(measuredElementSuaFbs == "5141", -1,
+                                                                    ifelse(measuredElementSuaFbs == "5023", -1,
+                                                                           ifelse(measuredElementSuaFbs == "5520", -1,
+                                                                                  ifelse(measuredElementSuaFbs == "5016", -1,
+                                                                                         ifelse(measuredElementSuaFbs == "5525", -1,
+                                                                                                ifelse(measuredElementSuaFbs == "5165", -1,
+                                                                                                       ifelse(measuredElementSuaFbs == "5164", -1,
+                                                                                                              ifelse(measuredElementSuaFbs == "5166", -1,0))))))))))))),
+            by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
+  
+  
+  #
+  
+  stanData2[, perc.imbalance := imbalance/sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
+                                                ifelse(measuredElementSuaFbs == 5510, 1,
+                                                       ifelse(measuredElementSuaFbs == 5610, 1,
+                                                              ifelse(measuredElementSuaFbs == 5910, -1,
+                                                                     ifelse(measuredElementSuaFbs == 5071, -1,
+                                                                            ifelse(measuredElementSuaFbs == 5141, 0,
+                                                                                   ifelse(measuredElementSuaFbs == 5023, 0,
+                                                                                          ifelse(measuredElementSuaFbs == 5520, 0,
+                                                                                                 ifelse(measuredElementSuaFbs == 5016, 0,
+                                                                                                        ifelse(measuredElementSuaFbs == 5525, 0,
+                                                                                                               ifelse(measuredElementSuaFbs == 5165, 0,
+                                                                                                                      ifelse(measuredElementSuaFbs == 5164, 0,
+                                                                                                                             ifelse(measuredElementSuaFbs == 5166, 0,0))))))))))))),
+            by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
+  
+  
+  imbalances=copy(stanData2)
+  setkeyv(imbalances,c('geographicAreaM49','measuredItemFbsSua','timePointYears'))
+  imbalancesToSend <- subset(unique(imbalances), select = c('geographicAreaM49','measuredItemFbsSua','timePointYears','imbalance', 'perc.imbalance'))
+  
+  imbalancesToSend <- subset(imbalancesToSend, abs(perc.imbalance)>0.2 & abs(imbalance)>10000)
+  imbalancesToSend<-nameData("suafbs","fbs_standardized",imbalancesToSend)
+  bodyImbalances= paste("The Email contains a list of imbalances exceeding 20% of supply, for total amounts higher than 10 thousand tonnes",
+                        sep='\n')
+  
+  sendMailAttachment(imbalancesToSend,"Imbalances",bodyImbalances)
+  
+}
 #
 
 # ###################################
@@ -993,23 +996,27 @@ standData=standData[!(measuredItemSuaFbs%in%c("S2901")& !(measuredElementSuaFbs%
 standData=standData[!(measuredItemSuaFbs%in%c("2903","2941")& !(measuredElementSuaFbs%in%c("664","674","684")))]
 
 ##############  detects outliers at fbs group level and sends mail
-balData = subset(standData, measuredElementSuaFbs %in% c("664"))
 
-balData = balData[,perc.change:= 100*(Value/shift(Value, type="lead")-1), by=c("geographicAreaM49","measuredItemSuaFbs")]
-
-
-balData = subset(balData, (shift(Value, type="lead")>5 | Value>5) & abs(perc.change)>10 & timePointYears>2013)
-
-balData=balData[order(Value,perc.change,timePointYears,decreasing = T)]
-
-#balData=nameData("suafbs","fbs_balanced_",balData)
-
-bodyFBSGroupOutliers= paste("The Email contains a list of items where the caloric intakes increases more than 10% in abslolute value at FBS group level.",
-                          "Consider it as a list of items where to start the validation.",
-                          sep='\n')
-
-sendMailAttachment(balData,"FBS_BAL_Outliers",bodyFBSGroupOutliers)
-
+if(outlierMail=="Yes"){
+  
+  balData = subset(standData, measuredElementSuaFbs %in% c("664"))
+  
+  balData = balData[,perc.change:= 100*(Value/shift(Value, type="lead")-1), by=c("geographicAreaM49","measuredItemSuaFbs")]
+  
+  
+  balData = subset(balData, (shift(Value, type="lead")>5 | Value>5) & abs(perc.change)>10 & timePointYears>2013)
+  
+  balData=balData[order(Value,perc.change,timePointYears,decreasing = T)]
+  
+  #balData=nameData("suafbs","fbs_balanced_",balData)
+  
+  bodyFBSGroupOutliers= paste("The Email contains a list of items where the caloric intakes increases more than 10% in abslolute value at FBS group level.",
+                              "Consider it as a list of items where to start the validation.",
+                              sep='\n')
+  
+  sendMailAttachment(balData,"FBS_BAL_Outliers",bodyFBSGroupOutliers)
+  
+} 
 ############################
 
 message("Attempting to save standardized data...")
@@ -1034,6 +1041,6 @@ to = swsContext.userEmail
 subject = "Full Standardization and Balancing completed"
 body = "The plug-in has saved the data in your sessions"
 
-if(!CheckDebug()){sendMailR::sendmail(from = from, to = to, subject = subject, msg = body)}
+if(!CheckDebug()){sendmailR::sendmail(from = from, to = to, subject = subject, msg = body)}
 paste0("Email sent to ", swsContext.userEmail)
 

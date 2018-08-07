@@ -251,6 +251,6 @@ to = swsContext.userEmail
 subject = "PullDataToSua plug-in has correctly run"
 body = "The plug-in has saved the SUAs in your session"
 
-sendMailR::sendmail(from, to, subject , body)
+sendmailR::sendmail(from, to, subject , body)
 paste0("Email sent to ", swsContext.userEmail)
 

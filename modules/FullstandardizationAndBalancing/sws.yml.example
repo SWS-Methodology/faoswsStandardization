@@ -1,7 +1,6 @@
 current: qa
 all:
-  standardizationpath: /browningj/standardization
-  localFiles: /path/to/local/files
+  share: name of share folder
   debugFolder: /path/to/local/debugFile/folder
   temporaryStandData: folder where put the Stand data of different batches
   subShare: eventual subfolder in the Share drive for storing txt files with wheat tables

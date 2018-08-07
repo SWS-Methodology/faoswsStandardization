@@ -31,7 +31,7 @@ if (CheckDebug()) {
   
   # Read settings file sws.yml in working directory. See 
   # sws.yml.example for more information
-  PARAMS <- ReadSettings("modules/FullstandardizationAndBalancing/sws.yml")
+  PARAMS <- ReadSettings("modules/fullStandardizationAndBalancing/sws.yml")
   message("Connecting to server: ", PARAMS[["current"]])
   
   R_SWS_SHARE_PATH = PARAMS[["share"]]
@@ -182,9 +182,9 @@ if(!CheckDebug()){
   CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
   
   datatoClean=GetData(sessionKey_suabal)
-
+  
   datatoClean=datatoClean[timePointYears%in%yearVals]
-
+  
   datatoClean[, Value := NA_real_]
   datatoClean[, CONFIG$flags := NA_character_]
   
@@ -203,7 +203,7 @@ if(!CheckDebug()){
   datatoClean[, CONFIG$flags := NA_character_]
   
   SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
-
+  
   ## CLEAN fbs_balanced
   message("wipe fbs_balanced session")
   
@@ -320,18 +320,18 @@ p=params
 ### Compute availability and SHARE  
 
 data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                           ifelse(get(p$elementVar) == p$productionCode, 1,
-                           ifelse(get(p$elementVar) == p$importCode, 1,
-                           ifelse(get(p$elementVar) == p$exportCode, -1,
-                           ifelse(get(p$elementVar) == p$stockCode, 0,
-                           ifelse(get(p$elementVar) == p$foodCode, 0,
-                           ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                           ifelse(get(p$elementVar) == p$feedCode, 0,
-                           ifelse(get(p$elementVar) == p$wasteCode, 0,
-                           ifelse(get(p$elementVar) == p$seedCode, 0,
-                           ifelse(get(p$elementVar) == p$industrialCode, 0,
-                           ifelse(get(p$elementVar) == p$touristCode, 0,
-                           ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
+                             ifelse(get(p$elementVar) == p$productionCode, 1,
+                                    ifelse(get(p$elementVar) == p$importCode, 1,
+                                           ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                  ifelse(get(p$elementVar) == p$stockCode, 0,
+                                                         ifelse(get(p$elementVar) == p$foodCode, 0,
+                                                                ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                                                                       ifelse(get(p$elementVar) == p$feedCode, 0,
+                                                                              ifelse(get(p$elementVar) == p$wasteCode, 0,
+                                                                                     ifelse(get(p$elementVar) == p$seedCode, 0,
+                                                                                            ifelse(get(p$elementVar) == p$industrialCode, 0,
+                                                                                                   ifelse(get(p$elementVar) == p$touristCode, 0,
+                                                                                                          ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
      by = c(p$mergeKey)]
 
 
@@ -447,7 +447,7 @@ tree=tree[!is.na(extractionRate)]
 tree=tree[!is.na(measuredItemChildCPC)]
 
 ## Update tree by setting some edges to "F"
-FPCommodities <- c( "01499.06", "01921.01","0113")
+FPCommodities <- c( "01499.06", "01921.01")
 # These commodities are forwards processed instead of backwards processed:
 #        code             description type
 # 3: 01499.06      Kapokseed in shell CRNP
@@ -468,8 +468,8 @@ tree = merge(tree, itemMap, by = "measuredItemParentCPC")
 ## Remove missing elements
 data = data[!is.na(measuredElementSuaFbs), ]
 data=data[,c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49", 
-              "timePointYears", "Value", "flagObservationStatus", "flagMethod", 
-              "Valid", "Protected", "Official", "type"),with=FALSE]
+             "timePointYears", "Value", "flagObservationStatus", "flagMethod", 
+             "Valid", "Protected", "Official", "type"),with=FALSE]
 
 #######################################################
 # save the initial data locally for future reports
@@ -520,20 +520,6 @@ nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElemen
 nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElement=="1003",Value:=23]
 nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElement=="1005",Value:=23]
 
-# ####################################
-# ### CRISTINA 08/01/2018
-# ### In order to express rice in Milled quivalent, Kcalories of Milled are assigned to Rice paddy.
-# ### A proportion will later adjust the quantities using Extraction Rates
-# 
-# milled=nutrientData[measuredItemSuaFbs=="23161.02",Value,by=c("measuredElement","geographicAreaM49","measuredItemSuaFbs")]
-# milled[,measuredItemSuaFbs:="0113"]
-# setnames(milled,"Value","ValueMilled")
-# 
-# nutrientData=merge(nutrientData,milled,by=c("measuredElement","geographicAreaM49","measuredItemSuaFbs"),all = TRUE)
-# nutrientData[!is.na(ValueMilled),Value:=ValueMilled]
-# nutrientData[,ValueMilled:=NULL]
-####################################
-
 #################################################################
 #################################################################
 #################################################################
@@ -561,7 +547,6 @@ cutItems=ReadDatatable("cut_items2")[,cpc_code]
 # cutItems=data.table(cutItems)
 
 message("Download fbsTree from SWS...")
-
 fbsTree=ReadDatatable("fbs_tree")
 fbsTree=data.table(fbsTree)
 setnames(fbsTree,colnames(fbsTree),c( "fbsID1", "fbsID2", "fbsID3","fbsID4", "measuredItemSuaFbs"))
@@ -660,6 +645,9 @@ if(params$createIntermetiateFile){
   if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))){
     file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))
   }
+  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv"))){
+    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv"))
+  }  
   if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
     file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))
   }
@@ -703,6 +691,7 @@ message((proc.time() - ptm)[3])
 
 message("Combining standardized data...")
 standData = rbindlist(standData)
+
 
 
 ##  Save the StandData LOCALLY
@@ -750,6 +739,63 @@ if(CheckDebug()){
   }
 }
 
+###################################
+## NOT BALANCED DERIVED COMMODITIES (to be sent by mail)
+
+print(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv"))
+print(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv")))
+
+
+if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv"))){
+  NOT_BAL_DER = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv"),
+                           header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
+                                                            "timePointYears","Value","flagObservationStatus","flagMethod"),
+                           colClasses = c("character","character","character","character","character","character","character"))
+  NotBalDer2send = data.table(NOT_BAL_DER)
+  
+  message=(paste0( length(NotBalDer2send[,unique(measuredItemFbsSua)])," Derived commodities have NOT been balanced"))
+  
+  setnames(NotBalDer2send,"measuredItemFbsSua","measuredItemSuaFbs")
+  
+  NotBalDer2send[,Value:=round(as.numeric(Value),4)]
+  NotBalDer2send[,measuredItemSuaFbs:=paste0("'",measuredItemSuaFbs)]
+  
+  
+  NotBalDer2send[,imbalance := sum(ifelse(is.na(Value), 0, Value) *
+                                     ifelse(get(p$elementVar) == p$productionCode, 1,
+                                            ifelse(get(p$elementVar) == p$importCode, 1,
+                                                   ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                          ifelse(get(p$elementVar) == p$stockCode, -1,
+                                                                 ifelse(get(p$elementVar) == p$foodCode, -1,
+                                                                        ifelse(get(p$elementVar) == p$foodProcCode, -1,
+                                                                               ifelse(get(p$elementVar) == p$feedCode, -1,
+                                                                                      ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                                                                             ifelse(get(p$elementVar) == p$seedCode, -1,
+                                                                                                    ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                                                                                           ifelse(get(p$elementVar) == p$touristCode, -1,
+                                                                                                                  ifelse(get(p$elementVar) == p$residualCode, -1, 
+                                                                                                                         NA))))))))))))),
+                 by = c(p$mergeKey)]
+  
+  NotBalDer2send[,c("flagObservationStatus","flagMethod"):=NULL]
+  
+  # Save these data LOCALLY
+  if(CheckDebug()){
+    save(NOT_BAL_DER,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.RData"))
+  }else{
+    # or send them by email
+    if(dim(NotBalDer2send)[1]>0){
+      bodyNotBalanced= paste("The Email contains a list of DERIVED commodities where where was not possible to Balance the POSITIVE imbalance",
+                             "Consider to make a manual balance or leave imbalanced",
+                             sep='\n')  
+    }
+  }
+  sendMailAttachment(NotBalDer2send,"NotBalancedDERIVED",bodyNotBalanced)
+}else{
+  message("no Derived Impossible to Balance")
+}
+###################################################
+
 
 ###################################
 ## FORCED COMMODITIES IN THE SUA FILLING PROCESS (to be sent by mail)
@@ -794,8 +840,6 @@ if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"
 }
 
 ###################################
-### DOWNLOAD POPOULATION FOR INTERMEDIATE SAVINGS
-
 
 ###################################
 ### FIRST INTERMEDIATE SAVE
@@ -845,6 +889,10 @@ if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"
   }
 }
 
+
+
+
+
 # Remove all intermediate Files Create in Temp Folder
 if(!CheckDebug()){
   unlink(basedir)
@@ -852,6 +900,57 @@ if(!CheckDebug()){
   unlink(paste0(basedir,"/debugFile/Batch_",batchnumber))
 }
 
+if(outlierMail=="Yes"){
+  ################### balancing check
+  stanData2<-AfterST_BeforeFBSbal
+  ########################################## CHECK IMBALANCE
+  stanData2[, imbalance := sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
+                                 ifelse(measuredElementSuaFbs == "5510", 1,
+                                        ifelse(measuredElementSuaFbs == "5610", 1,
+                                               ifelse(measuredElementSuaFbs == "5910", -1,
+                                                      ifelse(measuredElementSuaFbs == "5071", -1,
+                                                             ifelse(measuredElementSuaFbs == "5141", -1,
+                                                                    ifelse(measuredElementSuaFbs == "5023", -1,
+                                                                           ifelse(measuredElementSuaFbs == "5520", -1,
+                                                                                  ifelse(measuredElementSuaFbs == "5016", -1,
+                                                                                         ifelse(measuredElementSuaFbs == "5525", -1,
+                                                                                                ifelse(measuredElementSuaFbs == "5165", -1,
+                                                                                                       ifelse(measuredElementSuaFbs == "5164", -1,
+                                                                                                              ifelse(measuredElementSuaFbs == "5166", -1,0))))))))))))),
+            by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
+  
+  
+  #
+  
+  stanData2[, perc.imbalance := imbalance/sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
+                                                ifelse(measuredElementSuaFbs == 5510, 1,
+                                                       ifelse(measuredElementSuaFbs == 5610, 1,
+                                                              ifelse(measuredElementSuaFbs == 5910, -1,
+                                                                     ifelse(measuredElementSuaFbs == 5071, -1,
+                                                                            ifelse(measuredElementSuaFbs == 5141, 0,
+                                                                                   ifelse(measuredElementSuaFbs == 5023, 0,
+                                                                                          ifelse(measuredElementSuaFbs == 5520, 0,
+                                                                                                 ifelse(measuredElementSuaFbs == 5016, 0,
+                                                                                                        ifelse(measuredElementSuaFbs == 5525, 0,
+                                                                                                               ifelse(measuredElementSuaFbs == 5165, 0,
+                                                                                                                      ifelse(measuredElementSuaFbs == 5164, 0,
+                                                                                                                             ifelse(measuredElementSuaFbs == 5166, 0,0))))))))))))),
+            by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
+  
+  
+  imbalances=copy(stanData2)
+  setkeyv(imbalances,c('geographicAreaM49','measuredItemFbsSua','timePointYears'))
+  imbalancesToSend <- subset(unique(imbalances), select = c('geographicAreaM49','measuredItemFbsSua','timePointYears','imbalance', 'perc.imbalance'))
+  
+  imbalancesToSend <- subset(imbalancesToSend, abs(perc.imbalance)>0.2 & abs(imbalance)>10000)
+  imbalancesToSend<-nameData("suafbs","fbs_standardized",imbalancesToSend)
+  bodyImbalances= paste("The Email contains a list of imbalances exceeding 20% of supply, for total amounts higher than 10 thousand tonnes",
+                        sep='\n')
+  
+  sendMailAttachment(imbalancesToSend,"Imbalances",bodyImbalances)
+  
+}
+#
 
 # ###################################
 # # TREE TO BE RESAVED
@@ -954,8 +1053,6 @@ standData=data.table(rbind(standData,popSWS))
 standData=standData[!(measuredItemSuaFbs%in%c("S2901")& !(measuredElementSuaFbs%in%c("664","674","684","511")))]
 standData=standData[!(measuredItemSuaFbs%in%c("2903","2941")& !(measuredElementSuaFbs%in%c("664","674","684")))]
 
-
-
 ##############  detects outliers at fbs group level and sends mail
 
 if(outlierMail=="Yes"){
@@ -976,15 +1073,16 @@ if(outlierMail=="Yes"){
                               sep='\n')
   
   sendMailAttachment(balData,"FBS_BAL_Outliers",bodyFBSGroupOutliers)
-}
-
+  
+} 
 ############################
-
-
 
 message("Attempting to save standardized data...")
 
 setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
+
+
+
 
 ptm <- proc.time()
 out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData, waitTimeout = 2000000)
@@ -1001,6 +1099,6 @@ to = swsContext.userEmail
 subject = "Full Standardization and Balancing completed"
 body = "The plug-in has saved the data in your sessions"
 
-if(!CheckDebug()){sendMailR::sendmail(from = from, to = to, subject = subject, msg = body)}
+if(!CheckDebug()){sendmailR::sendmail(from = from, to = to, subject = subject, msg = body)}
 paste0("Email sent to ", swsContext.userEmail)
 

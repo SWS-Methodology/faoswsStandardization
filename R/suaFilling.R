@@ -49,12 +49,14 @@
 ##'   
 
 suaFilling = function(data, p = p, tree=tree,
-                      primaryCommodities = c(), stockCommodities = c(),
-                      debugFile= NULL,
-                      utilizationTable=c(), 
-                      imbalanceThreshold = 10,loop1=TRUE){
+                         primaryCommodities = c(), stockCommodities = c(),
+                         debugFile= NULL,
+                         utilizationTable=c(), 
+                         imbalanceThreshold = 10,loop1=TRUE){
   
   # The commodities that have to be crude balanced are the NON PRIMARY
+  
+  print("new Sua Filling ###################")
   
   stopifnot(imbalanceThreshold > 0)
   
@@ -372,11 +374,31 @@ suaFilling = function(data, p = p, tree=tree,
       if(length(dataPosImbAll[measuredItemSuaFbs==i
                               &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
                               &!is.na(rank),Value])==0){
-        # conventionally put all on food (As was in the previous version of the new module)
-        # this a very rare case but can happen
-        dataPosImbAll[measuredItemSuaFbs==i
-                      &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
-                        get(p$elementVar)==p$foodCode,newValue:=imbalance]
+        # CRISTINA change made august 2018
+        # Save these data outside and send them for manual check and adjustment
+        # (before everything was send conventionally on food)
+        # dataPosImbAll[measuredItemSuaFbs==i
+        #               &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
+        #                 get(p$elementVar)==p$foodCode,newValue:=Value]
+        
+        NoBalanced = dataPosImbAll[measuredItemSuaFbs==i]
+        
+        setnames(NoBalanced, "measuredItemSuaFbs", "measuredItemFbsSua")
+        standData = NoBalanced
+        standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+                               Value)]
+        standData <- standData[!is.na(Value),]
+        
+        standData[, flagObservationStatus := "I"]
+        standData[, flagMethod := "x"]
+        
+        if(!is.null(debugFile)){
+          
+          saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
+                                 fileName=paste0("B",batchnumber,"_04_NotBalancedDerived"),
+                                 data=standData)
+        }
+        
       }else{
         # Se tutti i Value sono popolati
         if(length(dataPosImbAll[measuredItemSuaFbs==i
@@ -567,6 +589,7 @@ suaFilling = function(data, p = p, tree=tree,
     
   }  #this brackets refer only at the second loop
   
+  print("end Filling")
   
   data[, c("imbalance","sumUtils","sumSup") := NULL]   
   

@@ -75,9 +75,9 @@
 ##' 
 
 standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
-                                  nutrientData = NULL, printCodes = c(),
-                                  debugFile= NULL,batchnumber=batchnumber,
-                                  utilizationTable = utilizationTable,cutItems=cutItems
+                                     nutrientData = NULL, printCodes = c(),
+                                     debugFile= NULL,batchnumber=batchnumber,
+                                     utilizationTable = utilizationTable,cutItems=cutItems
 ){
   
   dataFlags=data.table(data.frame(data))
@@ -187,7 +187,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   nonTreeEl = data[[p$itemVar]]
   nonTreeEl = nonTreeEl[!nonTreeEl %in% level[[p$itemVar]]]
   # primaryEl = c(primaryEl, nonTreeEl)
-
+  
   
   data[, ProtectedProd := any(get(standParams$elementVar) == standParams$productionCode &
                                 Official==TRUE),
@@ -204,9 +204,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data = unique(data)
   
   data=suaFilling(data, p=p, tree=tree,
-                  primaryCommodities = primaryEl, debugFile=p$createIntermetiateFile,
-                  stockCommodities = stockCommodities,
-                  utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=TRUE)
+                     primaryCommodities = primaryEl, debugFile=p$createIntermetiateFile,
+                     stockCommodities = stockCommodities,
+                     utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=TRUE)
   
   data2keep=data.table(data.frame(data))
   setnames(data,"measuredItemSuaFbs","measuredItemFbsSua")
@@ -218,26 +218,26 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data = markUpdated(new = data, old = old, standParams = p)
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATableNames(data = data, standParams = p,
-                  printCodes = printCodes)
+                       printCodes = printCodes)
   }
   data=data.table(data.frame(data2keep))
-
+  
   ### STEP 3: Compute availability and SHARE 1 
   
   data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                              ifelse(get(p$elementVar) == p$productionCode, 1,
-                               ifelse(get(p$elementVar) == p$importCode, 1,
-                                ifelse(get(p$elementVar) == p$exportCode, -1,
-                                 ifelse(get(p$elementVar) == p$stockCode, 0,
-                                  ifelse(get(p$elementVar) == p$foodCode, 0,
-                                   ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                                    ifelse(get(p$elementVar) == p$feedCode, 0,
-                                     ifelse(get(p$elementVar) == p$wasteCode, 0,
-                                      ifelse(get(p$elementVar) == p$seedCode, 0,
-                                       ifelse(get(p$elementVar) == p$industrialCode, 0,
-                                        ifelse(get(p$elementVar) == p$touristCode, 0,
-                                         ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
-                         by = c(p$mergeKey)]
+                               ifelse(get(p$elementVar) == p$productionCode, 1,
+                                      ifelse(get(p$elementVar) == p$importCode, 1,
+                                             ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                    ifelse(get(p$elementVar) == p$stockCode, 0,
+                                                           ifelse(get(p$elementVar) == p$foodCode, 0,
+                                                                  ifelse(get(p$elementVar) == p$foodProcCode, 0,
+                                                                         ifelse(get(p$elementVar) == p$feedCode, 0,
+                                                                                ifelse(get(p$elementVar) == p$wasteCode, 0,
+                                                                                       ifelse(get(p$elementVar) == p$seedCode, 0,
+                                                                                              ifelse(get(p$elementVar) == p$industrialCode, 0,
+                                                                                                     ifelse(get(p$elementVar) == p$touristCode, 0,
+                                                                                                            ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
+       by = c(p$mergeKey)]
   
   
   
@@ -333,8 +333,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   printTree=nameData("suafbs","sua_unbalanced",printTree)
   setnames(printTree,c("measuredItemFbsSua","measuredItemFbsSua_description"),c("Parent","ParentName"))
   printTree=printTree[Child %in% printCodes,
-            c("Child","ChildName", "Parent","ParentName", p$extractVar, "availability","share","weight"),
-            with = FALSE]
+                      c("Child","ChildName", "Parent","ParentName", p$extractVar, "availability","share","weight"),
+                      with = FALSE]
   printTree[,ChildName:=strtrim(ChildName,20)]
   printTree[,ParentName:=strtrim(ParentName,20)]
   
@@ -343,7 +343,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     print(knitr::kable(printTree[Child %in% printCodes,
                                  c("Child","ChildName" ,"Parent", "ParentName",p$extractVar, "availability","share","weight"),
                                  with = FALSE], align = 'r'))
-
+    
   }
   
   
@@ -372,22 +372,22 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data = markUpdated(new = data, old = old, standParams = p)
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATableNames(data = data, standParams = p,
-                  printCodes = printCodes)
+                       printCodes = printCodes)
   }
   data=data.table(data.frame(data2keep))
   
-
+  
   ### STEP 5: Execute Sua Filling again with Food processing
   
   data[,c("availability","updateFlag"):=NULL]
   
   
   data=suaFilling(data, p=p, tree=tree,
-                  primaryCommodities = primaryEl,
-                  debugFile = params$createIntermetiateFile, stockCommodities = stockCommodities,
-                  utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=FALSE)
+                     primaryCommodities = primaryEl,
+                     debugFile = params$createIntermetiateFile, stockCommodities = stockCommodities,
+                     utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=FALSE)
   
- 
+  
   ### STEP 3: Compute availability and SHARE 2 
   
   data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
@@ -457,29 +457,29 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     
     
-
-  
-  ## STEP 2.1 Compute calories
-  if(!is.null(nutrientData)){
-    data = merge(data, nutrientData, by = p$itemVar, all.x = TRUE)
-    data[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0, 
-         c("Calories", "Proteins", "Fats") := 
-           0]
-    ## Convert nutrient values into total nutrient info using food
-    ## allocation.
-    
-    ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
-    ## of the nutreient componets is 1/100g
     
     
-    sapply(nutrientElements, function(nutrient){
-      data[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
-           by = c(p$itemVar)]
-    })
-  }
+    ## STEP 2.1 Compute calories
+    if(!is.null(nutrientData)){
+      data = merge(data, nutrientData, by = p$itemVar, all.x = TRUE)
+      data[rowSums(is.na(data.table(Calories, Proteins, Fats))) > 0, 
+           c("Calories", "Proteins", "Fats") := 
+             0]
+      ## Convert nutrient values into total nutrient info using food
+      ## allocation.
+      
+      ## Please note that we added the multiplicative factor of 10000 because the unit of measurement
+      ## of the nutreient componets is 1/100g
+      
+      
+      sapply(nutrientElements, function(nutrient){
+        data[, c(nutrient) := (get(nutrient) * Value[get(p$elementVar) == p$foodCode])*10000,
+             by = c(p$itemVar)]
+      })
+    }
     data2keep=copy(data.table(data.frame(data)))
     
-  ##################### 
+    ##################### 
     setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
     standData=data.table(data.frame(data))
     standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
@@ -492,9 +492,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua + Calories + Proteins + Fats +
                             DESfoodSupply_kCd  + proteinSupplyQt_gCd + fatSupplyQt_gCd
                           ~ measuredElementSuaFbs,value.var = "Value")
-
+    
     standDataLong = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua"),
                          variable.name = "measuredElementSuaFbs", value.name = "Value")
+    standDataLong = data.table(data.frame(standDataLong))
     standDataLong[,measuredElementSuaFbs:=as.character(measuredElementSuaFbs)]
     standDataLong=data.table(data.frame(standDataLong))
     standDataLong=standDataLong[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
@@ -503,69 +504,69 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     
     data=data.table(data.frame(data2print))
     setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-  #####################
+    #####################
     data2keep2=data.table(data.frame(data))
     setnames(data,"measuredItemSuaFbs","measuredItemFbsSua")
     data=nameData("suafbs","sua_unbalanced",data,except = c("measuredElementSuaFbs","geographicAreaM49","timePointYears"))
     setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
     
     if(length(printCodes) > 0){
-    cat("\nsua_balanced:")
-    data = markUpdated(new = data, old = old, standParams = p)
-    old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
-    printSUATableNames(data = data, standParams = p,
-                  printCodes = printCodes,
-                  nutrientElements = "DESfoodSupply_kCd",
-                  printProcessing = TRUE)
+      cat("\nsua_balanced:")
+      data = markUpdated(new = data, old = old, standParams = p)
+      old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
+      printSUATableNames(data = data, standParams = p,
+                         printCodes = printCodes,
+                         nutrientElements = "DESfoodSupply_kCd",
+                         printProcessing = TRUE)
     }
     data=data.table(data.frame(data2keep2))
-  
     
-  #####################
-  # Computing Rice
-  # To express Rice Paddy in mille equivalent: 
+    
+    #####################
+    # Computing Rice
+    # To express Rice Paddy in mille equivalent: 
     # 1. Again put the data in wide form
     
     
-  
-  #####################
-  roundNum = function(x){
-    if(is.na(x)){
+    
+    #####################
+    roundNum = function(x){
+      if(is.na(x)){
+        return(x)
+      }
+      initialSign = sign(x)
+      x = abs(x)
+      x=round(x,4)
+      x = x * initialSign
+      x = prettyNum(x, big.mark = ",", scientific = FALSE)
       return(x)
     }
-    initialSign = sign(x)
-    x = abs(x)
-    x=round(x,4)
-    x = x * initialSign
-    x = prettyNum(x, big.mark = ",", scientific = FALSE)
-    return(x)
-  }
-  ##############################
-  printTree = data.table(data.frame(tree))
-  printTree[,availability:=ifelse(is.na(availability), "-", sapply(availability, roundNum))]
-  printTree[,share:=round(share,2)]
-  printTree[,extractionRate:=round(extractionRate,2)]
+    ##############################
+    printTree = data.table(data.frame(tree))
+    printTree[,availability:=ifelse(is.na(availability), "-", sapply(availability, roundNum))]
+    printTree[,share:=round(share,2)]
+    printTree[,extractionRate:=round(extractionRate,2)]
+    
+    setnames(printTree,"measuredItemChildCPC","measuredItemFbsSua")
+    printTree=nameData("suafbs","sua_unbalanced",printTree)
+    setnames(printTree,c("measuredItemFbsSua","measuredItemFbsSua_description"),c("Child","ChildName"))
+    setnames(printTree,"measuredItemParentCPC","measuredItemFbsSua")
+    printTree=nameData("suafbs","sua_unbalanced",printTree)
+    setnames(printTree,c("measuredItemFbsSua","measuredItemFbsSua_description"),c("Parent","ParentName"))
+    printTree=printTree[Child %in% printCodes,
+                        c("Child","ChildName", "Parent","ParentName", p$extractVar, "availability","share","weight"),
+                        with = FALSE]
+    printTree[,ChildName:=strtrim(ChildName,20)]
+    printTree[,ParentName:=strtrim(ParentName,20)]
+    
+    if(length(printCodes) > 0){
+      cat("\n\nAvailability of parents in terms of their children = FoodProc * eR | Final Shares by child:")
+      print(knitr::kable(printTree[Child %in% printCodes,
+                                   c("Child","ChildName" ,"Parent", "ParentName",p$extractVar, "availability","share","weight"),
+                                   with = FALSE], align = 'r'))
+    }
+  }    
   
-  setnames(printTree,"measuredItemChildCPC","measuredItemFbsSua")
-  printTree=nameData("suafbs","sua_unbalanced",printTree)
-  setnames(printTree,c("measuredItemFbsSua","measuredItemFbsSua_description"),c("Child","ChildName"))
-  setnames(printTree,"measuredItemParentCPC","measuredItemFbsSua")
-  printTree=nameData("suafbs","sua_unbalanced",printTree)
-  setnames(printTree,c("measuredItemFbsSua","measuredItemFbsSua_description"),c("Parent","ParentName"))
-  printTree=printTree[Child %in% printCodes,
-                      c("Child","ChildName", "Parent","ParentName", p$extractVar, "availability","share","weight"),
-                      with = FALSE]
-  printTree[,ChildName:=strtrim(ChildName,20)]
-  printTree[,ParentName:=strtrim(ParentName,20)]
-  
-  if(length(printCodes) > 0){
-    cat("\n\nAvailability of parents in terms of their children = FoodProc * eR | Final Shares by child:")
-    print(knitr::kable(printTree[Child %in% printCodes,
-                                 c("Child","ChildName" ,"Parent", "ParentName",p$extractVar, "availability","share","weight"),
-                                 with = FALSE], align = 'r'))
-  }
-}    
-
   ### first intermediate SAVE
   message("Attempting to save balanced SUA data...")
   setnames(dataFlags,"measuredItemSuaFbs", "measuredItemFbsSua")
@@ -609,24 +610,26 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                        cut=cutItems,
                                        additiveElements = nutrientElements)
   # ###################################################
-
-    data2keep=copy(data.table(data.frame(data)))
+  
+  data2keep=copy(data.table(data.frame(data)))
   
   # ###################################################
-
+  
   setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
-
+  data=data.table(data.frame(data))
+  
   standDatawide = dcast(data, geographicAreaM49 +timePointYears + measuredItemFbsSua
                         ~ measuredElementSuaFbs,value.var = "Value")
   
   standDataLong = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua",nutrientElements),variable.name = "measuredElementSuaFbs", value.name = "Value")
+  standDataLong = data.table(data.frame(standDataLong))
   standDataLong[,measuredElementSuaFbs:=as.character(measuredElementSuaFbs)]
   
   standData=standDataLong[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,
-                         Value,Calories,Proteins,Fats)]
+                             Value,Calories,Proteins,Fats)]
   
   standData = calculateFoodAggregates(standData,p,yearVals) ####
-
+  
   standData=standData[!is.na(measuredElementSuaFbs)]
   
   standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua + 
@@ -664,9 +667,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data0113Print = markUpdated(new = data0113Print, old = old, standParams = p)
     old = copy(data0113Print[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATableNames(data = data0113Print, standParams = p,
-                  printCodes = printCodes,
-                  nutrientElements = "DESfoodSupply_kCd",
-                  printProcessing = TRUE)
+                       printCodes = printCodes,
+                       nutrientElements = "DESfoodSupply_kCd",
+                       printProcessing = TRUE)
   }
   
   data23610Print = data[measuredItemSuaFbs!="0113"]
@@ -684,14 +687,14 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   }
   
   
-    #### CRISTINA delete the FoodMAnufacturin rows for the cut items
+  #### CRISTINA delete the FoodMAnufacturin rows for the cut items
   # because these have the code with the prefix f???_
   # this generates problems when doing the saving back of the second step.
-
+  
   data=copy(data.table(data.frame(data2keep)))
   data=data[!grepl("f???_",measuredItemSuaFbs)]
   
-
+  
   ############################################################
   
   
@@ -712,6 +715,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   standData=copy(data)
   
+  print(head(standData))
+  
   standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua 
                         ~ measuredElementSuaFbs,value.var = "Value")
   
@@ -724,13 +729,18 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   standData = calculateFoodAggregates(standData,p,yearVals) ####
   
+  
   standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua + 
                           Calories + Proteins + Fats +
                           DESfoodSupply_kCd  + proteinSupplyQt_gCd + fatSupplyQt_gCd ~ measuredElementSuaFbs,value.var = "Value")
   
+  
+  print("standData after calculateFoodAggregates")
+  print(head(standDatawide))
+  
   standDataLong = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua"),variable.name = "measuredElementSuaFbs", value.name = "Value")
   
-  
+  print("ok melt")
   
   fbs_sua_conversion2 <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins","DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "exports", "feed", "food",
                                                             "foodManufacturing", "imports", "loss", "production",
@@ -739,8 +749,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                            "5023", "5610", "5016", "5510",
                                            "5525", "5071", "5166","5165", "5164"))
   
-  
+  print("ok fbs_su_cnversion")
   standData = merge(standDataLong, fbs_sua_conversion2, by = "measuredElementSuaFbs")
+  print("ok merge")
+  
   standData = data.table(data.frame(standData))
   standData[,`:=`(measuredElementSuaFbs = NULL)]
   setnames(standData, "code", "measuredElementSuaFbs")
@@ -837,8 +849,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data[!(nutrientElement), Value := balancedValue]
   
   data2keep=data.table(data.frame(data)) ###################!!!!!!!!!!!!!!!!!!!!!!DATA
-   
-#############################################################################  
+  
+  #############################################################################  
   setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
   standData=data.table(data.frame(data))
   
@@ -863,31 +875,37 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   standDataLong = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua"),variable.name = "measuredElementSuaFbs", value.name = "Value")
   
+  
+  standDataLong = data.table(data.frame(standDataLong))
+  
+  standDataLong[,unique(measuredElementSuaFbs)]
+  
   data2print=data.table(standDataLong[!(measuredElementSuaFbs%in%c(nutrientElements,"proteinSupplyQt_gCd","fatSupplyQt_gCd"))])
   
   data=data.table(data.frame(data2print))
-
+  
   data=nameData("suafbs","sua_unbalanced",data,except = c("measuredElementSuaFbs","geographicAreaM49","timePointYears"))
   setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
   
+  print("ok Name Data")
   #######################################################
   
-
+  
   if(length(printCodes) > 0){
     cat("\n\nfbs_balanced:")
     data = markUpdated(new = data, old = old, standParams = p)
     old = copy(data[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATableNames(data = data, standParams = p, printCodes = printCodes,
-                  printProcessing = TRUE,
-                  nutrientElements = "DESfoodSupply_kCd")
+                       printProcessing = TRUE,
+                       nutrientElements = "DESfoodSupply_kCd")
     data[, updateFlag := NULL]
   }
   
   
-
+  
   ## STEP 6: Update calories of processed products proportionally based on
   ## updated food element values.
-
+  
   data=copy(data.table(data.frame(data2keep)))   ###################!!!!!!!!!!!!!!!!!!!!!!DATA
   
   data[(nutrientElement), Value := ifelse(((!is.na(Value))&is.na(foodAdjRatio)),Value, Value * foodAdjRatio)]
@@ -950,6 +968,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   standDataLong = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua"),variable.name = "measuredElementSuaFbs", value.name = "Value")
   
+  standDataLong=data.table(data.frame(standDataLong))
+  
   data2print=data.table(standDataLong[!(measuredElementSuaFbs%in%c(nutrientElements,"proteinSupplyQt_gCd","fatSupplyQt_gCd"))])
   
   data=data.table(data.frame(data2print))
@@ -967,8 +987,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
     data0113Print = markUpdated(new = data0113Print, old = old, standParams = p)
     old = copy(data0113Print[,c(params$mergeKey,params$elementVar,"Value"),with=FALSE])
     printSUATableNames(data = data0113Print, standParams = p, printCodes = printCodes,
-                  printProcessing = TRUE,
-                  nutrientElements = "DESfoodSupply_kCd")
+                       printProcessing = TRUE,
+                       nutrientElements = "DESfoodSupply_kCd")
     data0113Print[, updateFlag := NULL]
   }
   
@@ -1037,9 +1057,9 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
       setnames(data,"fbsID4","measuredItemSuaFbs")
       
       printSUATableNames(data = data, standParams = p,
-                    printCodes = printCodeTable[, fbsID4],
-                    printProcessing = TRUE,
-                    nutrientElements = "DESfoodSupply_kCd")
+                         printCodes = printCodeTable[, fbsID4],
+                         printProcessing = TRUE,
+                         nutrientElements = "DESfoodSupply_kCd")
       data=data.table(data.frame(data2keep2))
       
       # p$mergeKey[p$mergeKey == p$itemVar] = "fbsID3"
@@ -1174,7 +1194,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                          printProcessing = TRUE,
                          nutrientElements = "DESfoodSupply_kCd")
       data=data.table(data.frame(data2keep2))
-      }
+    }
     
     
     ##  return(out)
