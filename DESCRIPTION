@@ -1,31 +1,27 @@
 Package: faoswsStandardization
 Type: Package
-Title: Package to perform standardization of SUA (supply utilization account)
-        data to FBS level
-Version: 0.5.4
-Date: 2018-08-06
-Authors@R: c(person("Joshua", "Browning", role = "aut", email =
-        "joshua.browning@fao.org"), person("Cristina", "Muschitiello", role
-        = "cre", email = "cristina.muschitiello@fao.org"))
-Description: The package implements standardization of SUA data according to
-        provided commodity trees. Essentially, this is the process of
-        converting processed products into primary equivalents. This package
-        provides all of the necessary logic for this standardization as well
-        as some tools.
+Title: Package to perform standardization of SUA (supply utilization account) data to FBS level
+Version: 0.5.5
+Date: 2018-08-08
+Authors@R: c(person("Joshua", "Browning", role = "aut", email = "joshua.browning@fao.org"),
+          person("Cristina", "Muschitiello", role = "cre", email =
+          "cristina.muschitiello@fao.org"))
+Description: The package implements standardization of SUA data according to provided commodity
+          trees. Essentially, this is the process of converting processed products into
+          primary equivalents. This package provides all of the necessary logic for this
+          standardization as well as some tools.
 License: FAO
 BugReports: https://github.com/SWS-Methodology/faoswsStandardization/issues
 LazyData: yes
 Depends: R (>= 2.10)
-Imports: faosws (>= 0.3.2), faoswsUtil (>= 0.2.0), data.table (>= 1.9.2),
-        diagram, faoswsBalancing (>= 0.0.1), igraph (>= 0.7.1), dplyr,
-        lattice, MASS (>= 7.3.35), reshape2 (>= 1.4.1)
+Imports: faosws (>= 0.3.2), faoswsUtil (>= 0.2.0), data.table (>= 1.9.2), diagram,
+          faoswsBalancing (>= 0.0.1), igraph (>= 0.7.1), dplyr, lattice, MASS (>= 7.3.35),
+          reshape2 (>= 1.4.1)
 Suggests: knitr, ggplot2, testthat
-swsDatasetDepends: agriculture:aproduction, trade:total_trade_CPC,
-        tourism:tourismprod, suafbs:sua, faostat_one:FS1_SUA,
-        faostat_one:aupus_share_fs, faostat_one:input_from_proc_fs,
-        SWS_R_SHARE/browning/elementCodes.csv
-swsModuleDepends: faoswsProduction, faoswsTrade, faoswsStock,
-        faoswsFood,faoswsUtils, faoswsFeed, faoswsSeed, faoswsTourist,
-        faoswsLoss, faoswsIndustrial,sendMailR
+swsDatasetDepends: agriculture:aproduction, trade:total_trade_CPC, tourism:tourismprod,
+          suafbs:sua, faostat_one:FS1_SUA, faostat_one:aupus_share_fs,
+          faostat_one:input_from_proc_fs, SWS_R_SHARE/browning/elementCodes.csv
+swsModuleDepends: faoswsProduction, faoswsTrade, faoswsStock, faoswsFood,faoswsUtils,
+          faoswsFeed, faoswsSeed, faoswsTourist, faoswsLoss, faoswsIndustrial,sendMailR
 ZipData: no
 RoxygenNote: 5.0.1
