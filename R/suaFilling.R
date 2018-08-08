@@ -200,15 +200,26 @@ suaFilling = function(data, p = p, tree=tree,
     #    to their value in respect to other utilization
     
     # if the reduction of maximum 30% is enought to cover all imbalance
-    dataNegImb_ptol=dataNegImb[abs(imbalance)<=(pTolerance*sumUtils)]
+    dataNegImb_ptol=rbind(dataNegImb[abs(imbalance)<=(pTolerance*sumUtils)],
+                          dataNegImbP[abs(imbalance)<=(pTolerance*sumUtils)])
+    
+    
+    
+    # dataNegImb_ptol=dataNegImb[abs(imbalance)<=(pTolerance*sumUtils)]
     dataNegImb_ptol[,newValue:= ifelse(is.na(Value),NA,
                                        ifelse(get(p$elementVar)%in%eleToExclude,NA,
                                               Value-abs(Value)*(abs(imbalance)/(sumUtils+(sumSupstock-sumSup)))))]  
     # if the all imbalance is NOT covered by the 30% of the all utilization
     # reduce the utilizations by 30% anyway
-    dataNegImb_Noptol=dataNegImb[ # Production existing (either officiali or not)
-      abs(imbalance)>(pTolerance*sumUtils)]
     
+    dataNegImb_Noptol=rbind(dataNegImb[ # Production existing (either officiali or not)
+      abs(imbalance)>(pTolerance*sumUtils)],
+      dataNegImbP[ # Production existing (either officiali or not)
+        abs(imbalance)>(pTolerance*sumUtils)])
+    
+    # dataNegImb_Noptol=dataNegImb[ # Production existing (either officiali or not)
+    #   abs(imbalance)>(pTolerance*sumUtils)]
+    # 
     dataNegImb_Noptol[,newValue:= ifelse(is.na(Value),NA,
                                          ifelse(get(p$elementVar)%in%eleToExclude,NA,
                                                 Value-(pTolerance*(Value))))]
@@ -217,9 +228,11 @@ suaFilling = function(data, p = p, tree=tree,
     dataNegImb_Noptol[,Value:=ifelse(!is.na(newValue),newValue,Value)]
     dataNegImb_Noptol[,newValue:=NULL]
     
+    dataNegImbAll=rbind(dataNegImb_ptol,dataNegImb_Noptol)
+    dataNegImbComm=dataNegImbAll[,measuredItemSuaFbs]
     
-    dataNegImb=rbind(dataNegImb_ptol,dataNegImb_Noptol)
-    dataNegImbComm=dataNegImb[,measuredItemSuaFbs]
+    # dataNegImb=rbind(dataNegImb_ptol,dataNegImb_Noptol)
+    # dataNegImbComm=dataNegImb[,measuredItemSuaFbs]
     ############################################################################################
     ############################################################################################
     ############################################################################################
@@ -229,7 +242,8 @@ suaFilling = function(data, p = p, tree=tree,
     # First reconstruct the data
     
     data=data[!(measuredItemSuaFbs%in%dataNegImbComm)]
-    data=rbind(data,dataNegImb)
+    data=rbind(data,dataNegImbAll)
+    
     
     # Then start again
     ## Supply-Utilization = imbalance
