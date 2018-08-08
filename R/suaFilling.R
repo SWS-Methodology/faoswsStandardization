@@ -56,8 +56,6 @@ suaFilling = function(data, p = p, tree=tree,
   
   # The commodities that have to be crude balanced are the NON PRIMARY
   
-  print("new Sua Filling ###################")
-  
   stopifnot(imbalanceThreshold > 0)
   
   eleToExcludeS = c(p$productionCode,p$exportCode,p$importCode,p$stockCode,p$foodProcCode)
@@ -602,8 +600,6 @@ suaFilling = function(data, p = p, tree=tree,
     data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataNegImb,dataPosImbAll)
     
   }  #this brackets refer only at the second loop
-  
-  print("end Filling")
   
   data[, c("imbalance","sumUtils","sumSup") := NULL]   
   

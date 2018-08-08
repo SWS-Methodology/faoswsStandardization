@@ -715,8 +715,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   standData=copy(data)
   
-  print(head(standData))
-  
   standDatawide = dcast(standData, geographicAreaM49 +timePointYears + measuredItemFbsSua 
                         ~ measuredElementSuaFbs,value.var = "Value")
   
@@ -735,13 +733,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                           DESfoodSupply_kCd  + proteinSupplyQt_gCd + fatSupplyQt_gCd ~ measuredElementSuaFbs,value.var = "Value")
   
   
-  print("standData after calculateFoodAggregates")
-  print(head(standDatawide))
-  
+
   standDataLong = melt(standDatawide,id.vars = c("geographicAreaM49", "timePointYears","measuredItemFbsSua"),variable.name = "measuredElementSuaFbs", value.name = "Value")
   
-  print("ok melt")
-  
+
   fbs_sua_conversion2 <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins","DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "exports", "feed", "food",
                                                             "foodManufacturing", "imports", "loss", "production",
                                                             "seed", "stockChange", "residual","industrial", "tourist"),
@@ -749,10 +744,8 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                            "5023", "5610", "5016", "5510",
                                            "5525", "5071", "5166","5165", "5164"))
   
-  print("ok fbs_su_cnversion")
   standData = merge(standDataLong, fbs_sua_conversion2, by = "measuredElementSuaFbs")
-  print("ok merge")
-  
+
   standData = data.table(data.frame(standData))
   standData[,`:=`(measuredElementSuaFbs = NULL)]
   setnames(standData, "code", "measuredElementSuaFbs")
@@ -887,7 +880,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   data=nameData("suafbs","sua_unbalanced",data,except = c("measuredElementSuaFbs","geographicAreaM49","timePointYears"))
   setnames(data,"measuredItemFbsSua","measuredItemSuaFbs")
   
-  print("ok Name Data")
   #######################################################
   
   
