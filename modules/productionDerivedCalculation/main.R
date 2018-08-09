@@ -106,6 +106,7 @@ if(!file.exists(dir_to_save_plot)){
     dir.create(dir_to_save_plot, recursive = TRUE)
 }
 
+
 # dir_to_save_plot <- file.path(R_SWS_SHARE_PATH, "processedItem", paste0("validation", gsub("/", "_",swsContext.username)),"plot")
 dir_to_save_neg <- file.path(R_SWS_SHARE_PATH, "processedItem_SUA", paste0("validation_", gsub("/", "_",substr(swsContext.username,11, nchar(swsContext.username)))),"neg")
 # dir_to_save_plot <- "//hqfile4/ESS/Team_working_folder/B_C/3. SUA_FBS/Validation/Plot"
