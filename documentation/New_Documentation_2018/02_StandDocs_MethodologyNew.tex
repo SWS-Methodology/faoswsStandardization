@@ -84,7 +84,7 @@ Food and Agriculture Organization of the United Nations}
   \postauthor{\par}
       \predate{\centering\large\emph}
   \postdate{\par}
-    \date{8 August 2018}
+    \date{9 August 2018}
 
 \usepackage{lscape}
 \usepackage{booktabs}
@@ -112,6 +112,15 @@ Food and Agriculture Organization of the United Nations}
 \usepackage{amsthm}
 \usepackage{mathtools}
 \usepackage{caption}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
 
 \begin{document}
 \maketitle
@@ -731,7 +740,7 @@ differently from line to line. Figure \ref{fig:f4} shows the general
 Workflow of the \emph{Sua Filling} highlighting the distinction between
 primary and derived commodities.
 
-\begin{figure}
+\begin{figure}[h]
 
 {\centering \includegraphics[width=0.65\linewidth]{images/StandBal/04b_SuaFilling2} 
 
@@ -1110,7 +1119,7 @@ Table 7 reports \(Imb2\) for all the lines of the SUAs of our example.
 
 Three different scenarios con be found (Figure 5):
 
-\begin{figure}
+\begin{figure}[h]
 
 {\centering \includegraphics[width=0.8\linewidth]{images/StandBal/05b_ScenariosFilling} 
 
@@ -1236,7 +1245,7 @@ P_{StarchChina2014} = 239,816 + 74,204 = 314,020
 
 Notice that, after this step, all commodities are balanced.
 
-\begin{figure}
+\begin{figure}[h]
 
 {\centering \includegraphics{images/StandBal/06b_NegativeImbalance} 
 
@@ -1305,7 +1314,7 @@ through Utilizations. Here:
   The Imbalance is distributed among variables according to a, so
   called, \emph{Multiple Filler approach} that distributes imbalance
   according to weights proportional to median values of variables over a
-  time ange (2000-2013).
+  time range (2000-2013).
 \end{itemize}
 
 \subsubsection*{\texorpdfstring{--\textgreater{} The \emph{Utilization
@@ -1315,71 +1324,60 @@ Table}}{--\textgreater{} The Utilization Table}}\label{the-utilization-table}
 
 \emph{Utilization Table} is a Country/commodity table telling which
 Utilizations historically have been active for each commodity and
-assigning a Rank and an inverse rank to each utilization based on its
-mean value over the period 2000-2013. Table 9 shows the
-\emph{Utilization Table} for \emph{Wheat and meslin flour} in China
-Mainland.
+reporting the percentage of the median values of each utilization (over
+all utilizations). Median values are calculated over the period
+2000-2013. Table 9 shows the \emph{Utilization Table} for \emph{Wheat
+and meslin flour} in China Mainland.
 
 \begin{table}
 
-\caption{\label{tab:t8}*Utilization Table* Wheat and meslin Flour - China/Wheat/2014 example}
+\caption{\label{tab:t8}Utilization Table Wheat and meslin Flour - China/Wheat/2014 example}
 \centering
 \begin{tabular}[t]{c|c|c|c|c}
 \hline
-AreaM49 & Element & ItemCpc & rank & rankInv\\
+AreaM49 & Element & ItemCpc & medianRatio & Wr\\
 \hline
-1248 & FP & 23110 & 2 & 3\\
+1248 & FP & 23110 & 0.0303 & 0\\
 \hline
-1248 & Fo & 23110 & 1 & 4\\
+1248 & Fo & 23110 & 0.9657 & 1\\
 \hline
-1248 & DSt & 23110 & 4 & 1\\
+1248 & DSt & 23110 & 0.0000 & 0\\
 \hline
-1248 & X & 23110 & 3 & 2\\
+1248 & X & 23110 & 0.0040 & 0\\
 \hline
 \end{tabular}
 \end{table}
 
 Where \(1248\) is the m49 code for China Mainland and \(23110\) is the
-CPC code of Wheat and Meslin Flour. The table tells the following pieces
-of information:
+CPC code of Wheat and Meslin Flour. The reported commodity in China, as
+been historically used:
 
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
+\begin{itemize}
 \tightlist
 \item
-  The reported commodity in China, as been historically used:
-
-  \begin{itemize}
-  \tightlist
-  \item
-    for producing other commodities (\emph{Food Processing}),
-  \item
-    for human consumption (\emph{Food}),
-  \item
-    for increasing stocks (\emph{Stock Variation}),
-  \item
-    for exports (\emph{exports}).
-  \end{itemize}
+  for producing other commodities (\emph{Food Processing}),
 \item
-  The biggest amount of availability of the reported commodity was used
-  for Human consumption, the second big for processing other
-  commodities, then for exports and, in the end, for increasing stocks.
-\end{enumerate}
+  for human consumption (\emph{Food}),
+\item
+  for increasing stocks (\emph{Stock Variation}),
+\item
+  for exports (\emph{exports}).
+\end{itemize}
 
 These pieces of information are combined with the amount of \emph{Imb2}
 for filling the SUAs of each derived commodity according to a set of
 rules all falling into the, so called, \emph{Multiple Filler approach}.
 
 \subsubsection*{\texorpdfstring{--\textgreater{} The \emph{Multiple
-Filler Approach} and the \emph{Inverse Ranking
-Rule}}{--\textgreater{} The Multiple Filler Approach and the Inverse Ranking Rule}}\label{the-multiple-filler-approach-and-the-inverse-ranking-rule}
+Filler
+Approach}}{--\textgreater{} The Multiple Filler Approach}}\label{the-multiple-filler-approach}
 \addcontentsline{toc}{subsubsection}{--\textgreater{} The \emph{Multiple
-Filler Approach} and the \emph{Inverse Ranking Rule}}
+Filler Approach}}
 
 This approach distributes the \(Imb2\) across Utilizations, by the rules
 reported in Figure \ref{fig:f7}.
 
-\begin{figure}
+\begin{figure}[h]
 
 {\centering \includegraphics{images/StandBal/07b_PositiveImbalance} 
 
@@ -1394,25 +1392,25 @@ As reported in the Figure, Three cases may happen:
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  If all the ranked Utilizations are already filled, all of them are
-  increased proportionally to their values. \emph{Bran of Wheat} in our
-  example, belongs to this case. \emph{Utilization Table} for Bran of
-  Wheat is reported in Table 10
+  If all the Utilizations included in the table are already filled, all
+  of them are increased proportionally to their values. \emph{Bran of
+  Wheat} in our example, belongs to this case. \emph{Utilization Table}
+  for Bran of Wheat is reported in Table 10
 \end{enumerate}
 
 \begin{table}
 
-\caption{\label{tab:t9}*Utilization Table* Bran of Wheat - China/Wheat/2014 example}
+\caption{\label{tab:t9}Utilization Table Bran of Wheat - China/Wheat/2014 example}
 \centering
 \begin{tabular}[t]{c|c|c|c|c}
 \hline
-AreaM49 & Element & ItemCpc & rank & rankInv\\
+AreaM49 & Element & ItemCpc & medianRatio & Wr\\
 \hline
-1248 & Fe & 39120.01 & 2 & 2\\
+1248 & Fe & 39120.01 & 0.1366 & 1\\
 \hline
-1248 & Fo & 39120.01 & 1 & 3\\
+1248 & Fo & 39120.01 & 0.8625 & 1\\
 \hline
-1248 & X & 39120.01 & 3 & 1\\
+1248 & X & 39120.01 & 0.0009 & 0\\
 \hline
 \end{tabular}
 \end{table}
@@ -1429,36 +1427,34 @@ therefore, all of them are increased proportionally to their values.
 \def\labelenumi{\arabic{enumi}.}
 \setcounter{enumi}{1}
 \item
-  If all the ranked Utilizations are already filled but one, the all
+  If all the activable Utilizations are already filled but one, the all
   imbalance goes to that commodity. In our Example, this is the case of
-  \emph{Gluten Feed and meals} (Table 10).
+  \emph{Gluten Feed and meals} (Table 8).
 \item
-  Finally, if more that one utilization is empty, the so called
-  \textbf{\emph{Inverse Ranking rule}} is activated. This rule assigns
-  part of the imbalance to the ranked Utilizations proportionally to the
-  ranks. This happens by making use of the inverse rank of all the
-  Utilizations that are ``actionable'' and not excluded from the
-  procedure. The rule works for any number of ranks and independently
-  from the number of Utilizations that have to be excluded.
+  Finally, if more that one utilization is empty, a weighted approach is
+  used. This rule assigns part of the imbalance to the Utilizations
+  proportionally to the percentage of the median of that utilization on
+  all other utilizations, as included in the Utilization Table. The rule
+  works independently from the number of Utilizations that have to be
+  excluded.
 \end{enumerate}
 
 \begin{quote}
-The \emph{Inverse ranking rule} starts from the \emph{Utilization Table}
-with the addition of a column containing the \emph{rank weigth \(Wr\)},
-as reported in the following table:
+Given the \emph{Utilization Table} and considering the weights of the
+elements \emph{\(Wr\)}, as reported in the following table:
 \end{quote}
 
 \begin{quote}
 \begin{center}
 \begin{tabular}{ c|c|c|c } 
 \hline
-element ($Ut_{h}$) & rank ($r_{h}$) & Inverse rank ($Ir_{h}$) & weight Rank ($Wr_{h}$)\\
+element ($Ut_{h}$) & median ratio ($MeR_{h}$) & Utilization weight ($Wr_{h}$)\\
 \hline
-$Ut_{1}$ & $r_{1}$ & $Ir_{1}$  & $Wr_{1}$\\ 
+$Ut_{1}$ & $MeR_{1}$ &  & $Wr_{1}$\\ 
 ... & ... & ... & ...\\ 
-$Ut_{h}$ & $r_{h}$ & $Ir_{h}$  & $Wr_{h}$\\ 
+$Ut_{h}$ & $MeR_{h}$ & $Wr_{h}$\\ 
 ... & ... & ... & ...\\ 
-$Ut_{n}$ & $r_{n}$ & $Ir_{n}$  & $Wr_{n}$\\ 
+$Ut_{n}$ & $MeR_{n}$ & $Wr_{n}$\\ 
 \hline
 \end{tabular}
 \end{center}
@@ -1474,67 +1470,50 @@ where:
 \item
   \(Ut_{h}\) is the generic utilization, with \(h=1,2,...n\)
 \item
-  \(r_{h}\) is the rank of utilization \(Ut_{h}\), with \(h=1,2,...n\)
+  \(MeR_{h}\) is the Median ratio of utilization \(Ut_{h}\), with
+  \(h=1,2,...n\)
 \item
-  \(hr_{h}\) is the Inverse rank of utilization \(Ut_{h}\), with
-  \(h=1,2,...n\) and is equal to:
-\end{itemize}
-\end{quote}
-
-\begin{quote}
-\begin{quote}
-\begin{equation}
-\label{eq:inverseRankequation}
-Ir_{h} = max(r)-r_{h}+1
-\end{equation}
-\end{quote}
-\end{quote}
-
-\begin{quote}
-\begin{itemize}
-\tightlist
-\item
-  \(Wr_{h}\) is the rank weight of utilization \(Ut_{h}\) and is equal
-  to 0 or 1 depending on the element being, respectively, exluded or not
-  from the \emph{Sua Filling} (Table 11).
+  \(Wr_{h}\) is the weight of utilization \(Ut_{h}\) and is equal to 0
+  or 1 depending on the element being, respectively, exluded or not from
+  the \emph{Sua Filling} (Table 11).
 \end{itemize}
 \end{quote}
 
 \begin{table}
 
-\caption{\label{tab:t10}Rank Weight of the elements of FBS}
+\caption{\label{tab:t10}Weight of the elements in the Multiple filler approach}
 \centering
 \begin{tabular}[t]{c|c}
 \hline
 Utilizations & Wr\\
 \hline
-\$X\$ & \$0\$\\
+X & 0\\
 \hline
-\$DSt\$ & \$0\$\\
+DSt & 0\\
 \hline
-\$Fo\$ & \$1\$\\
+Fo & 1\\
 \hline
-\$FP\$ & \$0\$\\
+FP & 0\\
 \hline
-\$Fe\$ & \$1\$\\
+Fe & 1\\
 \hline
-\$Se\$ & \$1\$\\
+Se & 1\\
 \hline
-\$T\$ & \$1\$\\
+T & 1\\
 \hline
-\$IU\$ & \$1\$\\
+IU & 1\\
 \hline
-\$L\$ & \$1\$\\
+L & 1\\
 \hline
-\$ROU\$ & \$0\$\\
+ROU & 0\\
 \hline
 \end{tabular}
 \end{table}
 
 \begin{quote}
 The value \(V_{h}\) assigned to the Utilizations of each commodity is
-calculated as a rank based proportion \(pR_{h}\) of the total \(Imb2\)
-according to the following equation:
+calculated as a proportion \(pR_{h}\) of the total \(Imb2\) according to
+the following equation:
 \end{quote}
 
 \begin{quote}
@@ -1553,7 +1532,7 @@ with \(pR_{h}\) depending on \(\sum \limits_{h=1}^n Wr_{h}\):
 \label{eq:weightRank}
 \begin{cases}
 pR_{h} = 0     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} = 0\\
-pR_{h} = \frac{Ir_{h}\times Wr_{h}}{\sum \limits_{i=1}^n\left(Ir_{h}\times Wr_{h}\right)}     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} > 0 
+pR_{h} = \frac{MeR_{h}\times Wr_{h}}{\sum \limits_{i=1}^n\left(MeR_{h}\times Wr_{h}\right)}     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} > 0 
 \end{cases}
 \end{equation}
 \end{quote}
@@ -1569,30 +1548,30 @@ country/commodity combination (Table 13)
 
 \begin{table}
 
-\caption{\label{tab:t11}Sua of Cocoa Beans Madagascar 2014 - before *Sua Filling*}
+\caption{\label{tab:t11}Sua of Cocoa Beans Madagascar 2014 - before Sua Filling}
 \centering
 \begin{tabular}[t]{c|c|c|c|c|c|c|c|c|c|c|c|c|c}
 \hline
 itemName & P & I & X & DSt & Fo & FP & Fe & Se & T & IU & L & ROU & Imb2\\
 \hline
-*Cocoa beans* & 10,865 & 36 & 8,326 & - & - & - & - & - & - & - & 743 & - & ***1,832***\\
+Cocoa beans & 10,865 & 36 & 8,326 & - & - & - & - & - & - & - & 743 & - & ***1,832***\\
 \hline
 \end{tabular}
 \end{table}
 
 \begin{table}
 
-\caption{\label{tab:t12}*Utilization Table* for Cocoa Beans Madagascar}
+\caption{\label{tab:t12}Utilization Table for Cocoa Beans Madagascar}
 \centering
 \begin{tabular}[t]{c|c|c}
 \hline
-Ut & relative.median & Wr\\
+Ut & medianRatio & Wr\\
 \hline
 FP & 0.00 & 0\\
 \hline
-Fo & 0.26 & 1\\
+Fo & 0.20 & 1\\
 \hline
-IU & 0.00 & 1\\
+IU & 0.06 & 1\\
 \hline
 DSt & 0.00 & 0\\
 \hline
@@ -1603,42 +1582,39 @@ X & 0.74 & 0\\
 
 \begin{quote}
 Besides the excluded elements, there are 2 Utilizations empty:
-\emph{food} and \emph{Industrial Use}. The Values \(V_{Fo}\) and
-\(V_{IU}\) of these two elements are calculated as follows and the
-result shown in Table 14:
+\emph{food} and \emph{Industrial Use} (even if this last is equal to
+zero. The Values \(V_{Fo}\) and \(V_{IU}\) of these two elements are
+calculated as follows and the result shown in Table 14:
 \end{quote}
 
 \begin{quote}
 \begin{equation}
 \begin{aligned}
-pR_{Fo} &= \frac{4\times 1}{0 + 0 + 4 + 3 + 0 + 0} = 4/7 = 0.57143 \\
-V_{Fo} &= 1,832 \times 0.57143 = 1,047 
+pR_{Fo} &= \frac{0.2\times 1}{0 + 0 + 0.2 + 0.06 + 0 + 0} = 0.77 \\
+V_{Fo} &= 1,832 \times 0.77 = 1,409.23 
 \end{aligned}
 \end{equation}
-\end{quote}
-
-\begin{quote}
 \end{quote}
 
 \begin{quote}
 \begin{equation}
 \begin{aligned}
 \label{eq:VIUC}
-pR_{IU} &= \frac{3\times 1}{0 + 0 + 4 + 3 + 0 + 0} = 3/7 = 0.42857\\
-V_{IU} &= 1,832 \times 0.42857 = 785
+pR_{IU} &= \frac{0.06\times 1}{0 + 0 + 0.2 + 0.06 + 0 + 0} = 0.23\\
+V_{IU} &= 1,832 \times 0.23 = 422.78
 \end{aligned}
 \end{equation}
 \end{quote}
 
 \begin{table}
 
-\caption{\label{tab:t13}Sua line of Cocoa Beans Madagascar 2014 - after *Sua Filling*}
+\caption{\label{tab:t13}Sua line of Cocoa Beans Madagascar 2014 - after Sua Filling}
 \centering
 \begin{tabular}[t]{c|c|c|c|c|c|c|c|c|c|c|c|c|c}
 \hline
 itemName & P & I & X & DSt & Fo & FP & Fe & Se & T & IU & L & ROU & Imb2\\
 \hline
-*Cocoa beans* & 10,865 & 36 & 8326 & - & ***1,832*** & - & - & - & - & 0 & 743 & - & ***0***\\
+Cocoa beans & 10,865 & 36 & 8326 & - & **1,409.23** & - & - & - & - & **422.78** & 743 & - & ***0***\\
 \hline
 \end{tabular}
 \end{table}
@@ -1650,77 +1626,6 @@ table}{The Sua Balanced table}}\label{the-sua-balanced-table}
 The table resulting after the \emph{Sua Filling} is called \emph{Sua
 Balanced}. For the \emph{China/Wheat/2014} example the \emph{Sua
 Balanced} is reported in Table 15.
-
-The red lines are not balanced lines. Indeed, the \emph{Sua Filling}
-procedure does not intervene on all the commodities. It leaves
-unbalanced all the ``top level'' commodities falling in 2 main
-categories:
-
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\tightlist
-\item
-  The \emph{Primary commodities}. These are all the crop commodities,
-  like cereals, pulses, vegetables, fruits etc, that are often processed
-  in other commodities, like the wheat in flour of wheat.
-\item
-  The \emph{no tree} commodities. These commodities are excluded from
-  the list of commodities that are processed into something else, they
-  are often mixes of some other crop or commodity and used for specific
-  purposes, i.e. \emph{Mixes and dough for the preparation of baker's
-  wares} and \emph{Food preparations of Flour, Meal or Malt Extract}
-  from our example.
-\end{enumerate}
-
-Therefore 3 lines are not balanced in Table 15, belonging to these 2
-categories of ``not balanced'' commodities.
-
-\begin{landscape}\begin{table}
-
-\caption{\label{tab:t14}Sua Balanced - China/Wheat/2014 example}
-\centering
-\resizebox{\linewidth}{!}{
-\fontsize{18}{20}\selectfont
-\begin{tabular}[t]{r|l|l|l|l|l|l|l|l|l|l|l|l|>{\bfseries\em\raggedright\arraybackslash\leavevmode\color{red}}p{10em}}
-\hline
-\multicolumn{1}{r}{\textbf{itemName}} & \multicolumn{1}{c}{\textbf{P}} & \multicolumn{1}{c}{\textbf{I}} & \multicolumn{1}{c}{\textbf{X}} & \multicolumn{1}{c}{\textbf{DSt}} & \multicolumn{1}{c}{\textbf{Fo}} & \multicolumn{1}{c}{\textbf{FP}} & \multicolumn{1}{c}{\textbf{Fe}} & \multicolumn{1}{c}{\textbf{Se}} & \multicolumn{1}{c}{\textbf{T}} & \multicolumn{1}{c}{\textbf{IU}} & \multicolumn{1}{c}{\textbf{L}} & \multicolumn{1}{c}{\textbf{ROU}} & \multicolumn{1}{c}{\textbf{Imb2}}\\
-\hline
-Wheat & 126,208,400 & 2,971,249 & 957 & 1,079,280 &  & 90,384,615 & 28,106,487 & 84,119,970 &  & 2,875,293 & 2,613,046 & - & 0\\
-\hline
-Wheat and meslin flo & 70,500,000 & 33,055 & 188,674 &  & 68,372,646 & 1,958,146 &  &  & -17,621 &  &  & - & 0\\
-\hline
-Mixes and doughs for & 31,575 & 6,497 & 38,072 &  & 0 &  & 0 &  & 0 &  &  & - & 0\\
-\hline
-Other Fructose and S & 158,665 & 3,659 & 162,324 &  & 0 &  &  &  & 0 &  &  & - & 0\\
-\hline
-Starch of Wheat & 314,020 & 11,035 & 40,311 &  &  & 158,664 & 120,537 &  &  & 5,543 &  & - & 0\\
-\hline
-Wheat Gluten & 381,076 & 877 & 117,373 &  &  & 0 & 0 &  &  &  &  & - & 0\\
-\hline
-Communion wafers & 13,263 & 8,796 & 5,822 &  & 16,241 &  &  &  & -4 &  &  & - & 0\\
-\hline
-Uncooked pasta & 1,415,692 & 12,520 & 22,550 &  & 1,406,024 &  &  &  & -363 &  &  & - & 0\\
-\hline
-Food Preparations of &  & 69,686 & 21,977 &  & 47,721 &  &  &  & -12 &  &  & - & 0\\
-\hline
-Bran of Wheat & 21,414,279 & 156,359 & 2,200 &  & 16,689,929 &  & 4,882,810 &  & -4,301 &  &  & - & 0\\
-\hline
-Gluten Feed and Meal & 793,740 & 160,230 & 529,333 &  &  &  & 424,637 &  &  &  &  & - & 0\\
-\hline
-bread & 15,485 & 2,897 & 4,210 &  & 14,175 &  &  &  & -3 &  &  & - & 0\\
-\hline
-pastry & 193,950 & 89,593 & 117,630 &  & 165,957 &  &  &  & -42.75 &  &  & - & 0\\
-\hline
-\multicolumn{14}{l}{\textsuperscript{a} \makecell[l]{P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing,\\ Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses}}\\
-\end{tabular}}
-\end{table}
-\end{landscape}
-
-\emph{Zero-level} commodities are excluded form the filling because the
-standardization will affect the figures of the primary commodities, this
-opening the need for a final \emph{balancing} procedure. In order not to
-intervene twice on these commodities, it has been decide to keep as
-smaller as possible the number correction, so to reduce error.
 
 \subsection*{Nutritive Values and DES
 calculation}\label{nutritive-values-and-des-calculation}
@@ -1763,6 +1668,47 @@ commodities, and \(t\) over years.
 
 DES for the food commodities in the \emph{China/Wheat/2014} example are
 reported in Table 16
+
+\begin{landscape}\begin{table}
+
+\caption{\label{tab:t14}Sua Balanced - China/Wheat/2014 example}
+\centering
+\resizebox{\linewidth}{!}{
+\fontsize{18}{20}\selectfont
+\begin{tabular}[t]{r|l|l|l|l|l|l|l|l|l|l|l|l|>{\bfseries\em\raggedright\arraybackslash\leavevmode\color{red}}p{10em}}
+\hline
+\multicolumn{1}{r}{\textbf{itemName}} & \multicolumn{1}{c}{\textbf{P}} & \multicolumn{1}{c}{\textbf{I}} & \multicolumn{1}{c}{\textbf{X}} & \multicolumn{1}{c}{\textbf{DSt}} & \multicolumn{1}{c}{\textbf{Fo}} & \multicolumn{1}{c}{\textbf{FP}} & \multicolumn{1}{c}{\textbf{Fe}} & \multicolumn{1}{c}{\textbf{Se}} & \multicolumn{1}{c}{\textbf{T}} & \multicolumn{1}{c}{\textbf{IU}} & \multicolumn{1}{c}{\textbf{L}} & \multicolumn{1}{c}{\textbf{ROU}} & \multicolumn{1}{c}{\textbf{Imb2}}\\
+\hline
+Wheat & 126,208,400 & 2,971,249 & 957 & 1,079,280 &  & 90,384,615 & 28,106,487 & 84,119,970 &  & 2,875,293 & 2,613,046 & - & 0\\
+\hline
+Wheat and meslin flo & 70,500,000 & 33,055 & 188,674 &  & 68,372,646 & 1,958,146 &  &  & -17,621 &  &  & - & 0\\
+\hline
+Mixes and doughs for & 31,575 & 6,497 & 38,072 &  & 0 &  & 0 &  & 0 &  &  & - & 0\\
+\hline
+Other Fructose and S & 158,665 & 3,659 & 162,324 &  & 0 &  &  &  & 0 &  &  & - & 0\\
+\hline
+Starch of Wheat & 314,020 & 11,035 & 40,311 &  &  & 158,664 & 120,537 &  &  & 5,543 &  & - & 0\\
+\hline
+Wheat Gluten & 381,076 & 877 & 117,373 &  &  & 0 & 0 &  &  &  &  & - & 0\\
+\hline
+Communion wafers & 13,263 & 8,796 & 5,822 &  & 16,241 &  &  &  & -4 &  &  & - & 0\\
+\hline
+Uncooked pasta & 1,415,692 & 12,520 & 22,550 &  & 1,406,024 &  &  &  & -363 &  &  & - & 0\\
+\hline
+Food Preparations of &  & 69,686 & 21,977 &  & 47,721 &  &  &  & -12 &  &  & - & 0\\
+\hline
+Bran of Wheat & 21,414,279 & 156,359 & 2,200 &  & 16,689,929 &  & 4,882,810 &  & -4,301 &  &  & - & 0\\
+\hline
+Gluten Feed and Meal & 793,740 & 160,230 & 529,333 &  &  &  & 424,637 &  &  &  &  & - & 0\\
+\hline
+bread & 15,485 & 2,897 & 4,210 &  & 14,175 &  &  &  & -3 &  &  & - & 0\\
+\hline
+pastry & 193,950 & 89,593 & 117,630 &  & 165,957 &  &  &  & -42.75 &  &  & - & 0\\
+\hline
+\multicolumn{14}{l}{\textsuperscript{a} \makecell[l]{P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing,\\ Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses}}\\
+\end{tabular}}
+\end{table}
+\end{landscape}
 
 \begin{table}
 
@@ -2148,31 +2094,31 @@ each element as reported in the following Table:
 \centering
 \begin{tabular}[t]{c|c}
 \hline
-\$el\$ & \$varP\_\{el\}\$\\
+el & varP\_\{el\}\\
 \hline
-\$P\$ & \$0.1\textbackslash{}\%\$\\
+P & 0.10\%\\
 \hline
-\$I\$ & \$1\textbackslash{}\%\$\\
+I & 1\%\\
 \hline
-\$X\$ & \$1\textbackslash{}\%\$\\
+X & 1\%\\
 \hline
-\$DSt\$ & \$25\textbackslash{}\%\$\\
+DSt & 25\%\\
 \hline
-\$Fo\$ & \$5\textbackslash{}\%\$\\
+Fo & 5\%\\
 \hline
-\$FP\$ & \$25\textbackslash{}\%\$\\
+FP & 25\%\\
 \hline
-\$Fe\$ & \$25\textbackslash{}\%\$\\
+Fe & 25\%\\
 \hline
-\$Se\$ & \$25\textbackslash{}\%\$\\
+Se & 25\%\\
 \hline
-\$T\$ & \$25\textbackslash{}\%\$\\
+T & 25\%\\
 \hline
-\$IU\$ & \$25\textbackslash{}\%\$\\
+IU & 25\%\\
 \hline
-\$L\$ & \$25\textbackslash{}\%\$\\
+L & 25\%\\
 \hline
-\$ROU\$ & \$0\$\\
+ROU & 0\\
 \hline
 \end{tabular}
 \end{table}
@@ -2291,93 +2237,45 @@ Table 22 reports all the steps of the final balancing in the
 China/Wheat/2014 example for \emph{Wheat}, including the final
 adjustment of the DES.
 
-\begin{table}
+\begin{landscape}\begin{table}
 
 \caption{\label{tab:t22}Final Balancing - China/Wheat/2014 - Wheat}
 \centering
 \begin{tabular}[t]{r|l|l|l|l|l|l|l|l}
 \hline
-\textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$V\_\{el \textbackslash{}in E\}\$ & \textbackslash{}boldmath\$varP\$ & \textbackslash{}boldmath\$V\_\{el\} \textbackslash{}times varP\$ & \textbackslash{}boldmath\$p\_\{adj\_\{el\}\}\$ & \textbackslash{}boldmath\$adj\_\{el \textbackslash{}in E\}\$ & \textbackslash{}boldmath\$V\textasciicircum{}*\_\{el \textbackslash{}in E\}\$ & \textbackslash{}boldmath\$DES\$ & \textbackslash{}boldmath\$DES\textasciicircum{}*\$\\
+\textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$\\
 \hline
-\$P\$ & 126,208,400 & 0.001 & 126,208 & 0.01 & 13,426 & 126,221,826 & - & -\\
+P & 126,208,400 & 0.001 & 126,208 & 0.01 & 13,426 & 126,221,826 & - & -\\
 \hline
-\$I\$ & 3,184,654 & 0.01 & 31,847 & 0 & 3,388 & 3,188,042 & - & -\\
+I & 3,184,654 & 0.01 & 31,847 & 0 & 3,388 & 3,188,042 & - & -\\
 \hline
-\$X\$ & 781,808 & 0.01 & 7,818 & 0 & -832 & 780,976 & - & -\\
+X & 781,808 & 0.01 & 7,818 & 0 & -832 & 780,976 & - & -\\
 \hline
-\$\textbackslash{}Delta St\$ & 1,120,565 & 0.25 & 280,141 & 0.02 & -29,801 & 1,090,764 & - & -\\
+St & 1,120,565 & 0.25 & 280,141 & 0.02 & -29,801 & 1,090,764 & - & -\\
 \hline
-\$Fo\$ & 89,711,591 & 0.05 & 4,485,580 & 0.3 & -477,172 & 89,234,419 & 560.03 & ***557.05***\\
+Fo & 89,711,591 & 0.05 & 4,485,580 & 0.3 & -477,172 & 89,234,419 & 560.03 & ***557.05***\\
 \hline
-\$FP\$ & 0 & 0.01 & 0 & 0 & 0 & 0 & - & -\\
+FP & 0 & 0.01 & 0 & 0 & 0 & 0 & - & -\\
 \hline
-\$Fe\$ & 29,387,664 & 0.25 & 7,346,916 & 0.5 & -781,559 & 28,606,105 & - & -\\
+Fe & 29,387,664 & 0.25 & 7,346,916 & 0.5 & -781,559 & 28,606,105 & - & -\\
 \hline
-\$Se\$ & 4,277,567 & 0.25 & 1,069,392 & 0.07 & -113,761 & 4,163,806 & - & -\\
+Se & 4,277,567 & 0.25 & 1,069,392 & 0.07 & -113,761 & 4,163,806 & - & -\\
 \hline
-\$T\$ & -22,766.50 & 0.25 & -5,692 & 0 & 605 & -22,161 & - & -\\
+T & -22,766.50 & 0.25 & -5,692 & 0 & 605 & -22,161 & - & -\\
 \hline
-\$IU\$ & 2,994,755 & 0.25 & 748,689 & 0.05 & -79,645 & 2,915,110 & - & -\\
+IU & 2,994,755 & 0.25 & 748,689 & 0.05 & -79,645 & 2,915,110 & - & -\\
 \hline
-\$L\$ & 2,713,000 & 0.25 & 678,250 & 0.05 & -72,152 & 2,640,848 & - & -\\
+L & 2,713,000 & 0.25 & 678,250 & 0.05 & -72,152 & 2,640,848 & - & -\\
 \hline
-\$ROU\$ & - & - & - & - & - & - & - & -\\
+ROU & - & - & - & - & - & - & - & -\\
 \hline
-\textbackslash{}boldmath\$Imb2\$ & **-1,571,130** & - & - & - & - & ***0*** & - & -\\
+Imb2 & **-1,571,130** & - & - & - & - & ***0*** & - & -\\
 \hline
-\textbackslash{}boldmath\$\textbackslash{}sum \textbackslash{}limits\_\{el \textbackslash{}in E\}\$ &  &  & **14,769,149** & - & - & - & - & -\\
-\hline
-\end{tabular}
-\end{table}
-
-The balancing of the commodity \emph{Food Preparations of} is reported
-in Table 23. In this case, the imbalance is positive and absorbed by the
-element \emph{ROU}.
-
-\newpage
-
-\begin{table}
-
-\caption{\label{tab:t24}Final Balancing - China/Wheat/2014 - Food Preparations}
-\centering
-\begin{tabular}[t]{r|l|l|l|l}
-\hline
-\textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$V\_\{el \textbackslash{}in E\}\$ & \textbackslash{}boldmath\$V\textasciicircum{}*\_\{el \textbackslash{}in E\}\$ & \textbackslash{}boldmath\$DES\$ & \textbackslash{}boldmath\$DES\textasciicircum{}*\$\\
-\hline
-\$P\$ &  &  & - & -\\
-\hline
-\$I\$ & 69,685.96 & 69,685.96 & - & -\\
-\hline
-\$X\$ & 21,977.43 & 21,977.43 & - & -\\
-\hline
-\$\textbackslash{}Delta St\$ & 0 & 0 & - & -\\
-\hline
-\$Fo\$ & 47,708.53 & 47,708.53 & 0.3545 & 0.3545\\
-\hline
-\$FP\$ & 0 & 0 & - & -\\
-\hline
-\$Fe\$ & 0 & 0 & - & -\\
-\hline
-\$Se\$ & 0 & 0 & - & -\\
-\hline
-\$T\$ & -12.2958 & -12.2958 & - & -\\
-\hline
-\$IU\$ & 0 & 0 & - & -\\
-\hline
-\$L\$ & 0 & 0 & - & -\\
-\hline
-\$ROU\$ & - & 12 & - & -\\
-\hline
-\textbackslash{}boldmath\$Imb2\$ & **12** & ***0*** & - & -\\
-\hline
-\textbackslash{}boldmath\$TS\$ & **69,685.96** & - & - & -\\
-\hline
-\textbackslash{}boldmath\$TS \textbackslash{}times 0.05\$ & **3,484.298** &  &  & \\
-\hline
-\textbackslash{}boldmath\$|Imb2| < TS \textbackslash{}times 0.05\$ & **TRUE** &  &  & \\
+sum(el) &  &  & **14,769,149** & - & - & - & - & -\\
 \hline
 \end{tabular}
 \end{table}
+\end{landscape}
 
 \section{Final aggregation: FBS items and FBS
 aggregates}\label{final-aggregation-fbs-items-and-fbs-aggregates}

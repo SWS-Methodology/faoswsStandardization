@@ -414,7 +414,7 @@ suaFilling = function(data, p = p, tree=tree,
       }else{
         # Se tutti i Value sono popolati
         if(length(dataPosImbAll[measuredItemSuaFbs==i
-                                &!(get(p$elementVar)%in%eleToExclude)
+                                &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
                                 &!is.na(rank)&(is.na(Value)),Value])==0){
           # distribuisci inbalance proporzionalmente ai value stessi (considerando anche quelli che non hanno 
           # eventualmente ranking)

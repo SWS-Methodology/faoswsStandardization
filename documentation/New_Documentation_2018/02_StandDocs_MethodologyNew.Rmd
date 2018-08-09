@@ -14,6 +14,15 @@ header-includes:
 - \usepackage{amsthm}
 - \usepackage{mathtools}
 - \usepackage{caption}
+- \usepackage{booktabs}
+- \usepackage{longtable}
+- \usepackage{array}
+- \usepackage{multirow}
+- \usepackage[table]{xcolor}
+- \usepackage{wrapfig}
+- \usepackage{float}
+- \usepackage{colortbl}
+- \usepackage{pdflscape}
 author:
 - Cristina Muschitiello\
 
@@ -37,7 +46,7 @@ output:
     toc_depth: 4
 ---
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, fig.pos = "h")
 # local({
 # r <- getOption("repos")
 # r["faoswsCRAN"] <- "http://hqlprsws1.hq.un.fao.org/fao-sws-cran/"
@@ -59,6 +68,7 @@ library(reshape2)
 library(kableExtra)
 library(captioner)
 library(xtable)
+library(knitr)
 ```
 
 
@@ -603,7 +613,7 @@ landscape(knitr::kable(table,format="latex",caption = "Sua table with Utilizatio
 When $Imb2 >0$ there is an excess of supply that has to be distributed through Utilizations. Here:  
 
  * A *Utilization Table* tells which figures are supposed to be filled.
- * The Imbalance is distributed among variables according to a, so called, *Multiple Filler approach* that distributes imbalance according to weights proportional to median values of variables over a time ange (2000-2013).
+ * The Imbalance is distributed among variables according to a, so called, *Multiple Filler approach* that distributes imbalance according to weights proportional to median values of variables over a time range (2000-2013).
  
 
 ### --> The *Utilization Table* {-}
@@ -612,27 +622,24 @@ When $Imb2 >0$ there is an excess of supply that has to be distributed through U
 
 
 ```{r t8, fig.cap=t8_cap, fig.pos = "H"}
-table=data.table(read.csv("tables/StandBal/08_FlourWheatUtilizationT.csv"))
-knitr::kable(table,caption = "*Utilization Table* Wheat and meslin Flour - China/Wheat/2014 example",
+table=data.table(read.csv("tables/StandBal/08b_FlourWheatUtilizationT.csv"))
+knitr::kable(table,caption = "Utilization Table Wheat and meslin Flour - China/Wheat/2014 example",
              align = c(rep("c",length(colnames(table))-1)))
 
 ```
 
-Where $1248$ is the m49 code for China Mainland and $23110$ is the CPC code of Wheat and Meslin Flour. The table tells the following pieces of information: 
+Where $1248$ is the m49 code for China Mainland and $23110$ is the CPC code of Wheat and Meslin Flour. The reported commodity in China, as been historically used:
 
- 1. The reported commodity in China, as been historically used:
-  * for producing other commodities (*Food Processing*),
-  * for human consumption (*Food*),
-  * for increasing stocks (*Stock Variation*),
-  * for exports (*exports*).
- 2. The biggest amount of availability of the reported commodity was used for Human consumption, the second big for processing other commodities, then for exports and, in the end, for increasing stocks.
+ * for producing other commodities (*Food Processing*),
+ * for human consumption (*Food*),
+ * for increasing stocks (*Stock Variation*),
+ * for exports (*exports*).
 
 These pieces of information are combined with the amount of *Imb2* for filling the SUAs of each derived commodity according to a set of rules all falling into the, so called, *Multiple Filler approach*.
 
-### --> The *Multiple Filler Approach* and the *Inverse Ranking Rule* {-}
+### --> The *Multiple Filler Approach* {-}
 
 This approach distributes the $Imb2$ across Utilizations, by the rules reported in Figure \ref{fig:f7}.
-
 
 ```{r f7, fig.align = "center",  fig.cap = "\\label{fig:f5}Workflow of Sua Filling when there is a positive imbalance"}
 
@@ -642,12 +649,12 @@ knitr::include_graphics("images/StandBal/07b_PositiveImbalance.pdf")
 
 As reported in the Figure, Three cases may happen: 
 
-1. If all the ranked Utilizations are already filled, all of them are increased proportionally to their values. *Bran of Wheat* in our example, belongs to this case. *Utilization Table* for Bran of Wheat is reported in `r table_nums("t9",display = "cite")`
+1. If all the Utilizations included in the table are already filled, all of them are increased proportionally to their values. *Bran of Wheat* in our example, belongs to this case. *Utilization Table* for Bran of Wheat is reported in `r table_nums("t9",display = "cite")`
 
 
 ```{r t9, fig.cap=t9_cap, fig.pos = "H"}
-table=data.table(read.csv("tables/StandBal/09_BranWheatUtilizationT.csv"))
-knitr::kable(table,caption = "*Utilization Table* Bran of Wheat - China/Wheat/2014 example",
+table=data.table(read.csv("tables/StandBal/09b_BranWheatUtilizationT.csv"))
+knitr::kable(table,caption = "Utilization Table Bran of Wheat - China/Wheat/2014 example",
              align = c(rep("c",length(colnames(table))-1)))
 
 ```
@@ -655,24 +662,24 @@ knitr::kable(table,caption = "*Utilization Table* Bran of Wheat - China/Wheat/20
 
 > According to this table, there are 3 Utilizations that are suppose to be active for this commodity: *feed*, *food* and *exports*. *Exports* is excluded from this step, therefore, food and feed reamain. Both Variables are filled in the SUA line of This Commodity, therefore, all of them are increased proportionally to their values. 
 
-2. If all the ranked Utilizations are already filled but one, the all imbalance goes to that commodity. In our Example, this is the case of *Gluten Feed and meals* (`r table_nums("t9",display = "cite")`).
+2. If all the activable  Utilizations are already filled but one, the all imbalance goes to that commodity. In our Example, this is the case of *Gluten Feed and meals* (`r table_nums("t7",display = "cite")`).
 
 
-3. Finally, if more that one utilization is empty, the so called ***Inverse Ranking rule*** is activated. This rule assigns part of the imbalance to the ranked Utilizations proportionally to the ranks. This happens by making use of the inverse rank of all the Utilizations that are "actionable" and not excluded from the procedure. The rule works for any number of ranks and independently from the number of Utilizations that have to be excluded. 
+3. Finally, if more that one utilization is empty, a weighted approach is used. This rule assigns part of the imbalance to the Utilizations proportionally to the percentage of the median of that utilization on all other utilizations, as included in the Utilization Table. The rule works independently from the number of Utilizations that have to be excluded. 
 
-> The *Inverse ranking rule* starts from the *Utilization Table* with the addition of a column containing the *rank weigth $Wr$*, as reported in the following table: 
+> Given the *Utilization Table* and considering the weights of the elements *$Wr$*, as reported in the following table: 
 
 
 > \begin{center}
 \begin{tabular}{ c|c|c|c } 
  \hline
-element ($Ut_{h}$) & rank ($r_{h}$) & Inverse rank ($Ir_{h}$) & weight Rank ($Wr_{h}$)\\
+element ($Ut_{h}$) & median ratio ($MeR_{h}$) & Utilization weight ($Wr_{h}$)\\
  \hline
-$Ut_{1}$ & $r_{1}$ & $Ir_{1}$  & $Wr_{1}$\\ 
+$Ut_{1}$ & $MeR_{1}$ &  & $Wr_{1}$\\ 
 ... & ... & ... & ...\\ 
-$Ut_{h}$ & $r_{h}$ & $Ir_{h}$  & $Wr_{h}$\\ 
+$Ut_{h}$ & $MeR_{h}$ & $Wr_{h}$\\ 
 ... & ... & ... & ...\\ 
-$Ut_{n}$ & $r_{n}$ & $Ir_{n}$  & $Wr_{n}$\\ 
+$Ut_{n}$ & $MeR_{n}$ & $Wr_{n}$\\ 
  \hline
 \end{tabular}
 \end{center}
@@ -680,25 +687,18 @@ $Ut_{n}$ & $r_{n}$ & $Ir_{n}$  & $Wr_{n}$\\
 > where: 
 
 > * $Ut_{h}$ is the generic utilization, with $h=1,2,...n$
-> * $r_{h}$ is the rank of utilization $Ut_{h}$, with $h=1,2,...n$
-> * $hr_{h}$ is the Inverse rank of utilization $Ut_{h}$, with $h=1,2,...n$ and is equal to: 
-
->> \begin{equation}
-\label{eq:inverseRankequation}
-Ir_{h} = max(r)-r_{h}+1
-\end{equation} 
-
-> * $Wr_{h}$ is the rank weight of utilization $Ut_{h}$ and is equal to 0 or 1 depending on the element being, respectively, exluded or not from the *Sua Filling* (`r table_nums("t10",display = "cite")`). 
+> * $MeR_{h}$ is the Median ratio of utilization $Ut_{h}$, with $h=1,2,...n$
+> * $Wr_{h}$ is the weight of utilization $Ut_{h}$ and is equal to 0 or 1 depending on the element being, respectively, exluded or not from the *Sua Filling* (`r table_nums("t10",display = "cite")`). 
 
 ```{r t10, fig.cap=t10_cap, fig.pos = "H"}
-table=data.table(read.csv("tables/StandBal/10_RankWeightTable.csv"))
-knitr::kable(table,caption = "Rank Weight of the elements of FBS",
+table=data.table(read.csv("tables/StandBal/10b_RankWeightTable.csv"))
+knitr::kable(table,caption = "Weight of the elements in the Multiple filler approach",
              align = c(rep("c",length(colnames(table))-1)))
 
 ```
 
 
-> The value $V_{h}$ assigned to the Utilizations of each commodity is calculated as a rank based proportion $pR_{h}$ of the total $Imb2$ according to the following equation:
+> The value $V_{h}$ assigned to the Utilizations of each commodity is calculated as a proportion $pR_{h}$ of the total $Imb2$ according to the following equation:
 
 > \begin{equation}
 \label{eq:inverseRank}
@@ -712,7 +712,7 @@ V_{h} = Imb2 \times pR_{h}
 \label{eq:weightRank}
 \begin{cases}
    pR_{h} = 0     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} = 0\\
-   pR_{h} = \frac{Ir_{h}\times Wr_{h}}{\sum \limits_{i=1}^n\left(Ir_{h}\times Wr_{h}\right)}     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} > 0 
+   pR_{h} = \frac{MeR_{h}\times Wr_{h}}{\sum \limits_{i=1}^n\left(MeR_{h}\times Wr_{h}\right)}     & \quad \text{when} \quad \sum \limits_{h=1}^n Wr_{h} > 0 
 \end{cases}
 \end{equation}
 
@@ -723,69 +723,47 @@ V_{h} = Imb2 \times pR_{h}
 
 ```{r t11, fig.cap=t11_cap, fig.pos = "H"}
 table=data.table(read.csv("tables/StandBal/11_cocoaBeans.csv"))
-knitr::kable(table,caption = "Sua of Cocoa Beans Madagascar 2014 - before *Sua Filling*",
+knitr::kable(table,caption = "Sua of Cocoa Beans Madagascar 2014 - before Sua Filling",
              align = c(rep("c",length(colnames(table))-1)))
 
 ```
 
 ```{r t12, fig.cap=t12_cap, fig.pos = "H"}
 table=data.table(read.csv("tables/StandBal/12b_cocoaUtilizationT.csv"))
-knitr::kable(table,caption = "*Utilization Table* for Cocoa Beans Madagascar",
+knitr::kable(table,caption = "Utilization Table for Cocoa Beans Madagascar",
              align = c(rep("c",length(colnames(table))-1)))
 
 ```
 
-> Besides the excluded elements, there are 2 Utilizations empty: *food* and *Industrial Use*. The Values $V_{Fo}$ and $V_{IU}$ of these two elements are calculated as follows and the result shown in `r table_nums("t13",display = "cite")`: 
+> Besides the excluded elements, there are 2 Utilizations empty: *food* and *Industrial Use* (even if this last is equal to zero. The Values $V_{Fo}$ and $V_{IU}$ of these two elements are calculated as follows and the result shown in `r table_nums("t13",display = "cite")`: 
 
 > \begin{equation}
 \begin{aligned}
-  pR_{Fo} &= \frac{4\times 1}{0 + 0 + 4 + 3 + 0 + 0} = 4/7 = 0.57143 \\
-  V_{Fo} &= 1,832 \times 0.57143 = 1,047 
+  pR_{Fo} &= \frac{0.2\times 1}{0 + 0 + 0.2 + 0.06 + 0 + 0} = 0.77 \\
+  V_{Fo} &= 1,832 \times 0.77 = 1,409.23 
 \end{aligned}
 \end{equation}
-
-> 
 
 > \begin{equation}
 \begin{aligned}
 \label{eq:VIUC}
-  pR_{IU} &= \frac{3\times 1}{0 + 0 + 4 + 3 + 0 + 0} = 3/7 = 0.42857\\
-  V_{IU} &= 1,832 \times 0.42857 = 785
+  pR_{IU} &= \frac{0.06\times 1}{0 + 0 + 0.2 + 0.06 + 0 + 0} = 0.23\\
+  V_{IU} &= 1,832 \times 0.23 = 422.78
 \end{aligned}
 \end{equation}
 
-
 ```{r t13, fig.cap=t13_cap, fig.pos = "H"}
 table=data.table(read.csv("tables/StandBal/13b_cocoaBeansBal.csv"))
-knitr::kable(table,caption = "Sua line of Cocoa Beans Madagascar 2014 - after *Sua Filling*",
+knitr::kable(table,caption = "Sua line of Cocoa Beans Madagascar 2014 - after Sua Filling",
              align = c(rep("c",length(colnames(table))-1)))
 
 ```
+
 
 ## The "Sua Balanced" table {-}
 
 The table resulting after the *Sua Filling* is called *Sua Balanced*. For the  *China/Wheat/2014* example the *Sua Balanced* is reported in `r table_nums("t14",display = "cite")`.
 
-The red lines are not balanced lines. Indeed, the *Sua Filling* procedure does not intervene on all the commodities. It leaves unbalanced all the "top level" commodities falling in 2 main categories:
-
- 1. The *Primary commodities*. These are all the crop commodities, like cereals, pulses, vegetables, fruits etc, that are often processed in other commodities, like the wheat in flour of wheat.
- 2. The *no tree* commodities. These commodities are excluded from the list of commodities that are processed into something else, they are often mixes of some other crop or commodity and used for specific purposes, i.e. *Mixes and dough for the preparation of baker's wares* and *Food preparations of Flour, Meal or Malt Extract* from our example.
-
- 
-Therefore  3 lines are not balanced in `r table_nums("t14",display = "cite")`, belonging to these 2 categories of "not balanced" commodities.
-
-```{r t14, fig.cap=t14_cap}
-table=data.table(read.csv("tables/StandBal/14b_sua_Balanced.csv"))
-landscape(knitr::kable(table,format="latex",caption = "Sua Balanced - China/Wheat/2014 example",
-             align = c("r",rep("l",length(colnames(table))-1)))) %>% 
-  kable_styling(font_size = 18,latex_options=c("scale_down", full_width = T))%>%
-  row_spec(0, bold=TRUE, align = c("r",rep('c',times=length(colnames(table))-1))) %>%
-  column_spec(14,color = "red",bold=T, italic=T,width = "10em" ) %>%
-add_footnote(paste("P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing,"," Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",sep="\n"),notation = "alphabet")
-```
-
-
-*Zero-level* commodities are excluded form the filling because the standardization will affect the figures of the primary commodities, this opening the need for a final *balancing* procedure. In order not to intervene twice on these commodities, it has been decide to keep as smaller as possible the number correction, so to reduce error. 
 
 ## Nutritive Values and DES calculation {-}
 
@@ -815,14 +793,25 @@ where the $i$ index runs over all countries, the $j$ index over all commodities,
 DES for the food commodities in the *China/Wheat/2014* example are reported in `r table_nums("t19",display = "cite")`
 
 
-```{r t19, fig.cap=t19_cap, fig.pos = "H"}
+```{r t14, fig.cap=t14_cap}
+table=data.table(read.csv("tables/StandBal/14b_sua_Balanced.csv"))
+landscape(knitr::kable(table,format="latex",caption = "Sua Balanced - China/Wheat/2014 example",
+             align = c("r",rep("l",length(colnames(table))-1)))) %>% 
+  kable_styling(font_size = 18,latex_options=c("scale_down", full_width = T))%>%
+  row_spec(0, bold=TRUE, align = c("r",rep('c',times=length(colnames(table))-1))) %>%
+  column_spec(14,color = "red",bold=T, italic=T,width = "10em" ) %>%
+add_footnote(paste("P=Production, I=Import, X=Export, DSt=Delta Stock, Fo=Food Availability, FP=FoodProcessing,"," Fe=Feed, Se=Seed, T=Tourism Consumption, IU=IndustrialUse, L=Loss, ROU=Residual and other uses",sep="\n"),notation = "alphabet")
+```
+
+
+
+```{r t19, fig.cap=t19_cap, fig.pos = "h"}
 table=data.table(read.csv("tables/StandBal/19_desSuaBalanced.csv"))
 knitr::kable(table,caption = "Sua Unbalanced DES - China/Wheat/2014 example",
              align = c(rep("c",length(colnames(table))-1)))
 ```
 
 Figure \ref{fig:f8} Represents the steps following the *Sua Filling*: 
-
 
 ```{r f8, fig.align = "center", fig.pos = "H",  fig.cap = "\\label{fig:f8}Sua Balanced and the calculation of DES"}
 
@@ -1014,10 +1003,10 @@ and where each *adjustment ($adj_{el \in E}$)* is a balancing adjustment calcula
 The process is a two-step process. It start with the definition of the *allowed percentages of variation* *($varP_{el \in E}$)* for each element as reported in the following Table:
 
 ```{r t21, fig.cap=t21_cap, fig.pos = "H"}
-table=data.table(read.csv("tables/StandBal/21_measurementErrors.csv",header = FALSE,check.names = FALSE))
+table=data.table(read.csv("tables/StandBal/21b_measurementErrors.csv",header = FALSE,check.names = FALSE))
 knitr::kable(table,caption = "Measurement Errors percentages",
              align = c(rep("c",length(colnames(table))-1)),
-             col.names = c("$el$", "$varP_{el}$"))
+             col.names = c("el", "varP_{el}"))
 
 ```
 
@@ -1084,25 +1073,15 @@ $V^*_{Fo} : V_{Fo} = DES^* : DES \rightarrow DES^* = DES \times \cfrac{V^*_{Fo}}
 `r table_nums("t22",display = "cite")` reports all the steps of the final balancing in the China/Wheat/2014 example for *Wheat*, including the final adjustment of the DES. 
 
 
+
 ```{r t22, fig.cap=t22_cap, fig.pos = "H",results="asis"}
-table=data.table(read.csv("tables/StandBal/22_sua_balancedW.csv",check.names = FALSE))
-knitr::kable(table,caption = "Final Balancing - China/Wheat/2014 - Wheat", 
-             align = c("r",rep("l",length(colnames(table))-1)))
-
-
-```
-
-The balancing of the commodity *Food Preparations of* is reported in `r table_nums("t24",display = "cite")`. In this case, the imbalance is positive and absorbed by the element *ROU*.
-
-\newpage
-
-```{r t24, fig.cap=t24_cap, fig.pos = "H",results="asis"}
-table=data.table(read.csv("tables/StandBal/24_sua_balancedF.csv",check.names = FALSE))
-knitr::kable(table,caption = "Final Balancing - China/Wheat/2014 - Food Preparations", 
-             align = c("r",rep("l",length(colnames(table))-1)))
-
+table=data.table(read.csv("tables/StandBal/22b_sua_balancedW.csv",check.names = FALSE))
+landscape(knitr::kable(table,format = "latex",caption = "Final Balancing - China/Wheat/2014 - Wheat", 
+             align = c("r",rep("l",length(colnames(table))-1)),
+             col.names = rep("\\boldmath$el$",9)))
 
 ```
+
 
 # Final aggregation: FBS items and FBS aggregates
 
