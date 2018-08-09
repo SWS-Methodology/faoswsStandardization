@@ -22,5 +22,4 @@
 \contentsline {subsection}{The ``Fbs Standardized'' table}{31}{section*.50}
 \contentsline {section}{\numberline {4}The FBS Balancing}{33}{section.4}
 \contentsline {subsection}{Nutritive Values updates}{35}{section*.54}
-\contentsline {section}{\numberline {5}Final aggregation: FBS items and FBS aggregates}{37}{section.5}
-\contentsline {section}{Room/needs for improvement}{39}{section*.58}
+\contentsline {section}{\numberline {5}Final aggregation: FBS items and FBS aggregates}{35}{section.5}

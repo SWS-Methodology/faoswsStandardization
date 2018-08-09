@@ -2088,38 +2088,37 @@ The process is a two-step process. It start with the definition of the
 \emph{allowed percentages of variation} \emph{(\(varP_{el \in E}\))} for
 each element as reported in the following Table:
 
-\begin{table}
-
-\caption{\label{tab:t21}Measurement Errors percentages}
+\begin{table}[ht]
+\caption {Measurement Errors percentages}
 \centering
-\begin{tabular}[t]{c|c}
-\hline
-el & varP\_\{el\}\\
-\hline
-P & 0.10\%\\
-\hline
-I & 1\%\\
-\hline
-X & 1\%\\
-\hline
-DSt & 25\%\\
-\hline
-Fo & 5\%\\
-\hline
-FP & 25\%\\
-\hline
-Fe & 25\%\\
-\hline
-Se & 25\%\\
-\hline
-T & 25\%\\
-\hline
-IU & 25\%\\
-\hline
-L & 25\%\\
-\hline
-ROU & 0\\
-\hline
+\begin{tabular}{|l|l|}
+\cline {1-2}
+\boldmath$el$ & \boldmath$varP_{el}$\\
+\cline {1-2}
+$P$   & $0.1\%$ \\
+\cline {1-2}
+$I$   & $1\%$   \\
+\cline {1-2}
+$X$   & $1\%$   \\
+\cline {1-2}
+$DSt$ & $25\%$  \\
+\cline {1-2}
+$Fo$  & $5\%$   \\
+\cline {1-2}
+$FP$  & $25\%$  \\
+\cline {1-2}
+$Fe$  & $25\%$  \\
+\cline {1-2}
+$Se$  & $25\%$  \\
+\cline {1-2}
+$T$   & $25\%$  \\
+\cline {1-2}
+$IU$  & $25\%$  \\
+\cline {1-2}
+$L$   & $25\%$  \\
+\cline {1-2}
+$ROU$ & $0$     \\
+\cline {1-2}
 \end{tabular}
 \end{table}
 
@@ -2237,45 +2236,45 @@ Table 22 reports all the steps of the final balancing in the
 China/Wheat/2014 example for \emph{Wheat}, including the final
 adjustment of the DES.
 
-\begin{landscape}\begin{table}
-
-\caption{\label{tab:t22}Final Balancing - China/Wheat/2014 - Wheat}
+\begin{table}[ht]
+\caption {Final Balancing - China/Wheat/2014 - Wheat}
 \centering
-\begin{tabular}[t]{r|l|l|l|l|l|l|l|l}
-\hline
-\textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$ & \textbackslash{}boldmath\$el\$\\
-\hline
-P & 126,208,400 & 0.001 & 126,208 & 0.01 & 13,426 & 126,221,826 & - & -\\
-\hline
-I & 3,184,654 & 0.01 & 31,847 & 0 & 3,388 & 3,188,042 & - & -\\
-\hline
-X & 781,808 & 0.01 & 7,818 & 0 & -832 & 780,976 & - & -\\
-\hline
-St & 1,120,565 & 0.25 & 280,141 & 0.02 & -29,801 & 1,090,764 & - & -\\
-\hline
-Fo & 89,711,591 & 0.05 & 4,485,580 & 0.3 & -477,172 & 89,234,419 & 560.03 & ***557.05***\\
-\hline
-FP & 0 & 0.01 & 0 & 0 & 0 & 0 & - & -\\
-\hline
-Fe & 29,387,664 & 0.25 & 7,346,916 & 0.5 & -781,559 & 28,606,105 & - & -\\
-\hline
-Se & 4,277,567 & 0.25 & 1,069,392 & 0.07 & -113,761 & 4,163,806 & - & -\\
-\hline
-T & -22,766.50 & 0.25 & -5,692 & 0 & 605 & -22,161 & - & -\\
-\hline
-IU & 2,994,755 & 0.25 & 748,689 & 0.05 & -79,645 & 2,915,110 & - & -\\
-\hline
-L & 2,713,000 & 0.25 & 678,250 & 0.05 & -72,152 & 2,640,848 & - & -\\
-\hline
-ROU & - & - & - & - & - & - & - & -\\
-\hline
-Imb2 & **-1,571,130** & - & - & - & - & ***0*** & - & -\\
-\hline
-sum(el) &  &  & **14,769,149** & - & - & - & - & -\\
-\hline
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{|l|l|l|l|l|l|l|l|l|}
+\cline {1-9}
+\boldmath$el$ &\boldmath$V_{el \in E}$ &  \boldmath$varP$ & \boldmath$V_{el} \times varP$ & \boldmath$p_{adj_{el}}$ & \boldmath$adj_{el \in E}$ &   \boldmath$V^*_{el \in E}$ & \boldmath$DES$  & \boldmath$DES^*$\\
+\cline {1-9}
+$P$ & 126,208,400 & 0.001 & 126,208 & 0.01  & 13,426  & 126,221,826 & - & -\\
+\cline {1-9}
+$I$ & 3,184,654 & 0.01  & 31,847&   0 & 3,388 & 3,188,042 & -&  -\\
+\cline {1-9}
+$X$ & 781,808 & 0.01&   7,818 & 0 & -832&   780,976 & -&  -\\
+\cline {1-9}
+$\Delta St$ & 1,120,565 & 0.25&   280,141 & 0.02  & -29,801 & 1,090,764 & - & -\\
+\cline {1-9}
+$Fo$  & 89,711,591  & 0.05  & 4,485,580 & 0.3 & -477,172 &  89,234,419 &  560.03 & **557.05**\\
+\cline {1-9}
+$FP$  & 0 & 0.01  & 0 & 0 & 0 & 0 & - & -\\
+\cline {1-9}
+$Fe$  & 29,387,664  & 0.25  & 7,346,916 & 0.5 & -781,559  & 28,606,105  & - & -\\
+\cline {1-9}
+$Se$  & 4,277,567 & 0.25  & 1,069,392 & 0.07  & -113,761  & 4,163,806 & - & -\\
+\cline {1-9}
+$T$ & -22,766.50  & 0.25  & -5,692  & 0 & 605 & -22,161 & - & -\\
+\cline {1-9}
+$IU$  & 2,994,755 & 0.25 &  748,689 & 0.05& -79,645 & 2,915,110 & - & -\\
+\cline {1-9}
+$L$ & 2,713,000 & 0.25 &  678,250&  0.05 & -72,152 & 2,640,848  & - & -\\
+\cline {1-9}
+$ROU$ & - & - & - & - & - & - & - & -\\
+\cline {1-9}
+\boldmath$Imb2$ & **-1,571,130** & - & -  & - & - & **0** & - & -\\
+\cline {1-9}
+\boldmath$\sum_{el \in E}$ &  &   & **14,769,149**  & - & - & - & - & -  \\
+\cline {1-9}
 \end{tabular}
+}
 \end{table}
-\end{landscape}
 
 \section{Final aggregation: FBS items and FBS
 aggregates}\label{final-aggregation-fbs-items-and-fbs-aggregates}
@@ -2395,40 +2394,6 @@ GRAND TOTAL & 1,940,733,489 & 177,486,138 & 27,427,634 & 9,948,701 & 1,272,788,6
 \end{tabular}}
 \end{table}
 \end{landscape}
-
-\section*{Room/needs for improvement}\label{roomneeds-for-improvement}
-\addcontentsline{toc}{section}{Room/needs for improvement}
-
-The methodology presented in this document is the result of the teamwork
-of the ESS \emph{methodological team} and \emph{data team}. Still some
-aspects of the methodology have to be fully tested and might require
-adjustments and/or debug.
-
-Some aspects that might need revision and/or update are:
-
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\tightlist
-\item
-  How to manage the balancing of \emph{stock variation} during the sua
-  Filling. As said across the document, figures of stock variation are
-  not touched during the sua filling. While this appeared the only way
-  of treating stocks in the present version of the methodology, some
-  effort might be taken in the future for letting also stock being
-  included in the process.
-\item
-  How to manage the imbalance. A check on the amount of imbalance might
-  be added before the balancing happens, so to warn in case of huge
-  imbalance, for the need of revision at input-data level.
-\item
-  The user might need to change figures in the \emph{sua unbalanced}
-  table. If it happens, an additional module should exists that
-  synchronize back the figures in the original data-sets. In this way,
-  the new figures will be available the following year, as starting
-  point of new imputations.
-\end{enumerate}
-
-This methodology has been used for producing FBS of year 2016.
 
 
 \end{document}
