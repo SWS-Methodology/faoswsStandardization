@@ -687,7 +687,7 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
   
   printCodes = fbsTree[fbsID4==fbsItem,unique(measuredItemSuaFbs)]
   
-  printCodes=ifelse(length(printCodes)==0,fbsItem)
+  printCodes=ifelse(length(printCodes)==0,fbsItem,printCodes)
   
   printCodes = getChildren(commodityTree = tree,
   parentColname = params$parentVar,
