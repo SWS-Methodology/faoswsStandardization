@@ -186,7 +186,7 @@ startYear=swsContext.computationParams$startYear
 imputationStartYear=swsContext.computationParams$startImputation
 endYear=swsContext.computationParams$endYear
 
-areaKeys=selectedCountry
+areaKeys="246"
 
 # areaKeys = "642"
 
@@ -710,25 +710,6 @@ coproduct_table <-
 
 
 
-################################# Easy cases
-
-coproduct_table_easy <-
-  coproduct_table %>%
-  dplyr::filter(!grepl('\\+|or', branch))
-
-coproduct_table_easy <-
-  bind_rows(
-    coproduct_table_easy,
-    coproduct_table_easy %>% dplyr::mutate(measuredItemChildCPC = branch)
-  ) %>%
-  distinct()
-
-
-output_easy <-
-  output[measuredItemChildCPC %in% unique(coproduct_table_easy$measuredItemChildCPC)] %>%
-  tbl_df() %>%
-  left_join(coproduct_table_easy, by = 'measuredItemChildCPC')
-
 
 # If TRUE it means that "+" or "or" cases are involved
 fmax <- function(child, main, share, plusor = FALSE) {
@@ -753,16 +734,37 @@ fmax <- function(child, main, share, plusor = FALSE) {
   }
 }
 
-output_easy <-
-  output_easy %>%
-  group_by(geographicAreaM49, timePointYears, branch,measuredItemParentCPC) %>%
-  dplyr::mutate(
-    reference_share = fmax(measuredItemChildCPC, branch, processingShare, FALSE),
-    # Ask whether rounding by 2 is fine
-    reimpute = round(processingShare, 2) != round(reference_share, 2)
-  ) %>%
-  ungroup()
 
+################################# Easy cases
+
+coproduct_table_easy <-
+  coproduct_table %>%
+  dplyr::filter(!grepl('\\+|or', branch))
+
+coproduct_table_easy <-
+  bind_rows(
+    coproduct_table_easy,
+    coproduct_table_easy %>% dplyr::mutate(measuredItemChildCPC = branch)
+  ) %>%
+  distinct()
+
+
+output_easy <-
+  output[measuredItemChildCPC %in% unique(coproduct_table_easy$measuredItemChildCPC)] %>%
+  tbl_df()
+
+if (nrow(output_easy) > 0) {
+  output_easy <-
+    output_easy %>%
+    left_join(coproduct_table_easy, by = 'measuredItemChildCPC') %>%
+    group_by(geographicAreaM49, timePointYears, branch,measuredItemParentCPC) %>%
+    dplyr::mutate(
+      reference_share = fmax(measuredItemChildCPC, branch, processingShare, FALSE),
+      # Ask whether rounding by 2 is fine
+      reimpute = round(processingShare, 2) != round(reference_share, 2)
+    ) %>%
+    ungroup()
+}
 
 
 ################################# / Easy cases
@@ -793,20 +795,21 @@ coproduct_table_plus <-
 
 output_plus <-
   output[measuredItemChildCPC %in% unique(coproduct_table_plus$measuredItemChildCPC)] %>%
-  tbl_df() %>%
-  left_join(coproduct_table_plus, by = 'measuredItemChildCPC')
+  tbl_df()
 
 
-
-output_plus <-
-  output_plus %>%
-  group_by(geographicAreaM49, timePointYears, branch,measuredItemParentCPC) %>%
-  dplyr::mutate(
-    reference_share = fmax(measuredItemChildCPC, branch, processingShare, TRUE),
-    # Ask whether rounding by 2 is fine
-    reimpute = round(processingShare, 2) != round(reference_share, 2)
-  ) %>%
-  ungroup()
+if (nrow(output_plus) > 0) {
+  output_plus <-
+    output_plus %>%
+    left_join(coproduct_table_plus, by = 'measuredItemChildCPC') %>%
+    group_by(geographicAreaM49, timePointYears, branch,measuredItemParentCPC) %>%
+    dplyr::mutate(
+      reference_share = fmax(measuredItemChildCPC, branch, processingShare, TRUE),
+      # Ask whether rounding by 2 is fine
+      reimpute = round(processingShare, 2) != round(reference_share, 2)
+    ) %>%
+    ungroup()
+}
 
 
 
@@ -836,19 +839,21 @@ coproduct_table_or <-
 
 output_or <-
   output[measuredItemChildCPC %in% unique(coproduct_table_or$measuredItemChildCPC)] %>%
-  tbl_df() %>%
-  left_join(coproduct_table_or, by = 'measuredItemChildCPC')
+  tbl_df()
 
 
-output_or <-
-  output_or %>%
-  group_by(geographicAreaM49, timePointYears, branch, measuredItemParentCPC) %>%
-  dplyr::mutate(
-    reference_share = fmax(measuredItemChildCPC, branch, processingShare, TRUE),
-    # Ask whether rounding by 2 is fine
-    reimpute = round(processingShare, 2) != round(reference_share, 2)
-  ) %>%
-  ungroup()
+if (nrow(output_or) > 0) {
+  output_or <-
+    output_or %>%
+    left_join(coproduct_table_or, by = 'measuredItemChildCPC') %>%
+    group_by(geographicAreaM49, timePointYears, branch, measuredItemParentCPC) %>%
+    dplyr::mutate(
+      reference_share = fmax(measuredItemChildCPC, branch, processingShare, TRUE),
+      # Ask whether rounding by 2 is fine
+      reimpute = round(processingShare, 2) != round(reference_share, 2)
+    ) %>%
+    ungroup()
+}
 
 
 ################################# / Or cases
@@ -874,17 +879,19 @@ output_to_check <-
   )
 
 
-output <-
-  bind_rows(
-    anti_join(
-      output,
-      dplyr::select(output_to_check, -branch, -reference_share, -reimpute),
-      by = c('geographicAreaM49', 'measuredItemParentCPC',
-             'measuredItemChildCPC', 'timePointYears')
-    ),
-    dplyr::select(output_to_check, -branch, -reference_share, -reimpute)
-  ) %>%
-  as.data.table()
+if (nrow(output_plus) > 0) {
+  output <-
+    bind_rows(
+      anti_join(
+        output,
+        dplyr::select(output_to_check, -branch, -reference_share, -reimpute),
+        by = c('geographicAreaM49', 'measuredItemParentCPC',
+               'measuredItemChildCPC', 'timePointYears')
+      ),
+      dplyr::select(output_to_check, -branch, -reference_share, -reimpute)
+    ) %>%
+    as.data.table()
+}
 
 
 
