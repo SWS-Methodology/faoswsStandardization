@@ -188,6 +188,8 @@ endYear=swsContext.computationParams$endYear
 
 areaKeys=selectedCountry
 
+# areaKeys = "642"
+
 ##'Check on the consistency of startYear, andYear
 
 if(startYear>=endYear){
@@ -669,6 +671,236 @@ end.time <- Sys.time()
 #-------------------------------------------------------------------------------------------------------------------------------------    
 #-------------------------------------------------------------------------------------------------------------------------------------    
 output=rbindlist(allLevels)
+
+
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
+
+#Sumeda: Modified the code in order to adjust the shares of coprudcuts. There are cases where the co-products have different
+#processing shares that is not acceptable. Tomarsz provided a table that indicates the relationship between the co-products.
+#With the help of this table, a new processing share has been adjusted for the coproducts in order to maintain simillar shares.
+
+
+
+coproduct_table <- ReadDatatable('zeroweight_coproducts')
+
+
+coproduct_table <- coproduct_table[,c("measured_item_child_cpc","branch"), with = FALSE]
+
+coproduct_table <- setNames(coproduct_table, c("measuredItemChildCPC","branch"))
+
+
+# if (nrow(coproduct_table[measuredItemChildCPC == branch]) > 0) {
+#   stop("There's an error in the co-product table.")
+# }
+
+
+# Can't do anything if this information if missing, so remove these cases
+coproduct_table <-
+  coproduct_table[!is.na(branch)] %>%
+  tbl_df() %>%
+  # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  # XXX removing these cases as '22242.01' appears as zero-weight for main product = '22110.04' X
+  # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  dplyr::filter(branch != '22242.01 + 22110.04')
+
+
+
+################################# Easy cases
+
+coproduct_table_easy <-
+  coproduct_table %>%
+  dplyr::filter(!grepl('\\+|or', branch))
+
+coproduct_table_easy <-
+  bind_rows(
+    coproduct_table_easy,
+    coproduct_table_easy %>% dplyr::mutate(measuredItemChildCPC = branch)
+  ) %>%
+  distinct()
+
+
+output_easy <-
+  output[measuredItemChildCPC %in% unique(coproduct_table_easy$measuredItemChildCPC)] %>%
+  tbl_df() %>%
+  left_join(coproduct_table_easy, by = 'measuredItemChildCPC')
+
+
+# If TRUE it means that "+" or "or" cases are involved
+fmax <- function(child, main, share, plusor = FALSE) {
+  main <- unique(main)
+  
+  if (plusor) {
+    found <- sum(sapply(child, function(x) grepl(x, main), USE.NAMES = FALSE))
+    
+    if (found == 0) {
+      return(max(share, na.rm = TRUE))
+    } else if (found == 1) {
+      return(share[(1:length(child))[sapply(child, function(x) grepl(x, main), USE.NAMES = FALSE)]])
+    } else { # should be 2
+      return(max(share[(1:length(child))[sapply(child, function(x) grepl(x, main), USE.NAMES = FALSE)]], na.rm = TRUE))
+    }
+  } else {
+    if (sum(grepl(main, child)) > 0) {
+      share[child == main]
+    } else {
+      max(share, na.rm = TRUE)
+    }
+  }
+}
+
+output_easy <-
+  output_easy %>%
+  group_by(geographicAreaM49, timePointYears, branch,measuredItemParentCPC) %>%
+  dplyr::mutate(
+    reference_share = fmax(measuredItemChildCPC, branch, processingShare, FALSE),
+    # Ask whether rounding by 2 is fine
+    reimpute = round(processingShare, 2) != round(reference_share, 2)
+  ) %>%
+  ungroup()
+
+
+
+################################# / Easy cases
+
+
+
+################################# Plus cases
+
+coproduct_table_plus <-
+  coproduct_table %>%
+  dplyr::filter(grepl('\\+', branch))
+
+
+coproduct_table_plus <-
+  bind_rows(
+    coproduct_table_plus,
+    coproduct_table_plus %>%
+      tidyr::separate(branch, into = c('main1', 'main2'), remove = FALSE, sep = ' *\\+ *') %>%
+      dplyr::select(measuredItemChildCPC = main1, branch) %>%
+      distinct(),
+    coproduct_table_plus %>%
+      tidyr::separate(branch, into = c('main1', 'main2'), remove = FALSE, sep = ' *\\+ *') %>%
+      dplyr::select(measuredItemChildCPC = main2, branch) %>%
+      distinct()
+  ) %>%
+  distinct()
+
+
+output_plus <-
+  output[measuredItemChildCPC %in% unique(coproduct_table_plus$measuredItemChildCPC)] %>%
+  tbl_df() %>%
+  left_join(coproduct_table_plus, by = 'measuredItemChildCPC')
+
+
+
+output_plus <-
+  output_plus %>%
+  group_by(geographicAreaM49, timePointYears, branch,measuredItemParentCPC) %>%
+  dplyr::mutate(
+    reference_share = fmax(measuredItemChildCPC, branch, processingShare, TRUE),
+    # Ask whether rounding by 2 is fine
+    reimpute = round(processingShare, 2) != round(reference_share, 2)
+  ) %>%
+  ungroup()
+
+
+
+################################# / Plus cases
+
+
+
+
+################################# Or cases
+coproduct_table_or <-
+  coproduct_table %>%
+  dplyr::filter(grepl('or', branch))
+
+coproduct_table_or <-
+  bind_rows(
+    coproduct_table_or,
+    coproduct_table_or %>%
+      tidyr::separate(branch, into = c('main1', 'main2'), remove = FALSE, sep = ' *\\or *') %>%
+      dplyr::select(measuredItemChildCPC = main1, branch) %>%
+      distinct(),
+    coproduct_table_or %>%
+      tidyr::separate(branch, into = c('main1', 'main2'), remove = FALSE, sep = ' *\\or *') %>%
+      dplyr::select(measuredItemChildCPC = main2, branch) %>%
+      distinct()
+  ) %>%
+  distinct()
+
+output_or <-
+  output[measuredItemChildCPC %in% unique(coproduct_table_or$measuredItemChildCPC)] %>%
+  tbl_df() %>%
+  left_join(coproduct_table_or, by = 'measuredItemChildCPC')
+
+
+output_or <-
+  output_or %>%
+  group_by(geographicAreaM49, timePointYears, branch, measuredItemParentCPC) %>%
+  dplyr::mutate(
+    reference_share = fmax(measuredItemChildCPC, branch, processingShare, TRUE),
+    # Ask whether rounding by 2 is fine
+    reimpute = round(processingShare, 2) != round(reference_share, 2)
+  ) %>%
+  ungroup()
+
+
+################################# / Or cases
+
+
+
+output_to_check <-
+  bind_rows(
+    output_easy,
+    output_plus,
+    output_or
+  ) %>%
+  dplyr::filter(timePointYears >= imputationStartYear) %>%
+  dplyr::mutate(
+    processingShare = ifelse(reimpute, reference_share, processingShare),
+    # Status I = Imputed
+    processingShareFlagObservationStatus = ifelse(reimpute, 'I', processingShareFlagObservationStatus),
+    # Method c = copied from somewhere else.
+    processingShareFlagMethod = ifelse(reimpute, 'c', processingShareFlagMethod),
+    # Redoing this, as the formula holds before and should 
+    # also hold after assigning reference_share
+    newImputation   = availability * processingShare * extractionRate
+  )
+
+
+output <-
+  bind_rows(
+    anti_join(
+      output,
+      dplyr::select(output_to_check, -branch, -reference_share, -reimpute),
+      by = c('geographicAreaM49', 'measuredItemParentCPC',
+             'measuredItemChildCPC', 'timePointYears')
+    ),
+    dplyr::select(output_to_check, -branch, -reference_share, -reimpute)
+  ) %>%
+  as.data.table()
+
+
+
+
+
+
+
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
+
+
+
 
 ##'   Those commodities that appear in more than one level of the commodity-tree hierachy are considered children 
 ##'   of the highest item in the hierachy.
