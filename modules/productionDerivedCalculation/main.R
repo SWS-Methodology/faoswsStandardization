@@ -186,9 +186,9 @@ startYear=swsContext.computationParams$startYear
 imputationStartYear=swsContext.computationParams$startImputation
 endYear=swsContext.computationParams$endYear
 
-areaKeys="246"
+areaKeys=selectedCountry
 
-# areaKeys = "642"
+
 
 ##'Check on the consistency of startYear, andYear
 
