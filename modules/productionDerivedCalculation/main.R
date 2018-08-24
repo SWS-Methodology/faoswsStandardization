@@ -879,7 +879,7 @@ output_to_check <-
   )
 
 
-if (nrow(output_plus) > 0) {
+if (nrow(output_to_check) > 0) {
   output <-
     bind_rows(
       anti_join(
