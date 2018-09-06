@@ -17,6 +17,7 @@ library(MASS)
 library(lattice)
 library(reshape2)
 library(sendmailR)
+library(tidyr)
 
 if(packageVersion("faoswsStandardization") < package_version('0.1.0')){
   stop("faoswsStandardization is out of date")
@@ -45,7 +46,7 @@ if (CheckDebug()) {
   )
   
   
-  batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
+  batchnumber = 1 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
   
 } else {
   batchnumber = 000 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SET IT   
@@ -282,12 +283,13 @@ data=convertSugarCodes(data)
 ##############################################################
 ############### CREATE THE COLUMN "OFFICIAL" #################
 ##############################################################
-
+flagValidTable = ReadDatatable("valid_flags")
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 
 data[flagObservationStatus%in%c("","T"),Official:=TRUE]
 data[is.na(Official),Official:=FALSE]
+data[flagObservationStatus%in%c("","T"),Protected:=TRUE]
 
 #######################################
 # The following copy is needed for saving back some of the intermediate
@@ -599,7 +601,7 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
     
   }
   
-  out = standardizationWrapper(data = data, tree = tree, fbsTree = fbsTree, 
+  out = standardizationWrapper_NW(data = data, tree = tree, fbsTree = fbsTree, 
                                standParams = params, printCodes = printCodes,
                                nutrientData = nutrientData,
                                debugFile = params$createIntermetiateFile
@@ -807,8 +809,8 @@ print(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumbe
 if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
   FORCED_PROD = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"),
                            header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-                                                            "timePointYears","Value","flagObservationStatus","flagMethod"),
-                           colClasses = c("character","character","character","character","character","character","character"))
+                                                            "timePointYears","Value"),
+                           colClasses = c("character","character","character","character","character"))
   FORCED_PROD = data.table(FORCED_PROD)
   message=(paste0( length(FORCED_PROD[,unique(measuredItemFbsSua)])," commodities have a FORCED Official Production"))
   

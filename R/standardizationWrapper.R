@@ -74,7 +74,7 @@
 ##' @export
 ##' 
 
-standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
+standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                                      nutrientData = NULL, printCodes = c(),
                                      debugFile= NULL,batchnumber=batchnumber,
                                      utilizationTable = utilizationTable,cutItems=cutItems
@@ -190,10 +190,10 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   
   data[, ProtectedProd := any(get(standParams$elementVar) == standParams$productionCode &
-                                Official==TRUE),
+                                Protected==TRUE),
        by = c(standParams$itemVar)]
   data[, ProtectedFood := any(get(standParams$elementVar) == standParams$foodCode &
-                                Official==TRUE),
+                                Protected==TRUE),
        by = c(standParams$itemVar)]
   
   data[is.na(ProtectedProd), ProtectedProd :=FALSE]
@@ -203,7 +203,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   data = unique(data)
   
-  data=suaFilling(data, p=p, tree=tree,
+  data=suaFilling_NW(data, p=p, tree=tree,
                      primaryCommodities = primaryEl, debugFile=p$createIntermetiateFile,
                      stockCommodities = stockCommodities,
                      utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=TRUE)
@@ -381,14 +381,100 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   
   data[,c("availability","updateFlag"):=NULL]
   
-  
-  data=suaFilling(data, p=p, tree=tree,
+  data=suaFilling_NW(data, p=p, tree=tree,
                      primaryCommodities = primaryEl,
                      debugFile = params$createIntermetiateFile, stockCommodities = stockCommodities,
                      utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=FALSE)
   
+  # data$newValue[is.na(data$newValue)] = data$Value[is.na(data$newValue)]
   
-  ### STEP 3: Compute availability and SHARE 2 
+   ### STEP 3: Compute availability and SHARE 2 
+  
+  # Recalculate the imbalance
+  data = as.data.table(data)
+  data$Diff = data$Value - data$newValue
+  
+  data[, imbalance_Fix := sum(ifelse(is.na(Diff), 0, Diff) *
+                              ifelse(get(p$elementVar) == p$productionCode, 1,
+                                     ifelse(get(p$elementVar) == p$importCode, 1,
+                                            ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                   ifelse(get(p$elementVar) == p$stockCode, -1,
+                                                          ifelse(get(p$elementVar) == p$foodCode, -1,
+                                                                 ifelse(get(p$elementVar) == p$foodProcCode, -1,
+                                                                        ifelse(get(p$elementVar) == p$feedCode, -1,
+                                                                               ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                                                                      ifelse(get(p$elementVar) == p$seedCode, -1,
+                                                                                             ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                                                                                    ifelse(get(p$elementVar) == p$touristCode, -1,
+                                                                                                           ifelse(get(p$elementVar) == p$residualCode, -1, 
+                                                                                                                  0))))))))))))),
+       by = c(p$mergeKey)]
+  
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
+    ungroup()
+  
+  data_temp1 = data %>%
+    filter(measuredElementSuaFbs=="industrial") %>%
+    group_by(measuredItemSuaFbs,measuredElementSuaFbs,geographicAreaM49,timePointYears) %>%
+    mutate(industrialValue = Value) %>%
+    dplyr::select(-Value) %>%
+    ungroup()
+  data_temp2 = data %>%
+    filter(measuredElementSuaFbs=="stockChange") %>%
+    mutate(StockChangeValue = Value) %>%
+    dplyr::select(-Value) %>%
+    ungroup()
+  data = dplyr::left_join(data,dplyr::select(data_temp1,
+                                             geographicAreaM49,
+                                             measuredItemSuaFbs,
+                                             timePointYears,
+                                             industrialValue),
+                          by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))
+  data = dplyr::left_join(data,dplyr::select(data_temp2,
+                                             geographicAreaM49,
+                                             measuredItemSuaFbs,
+                                             timePointYears,
+                                             StockChangeValue),
+                          by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))  
+  rm(data_temp1)
+  rm(data_temp2)
+  data$imbalance_Fix[is.na(data$imbalance_Fix)] = 0
+  data$industrialValue[is.na(data$industrialValue)] = 0
+  data$StockChangeValue[is.na(data$StockChangeValue)] = 0
+  
+  # work here!
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    mutate(Value=ifelse(measuredElementSuaFbs=="stockChange"&imbalance_Fix>=0,
+                        StockChangeValue+imbalance_Fix*(abs(StockChangeValue)/(abs(StockChangeValue)+industrialValue)),Value)) %>%
+    mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
+                        industrialValue+imbalance_Fix*(industrialValue/(abs(StockChangeValue)+industrialValue)),Value)) %>%
+    mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)&imbalance_Fix>=0),
+                        StockChangeValue+imbalance_Fix,Value)) %>%
+    mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0),
+                        StockChangeValue+imbalance_Fix,Value)) %>%
+    ungroup() %>%
+    dplyr::select(-StockChangeValue,-industrialValue,-imbalance_Fix,-newValue,-Diff)
+  
+  data = as.data.table(data)
+  
+  data[, imbalance := sum(ifelse(is.na(Value), 0, Value) *
+                            ifelse(get(p$elementVar) == p$productionCode, 1,
+                                   ifelse(get(p$elementVar) == p$importCode, 1,
+                                          ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                 ifelse(get(p$elementVar) == p$stockCode, -1,
+                                                        ifelse(get(p$elementVar) == p$foodCode, -1,
+                                                               ifelse(get(p$elementVar) == p$foodProcCode, -1,
+                                                                      ifelse(get(p$elementVar) == p$feedCode, -1,
+                                                                             ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                                                                    ifelse(get(p$elementVar) == p$seedCode, -1,
+                                                                                           ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                                                                                  ifelse(get(p$elementVar) == p$touristCode, -1,
+                                                                                                         ifelse(get(p$elementVar) == p$residualCode, -1, 
+                                                                                                                NA))))))))))))),
+       by = c(p$mergeKey)] 
   
   data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
   
@@ -804,7 +890,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ##Stock
   data[get(p$elementVar)==p$stockCode, standardDeviation := Value * .25]
   ##Food
-  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .05]
+  data[get(p$elementVar)==p$foodCode, standardDeviation := Value * .025]
   ##Feed
   data[get(p$elementVar)==p$feedCode, standardDeviation := Value * .25]
   ##Seed
@@ -818,9 +904,6 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
   ##Food processing
   data[get(p$elementVar)==p$foodProcCode, standardDeviation := Value * .25]
   
-  
-  
-  
   data[!get(p$elementVar) %in% nutrientElements,
        balancedValue := faoswsBalancing::balancing(param1 = sapply(Value, na2zero),
                                                    param2 = sapply(standardDeviation, na2zero),
@@ -830,6 +913,7 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                                    lbounds = ifelse(get(p$elementVar) %in% c(p$stockCode, p$touristCode), -Inf, 0),
                                                    optimize = "constrOptim", constrTol = 1e-6),
        by = c(p$itemVar)]
+  
   ## To adjust calories later, compute the ratio for how much food has been 
   ## adjusted by.  This looks like a "mean", but really we're just using the
   ## mean to select the one non-NA element.
@@ -839,7 +923,94 @@ standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
        by = c(p$itemVar)]
   ## The balancedValue will be given for all non-nutrient elements.  Update
   ## all these elements with their balanced values.
-  data[!(nutrientElement), Value := balancedValue]
+  
+  # NW Here I have intervened again to ensure that only non-official data is changed
+  # The difference is sent to stock change and industrial uses
+  data[!(nutrientElement)&!Protected==TRUE, Value := balancedValue]
+  data$balancedValue[is.na(data$balancedValue)] = data$Value[is.na(data$balancedValue)]
+  data = as.data.table(data)
+  
+  data$Diff = data$Value - data$balancedValue
+  data$Diff[is.na(data$Diff)] = 0
+  data= as.data.table(data)
+  
+  data$Diff = data$Value - data$balancedValue
+  
+  data[, imbalance_Fix := sum(ifelse(is.na(Diff), 0, Diff) *
+                                ifelse(get(p$elementVar) == p$productionCode, 1,
+                                       ifelse(get(p$elementVar) == p$importCode, 1,
+                                              ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                     ifelse(get(p$elementVar) == p$stockCode, -1,
+                                                            ifelse(get(p$elementVar) == p$foodCode, -1,
+                                                                   ifelse(get(p$elementVar) == p$foodProcCode, -1,
+                                                                          ifelse(get(p$elementVar) == p$feedCode, -1,
+                                                                                 ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                                                                        ifelse(get(p$elementVar) == p$seedCode, -1,
+                                                                                               ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                                                                                      ifelse(get(p$elementVar) == p$touristCode, -1,
+                                                                                                             ifelse(get(p$elementVar) == p$residualCode, -1, 
+                                                                                                                    0))))))))))))),
+       by = c(p$mergeKey)]
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
+    ungroup()
+  
+  # The difference is sent to stock change and industrial uses
+  data_temp1 = data %>%
+    filter(measuredElementSuaFbs=="industrial") %>%
+    mutate(industrialValue = Value) %>%
+    dplyr::select(-Value)
+  data_temp2 = data %>%
+    filter(measuredElementSuaFbs=="stockChange") %>%
+    mutate(StockChangeValue = Value) %>%
+    dplyr::select(-Value)
+  data = dplyr::left_join(data,dplyr::select(data_temp1,
+                                      geographicAreaM49,
+                                      measuredItemSuaFbs,
+                                      timePointYears,
+                                      industrialValue),
+                                      by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))
+  data = dplyr::left_join(data,dplyr::select(data_temp2,
+                                             geographicAreaM49,
+                                             measuredItemSuaFbs,
+                                             timePointYears,
+                                             StockChangeValue),
+                          by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))  
+  rm(data_temp1)
+  rm(data_temp2)
+  data$Diff[is.na(data$Diff)] = 0
+  data$industrialValue[is.na(data$industrialValue)] = 0
+  data$StockChangeValue[is.na(data$StockChangeValue)] = 0
+  
+  # work here!
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    mutate(Value=ifelse(measuredElementSuaFbs=="stockChange"&imbalance_Fix>=0,
+                        StockChangeValue+imbalance_Fix*(abs(StockChangeValue)/(abs(StockChangeValue)+industrialValue)),Value)) %>%
+    mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
+                        industrialValue+imbalance_Fix*(industrialValue/(abs(StockChangeValue)+industrialValue)),Value)) %>%
+    mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)&imbalance_Fix>=0),
+                        StockChangeValue+imbalance_Fix,Value)) %>%
+    mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0),
+                        StockChangeValue+imbalance_Fix,Value)) %>%
+    ungroup() %>%
+    dplyr::select(-StockChangeValue,-industrialValue,-imbalance_Fix,-Diff)
+  
+  data = as.data.table(data)
+  
+  # Recalculate the balances
+  data[!get(p$elementVar) %in% nutrientElements,
+       balancedValue := faoswsBalancing::balancing(param1 = sapply(balancedValue, na2zero),
+                                                    param2 = sapply(standardDeviation, na2zero),
+                                                    sign = ifelse(get(p$elementVar) %in% c(p$residualCode),0,
+                                                                  ifelse(get(p$elementVar) %in% c(p$productionCode, p$importCode), 1, -1)),
+                                                    
+                                                    lbounds = ifelse(get(p$elementVar) %in% c(p$stockCode, p$touristCode), -Inf, 0),
+                                                    optimize = "constrOptim", constrTol = 1e-6),
+       by = c(p$itemVar)]
+  
+  data = as.data.table(data)
   
   data2keep=data.table(data.frame(data)) ###################!!!!!!!!!!!!!!!!!!!!!!DATA
   

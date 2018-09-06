@@ -48,7 +48,7 @@
 ##' @return the Value column of the passed data.table is updated 
 ##'   
 
-suaFilling = function(data, p = p, tree=tree,
+suaFilling_NW = function(data, p = p, tree=tree,
                          primaryCommodities = c(), stockCommodities = c(),
                          debugFile= NULL,
                          utilizationTable=c(), 
@@ -167,21 +167,25 @@ suaFilling = function(data, p = p, tree=tree,
                newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
     
     if("newValue" %in% colnames(dataPosImbP)){
-      dataPosImbP[!is.na(newValue),Value:=newValue]
+      dataPosImbP[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
       # dataPosImbP[,newValue:=NULL]
-      dataPosImbP=dataPosImbP[,1:18,with=FALSE]
-    }
+      dataPosImbP=dataPosImbP[,1:19,with=FALSE]
+    } else{dataPosImbP$newValue=NA}
     if("newValue" %in% colnames(dataNegImb)){
-      dataNegImb[!is.na(newValue),Value:=newValue]
+      dataNegImb[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
       # dataPosImbP[,newValue:=NULL]
-      dataNegImb=dataNegImb[,1:18,with=FALSE]
-    }
+      dataNegImb=dataNegImb[,1:19,with=FALSE]
+    } else{dataNegImb$newValue=NA}
     if("newValue" %in% colnames(dataPosImb)){
-      dataPosImb[!is.na(newValue),Value:=newValue]
+      dataPosImb[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
       # dataPosImbP[,newValue:=NULL]
-      dataPosImb=dataPosImb[,1:18,with=FALSE]
-    }
+      dataPosImb=dataPosImb[,1:19,with=FALSE]
+    } else{dataPosImb$newValue=NA}
+    if(!("newValue" %in% colnames(dataNoImbP))){dataNoImbP$newValue=NA}
+    if(!("newValue" %in% colnames(dataNegImbP))){dataNegImbP$newValue=NA}
+    if(!("newValue" %in% colnames(dataNoImb))){dataNoImb$newValue=NA}
     data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
+    data$newValue[is.na(data$newValue)] = data$Value[is.na(data$newValue)] 
     
   }  ### This refers only to the FIrst LOOP
   
@@ -221,10 +225,13 @@ suaFilling = function(data, p = p, tree=tree,
     dataNegImb_Noptol[,newValue:= ifelse(is.na(Value),NA,
                                          ifelse(get(p$elementVar)%in%eleToExclude,NA,
                                                 Value-(pTolerance*(Value))))]
-    dataNegImb_ptol[,Value:=ifelse(!is.na(newValue),newValue,Value)]
-    dataNegImb_ptol[,newValue:=NULL]
-    dataNegImb_Noptol[,Value:=ifelse(!is.na(newValue),newValue,Value)]
-    dataNegImb_Noptol[,newValue:=NULL]
+    # NW only change non-official data
+    dataNegImb_ptol[,Value:=ifelse(!is.na(newValue)&!Protected==TRUE,newValue,Value)]
+    #dataNegImb_ptol[,newValue:=NULL]
+    dataNegImb_Noptol[,Value:=ifelse(!is.na(newValue)&!Protected==TRUE,newValue,Value)]
+    #dataNegImb_Noptol[,newValue:=NULL]
+    
+    #  The sum of the difference is then distributed to stockchange and industrial use
     
     dataNegImbAll=rbind(dataNegImb_ptol,dataNegImb_Noptol)
     dataNegImbComm=dataNegImbAll[,measuredItemSuaFbs]
@@ -239,6 +246,7 @@ suaFilling = function(data, p = p, tree=tree,
     
     # First reconstruct the data
     
+    if(!("newValue" %in% colnames(data))){data$newValue=NA}
     data=data[!(measuredItemSuaFbs%in%dataNegImbComm)]
     data=rbind(data,dataNegImbAll)
     
@@ -558,13 +566,15 @@ suaFilling = function(data, p = p, tree=tree,
       NoFillable= dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)]
       
       if("newValue" %in% colnames(NoFillable)){
-        NoFillable[!is.na(newValue),Value:=newValue]
-        NoFillable=NoFillable[,c(3,2,1,4,5,6,7,16),with=FALSE]
+        NoFillable[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
+        NoFillable=NoFillable[,c(3,2,1,4,5,6,7,16,19),with=FALSE]
       }
       setnames(NoFillable, "measuredItemSuaFbs", "measuredItemFbsSua")
       standData = NoFillable
       standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
-                             Value)]
+                             Value,newValue)]
+      standData_Intermediate=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, 
+                                          Value)]
       standData <- standData[!is.na(Value),]
       
       standData[, flagObservationStatus := "I"]
@@ -574,7 +584,7 @@ suaFilling = function(data, p = p, tree=tree,
         
         saveFBSItermediateStep(directory=paste0(basedir,"/debugFile/Batch_",batchnumber),
                                fileName=paste0("B",batchnumber,"_10_ForcedProduction"),
-                               data=standData)
+                               data=standData_Intermediate)
       }
       
     }
@@ -586,20 +596,22 @@ suaFilling = function(data, p = p, tree=tree,
     #   dataPosImbP=dataPosImbP[,1:17,with=FALSE]
     # }
     if("newValue" %in% colnames(dataNegImb)){
-      dataNegImb[!is.na(newValue),Value:=newValue]
+      dataNegImb[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
       # dataPosImbP[,newValue:=NULL]
-      dataNegImb=dataNegImb[,1:18,with=FALSE]
-    }
+      dataNegImb=dataNegImb[,1:19,with=FALSE]
+    }else{dataNegImb$newValue=NA}
     if("newValue" %in% colnames(dataPosImbAll)){
-      dataPosImbAll[!is.na(newValue),Value:=newValue]
-      dataPosImbAll=dataPosImbAll[,1:18,with=FALSE]
-    }
+      dataPosImbAll[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
+      dataPosImbAll=dataPosImbAll[,1:19,with=FALSE]
+    }else{dataPosImbAll$newValue=NA}
     
     
     # data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
-    data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataNegImb,dataPosImbAll)
+    data=dplyr::bind_rows(dataNoImbP,dataNegImbP,dataNoImb,dataNegImb,dataPosImbAll)
     
-  }  #this brackets refer only at the second loop
+    data = as.data.table(data)
+    
+    }  #this brackets refer only at the second loop
   
   data[, c("imbalance","sumUtils","sumSup") := NULL]   
   
