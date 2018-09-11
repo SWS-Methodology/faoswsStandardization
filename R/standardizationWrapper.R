@@ -394,7 +394,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data = as.data.table(data)
   data$Diff = data$Value - data$newValue
   
-  data[, imbalance_Fix := sum(ifelse(is.na(Diff), 0, Diff) *
+  data[, imbalance_Fix := sum(ifelse(is.na(Diff), 0, Value) *
                               ifelse(get(p$elementVar) == p$productionCode, 1,
                                      ifelse(get(p$elementVar) == p$importCode, 1,
                                             ifelse(get(p$elementVar) == p$exportCode, -1,
@@ -441,8 +441,10 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   rm(data_temp1)
   rm(data_temp2)
   data$imbalance_Fix[is.na(data$imbalance_Fix)] = 0
+  # We will create industrial value, even if it did not exist in the past
   data$industrialValue[is.na(data$industrialValue)] = 0
-  data$StockChangeValue[is.na(data$StockChangeValue)] = 0
+  # Don't create stocks for commodities which don't have them
+  # data$StockChangeValue[is.na(data$StockChangeValue)] = 0
   
   # work here!
   data = data %>%
@@ -451,8 +453,8 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                         StockChangeValue+imbalance_Fix*(abs(StockChangeValue)/(abs(StockChangeValue)+industrialValue)),Value)) %>%
     mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
                         industrialValue+imbalance_Fix*(industrialValue/(abs(StockChangeValue)+industrialValue)),Value)) %>%
-    mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)&imbalance_Fix>=0),
-                        StockChangeValue+imbalance_Fix,Value)) %>%
+    mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&is.na(Value)&imbalance_Fix>=0),
+                        industrialValue+imbalance_Fix,Value)) %>%
     mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0),
                         StockChangeValue+imbalance_Fix,Value)) %>%
     ungroup() %>%
@@ -936,7 +938,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   
   data$Diff = data$Value - data$balancedValue
   
-  data[, imbalance_Fix := sum(ifelse(is.na(Diff), 0, Diff) *
+  data[, imbalance_Fix := sum(ifelse(is.na(Value), 0, Value) *
                                 ifelse(get(p$elementVar) == p$productionCode, 1,
                                        ifelse(get(p$elementVar) == p$importCode, 1,
                                               ifelse(get(p$elementVar) == p$exportCode, -1,
@@ -981,7 +983,8 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   rm(data_temp2)
   data$Diff[is.na(data$Diff)] = 0
   data$industrialValue[is.na(data$industrialValue)] = 0
-  data$StockChangeValue[is.na(data$StockChangeValue)] = 0
+  # Don't create stocks for those commodities that don't have them
+  # data$StockChangeValue[is.na(data$StockChangeValue)] = 0
   
   # work here!
   data = data %>%
@@ -990,8 +993,8 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                         StockChangeValue+imbalance_Fix*(abs(StockChangeValue)/(abs(StockChangeValue)+industrialValue)),Value)) %>%
     mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
                         industrialValue+imbalance_Fix*(industrialValue/(abs(StockChangeValue)+industrialValue)),Value)) %>%
-    mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)&imbalance_Fix>=0),
-                        StockChangeValue+imbalance_Fix,Value)) %>%
+    mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&is.na(Value)&imbalance_Fix>=0),
+                        industrialValue+imbalance_Fix,Value)) %>%
     mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0),
                         StockChangeValue+imbalance_Fix,Value)) %>%
     ungroup() %>%
