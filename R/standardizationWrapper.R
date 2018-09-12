@@ -394,7 +394,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data = as.data.table(data)
   data$Diff = data$Value - data$newValue
   
-  data[, imbalance_Fix := sum(ifelse(is.na(Diff), 0, Value) *
+  data[, imbalance_Fix := sum(ifelse(is.na(Value), 0, Value) *
                               ifelse(get(p$elementVar) == p$productionCode, 1,
                                      ifelse(get(p$elementVar) == p$importCode, 1,
                                             ifelse(get(p$elementVar) == p$exportCode, -1,
