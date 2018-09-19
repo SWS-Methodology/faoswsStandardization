@@ -171,8 +171,6 @@ params$createIntermetiateFile= "TRUE"
 params$protected = "Protected"
 params$official = "Official"
 
-
-
 ##############################################################
 ######## CLEAN ALL SESSION TO BE USED IN THE PROCESS #########
 ##############################################################
@@ -252,8 +250,14 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-  timePointYears = Dimension(name = "timePointYears", keys = yearVals)
-))
+  timePointYears = Dimension(name = "timePointYears", keys = yearVals)))
+
+key2 = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = list(
+  geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+  measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = c("5071","5165")),
+  measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
+  timePointYears = Dimension(name = "timePointYears", keys = paste(c(2000:2016),sep=""))))
+  
 
 ##############################################################
 ####################### DOWNLOAD  DATA #######################
@@ -263,7 +267,8 @@ message("Reading SUA data...")
 
 data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
                            elementCol = "measuredElementSuaFbs")
-
+data2 = elementCodesToNames(data = GetData(key2), itemCol = "measuredItemFbsSua",
+                           elementCol = "measuredElementSuaFbs")
 message("convert element codes into element names")
 
 data[measuredElementSuaFbs=="foodmanufacturing",measuredElementSuaFbs:="foodManufacturing"]
@@ -284,6 +289,8 @@ data=convertSugarCodes(data)
 ############### CREATE THE COLUMN "OFFICIAL" #################
 ##############################################################
 flagValidTable = ReadDatatable("valid_flags")
+Feed_Items = ReadDatatable("feed_classification")
+Feed_Items = filter(Feed_Items,classification=="feedOnly",!is.na(classification))
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 
@@ -390,7 +397,6 @@ tree2[,severity:=as.integer(severity)]
 tree2[,message:=as.character(message)]
 
 tree2change = vector(mode = "list", length = nrow(uniqueShares2change))
-
 
 for (i in seq_len(nrow(uniqueShares2change))) {
   filter = uniqueShares2change[i, ]
@@ -657,6 +663,29 @@ if(params$createIntermetiateFile){
 
 
 message("Beginning actual standardization process...")
+
+data2 = rename(data2,measuredItemSuaFbs=measuredItemFbsSua)
+data2[data2$Value==0] = NA
+data2_Stock = data2 %>%
+  filter(measuredElementSuaFbs=="stock_change") %>%
+  group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
+  summarise(Median_Value_Stock = median(abs(Value),na.rm=TRUE)) %>%
+  ungroup() %>%
+  dplyr::select(geographicAreaM49,measuredItemSuaFbs,Median_Value_Stock)
+data2_Industrial = data2 %>%
+  filter(measuredElementSuaFbs=="industrial") %>%
+  group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
+  summarise(Median_Value_Industrial = median(abs(Value),na.rm=TRUE)) %>%
+  ungroup() %>%
+  dplyr::select(geographicAreaM49,measuredItemSuaFbs,Median_Value_Industrial)
+rm(data2)
+data = as.data.frame(data)
+data = left_join(data,Feed_Items,by=c("measuredItemSuaFbs"="cpc"))
+data = left_join(data,data2_Stock,by=c("geographicAreaM49","measuredItemSuaFbs"))
+data = left_join(data,data2_Industrial,by=c("geographicAreaM49","measuredItemSuaFbs"))
+data$classification[is.na(data$classification)] = "NonFeedOnly"
+data=ungroup(data)
+data = as.data.table(data)
 
 ##  Run all the standardization and balancig for combination of country/year
 ptm <- proc.time()
