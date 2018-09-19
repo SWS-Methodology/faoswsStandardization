@@ -441,7 +441,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data$Value_temp[is.na(data$Value_temp)] = 0
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification=="feedOnly"&imbalance_Fix>=0,
+    mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification=="feedOnly"&imbalance_Fix>=0&!(Protected==TRUE),
                         Value_temp+imbalance_Fix,Value)) %>%
     ungroup()
   
@@ -1044,7 +1044,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data$Value_temp[is.na(data$Value_temp)] = 0
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification=="feedOnly"&imbalance_Fix>=0,
+    mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification=="feedOnly"&imbalance_Fix>=0&!(Protected==TRUE),
                         Value_temp+imbalance_Fix,Value)) %>%
     ungroup()
   
