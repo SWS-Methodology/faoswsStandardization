@@ -289,8 +289,10 @@ data=convertSugarCodes(data)
 ############### CREATE THE COLUMN "OFFICIAL" #################
 ##############################################################
 flagValidTable = ReadDatatable("valid_flags")
-Feed_Items = ReadDatatable("feed_classification")
-Feed_Items = filter(Feed_Items,classification=="feedOnly",!is.na(classification))
+Feed_Items = ReadDatatable("feed_items_2018")
+Feed_Items = rename(Feed_Items,classification=feed_class)
+Feed_Items$classification = "feedOnly"
+# Feed_Items = filter(Feed_Items,classification=="feedOnly",!is.na(classification))
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 
