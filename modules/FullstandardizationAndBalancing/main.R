@@ -666,7 +666,7 @@ if(params$createIntermetiateFile){
 
 message("Beginning actual standardization process...")
 
-data2 = rename(data2,measuredItemSuaFbs=measuredItemFbsSua)
+data2 = dplyr::rename(data2,measuredItemSuaFbs=measuredItemFbsSua)
 data2[data2$Value==0] = NA
 data2_Stock = data2 %>%
   filter(measuredElementSuaFbs=="stock_change") %>%
