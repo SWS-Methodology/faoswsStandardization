@@ -292,7 +292,7 @@ flagValidTable = ReadDatatable("valid_flags")
 Feed_Items = ReadDatatable("feed_items_2018")
 Feed_Items = dplyr::rename(Feed_Items,classification=feed_class)
 Feed_Items$classification = "feedOnly"
-# Feed_Items = filter(Feed_Items,classification=="feedOnly",!is.na(classification))
+# Feed_Items = dplyr::filter(Feed_Items,classification=="feedOnly",!is.na(classification))
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 
@@ -669,13 +669,13 @@ message("Beginning actual standardization process...")
 data2 = dplyr::rename(data2,measuredItemSuaFbs=measuredItemFbsSua)
 data2[data2$Value==0] = NA
 data2_Stock = data2 %>%
-  filter(measuredElementSuaFbs=="stock_change") %>%
+  dplyr::filter(measuredElementSuaFbs=="stock_change") %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
   summarise(Median_Value_Stock = median(abs(Value),na.rm=TRUE)) %>%
   ungroup() %>%
   dplyr::select(geographicAreaM49,measuredItemSuaFbs,Median_Value_Stock)
 data2_Industrial = data2 %>%
-  filter(measuredElementSuaFbs=="industrial") %>%
+  dplyr::filter(measuredElementSuaFbs=="industrial") %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
   summarise(Median_Value_Industrial = median(abs(Value),na.rm=TRUE)) %>%
   ungroup() %>%

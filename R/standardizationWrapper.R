@@ -464,14 +464,14 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
        by = c(p$mergeKey)] 
   
   data_temp1 = data %>%
-    filter(measuredElementSuaFbs=="industrial") %>%
+    dplyr::filter(measuredElementSuaFbs=="industrial") %>%
     group_by(measuredItemSuaFbs,measuredElementSuaFbs,geographicAreaM49,timePointYears) %>%
     mutate(industrialValue = round(Value,2)) %>%
     dplyr::select(-Value) %>%
     ungroup()
   # data_temp1$industrialValue[data_temp1$Protected==TRUE&(!is.na(data_temp1$Protected))] = NA
   data_temp2 = data %>%
-    filter(measuredElementSuaFbs=="stockChange") %>%
+    dplyr::filter(measuredElementSuaFbs=="stockChange") %>%
     mutate(StockChangeValue = round(Value,2)) %>%
     dplyr::select(-Value) %>%
     ungroup()
@@ -1070,11 +1070,11 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   
   # The difference is sent to stock change and industrial uses
   data_temp1 = data %>%
-    filter(measuredElementSuaFbs=="industrial") %>%
+    dplyr::filter(measuredElementSuaFbs=="industrial") %>%
     mutate(industrialValue = round(Value,2)) %>%
     dplyr::select(-Value)
   data_temp2 = data %>%
-    filter(measuredElementSuaFbs=="stockChange") %>%
+    dplyr::filter(measuredElementSuaFbs=="stockChange") %>%
     mutate(StockChangeValue = round(Value,2)) %>%
     dplyr::select(-Value)
   data = dplyr::left_join(data,dplyr::select(data_temp1,
