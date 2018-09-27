@@ -441,7 +441,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data$Value_temp[is.na(data$Value_temp)] = 0
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification=="feedOnly"&imbalance_Fix>=0&!(Official==TRUE),
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification=="feedOnly"&imbalance_Fix>=0&!(Official==TRUE),
                         Value_temp+imbalance_Fix,Value)) %>%
     ungroup()
   
@@ -466,13 +466,13 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data_temp1 = data %>%
     dplyr::filter(measuredElementSuaFbs=="industrial") %>%
     group_by(measuredItemSuaFbs,measuredElementSuaFbs,geographicAreaM49,timePointYears) %>%
-    mutate(industrialValue = round(Value,2)) %>%
+    dplyr::mutate(industrialValue = round(Value,2)) %>%
     dplyr::select_("-Value") %>%
     ungroup()
   # data_temp1$industrialValue[data_temp1$Protected==TRUE&(!is.na(data_temp1$Protected))] = NA
   data_temp2 = data %>%
     dplyr::filter(measuredElementSuaFbs=="stockChange") %>%
-    mutate(StockChangeValue = round(Value,2)) %>%
+    dplyr::mutate(StockChangeValue = round(Value,2)) %>%
     dplyr::select_("-Value") %>%
     ungroup()
   # data_temp2$StockChangeValue[data_temp2$Protected==TRUE(!is.na(data_temp2$Protected))] = NA
@@ -504,15 +504,15 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   # work here!
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    mutate(Value=ifelse(measuredElementSuaFbs=="stockChange"&imbalance_Fix>=0,
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="stockChange"&imbalance_Fix>=0,
                         StockChangeValue+imbalance_Fix*(Median_Value_Stock/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
-    mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
                         industrialValue+imbalance_Fix*(Median_Value_Industrial/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
-    mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.nan(Value)|is.na(Value))&imbalance_Fix>=0),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.nan(Value)|is.na(Value))&imbalance_Fix>=0),
                         industrialValue+imbalance_Fix,Value)) %>%
-    mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
                         NA,Value)) %>%
-    mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&type=="CRPR"&(!is.na(type))),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&type=="CRPR"&(!is.na(type))),
                         StockChangeValue+imbalance_Fix,Value)) %>%
     ungroup() %>%
     dplyr::select_("-Median_Value_Stock","-Median_Value_Industrial","-industrialValue","-StockChangeValue","-imbalance_Fix","-Diff","-Value_temp")
@@ -1044,7 +1044,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data$Value_temp[is.na(data$Value_temp)] = 0
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification=="feedOnly"&imbalance_Fix>=0&!(Official==TRUE),
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification=="feedOnly"&imbalance_Fix>=0&!(Official==TRUE),
                         Value_temp+imbalance_Fix,Value)) %>%
     ungroup()
   
@@ -1071,11 +1071,11 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   # The difference is sent to stock change and industrial uses
   data_temp1 = data %>%
     dplyr::filter(measuredElementSuaFbs=="industrial") %>%
-    mutate(industrialValue = round(Value,2)) %>%
+    dplyr::mutate(industrialValue = round(Value,2)) %>%
     dplyr::select_("-Value")
   data_temp2 = data %>%
     dplyr::filter(measuredElementSuaFbs=="stockChange") %>%
-    mutate(StockChangeValue = round(Value,2)) %>%
+    dplyr::mutate(StockChangeValue = round(Value,2)) %>%
     dplyr::select_("-Value")
   data = dplyr::left_join(data,dplyr::select_(data_temp1,
                                              "geographicAreaM49",
@@ -1099,15 +1099,15 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   # work here!
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    mutate(Value=ifelse(measuredElementSuaFbs=="stockChange"&imbalance_Fix>=0,
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="stockChange"&imbalance_Fix>=0,
                         StockChangeValue+imbalance_Fix*(abs(StockChangeValue)/(abs(StockChangeValue)+industrialValue)),Value)) %>%
-    mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
                         industrialValue+imbalance_Fix*(industrialValue/(abs(StockChangeValue)+industrialValue)),Value)) %>%
-    mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.na(Value)|is.nan(Value))&imbalance_Fix>=0),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.na(Value)|is.nan(Value))&imbalance_Fix>=0),
                         industrialValue+imbalance_Fix,Value)) %>%
-    mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
                         NA,Value)) %>%
-    mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&type=="CRPR"&(!is.na(type))),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&type=="CRPR"&(!is.na(type))),
                         Value+imbalance_Fix,Value)) %>%
     ungroup() %>%
     dplyr::select_("-StockChangeValue","-industrialValue","-imbalance_Fix","-Diff")

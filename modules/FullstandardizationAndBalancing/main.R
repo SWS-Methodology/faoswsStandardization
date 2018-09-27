@@ -672,7 +672,7 @@ data2$Value[data2$Value==0] = NA
 data2_Stock = data2 %>%
   dplyr::filter(measuredElementSuaFbs=="stock_change") %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
-  summarise(Median_Value_Stock = median(abs(Value),na.rm=TRUE)) %>%
+  dplyr::summarise(Median_Value_Stock = median(abs(Value),na.rm=TRUE)) %>%
   ungroup()
 
 data2_Stock = as.data.frame(data2_Stock)
@@ -681,7 +681,7 @@ data2_Stock = dplyr::select_(data2_Stock,"geographicAreaM49","measuredItemSuaFbs
 data2_Industrial = data2 %>%
   dplyr::filter(measuredElementSuaFbs=="industrial") %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
-  summarise(Median_Value_Industrial = median(abs(Value),na.rm=TRUE)) %>%
+  dplyr::summarise(Median_Value_Industrial = median(abs(Value),na.rm=TRUE)) %>%
   ungroup() 
 
 data2_Industrial = as.data.frame(data2_Industrial)
