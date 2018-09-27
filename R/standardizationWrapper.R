@@ -81,15 +81,15 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
 ){
   
   data_Stock_Industrial = as.data.frame(data)
-  data_Stock_Industrial = dplyr::select(data_Stock_Industrial,
-                                 measuredItemSuaFbs,
-                                 geographicAreaM49,
-                                 timePointYears,
-                                 classification,
-                                 Median_Value_Stock,
-                                 Median_Value_Industrial)
-  data_Stock_Industrial = data_Stock_Industrial[!duplicated(dplyr::select(data_Stock_Industrial,geographicAreaM49,measuredItemSuaFbs)),]
-  data = dplyr::select(data,-classification,-Median_Value_Stock,-Median_Value_Industrial)
+  data_Stock_Industrial = dplyr::select_(data_Stock_Industrial,
+                                 "measuredItemSuaFbs",
+                                 "geographicAreaM49",
+                                 "timePointYears",
+                                 "classification",
+                                 "Median_Value_Stock",
+                                 "Median_Value_Industrial")
+  data_Stock_Industrial = data_Stock_Industrial[!duplicated(dplyr::select_(data_Stock_Industrial,"geographicAreaM49","measuredItemSuaFbs")),]
+  data = dplyr::select_(data,"-classification","-Median_Value_Stock","-Median_Value_Industrial")
   data = as.data.table(data)
   
   dataFlags=data.table(data.frame(data))
@@ -467,26 +467,26 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     dplyr::filter(measuredElementSuaFbs=="industrial") %>%
     group_by(measuredItemSuaFbs,measuredElementSuaFbs,geographicAreaM49,timePointYears) %>%
     mutate(industrialValue = round(Value,2)) %>%
-    dplyr::select(-Value) %>%
+    dplyr::select_("-Value") %>%
     ungroup()
   # data_temp1$industrialValue[data_temp1$Protected==TRUE&(!is.na(data_temp1$Protected))] = NA
   data_temp2 = data %>%
     dplyr::filter(measuredElementSuaFbs=="stockChange") %>%
     mutate(StockChangeValue = round(Value,2)) %>%
-    dplyr::select(-Value) %>%
+    dplyr::select_("-Value") %>%
     ungroup()
   # data_temp2$StockChangeValue[data_temp2$Protected==TRUE(!is.na(data_temp2$Protected))] = NA
-  data = dplyr::left_join(data,dplyr::select(data_temp1,
-                                             geographicAreaM49,
-                                             measuredItemSuaFbs,
-                                             timePointYears,
-                                             industrialValue),
+  data = dplyr::left_join(data,dplyr::select_(data_temp1,
+                                             "geographicAreaM49",
+                                             "measuredItemSuaFbs",
+                                             "timePointYears",
+                                             "industrialValue"),
                           by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))
-  data = dplyr::left_join(data,dplyr::select(data_temp2,
-                                             geographicAreaM49,
-                                             measuredItemSuaFbs,
-                                             timePointYears,
-                                             StockChangeValue),
+  data = dplyr::left_join(data,dplyr::select_(data_temp2,
+                                             "geographicAreaM49",
+                                             "measuredItemSuaFbs",
+                                             "timePointYears",
+                                             "StockChangeValue"),
                           by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))  
   rm(data_temp1)
   rm(data_temp2)
@@ -515,7 +515,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&type=="CRPR"&(!is.na(type))),
                         StockChangeValue+imbalance_Fix,Value)) %>%
     ungroup() %>%
-    dplyr::select(-Median_Value_Stock,-Median_Value_Industrial,-industrialValue,-StockChangeValue,-imbalance_Fix,-Diff,-Value_temp)
+    dplyr::select_("-Median_Value_Stock","-Median_Value_Industrial","-industrialValue","-StockChangeValue","-imbalance_Fix","-Diff","-Value_temp")
   
   data = as.data.table(data)
   
@@ -535,7 +535,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   #                                                                                                                   NA))))))))))))),
   #      by = c(p$mergeKey)] 
 
-  data_type = dplyr::select(data,geographicAreaM49,measuredItemSuaFbs,timePointYears,type)
+  data_type = dplyr::select_(data,"geographicAreaM49","measuredItemSuaFbs","timePointYears","type")
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
     tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
@@ -544,7 +544,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     ungroup()
   data_type = unique(data_type)
   
-  data = dplyr::select(data,-classification)
+  data = dplyr::select_(data,"-classification")
   data = as.data.table(data)
   
   data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
@@ -1072,22 +1072,22 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data_temp1 = data %>%
     dplyr::filter(measuredElementSuaFbs=="industrial") %>%
     mutate(industrialValue = round(Value,2)) %>%
-    dplyr::select(-Value)
+    dplyr::select_("-Value")
   data_temp2 = data %>%
     dplyr::filter(measuredElementSuaFbs=="stockChange") %>%
     mutate(StockChangeValue = round(Value,2)) %>%
-    dplyr::select(-Value)
-  data = dplyr::left_join(data,dplyr::select(data_temp1,
-                                             geographicAreaM49,
-                                             measuredItemSuaFbs,
-                                             timePointYears,
-                                             industrialValue),
+    dplyr::select_("-Value")
+  data = dplyr::left_join(data,dplyr::select_(data_temp1,
+                                             "geographicAreaM49",
+                                             "measuredItemSuaFbs",
+                                             "timePointYears",
+                                             "industrialValue"),
                           by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))
-  data = dplyr::left_join(data,dplyr::select(data_temp2,
-                                             geographicAreaM49,
-                                             measuredItemSuaFbs,
-                                             timePointYears,
-                                             StockChangeValue),
+  data = dplyr::left_join(data,dplyr::select_(data_temp2,
+                                             "geographicAreaM49",
+                                             "measuredItemSuaFbs",
+                                             "timePointYears",
+                                             "StockChangeValue"),
                           by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))  
   rm(data_temp1)
   rm(data_temp2)
@@ -1110,7 +1110,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&type=="CRPR"&(!is.na(type))),
                         Value+imbalance_Fix,Value)) %>%
     ungroup() %>%
-    dplyr::select(-StockChangeValue,-industrialValue,-imbalance_Fix,-Diff)
+    dplyr::select_("-StockChangeValue","-industrialValue","-imbalance_Fix","-Diff")
   
   data = as.data.table(data)
   
