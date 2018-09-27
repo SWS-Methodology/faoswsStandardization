@@ -666,8 +666,9 @@ if(params$createIntermetiateFile){
 
 message("Beginning actual standardization process...")
 
+data2 = as.data.frame(data2)
 data2 = dplyr::rename(data2,measuredItemSuaFbs=measuredItemFbsSua)
-data2[data2$Value==0] = NA
+data2$Value[data2$Value==0] = NA
 data2_Stock = data2 %>%
   dplyr::filter(measuredElementSuaFbs=="stock_change") %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
