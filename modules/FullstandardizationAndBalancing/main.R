@@ -673,14 +673,19 @@ data2_Stock = data2 %>%
   dplyr::filter(measuredElementSuaFbs=="stock_change") %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
   summarise(Median_Value_Stock = median(abs(Value),na.rm=TRUE)) %>%
-  ungroup() %>%
-  dplyr::select(geographicAreaM49,measuredItemSuaFbs,Median_Value_Stock)
+  ungroup()
+
+data2_Stock = as.data.frame(data2_Stock)
+data2_Stock = dplyr::select_(data2_Stock,"geographicAreaM49","measuredItemSuaFbs","Median_Value_Stock")
+
 data2_Industrial = data2 %>%
   dplyr::filter(measuredElementSuaFbs=="industrial") %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
   summarise(Median_Value_Industrial = median(abs(Value),na.rm=TRUE)) %>%
-  ungroup() %>%
-  dplyr::select(geographicAreaM49,measuredItemSuaFbs,Median_Value_Industrial)
+  ungroup() 
+
+data2_Industrial = as.data.frame(data2_Industrial)
+data2_Industrial = dplyr::select_(data2_Industrial,"geographicAreaM49","measuredItemSuaFbs","Median_Value_Industrial")
 rm(data2)
 data = as.data.frame(data)
 data = left_join(data,Feed_Items,by=c("measuredItemSuaFbs"="cpc"))
