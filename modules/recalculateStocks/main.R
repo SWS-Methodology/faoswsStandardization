@@ -66,13 +66,13 @@ if(CheckDebug()){
   )
 }
 
-startYear = as.numeric(swsContext.computationParams$startYear)
-#startYear = as.numeric(2014)
+#startYear = as.numeric(swsContext.computationParams$startYear)
+startYear = as.numeric(2014)
 
-endYear = as.numeric(swsContext.computationParams$endYear)
-#endYear = as.numeric(2016)
+#endYear = as.numeric(swsContext.computationParams$endYear)
+endYear = as.numeric(2016)
 
-geoM49 = swsContext.computationParams$geom49
+#geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = startYear:endYear
 
@@ -85,11 +85,15 @@ sessionCountries =
 geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "geographicAreaM49")[type == "country", code]
 
-##' Select the countries based on the user input parameter
-selectedGEOCode =
-  switch(geoM49,
-         "session" = sessionCountries,
-         "all" = geoKeys)
+#' Select the countries based on the user input parameter
+##Select the countries based on the user input parameter
+# selectedGEOCode =
+#   switch(geoM49,
+#          "session" = sessionCountries,
+#          "all" = selectedCountries)
+
+selectedGEOCode = sessionCountries
+
 
 ################################################
 ##### Harvest from sua #####
@@ -121,7 +125,7 @@ suaData = GetData(sessionKey,omitna=F)
 
 
 ## mutate(pchange2=(Value/lag(Value))-1)
-stocksvar<-suaData %>% filter((measuredElementSuaFbs=="5071" | measuredElementSuaFbs=="5113") & timePointYears>2013)
+stocksvar<-suaData %>% dplyr::filter((measuredElementSuaFbs=="5071" | measuredElementSuaFbs=="5113") & timePointYears>2013)
 #stocksvar <- stocksvar %>% group_by(geographicAreaM49,measuredItemFbsSua) %>% arrange(timePointYears) %>% mutate(cumstocks=cumsum(Value))
 stockswide<- stocksvar %>% dcast(geographicAreaM49+measuredItemFbsSua+timePointYears~measuredElementSuaFbs,value.var="Value")
 stockswide$`5071`[is.na(stockswide$`5071`)]<-0
@@ -137,11 +141,11 @@ esum2 <- function(x,y) x+y
 #stockswide <- stockswide %>% group_by(geographicAreaM49,measuredItemFbsSua)  %>%  mutate(stocksnew=lag(stocksnew)+lag(`5071`))
 #stockswide <- stockswide %>% group_by(geographicAreaM49,measuredItemFbsSua)  %>%  mutate(stocksnew=Reduce(sum, `5071`, init = 0, accumulate = TRUE)[-1])
 #stockswide <- stockswide %>% group_by(geographicAreaM49,measuredItemFbsSua)  %>%  mutate(stocksnew=Reduce(esum, list(lag(stocksnew),lag(`5071`)),accumulate = T))
-stockswide <- stockswide %>% group_by(geographicAreaM49,measuredItemFbsSua)  %>%  mutate(stocksnew =  cumsum(ifelse(is.na(lag(`5071`)), 0, lag(`5071`))) +`5113`[timePointYears==2014])
+stockswide <- stockswide %>% dplyr::group_by(geographicAreaM49,measuredItemFbsSua)  %>%  dplyr::mutate(stocksnew =  cumsum(ifelse(is.na(lag(`5071`)), 0, lag(`5071`))) +`5113`[timePointYears==2014])
 
 
-stockswide <- stockswide %>%   mutate(changedStock=(abs(`5113`-stocksnew)>10 & stocksnew>0))
-stockswide<- stockswide %>%  filter(changedStock==T)
+stockswide <- stockswide %>%   dplyr::mutate(changedStock=(abs(`5113`-stocksnew)>10 & stocksnew>0))
+stockswide<- stockswide %>%  dplyr::filter(changedStock==T)
 stockswide[,"5113"]<-stockswide[,"stocksnew"]
 
 stockswide=as.data.table(stockswide)
