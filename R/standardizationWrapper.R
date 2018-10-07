@@ -494,13 +494,13 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data$industrialValue[is.na(data$industrialValue)] = 0
   # Only activate stocks for those for which existed previously or are primary crops
   #data$StockChangeValue[is.na(data$StockChangeValue)] = 0
-  data$StockChangeValue[is.na(data$StockChangeValue)&
-                          ((!is.na(data$Median_Value_Stock))|
-                          data$type=="CRPR")&(!is.na(data$type))] = 0
-  # data$Median_Value_Stock[is.na(data$Median_Value_Stock)] = 0
-  data$Median_Value_Stock[(is.na(data$Median_Value_Stock))&data$type=="CRPR"&(!is.na(data$type))] = 0
+  data$Median_Value_Stock[is.na(data$Median_Value_Stock)] = 0
+  data$StockChangeValue[(is.na(data$StockChangeValue)&
+                          (abs(data$Median_Value_Stock)>.1))&
+                          data$type=="CRPR"&
+                          (!is.na(data$type))] = 0
   data$Median_Value_Industrial[is.na(data$Median_Value_Industrial)] = 0
-  
+
   # work here!
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
@@ -512,7 +512,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                         industrialValue+imbalance_Fix,Value)) %>%
     dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
                         NA,Value)) %>%
-    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&type=="CRPR"&(!is.na(type))),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&type=="CRPR"&(!is.na(type))&(abs(Median_Value_Stock)>.1)),
                         StockChangeValue+imbalance_Fix,Value)) %>%
     ungroup() %>%
     dplyr::select_("-Median_Value_Stock","-Median_Value_Industrial","-industrialValue","-StockChangeValue","-imbalance_Fix","-Diff","-Value_temp")
