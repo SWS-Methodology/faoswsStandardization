@@ -55,7 +55,8 @@ suaFilling_NW = function(data, p = p, tree=tree,
                          imbalanceThreshold = 10,loop1=TRUE){
   
   # The commodities that have to be crude balanced are the NON PRIMARY
-  
+  data$Protected[is.na(data$Protected)] = FALSE
+  data$Official[is.na(data$Official)] = FALSE
   stopifnot(imbalanceThreshold > 0)
   
   eleToExcludeS = c(p$productionCode,p$exportCode,p$importCode,p$stockCode,p$foodProcCode)
@@ -606,7 +607,7 @@ suaFilling_NW = function(data, p = p, tree=tree,
     }else{dataPosImbAll$newValue=NA}
     
     
-    # data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNegImb,dataPosImb)
+    # data=rbind(dataNoImbP,dataNegImbP,dataNoImb,dataPosImbP,dataNedatagImb,dataPosImb)
     data=dplyr::bind_rows(dataNoImbP,dataNegImbP,dataNoImb,dataNegImb,dataPosImbAll)
     
     data = as.data.table(data)

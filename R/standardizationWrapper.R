@@ -491,7 +491,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   rm(data_temp1)
   rm(data_temp2)
   
-  data$industrialValue[is.na(data$industrialValue)&(abs(Median_Value_Industrial)>.1)] = 0
+  data$industrialValue[is.na(data$industrialValue)&(abs(data$Median_Value_Industrial)>.1)] = 0
   # Only activate stocks for those for which existed previously or are primary crops
   #data$StockChangeValue[is.na(data$StockChangeValue)] = 0
   data$Median_Value_Stock[is.na(data$Median_Value_Stock)] = 0
@@ -508,7 +508,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                         StockChangeValue+imbalance_Fix*(Median_Value_Stock/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
     dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
                         industrialValue+imbalance_Fix*(Median_Value_Industrial/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
-    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.nan(Value)|is.na(Value))&imbalance_Fix>=0(abs(Median_Value_Industrial)>.1)),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.nan(Value)|is.na(Value))&imbalance_Fix>=0&(abs(Median_Value_Industrial)>.1)),
                         industrialValue+imbalance_Fix,Value)) %>%
     dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
                         NA,Value)) %>%
@@ -996,6 +996,9 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   ## all these elements with their balanced values.
   # NW Here I have intervened again to ensure that only non-official data is changed
   # The difference is sent to stock change and industrial uses
+  
+  data$Protected[is.na(data$Protected)] = FALSE
+  data$Official[is.na(data$Official)] = FALSE
   data[!(nutrientElement)&!Protected==TRUE, Value := balancedValue]
   data$balancedValue[is.na(data$balancedValue)] = data$Value[is.na(data$balancedValue)]
   data_type = distinct(data_type,geographicAreaM49,timePointYears,measuredItemSuaFbs,.keep_all = TRUE)
