@@ -195,9 +195,9 @@ sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredEl
 
 
 loss<-sua_unb2 %>% filter(measuredElementSuaFbs==5016)
-loss<-loss %>% mutate(outl=abs(ratio-mean_ratio)>=0.05)
+loss<-loss %>% mutate(outl=(abs(ratio-mean_ratio)>=0.05) | (ratio==0 & mean_ratio>0)) 
 outl_loss<-loss %>% filter((outl==T & timePointYears>2013) )
-impute_loss<-outl_loss %>% filter(supply>=0 & mean_ratio>0 & mean_ratio<1 & measuredItemFbsSua %in% food)
+impute_loss<-outl_loss %>% filter(supply>=0 & mean_ratio>0 & mean_ratio<1 & measuredItemFbsSua %in% food & measuredItemFbsSua %in% primaryProxyPrimary)
 impute_loss<-impute_loss %>% mutate(impute=supply*mean_ratio)
 impute_loss<-impute_loss %>% mutate(diff=Value-impute)
 impute_loss=setnames(impute_loss,"Value","pippo")
@@ -231,8 +231,8 @@ paste0(stats$inserted, " observations written, ",
 ## Initiate email
 from = "sws@fao.org"
 to = swsContext.userEmail
-subject = "PullDataToSua plug-in has correctly run"
-body = "The plug-in has saved the SUAs in your session"
+subject = "Impute Losses plug-in has correctly run"
+body = "The plug-in has saved the imputed losses in your session"
 
 sendmailR::sendmail(from, to, subject , body)
 paste0("Email sent to ", swsContext.userEmail)
