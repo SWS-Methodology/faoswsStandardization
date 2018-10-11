@@ -591,7 +591,7 @@ for(geo in   seq_along(allCountries)){
             
             ##'   The min of the processing-level is not only item-specific, but also country-time specific, since the 
             ##'   the commodity-tree may change over the time and the countries.
-            allLevelsByCountry = as.data.frame(allLevelsByCountry)
+            # allLevelsByCountry = as.data.frame(allLevelsByCountry)
             # 
             # allLevelsByCountry[measuredItemChildCPC %in% secondLoop, minProcessingLevel:=min(processingLevel), by=c("geographicAreaM49","timePointYears", "measuredItemChildCPC")]
             # 
