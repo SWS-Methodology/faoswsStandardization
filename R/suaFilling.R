@@ -57,10 +57,11 @@ suaFilling_NW = function(data, p = p, tree=tree,
   # The commodities that have to be crude balanced are the NON PRIMARY
   data$Protected[is.na(data$Protected)] = FALSE
   data$Official[is.na(data$Official)] = FALSE
+  data$ProtectedProd[data$food_classification=="Food"] = TRUE
   stopifnot(imbalanceThreshold > 0)
   
   eleToExcludeS = c(p$productionCode,p$exportCode,p$importCode,p$stockCode,p$foodProcCode)
-  eleToExclude = c(p$productionCode,p$exportCode,p$importCode,p$foodProcCode)
+  eleToExclude = c(p$productionCode,p$exportCode,p$importCode,p$foodProcCode,p$wasteCode)
   
   
   #############################
@@ -170,17 +171,17 @@ suaFilling_NW = function(data, p = p, tree=tree,
     if("newValue" %in% colnames(dataPosImbP)){
       dataPosImbP[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
       # dataPosImbP[,newValue:=NULL]
-      dataPosImbP=dataPosImbP[,1:19,with=FALSE]
+      dataPosImbP=dataPosImbP[,1:20,with=FALSE]
     } else{dataPosImbP$newValue=NA}
     if("newValue" %in% colnames(dataNegImb)){
       dataNegImb[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
       # dataPosImbP[,newValue:=NULL]
-      dataNegImb=dataNegImb[,1:19,with=FALSE]
+      dataNegImb=dataNegImb[,1:20,with=FALSE]
     } else{dataNegImb$newValue=NA}
     if("newValue" %in% colnames(dataPosImb)){
       dataPosImb[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
       # dataPosImbP[,newValue:=NULL]
-      dataPosImb=dataPosImb[,1:19,with=FALSE]
+      dataPosImb=dataPosImb[,1:20,with=FALSE]
     } else{dataPosImb$newValue=NA}
     if(!("newValue" %in% colnames(dataNoImbP))){dataNoImbP$newValue=NA}
     if(!("newValue" %in% colnames(dataNegImbP))){dataNegImbP$newValue=NA}
@@ -398,10 +399,14 @@ suaFilling_NW = function(data, p = p, tree=tree,
         # CRISTINA change made august 2018
         # Save these data outside and send them for manual check and adjustment
         # (before everything was send conventionally on food)
+       
         # dataPosImbAll[measuredItemSuaFbs==i
         #               &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
-        #                 get(p$elementVar)==p$foodCode,newValue:=Value]
+        #                 get(p$elementVar)==p$foodCode&
+        #                 food_classification=="Food"&
+        #                 !Protected==TRUE,Value:=Value+imbalance]
         
+
         NoBalanced = dataPosImbAll[measuredItemSuaFbs==i]
         
         setnames(NoBalanced, "measuredItemSuaFbs", "measuredItemFbsSua")
@@ -568,7 +573,7 @@ suaFilling_NW = function(data, p = p, tree=tree,
       
       if("newValue" %in% colnames(NoFillable)){
         NoFillable[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
-        NoFillable=NoFillable[,c(3,2,1,4,5,6,7,16,19),with=FALSE]
+        NoFillable=NoFillable[,c(3,2,1,4,5,6,7,17,20),with=FALSE]
       }
       setnames(NoFillable, "measuredItemSuaFbs", "measuredItemFbsSua")
       standData = NoFillable
@@ -599,11 +604,11 @@ suaFilling_NW = function(data, p = p, tree=tree,
     if("newValue" %in% colnames(dataNegImb)){
       dataNegImb[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
       # dataPosImbP[,newValue:=NULL]
-      dataNegImb=dataNegImb[,1:19,with=FALSE]
+      dataNegImb=dataNegImb[,1:20,with=FALSE]
     }else{dataNegImb$newValue=NA}
     if("newValue" %in% colnames(dataPosImbAll)){
       dataPosImbAll[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
-      dataPosImbAll=dataPosImbAll[,1:19,with=FALSE]
+      dataPosImbAll=dataPosImbAll[,1:20,with=FALSE]
     }else{dataPosImbAll$newValue=NA}
     
     
