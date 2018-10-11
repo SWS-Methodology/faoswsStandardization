@@ -158,6 +158,8 @@ livestock<- c("02111","02112","02121.01","02122","02123","02131","02132","02133"
 #print apparent consumption
 
 
+commDef=ReadDatatable("fbs_commodity_definitions")
+primary=commDef$cpc[commDef[,primary_commodity=="X"]]
 
 apparentConsumption <- copy (sua_data)
 
@@ -167,7 +169,9 @@ apparentConsumption <- subset(apparentConsumption, timePointYears %in% c(2014:20
 
 apparentConsumption <- subset(apparentConsumption, measuredItemFbsSua %!in% livestock)
 
-apparentConsumption <- subset(apparentConsumption, supply < -1000 )
+apparentConsumption <- subset(apparentConsumption, supply < -10 )
+apparentConsumption <- subset(apparentConsumption, measuredItemFbsSua %!in% primary )
+
 
 apparentConsumption<- apparentConsumption[,c("geographicAreaM49","measuredItemFbsSua","timePointYears"),with=FALSE]
 
