@@ -170,7 +170,7 @@ apparentConsumption <- subset(apparentConsumption, timePointYears %in% c(2014:20
 apparentConsumption <- subset(apparentConsumption, measuredItemFbsSua %!in% livestock)
 
 apparentConsumption <- subset(apparentConsumption, supply < -10 )
-apparentConsumption <- subset(apparentConsumption, measuredItemFbsSua %!in% primary )
+apparentConsumption <- subset(apparentConsumption, measuredItemFbsSua %in% primary )
 
 
 apparentConsumption<- apparentConsumption[,c("geographicAreaM49","measuredItemFbsSua","timePointYears"),with=FALSE]
