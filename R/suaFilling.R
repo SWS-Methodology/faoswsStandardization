@@ -165,8 +165,8 @@ suaFilling_NW = function(data, p = p, tree=tree,
     #----------------------#
     # This is being changed the 12/04/2018 as per Salar request
     # create OR increase production any time is not sufficient to cover Import-Export
-    dataNegImb[get(p$elementVar)==p$productionCode & ProtectedProd==FALSE,
-               newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
+    # dataNegImb[get(p$elementVar)==p$productionCode & ProtectedProd==FALSE,
+    #            newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
     
     if("newValue" %in% colnames(dataPosImbP)){
       dataPosImbP[!is.na(newValue)&!Protected==TRUE,Value:=newValue]
@@ -344,8 +344,8 @@ suaFilling_NW = function(data, p = p, tree=tree,
     
     ########################## Supply < utilization (= imbalance < -imbalanceThreshold)
     # if production is not official, create production
-    dataNegImb[ProtectedProd=="FALSE" & get(p$elementVar)==p$productionCode,
-               newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
+    # dataNegImb[ProtectedProd=="FALSE" & get(p$elementVar)==p$productionCode,
+    #            newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
     ##########################
     
     
