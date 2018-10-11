@@ -58,6 +58,7 @@ suaFilling_NW = function(data, p = p, tree=tree,
   data$Protected[is.na(data$Protected)] = FALSE
   data$Official[is.na(data$Official)] = FALSE
   data$ProtectedProd[data$food_classification=="Food"] = TRUE
+  data$ProtectedProd[data$type=="CRPR"] = TRUE
   stopifnot(imbalanceThreshold > 0)
   
   eleToExcludeS = c(p$productionCode,p$exportCode,p$importCode,p$stockCode,p$foodProcCode)
@@ -344,8 +345,8 @@ suaFilling_NW = function(data, p = p, tree=tree,
     
     ########################## Supply < utilization (= imbalance < -imbalanceThreshold)
     # if production is not official, create production
-    # dataNegImb[ProtectedProd=="FALSE" & get(p$elementVar)==p$productionCode,
-    #            newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
+    dataNegImb[ProtectedProd=="FALSE" & get(p$elementVar)==p$productionCode & !(type=="CRPR"),
+               newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
     ##########################
     
     
