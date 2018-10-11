@@ -115,13 +115,24 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
 
 #Pull SUA Data
 
-suaData = GetData(key)
+
+
+suaData = GetData(key,omitna = F, normalized=F)
+suaData=normalise(suaData, areaVar = "geographicAreaM49",
+                  itemVar = "measuredItemFbsSua", elementVar = "measuredElementSuaFbs",
+                  yearVar = "timePointYears", flagObsVar = "flagObservationStatus",
+                  flagMethodVar = "flagMethod", valueVar = "Value",
+                  removeNonExistingRecords = F)
+
 suaData=setDT(suaData)
 suaData[measuredElementSuaFbs==5164,Value:=0]
 suaData[measuredElementSuaFbs==5164, flagObservationStatus:="E"]
 suaData[measuredElementSuaFbs==5164, flagMethod:="e"]
 
 touristData=suaData[measuredElementSuaFbs==5164]
+
+
+### flip data to restore NAs
 
 
 ## pull trade data and calculate net exports
