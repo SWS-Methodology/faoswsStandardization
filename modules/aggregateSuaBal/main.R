@@ -184,3 +184,41 @@ bodySuaBALAggregation= paste("The Email contains the aggregated caloric intake a
 sendMailAttachment(toSend,"SuaBalAggregation",bodySuaBALAggregation)
 
 
+
+
+############ calculate imbalance
+
+commDef=ReadDatatable("fbs_commodity_definitions")
+# primaryProxyPrimary=commDef$cpc[commDef[,proxy_primary=="X" | primary_commodity=="X"]]
+# primary=commDef$cpc[commDef[,primary_commodity=="X"]]
+# 
+# 
+# proxyPrimary=commDef$cpc[commDef[,proxy_primary=="X" | derived=="X"]]
+food=commDef$cpc[commDef[,food_item=="X"]]
+
+
+
+sua_balanced_data[, imbalance := sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
+                               ifelse(measuredElementSuaFbs == "5510", 1,
+                                      ifelse(measuredElementSuaFbs == "5610", 1,
+                                             ifelse(measuredElementSuaFbs == "5910", -1,
+                                                    ifelse(measuredElementSuaFbs == "5071", -1,
+                                                           ifelse(measuredElementSuaFbs == "5141", -1,
+                                                                  ifelse(measuredElementSuaFbs == "5023", -1,
+                                                                         ifelse(measuredElementSuaFbs == "5520", -1,
+                                                                                ifelse(measuredElementSuaFbs == "5016", -1,
+                                                                                       ifelse(measuredElementSuaFbs == "5525", -1,
+                                                                                              ifelse(measuredElementSuaFbs == "5165", -1,
+                                                                                                     ifelse(measuredElementSuaFbs == "5164", -1,
+                                                                                                            ifelse(measuredElementSuaFbs == "5166", -1,0))))))))))))),
+          by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
+
+imbToSend=subset(sua_balanced_data,measuredItemFbsSua %in% food & timePointYears>2014 & abs(imbalance)>1)
+imbToSend=unique(imbToSend, incomparables=FALSE, fromLast=FALSE, by=c("geographicAreaM49","measuredItemFbsSua","timePointYears","imbalance"))
+imbToSend$measuredElementSuaFbs<-NULL
+imbToSend=nameData("suafbs","sua_balanced",imbToSend)
+
+bodyImbalances= paste("The Email contains the list of imbalanced food items at SUA bal level. Please check them.",
+                             sep='\n')
+
+sendMailAttachment(setDT(imbToSend),"ImbalanceList",bodyImbalances)
