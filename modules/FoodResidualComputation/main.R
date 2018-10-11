@@ -124,7 +124,7 @@ suaData[measuredElementSuaFbs==5164, flagMethod:="e"]
 touristData=suaData[measuredElementSuaFbs==5164]
 
 
-## pull trade data and calculate net exports
+## pull imports,exports,food and production data to analyze the share from 2004 to 2013 years
 shareData <- subset(suaData, (measuredElementSuaFbs %in% c("5610","5910","5141","5510")) & timePointYears<2014  )
 
 shareData[, c("flagObservationStatus","flagMethod"):= NULL]
@@ -149,15 +149,15 @@ shareData[is.na(food), food := 0]
 
 shareData[, netTrade := (exports - imports)]
 shareData[,share:=food/imports]
-shareData[is.infinite(share), share := NA]
+shareData[is.na(share), share := NA]
 
 shareData=setDT(shareData)
-shareData[, medshare := median(share,na.rm = T), by=c("measuredItemFbsSua")]
-shareData[, medfood := median(food,na.rm = T), by=c("measuredItemFbsSua")]
-shareData[, noProd := median(production,na.rm = T), by=c("measuredItemFbsSua")]
+shareData[, medshare := median(share,na.rm = T), by=c("measuredItemFbsSua","geographicAreaM49")]
+shareData[, medfood := median(food,na.rm = T), by=c("measuredItemFbsSua","geographicAreaM49")]
+shareData[, noProd := median(production,na.rm = T), by=c("measuredItemFbsSua","geographicAreaM49")]
 
 
-shares=shareData[,list(share=unique(medshare), noProd=unique(noProd)), by=measuredItemFbsSua]
+shares=shareData[,list(share=unique(medshare), noProd=unique(noProd)), by=c("measuredItemFbsSua","geographicAreaM49")]
 
 
 
@@ -192,9 +192,10 @@ setnames(food_classification_country_specific,
 
 
 
-# Define all primary and proxy primaries. This includes no parent items, cutitems and zero proessing levels and also primaries among orphans.
+# Define all primary and proxy primaries. This includes no parent items, cutitems and zero processing levels and also primaries among orphans.
 #Further, orphans are defined as the items who are neither in tree (as a child or parent) nor cut items (proxy primary). But an orphan can be a primary.
-
+#In order to compute updated food residual values we take into account only primaty/proxy primary because there exists other utilizations such as
+#loss, feed, seed etc. 
 
 
 
@@ -220,6 +221,7 @@ setnames(food_classification_country_specific,
 #   "01658", "01655", "01653", "01654", "01657", "01699", "21112","21115", "21116", "21122", "21170.01", "21118.01", "21118.02", 
 #   "21118.03", "21117.01", "21114", "21119.01", "21117.02", "02920","21152", "21155", "21156", "21153", "21160.03", "21159.01", "21159.02", 
 #   "21519.02", "21519.03", "0232", "02293")
+
 commDef=ReadDatatable("fbs_commodity_definitions")
 primaryProxyPrimary=commDef$cpc[commDef[,proxy_primary=="X" | primary_commodity=="X"]]
 primary=commDef$cpc[commDef[,primary_commodity=="X"]]
@@ -334,7 +336,7 @@ timeSeriesData[, netSupply := netTrade + production]
 
 ################## CARLO
 
-keys = c("measuredItemFbsSua")
+keys = c("measuredItemFbsSua","geographicAreaM49")
 
 timeSeriesData <- merge(timeSeriesData,shares, by=keys, all.x = TRUE)
 timeSeriesData=setDT(timeSeriesData)
@@ -395,7 +397,8 @@ timeSeriesData[primary == "not-primary", foodHat_nonprimary := netSupply - (stoc
 
 
 #Compute new food residual estimate . The calcualtions are done only for the unprotected food figures. 
-
+#we do not take into account primary for two reasons. 
+# Reason 1: For primaries there do exist 
 
 # timeSeriesData[Protected == FALSE & primary == "primary" & netSupply > 0, 
 #                foodHat:= netSupply]
