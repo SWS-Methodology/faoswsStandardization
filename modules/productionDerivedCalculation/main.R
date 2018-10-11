@@ -281,6 +281,12 @@ for(geo in   seq_along(allCountries)){
             treeLevels[[i]]= merge(treeCurrent, levels, by=c("measuredItemParentCPC"), all.x=TRUE)
         }
         tree=rbindlist(treeLevels)
+        
+        tree = tree %>%
+          dplyr::group_by_("geographicAreaM49","timePointYears","measuredItemChildCPC") %>%
+          dplyr::mutate(processingLevel = max(processingLevel,na.rm=TRUE))
+        
+        tree = as.data.table(tree)
         ##-------------------------------------------------------------------------------------------------------------------------------------
         ############################################################################################################################
         ##'  Select all the commodity involved (what I need is just the dependence parent-child,
@@ -320,7 +326,7 @@ for(geo in   seq_along(allCountries)){
             ##'  to keep only ONE production-contribution and in particular the contribution of the highest level in the tree- 
             ##'  hierachy (if it is just one level, we are properly considering ALL the production components)
             ##'  see row 560 of this script.
-            
+
             secondLoop=unique(multipleLevels[n!=1,measuredItemChildCPC])
             
             ############################################################################################################################
@@ -585,15 +591,21 @@ for(geo in   seq_along(allCountries)){
             
             ##'   The min of the processing-level is not only item-specific, but also country-time specific, since the 
             ##'   the commodity-tree may change over the time and the countries.
+            # allLevelsByCountry = as.data.frame(allLevelsByCountry)
+            # 
+            # allLevelsByCountry[measuredItemChildCPC %in% secondLoop, minProcessingLevel:=min(processingLevel), by=c("geographicAreaM49","timePointYears", "measuredItemChildCPC")]
+            # 
+            # allLevelsByCountry[measuredItemChildCPC %in% secondLoop & extractionRate!=0, minProcessingLevel:=min(processingLevel),
+            #                    by=c("geographicAreaM49","timePointYears", "measuredItemChildCPC")]
             
-            allLevelsByCountry[measuredItemChildCPC %in% secondLoop, minProcessingLevel:=min(processingLevel), by=c("geographicAreaM49","timePointYears", "measuredItemChildCPC")]
             
-            allLevelsByCountry[measuredItemChildCPC %in% secondLoop & extractionRate!=0, minProcessingLevel:=min(processingLevel),
-                               by=c("geographicAreaM49","timePointYears", "measuredItemChildCPC")]
-            
+            # NW:  This is not just removing contributions from lower items in the same hierarchy, but also contributions at lower levels 
+            # in the production chain coming from another branch
             ##'   I remove (just for those commodities classified as secondLoop) the production-contributions coming from parents 
             ##'   lower in the hierachy (it means with an higher processing-level)
-            allLevelsByCountry=allLevelsByCountry[(is.na(minProcessingLevel) | processingLevel==minProcessingLevel) & extractionRate!=0]
+            # allLevelsByCountry=allLevelsByCountry[(is.na(minProcessingLevel) | processingLevel==minProcessingLevel) & extractionRate!=0]
+            # Here either sum across parents by child or send email.
+            
             
             #finalOutput = output[!(measuredItemChildCPC %in% secondLoop),  list(newImputation = sum(newImputation, na.rm = TRUE)),
             #                        by =c ("geographicAreaM49","measuredItemChildCPC","timePointYears")]

@@ -292,6 +292,8 @@ flagValidTable = ReadDatatable("valid_flags")
 Feed_Items = ReadDatatable("feed_items_2018")
 Feed_Items = dplyr::rename(Feed_Items,classification=feed_class)
 Feed_Items$classification = "feedOnly"
+Fruit_Veg_Food = ReadDatatable("food_items_fruit_veg")
+
 # Feed_Items = dplyr::filter(Feed_Items,classification=="feedOnly",!is.na(classification))
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
@@ -689,6 +691,8 @@ data2_Industrial = dplyr::select_(data2_Industrial,"geographicAreaM49","measured
 rm(data2)
 data = as.data.frame(data)
 data = left_join(data,Feed_Items,by=c("measuredItemSuaFbs"="cpc"))
+data = left_join(data,Fruit_Veg_Food,by=c("measuredItemSuaFbs"="cpc"))
+data$food_classification[is.na(data$food_classification)] = "NonVegFruitFood"
 data = left_join(data,data2_Stock,by=c("geographicAreaM49","measuredItemSuaFbs"))
 data = left_join(data,data2_Industrial,by=c("geographicAreaM49","measuredItemSuaFbs"))
 data$classification[is.na(data$classification)] = "NonFeedOnly"

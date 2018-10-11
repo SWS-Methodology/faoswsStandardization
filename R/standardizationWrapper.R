@@ -95,7 +95,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   dataFlags=data.table(data.frame(data))
   dataFlags=dataFlags[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","flagObservationStatus","flagMethod"))]
   
-  data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Official","Protected","type"))]
+  data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Official","Protected","type","food_classification"))]
   
   ## Reassign standParams to p for brevity
   p = standParams
@@ -214,6 +214,16 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data=data.table(left_join(data,utilizationTable,by=c("geographicAreaM49","measuredElementSuaFbs","measuredItemSuaFbs")))
   
   data = unique(data)
+  
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
+    fill(food_classification,.direction="up") %>%
+    fill(food_classification,.direction="down") %>%
+    fill(type,.direction="up") %>%
+    fill(type,.direction="down") %>%
+    ungroup()
+  data = as.data.table(data)
   
   data=suaFilling_NW(data, p=p, tree=tree,
                      primaryCommodities = primaryEl, debugFile=p$createIntermetiateFile,
@@ -393,6 +403,17 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   
   data[,c("availability","updateFlag"):=NULL]
   
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
+    fill(food_classification,.direction="up") %>%
+    fill(food_classification,.direction="down") %>%
+    fill(type,.direction="up") %>%
+    fill(type,.direction="down") %>%
+    ungroup()
+  
+  data = as.data.table(data)
+  
   data=suaFilling_NW(data, p=p, tree=tree,
                      primaryCommodities = primaryEl,
                      debugFile = params$createIntermetiateFile, stockCommodities = stockCommodities,
@@ -422,6 +443,15 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                                                                                                                   0))))))))))))),
        by = c(p$mergeKey)]
   
+  data$Value_temp = data$Value
+  data$Value_temp[is.na(data$Value_temp)] = 0
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="food"&food_classification=="Food"&((imbalance_Fix+Value_temp)>=0)&(!(Protected==TRUE)),
+                               Value_temp+imbalance_Fix,Value)) %>%
+    ungroup() %>%
+    dplyr::select_("-Value_temp")
+  
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
     tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
@@ -431,6 +461,25 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   
   data = dplyr::left_join(data,data_Stock_Industrial,
                           by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))
+  
+  data = as.data.table(data)
+  
+  data[, imbalance_Fix := sum(ifelse(is.na(Value), 0, Value) *
+                                ifelse(get(p$elementVar) == p$productionCode, 1,
+                                       ifelse(get(p$elementVar) == p$importCode, 1,
+                                              ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                     ifelse(get(p$elementVar) == p$stockCode, -1,
+                                                            ifelse(get(p$elementVar) == p$foodCode, -1,
+                                                                   ifelse(get(p$elementVar) == p$foodProcCode, -1,
+                                                                          ifelse(get(p$elementVar) == p$feedCode, -1,
+                                                                                 ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                                                                        ifelse(get(p$elementVar) == p$seedCode, -1,
+                                                                                               ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                                                                                      ifelse(get(p$elementVar) == p$touristCode, -1,
+                                                                                                             ifelse(get(p$elementVar) == p$residualCode, -1, 
+                                                                                                                    0))))))))))))),
+       by = c(p$mergeKey)]
+  
   
   data$imbalance_Fix[is.na(data$imbalance_Fix)] = 0
 
@@ -535,14 +584,17 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   #                                                                                                                   NA))))))))))))),
   #      by = c(p$mergeKey)] 
 
-  data_type = dplyr::select_(data,"geographicAreaM49","measuredItemSuaFbs","timePointYears","type")
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
     tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
     fill(type,.direction="up") %>%
     fill(type,.direction="down") %>%
+    fill(food_classification,.direction="up") %>%
+    fill(food_classification,.direction="down") %>%
     ungroup()
-  data_type = unique(data_type)
+  
+  data_type_class = dplyr::select_(data,"geographicAreaM49","measuredItemSuaFbs","timePointYears","type","food_classification")
+  data_type_class = unique(data_type_class)
   
   data = dplyr::select_(data,"-classification")
   data = as.data.table(data)
@@ -1001,14 +1053,16 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data$Official[is.na(data$Official)] = FALSE
   data[!(nutrientElement)&!Protected==TRUE, Value := balancedValue]
   data$balancedValue[is.na(data$balancedValue)] = data$Value[is.na(data$balancedValue)]
-  data_type = distinct(data_type,geographicAreaM49,timePointYears,measuredItemSuaFbs,.keep_all = TRUE)
-  data = dplyr::left_join(data,data_type,by=c("geographicAreaM49",
+  data_type_class = distinct(data_type_class,geographicAreaM49,timePointYears,measuredItemSuaFbs,.keep_all = TRUE)
+  data = dplyr::left_join(data,data_type_class,by=c("geographicAreaM49",
                                                    "timePointYears",
                                                    "measuredItemSuaFbs"))
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
     fill(type,.direction="up") %>%
     fill(type,.direction="down") %>%
+    fill(food_classification,.direction="up") %>%
+    fill(food_classification,.direction="down") %>%
     ungroup()
   
   data = as.data.table(data)
@@ -1034,6 +1088,22 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                                                                                                              ifelse(get(p$elementVar) == p$residualCode, -1, 
                                                                                                                     0))))))))))))),
        by = c(p$mergeKey)]
+  
+  data$Value_temp = data$Value
+  data$Value_temp[is.na(data$Value_temp)] = 0
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="food"&food_classification=="Food"&((imbalance_Fix+Value_temp)>=0)&(!(Protected==TRUE)),
+                               Value_temp+imbalance_Fix,Value)) %>%
+    ungroup() %>%
+    dplyr::select_("-Value_temp")
+  
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
+    fill(type,.direction="up") %>%
+    fill(type,.direction="down") %>%
+    ungroup()
   
   data = dplyr::left_join(data,data_Stock_Industrial,
                           by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))
