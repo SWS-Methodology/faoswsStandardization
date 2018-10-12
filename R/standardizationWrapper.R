@@ -220,8 +220,6 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     # tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
     fill(food_classification,.direction="up") %>%
     fill(food_classification,.direction="down") %>%
-    fill(type,.direction="up") %>%
-    fill(type,.direction="down") %>%
     ungroup()
   data = as.data.table(data)
   
@@ -408,8 +406,6 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     # tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
     fill(food_classification,.direction="up") %>%
     fill(food_classification,.direction="down") %>%
-    fill(type,.direction="up") %>%
-    fill(type,.direction="down") %>%
     ungroup()
   
   data = as.data.table(data)

@@ -347,7 +347,7 @@ suaFilling_NW = function(data, p = p, tree=tree,
     
     ########################## Supply < utilization (= imbalance < -imbalanceThreshold)
     # if production is not official, create production
-    dataNegImb[ProtectedProd=="FALSE" & get(p$elementVar)==p$productionCode & !(type=="CRPR"),
+    dataNegImb[ProtectedProd=="FALSE" & get(p$elementVar)==p$productionCode&(!(type=="CRPR"))&Protected==FALSE,
                newValue:=ifelse(is.na(Value),-imbalance,Value-imbalance)]
     ##########################
     
