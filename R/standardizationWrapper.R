@@ -217,7 +217,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
+    # tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
     fill(food_classification,.direction="up") %>%
     fill(food_classification,.direction="down") %>%
     fill(type,.direction="up") %>%
@@ -405,7 +405,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
+    # tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
     fill(food_classification,.direction="up") %>%
     fill(food_classification,.direction="down") %>%
     fill(type,.direction="up") %>%
@@ -586,7 +586,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
 
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
+    # tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
     fill(type,.direction="up") %>%
     fill(type,.direction="down") %>%
     fill(food_classification,.direction="up") %>%

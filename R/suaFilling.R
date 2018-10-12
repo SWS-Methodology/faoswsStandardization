@@ -59,6 +59,8 @@ suaFilling_NW = function(data, p = p, tree=tree,
   data$Official[is.na(data$Official)] = FALSE
   data$ProtectedProd[data$food_classification=="Food"] = TRUE
   data$ProtectedProd[data$type=="CRPR"] = TRUE
+  data$Protected[data$food_classification=="Food"&data$measuredElementSuaFbs=="production"] = TRUE
+  data$Protected[data$type=="CRPR"&data$measuredElementSuaFbs=="production"] = TRUE
   stopifnot(imbalanceThreshold > 0)
   
   eleToExcludeS = c(p$productionCode,p$exportCode,p$importCode,p$stockCode,p$foodProcCode)
