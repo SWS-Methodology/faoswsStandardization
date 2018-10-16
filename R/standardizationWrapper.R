@@ -220,6 +220,8 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     # tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
     fill(food_classification,.direction="up") %>%
     fill(food_classification,.direction="down") %>%
+    fill(type,.direction="up") %>%
+    fill(type,.direction="down") %>%
     ungroup()
   data = as.data.table(data)
   
@@ -406,6 +408,8 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     # tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
     fill(food_classification,.direction="up") %>%
     fill(food_classification,.direction="down") %>%
+    fill(type,.direction="up") %>%
+    fill(type,.direction="down") %>%
     ungroup()
   
   data = as.data.table(data)
@@ -541,9 +545,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   #data$StockChangeValue[is.na(data$StockChangeValue)] = 0
   data$Median_Value_Stock[is.na(data$Median_Value_Stock)] = 0
   data$StockChangeValue[(is.na(data$StockChangeValue)&
-                          (abs(data$Median_Value_Stock)>.1))&
-                          data$type=="CRPR"&
-                          (!is.na(data$type))] = 0
+                          (abs(data$Median_Value_Stock)>.1))] = 0
   data$Median_Value_Industrial[is.na(data$Median_Value_Industrial)] = 0
 
   # work here!
@@ -557,7 +559,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                         industrialValue+imbalance_Fix,Value)) %>%
     dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
                         NA,Value)) %>%
-    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&type=="CRPR"&(!is.na(type))&(abs(Median_Value_Stock)>.1)),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&(abs(Median_Value_Stock)>.1)),
                         StockChangeValue+imbalance_Fix,Value)) %>%
     ungroup() %>%
     dplyr::select_("-Median_Value_Stock","-Median_Value_Industrial","-industrialValue","-StockChangeValue","-imbalance_Fix","-Diff","-Value_temp")
@@ -1176,7 +1178,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                         industrialValue+imbalance_Fix,Value)) %>%
     dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
                         NA,Value)) %>%
-    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&type=="CRPR"&(!is.na(type))),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0),
                         Value+imbalance_Fix,Value)) %>%
     ungroup() %>%
     dplyr::select_("-StockChangeValue","-industrialValue","-imbalance_Fix","-Diff")
