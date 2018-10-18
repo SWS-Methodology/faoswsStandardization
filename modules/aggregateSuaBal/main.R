@@ -229,7 +229,7 @@ sua_balanced_data[, perc.imbalance := 100*abs(imbalance)/sum(ifelse(is.na(Value)
                   by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
 
 
-imbToSend=subset(sua_balanced_data,measuredItemFbsSua %in% food & timePointYears>2014 & abs(imbalance)>1)
+imbToSend=subset(sua_balanced_data,measuredItemFbsSua %in% food & timePointYears>=2014 & abs(imbalance)>1)
 imbToSend=unique(imbToSend, incomparables=FALSE, fromLast=FALSE, by=c("geographicAreaM49","measuredItemFbsSua","timePointYears","imbalance"))
 imbToSend$measuredElementSuaFbs<-NULL
 imbToSend$Value<-NULL
