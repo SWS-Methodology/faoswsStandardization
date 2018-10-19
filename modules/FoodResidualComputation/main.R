@@ -411,8 +411,8 @@ timeSeriesData[primary == "not-primary", foodHat_nonprimary := netSupply - (stoc
 # timeSeriesData[Protected == FALSE & primary == "primary" & netSupply > 0, 
 #                foodHat:= netSupply]
 # 
-timeSeriesData[Protected == FALSE & primary == "primary"  & netSupply <= 0, 
-               foodHat := food] # changed by carlo
+# timeSeriesData[Protected == FALSE & primary == "primary"  & netSupply <= 0, 
+#                foodHat := food] # changed by carlo
 
 
 timeSeriesData[Protected == FALSE & primary == "not-primary" & foodHat_nonprimary > 0 , 
