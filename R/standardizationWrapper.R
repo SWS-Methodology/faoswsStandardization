@@ -608,6 +608,8 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data$StockChangeValue[(is.na(data$StockChangeValue)&
                            data$classification_stock=="Stock_Item")] = 0
   data$Median_Value_Industrial[is.na(data$Median_Value_Industrial)] = 0
+  
+  
 
   # work here!
   data = data %>%
@@ -616,10 +618,20 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                         StockChangeValue+imbalance_Fix*(Median_Value_Stock/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
     dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>0,
                         industrialValue+imbalance_Fix*(Median_Value_Industrial/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
-    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.nan(Value)|is.na(Value))&imbalance_Fix>0&(abs(Median_Value_Industrial)>.1)),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&
+                                  (is.nan(Value)|is.na(Value))&
+                                  imbalance_Fix>0&
+                                  (abs(Median_Value_Industrial)>.1)&classification_stock=="NonStock"),
                         industrialValue+imbalance_Fix,Value)) %>%
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&
+                                  imbalance_Fix>0&
+                                  (is.nan(Value)|is.na(Value))&
+                                  classification_stock=="Stock_Item"),
+                               StockChangeValue+imbalance_Fix,Value)) %>%
     dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
                                StockChangeValue,Value)) %>%
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&is.nan(Value)),
+                               industrialValue,Value)) %>%
     dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&classification_stock=="Stock_Item"&(!is.na(classification_stock))),
                         StockChangeValue+imbalance_Fix,Value)) %>%
     ungroup() %>%
@@ -1321,10 +1333,20 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                                StockChangeValue+imbalance_Fix*(Median_Value_Stock/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
     dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>0,
                                industrialValue+imbalance_Fix*(Median_Value_Industrial/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
-    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.nan(Value)|is.na(Value))&imbalance_Fix>0&(abs(Median_Value_Industrial)>.1)),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&
+                                  (is.nan(Value)|is.na(Value))&
+                                  imbalance_Fix>0&
+                                  (abs(Median_Value_Industrial)>.1)&classification_stock=="NonStock"),
                                industrialValue+imbalance_Fix,Value)) %>%
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&
+                                  imbalance_Fix>0&
+                                  (is.nan(Value)|is.na(Value))&
+                                  classification_stock=="Stock_Item"),
+                               StockChangeValue+imbalance_Fix,Value)) %>%
     dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
                                StockChangeValue,Value)) %>%
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&is.nan(Value)),
+                               industrialValue,Value)) %>%
     dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&classification_stock=="Stock_Item"&(!is.na(classification_stock))),
                                StockChangeValue+imbalance_Fix,Value)) %>%
     ungroup() %>%
