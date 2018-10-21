@@ -25,7 +25,7 @@ library(faoswsUtil)
 library(sendmailR)
 library(dplyr)
 library(faoswsUtil)
-#library(faoswsStandardization)
+library(faoswsStandardization)
 library(faoswsFlag)
 
 
@@ -213,9 +213,30 @@ sua_balanced_data[, imbalance := sum(ifelse(is.na(Value), 0, as.numeric(Value)) 
                                                                                                             ifelse(measuredElementSuaFbs == "5166", -1,0))))))))))))),
           by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
 
-imbToSend=subset(sua_balanced_data,measuredItemFbsSua %in% food & timePointYears>2014 & abs(imbalance)>1)
+sua_balanced_data[, perc.imbalance := 100*abs(imbalance)/sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
+                                                      ifelse(measuredElementSuaFbs == 5510, 1,
+                                                             ifelse(measuredElementSuaFbs == 5610, 1,
+                                                                    ifelse(measuredElementSuaFbs == 5910, -1,
+                                                                           ifelse(measuredElementSuaFbs == 5071, -1,
+                                                                                  ifelse(measuredElementSuaFbs == 5141, 0,
+                                                                                         ifelse(measuredElementSuaFbs == 5023, 0,
+                                                                                                ifelse(measuredElementSuaFbs == 5520, 0,
+                                                                                                       ifelse(measuredElementSuaFbs == 5016, 0,
+                                                                                                              ifelse(measuredElementSuaFbs == 5525, 0,
+                                                                                                                     ifelse(measuredElementSuaFbs == 5165, 0,
+                                                                                                                            ifelse(measuredElementSuaFbs == 5164, 0,
+                                                                                                                                   ifelse(measuredElementSuaFbs == 5166, 0,0))))))))))))),
+                  by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
+
+
+imbToSend=subset(sua_balanced_data,measuredItemFbsSua %in% food & timePointYears>=2014 & abs(imbalance)>1)
 imbToSend=unique(imbToSend, incomparables=FALSE, fromLast=FALSE, by=c("geographicAreaM49","measuredItemFbsSua","timePointYears","imbalance"))
 imbToSend$measuredElementSuaFbs<-NULL
+imbToSend$Value<-NULL
+imbToSend$flagObservationStatus<-NULL
+imbToSend$flagMethod<-NULL
+data.table::setorder(imbToSend,-perc.imbalance)
+
 imbToSend=nameData("suafbs","sua_balanced",imbToSend)
 
 bodyImbalances= paste("The Email contains the list of imbalanced food items at SUA bal level. Please check them.",
