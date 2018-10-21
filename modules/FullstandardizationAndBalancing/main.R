@@ -289,9 +289,14 @@ data=convertSugarCodes(data)
 ############### CREATE THE COLUMN "OFFICIAL" #################
 ##############################################################
 flagValidTable = ReadDatatable("valid_flags")
-Feed_Items = ReadDatatable("feed_items_2018")
-Feed_Items = dplyr::rename(Feed_Items,classification=feed_class)
-Feed_Items$classification = "feedOnly"
+Utilization_Table = ReadDatatable("utilization_table_2018")
+Stock_Items = dplyr::filter(Utilization_Table,!is.na(stock))
+Stock_Items$classification_stock = "Stock_Item"
+Feed_Items = dplyr::filter(Utilization_Table,feed_desc%in%c("Potential Feed","FeedOnly"))
+Feed_Items = dplyr::rename(Feed_Items,classification_feed= feed_desc)
+Feed_Items = dplyr::select_(Feed_Items,"cpc_code","classification_feed")
+Stock_Items = dplyr::select_(Stock_Items,"cpc_code","classification_stock")
+Feed_Items$classification_feed = "feedOnly"
 Fruit_Veg_Food = ReadDatatable("food_items_fruit_veg")
 
 # Feed_Items = dplyr::filter(Feed_Items,classification=="feedOnly",!is.na(classification))
@@ -690,12 +695,14 @@ data2_Industrial = as.data.frame(data2_Industrial)
 data2_Industrial = dplyr::select_(data2_Industrial,"geographicAreaM49","measuredItemSuaFbs","Median_Value_Industrial")
 rm(data2)
 data = as.data.frame(data)
-data = left_join(data,Feed_Items,by=c("measuredItemSuaFbs"="cpc"))
+data = left_join(data,Feed_Items,by=c("measuredItemSuaFbs"="cpc_code"))
 data = left_join(data,Fruit_Veg_Food,by=c("measuredItemSuaFbs"="cpc"))
-data$food_classification[is.na(data$food_classification)] = "NonVegFruitFood"
+data = left_join(data,Stock_Items,by=c("measuredItemSuaFbs"="cpc_code"))
 data = left_join(data,data2_Stock,by=c("geographicAreaM49","measuredItemSuaFbs"))
 data = left_join(data,data2_Industrial,by=c("geographicAreaM49","measuredItemSuaFbs"))
-data$classification[is.na(data$classification)] = "NonFeedOnly"
+data$food_classification[is.na(data$food_classification)] = "NonVegFruitFood"
+data$classification_feed[is.na(data$classification_feed)] = "NonFeedOnly"
+data$classification_stock[is.na(data$classification_stock)] = "NonStock"
 data=ungroup(data)
 data = as.data.table(data)
 

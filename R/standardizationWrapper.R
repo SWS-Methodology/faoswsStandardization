@@ -85,11 +85,12 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                                  "measuredItemSuaFbs",
                                  "geographicAreaM49",
                                  "timePointYears",
-                                 "classification",
+                                 "classification_feed",
+                                 "classification_stock",
                                  "Median_Value_Stock",
                                  "Median_Value_Industrial")
   data_Stock_Industrial = data_Stock_Industrial[!duplicated(dplyr::select_(data_Stock_Industrial,"geographicAreaM49","measuredItemSuaFbs")),]
-  data = dplyr::select_(data,"-classification","-Median_Value_Stock","-Median_Value_Industrial")
+  data = dplyr::select_(data,"-classification_feed","-Median_Value_Stock","-Median_Value_Industrial","-classification_stock")
   data = as.data.table(data)
   
   dataFlags=data.table(data.frame(data))
@@ -447,20 +448,39 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data$Value_temp[is.na(data$Value_temp)] = 0
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="food"&food_classification=="Food"&((imbalance_Fix+Value_temp)>=0)&(!(Protected==TRUE)),
+    tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
+    fill(type,.direction="up") %>%
+    fill(type,.direction="down") %>%
+    fill(food_classification,.direction="up") %>%
+    fill(food_classification,.direction="down") %>%
+    ungroup()
+  
+  data$Protected[is.na(data$Protected)] = FALSE
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="food"&food_classification=="Food"&
+                                 ((imbalance_Fix+Value_temp)>0)&
+                                 (!(Protected==TRUE))&
+                                 (round(abs(imbalance_Fix),5)>0),
                                Value_temp+imbalance_Fix,Value)) %>%
     ungroup() %>%
     dplyr::select_("-Value_temp")
+  
+  data = dplyr::left_join(data,data_Stock_Industrial,
+                          by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))
   
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
     tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
     fill(type,.direction="up") %>%
     fill(type,.direction="down") %>%
+    fill(food_classification,.direction="up") %>%
+    fill(food_classification,.direction="down") %>%
+    fill(classification_feed,.direction="up") %>%
+    fill(classification_feed,.direction="down") %>%
+    fill(classification_stock,.direction="up") %>%
+    fill(classification_stock,.direction="down") %>%
     ungroup()
-  
-  data = dplyr::left_join(data,data_Stock_Industrial,
-                          by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))
   
   data = as.data.table(data)
   
@@ -484,16 +504,54 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   data$imbalance_Fix[is.na(data$imbalance_Fix)] = 0
 
   # We will first fix the balance for those feed-only items and then recalculate the imbalance
-  
+  data$Official[is.na(data$Official)] = FALSE
   # work here!
   data$Value_temp = data$Value
   data$Value_temp[is.na(data$Value_temp)] = 0
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification=="feedOnly"&imbalance_Fix>=0&!(Official==TRUE),
-                        Value_temp+imbalance_Fix,Value)) %>%
-    ungroup()
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification_feed=="feedOnly"&
+                                 ((imbalance_Fix+Value_temp)>0)&
+                                 (!(Official==TRUE))&
+                                 (round(abs(imbalance_Fix),5)>0),
+                               Value_temp+imbalance_Fix,Value)) %>%
+    ungroup() %>%
+    dplyr::select_("-Value_temp")
+
+  data = as.data.table(data)
   
+  data[, imbalance_Fix := sum(ifelse(is.na(Value), 0, Value) *
+                                ifelse(get(p$elementVar) == p$productionCode, 1,
+                                       ifelse(get(p$elementVar) == p$importCode, 1,
+                                              ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                     ifelse(get(p$elementVar) == p$stockCode, -1,
+                                                            ifelse(get(p$elementVar) == p$foodCode, -1,
+                                                                   ifelse(get(p$elementVar) == p$foodProcCode, -1,
+                                                                          ifelse(get(p$elementVar) == p$feedCode, -1,
+                                                                                 ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                                                                        ifelse(get(p$elementVar) == p$seedCode, -1,
+                                                                                               ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                                                                                      ifelse(get(p$elementVar) == p$touristCode, -1,
+                                                                                                             ifelse(get(p$elementVar) == p$residualCode, -1, 
+                                                                                                                    0))))))))))))),
+       by = c(p$mergeKey)]
+  
+  
+  data$imbalance_Fix[is.na(data$imbalance_Fix)] = 0
+  
+  data$Value_temp = data$Value
+  data$Value_temp[is.na(data$Value_temp)] = 0
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&
+                                 ((imbalance_Fix+Value_temp)>0)&
+                                 (!(Official==TRUE))&
+                                 (round(imbalance_Fix,2)<0)&
+                                 (abs(Median_Value_Industrial)>.1),
+                               Value_temp+imbalance_Fix,Value)) %>%
+    ungroup() %>%
+    dplyr::select_("-Value_temp")
+
   data = as.data.table(data)
   
   data[, imbalance_Fix := sum(ifelse(is.na(Value), 0, Value) *
@@ -541,28 +599,31 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   rm(data_temp2)
   
   data$industrialValue[is.na(data$industrialValue)&(abs(data$Median_Value_Industrial)>.1)] = 0
-  # Only activate stocks for those for which existed previously or are primary crops
+  # Only activate stocks for those for which existed previously and are primary crops
   #data$StockChangeValue[is.na(data$StockChangeValue)] = 0
   data$Median_Value_Stock[is.na(data$Median_Value_Stock)] = 0
+  # Set median value stock for non - primaries equal to zero
+  #data$Median_Value_Stock[!(data$type=="CRPR")] = 0
+  data$Median_Value_Stock[!(data$classification_stock=="Stock_Item")] = 0
   data$StockChangeValue[(is.na(data$StockChangeValue)&
-                          (abs(data$Median_Value_Stock)>.1)&type=="CRPR"&(!is.na(type)))] = 0
+                           data$classification_stock=="Stock_Item")] = 0
   data$Median_Value_Industrial[is.na(data$Median_Value_Industrial)] = 0
 
   # work here!
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="stockChange"&imbalance_Fix>=0,
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="stockChange"&imbalance_Fix>0,
                         StockChangeValue+imbalance_Fix*(Median_Value_Stock/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
-    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>0,
                         industrialValue+imbalance_Fix*(Median_Value_Industrial/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
-    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.nan(Value)|is.na(Value))&imbalance_Fix>=0&(abs(Median_Value_Industrial)>.1)),
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.nan(Value)|is.na(Value))&imbalance_Fix>0&(abs(Median_Value_Industrial)>.1)),
                         industrialValue+imbalance_Fix,Value)) %>%
     dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
-                        NA,Value)) %>%
-    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&(abs(Median_Value_Stock)>.1)&type=="CRPR"&(!is.na(type))),
+                               StockChangeValue,Value)) %>%
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&classification_stock=="Stock_Item"&(!is.na(classification_stock))),
                         StockChangeValue+imbalance_Fix,Value)) %>%
     ungroup() %>%
-    dplyr::select_("-Median_Value_Stock","-Median_Value_Industrial","-industrialValue","-StockChangeValue","-imbalance_Fix","-Diff","-Value_temp")
+    dplyr::select_("-Median_Value_Stock","-Median_Value_Industrial","-industrialValue","-StockChangeValue","-imbalance_Fix","-Diff")
   
   data = as.data.table(data)
   
@@ -589,12 +650,16 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     fill(type,.direction="down") %>%
     fill(food_classification,.direction="up") %>%
     fill(food_classification,.direction="down") %>%
+    fill(classification_feed,.direction="up") %>%
+    fill(classification_feed,.direction="down") %>%
+    fill(classification_stock,.direction="up") %>%
+    fill(classification_stock,.direction="down") %>%
     ungroup()
   
   data_type_class = dplyr::select_(data,"geographicAreaM49","measuredItemSuaFbs","timePointYears","type","food_classification")
   data_type_class = unique(data_type_class)
   
-  data = dplyr::select_(data,"-classification")
+  data = dplyr::select_(data,"-classification_feed","-food_classification","-classification_stock")
   data = as.data.table(data)
   
   data=merge(data,foodProc, by="measuredItemSuaFbs", all.x = TRUE)
@@ -1063,13 +1128,10 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     fill(food_classification,.direction="down") %>%
     ungroup()
   
-  data = as.data.table(data)
-  
   data$Diff = data$Value - data$balancedValue
   data$Diff[is.na(data$Diff)] = 0
-  data= as.data.table(data)
-  
   data$Diff = data$Value - data$balancedValue
+  data= as.data.table(data)
   
   data[, imbalance_Fix := sum(ifelse(is.na(Value), 0, Diff) *
                                 ifelse(get(p$elementVar) == p$productionCode, 1,
@@ -1087,11 +1149,15 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                                                                                                                     0))))))))))))),
        by = c(p$mergeKey)]
   
+  data$Protected[is.na(data$Protected)] = FALSE
   data$Value_temp = data$Value
   data$Value_temp[is.na(data$Value_temp)] = 0
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="food"&food_classification=="Food"&((imbalance_Fix+Value_temp)>=0)&(!(Protected==TRUE)),
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="food"&food_classification=="Food"&
+                                 ((imbalance_Fix+Value_temp)>0)&
+                                 (!(Protected==TRUE))&
+                                 (round(abs(imbalance_Fix),5)>0),
                                Value_temp+imbalance_Fix,Value)) %>%
     ungroup() %>%
     dplyr::select_("-Value_temp")
@@ -1101,26 +1167,29 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
     fill(type,.direction="up") %>%
     fill(type,.direction="down") %>%
+    fill(food_classification,.direction="up") %>%
+    fill(food_classification,.direction="down") %>%
     ungroup()
+  
+  data$Protected[is.na(data$Protected)] = FALSE
+  data$Official[is.na(data$Protected)] = FALSE
   
   data = dplyr::left_join(data,data_Stock_Industrial,
                           by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))
   
-  data$imbalance_Fix[is.na(data$imbalance_Fix)] = 0
-  
-  # We will first fix the balance for those feed-only items and then recalculate the imbalance
-  
-  # work here!
-  data$Value_temp = data$Value
-  data$Value_temp[is.na(data$Value_temp)] = 0
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification=="feedOnly"&imbalance_Fix>=0&!(Official==TRUE),
-                        Value_temp+imbalance_Fix,Value)) %>%
+    tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemSuaFbs,timePointYears))%>%
+    fill(classification_feed,.direction="up") %>%
+    fill(classification_feed,.direction="down") %>%
+    fill(classification_stock,.direction="up") %>%
+    fill(classification_stock,.direction="down") %>%
     ungroup()
   
   data$Diff = data$Value - data$balancedValue
-  
+  data$Diff[is.na(data$Diff)] = 0
+
+  data$Diff = data$Value - data$balancedValue
   data = as.data.table(data)
   
   data[, imbalance_Fix := sum(ifelse(is.na(Value), 0, Diff) *
@@ -1139,49 +1208,127 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
                                                                                                                     0))))))))))))),
        by = c(p$mergeKey)]
   
-  # The difference is sent to stock change and industrial uses
+  # We will first fix the balance for those feed-only items and then recalculate the imbalance
+  
+  # work here!
+  data$Official[is.na(data$Official)] = FALSE
+  # work here!
+  data$Value_temp = data$Value
+  data$Value_temp[is.na(data$Value_temp)] = 0
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="feed"&classification_feed=="feedOnly"&
+                                 ((imbalance_Fix+Value_temp)>0)&
+                                 (!(Official==TRUE))&
+                                 (round(abs(imbalance_Fix),5)>0),
+                               Value_temp+imbalance_Fix,Value)) %>%
+    ungroup() %>%
+    dplyr::select_("-Value_temp")
+  
+  data = as.data.table(data)
+  data[, imbalance_Fix := sum(ifelse(is.na(Value), 0, Diff) *
+                                ifelse(get(p$elementVar) == p$productionCode, 1,
+                                       ifelse(get(p$elementVar) == p$importCode, 1,
+                                              ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                     ifelse(get(p$elementVar) == p$stockCode, -1,
+                                                            ifelse(get(p$elementVar) == p$foodCode, -1,
+                                                                   ifelse(get(p$elementVar) == p$foodProcCode, -1,
+                                                                          ifelse(get(p$elementVar) == p$feedCode, -1,
+                                                                                 ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                                                                        ifelse(get(p$elementVar) == p$seedCode, -1,
+                                                                                               ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                                                                                      ifelse(get(p$elementVar) == p$touristCode, -1,
+                                                                                                             ifelse(get(p$elementVar) == p$residualCode, -1, 
+                                                                                                                    0))))))))))))),
+       by = c(p$mergeKey)]
+  
+  data$imbalance_Fix[is.na(data$imbalance_Fix)] = 0
+  
+  data$Value_temp = data$Value
+  data$Value_temp[is.na(data$Value_temp)] = 0
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&
+                                 ((imbalance_Fix+Value_temp)>0)&
+                                 (!(Official==TRUE))&
+                                 (round(imbalance_Fix,2)<0)&
+                                 (abs(Median_Value_Industrial)>.1),
+                               Value_temp+imbalance_Fix,Value)) %>%
+    ungroup() %>%
+    dplyr::select_("-Value_temp")
+  
+  data = as.data.table(data)
+  
+  data[, imbalance_Fix := sum(ifelse(is.na(Value), 0, Value) *
+                                ifelse(get(p$elementVar) == p$productionCode, 1,
+                                       ifelse(get(p$elementVar) == p$importCode, 1,
+                                              ifelse(get(p$elementVar) == p$exportCode, -1,
+                                                     ifelse(get(p$elementVar) == p$stockCode, -1,
+                                                            ifelse(get(p$elementVar) == p$foodCode, -1,
+                                                                   ifelse(get(p$elementVar) == p$foodProcCode, -1,
+                                                                          ifelse(get(p$elementVar) == p$feedCode, -1,
+                                                                                 ifelse(get(p$elementVar) == p$wasteCode, -1,
+                                                                                        ifelse(get(p$elementVar) == p$seedCode, -1,
+                                                                                               ifelse(get(p$elementVar) == p$industrialCode, -1,
+                                                                                                      ifelse(get(p$elementVar) == p$touristCode, -1,
+                                                                                                             ifelse(get(p$elementVar) == p$residualCode, -1, 
+                                                                                                                    0))))))))))))),
+       by = c(p$mergeKey)] 
+  
   data_temp1 = data %>%
     dplyr::filter(measuredElementSuaFbs=="industrial") %>%
+    group_by(measuredItemSuaFbs,measuredElementSuaFbs,geographicAreaM49,timePointYears) %>%
     dplyr::mutate(industrialValue = round(Value,2)) %>%
-    dplyr::select_("-Value")
+    dplyr::select_("-Value") %>%
+    ungroup()
+  # data_temp1$industrialValue[data_temp1$Protected==TRUE&(!is.na(data_temp1$Protected))] = NA
   data_temp2 = data %>%
     dplyr::filter(measuredElementSuaFbs=="stockChange") %>%
     dplyr::mutate(StockChangeValue = round(Value,2)) %>%
-    dplyr::select_("-Value")
+    dplyr::select_("-Value") %>%
+    ungroup()
+  # data_temp2$StockChangeValue[data_temp2$Protected==TRUE(!is.na(data_temp2$Protected))] = NA
   data = dplyr::left_join(data,dplyr::select_(data_temp1,
-                                             "geographicAreaM49",
-                                             "measuredItemSuaFbs",
-                                             "timePointYears",
-                                             "industrialValue"),
+                                              "geographicAreaM49",
+                                              "measuredItemSuaFbs",
+                                              "timePointYears",
+                                              "industrialValue"),
                           by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))
   data = dplyr::left_join(data,dplyr::select_(data_temp2,
-                                             "geographicAreaM49",
-                                             "measuredItemSuaFbs",
-                                             "timePointYears",
-                                             "StockChangeValue"),
+                                              "geographicAreaM49",
+                                              "measuredItemSuaFbs",
+                                              "timePointYears",
+                                              "StockChangeValue"),
                           by=c("geographicAreaM49","measuredItemSuaFbs","timePointYears"))  
   rm(data_temp1)
   rm(data_temp2)
-  data$Diff[is.na(data$Diff)] = 0
-  data$industrialValue[is.na(data$industrialValue)] = 0
-  # Don't create stocks for those commodities that don't have them
+  
+  data$industrialValue[is.na(data$industrialValue)&(abs(data$Median_Value_Industrial)>.1)] = 0
+  # Only activate stocks for those for which existed previously and are primary crops
   #data$StockChangeValue[is.na(data$StockChangeValue)] = 0
+  data$Median_Value_Stock[is.na(data$Median_Value_Stock)] = 0
+  # Set median value stock for non - primaries equal to zero
+  #data$Median_Value_Stock[!(data$type=="CRPR")] = 0
+  data$Median_Value_Stock[!(data$classification_stock=="Stock_Item")] = 0
+  data$StockChangeValue[(is.na(data$StockChangeValue)&
+                           data$classification_stock=="Stock_Item")] = 0
+  data$Median_Value_Industrial[is.na(data$Median_Value_Industrial)] = 0
   
   # work here!
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs,timePointYears) %>%
-    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="stockChange"&imbalance_Fix>=0,
-                        StockChangeValue+imbalance_Fix*(abs(StockChangeValue)/(abs(StockChangeValue)+industrialValue)),Value)) %>%
-    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>=0,
-                        industrialValue+imbalance_Fix*(industrialValue/(abs(StockChangeValue)+industrialValue)),Value)) %>%
-    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.na(Value)|is.nan(Value))&imbalance_Fix>=0),
-                        industrialValue+imbalance_Fix,Value)) %>%
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="stockChange"&imbalance_Fix>0,
+                               StockChangeValue+imbalance_Fix*(Median_Value_Stock/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
+    dplyr::mutate(Value=ifelse(measuredElementSuaFbs=="industrial"&imbalance_Fix>0,
+                               industrialValue+imbalance_Fix*(Median_Value_Industrial/(Median_Value_Stock+Median_Value_Industrial)),Value)) %>%
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="industrial"&(is.nan(Value)|is.na(Value))&imbalance_Fix>0&(abs(Median_Value_Industrial)>.1)),
+                               industrialValue+imbalance_Fix,Value)) %>%
     dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&is.nan(Value)),
-                        NA,Value)) %>%
-    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0),
-                        Value+imbalance_Fix,Value)) %>%
+                               StockChangeValue,Value)) %>%
+    dplyr::mutate(Value=ifelse((measuredElementSuaFbs=="stockChange"&imbalance_Fix<0&classification_stock=="Stock_Item"&(!is.na(classification_stock))),
+                               StockChangeValue+imbalance_Fix,Value)) %>%
     ungroup() %>%
-    dplyr::select_("-StockChangeValue","-industrialValue","-imbalance_Fix","-Diff")
+    dplyr::select_("-Median_Value_Stock","-Median_Value_Industrial","-industrialValue","-StockChangeValue","-imbalance_Fix","-Diff")
   
   data = as.data.table(data)
   
