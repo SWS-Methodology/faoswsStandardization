@@ -84,6 +84,21 @@ data=arrange(data,geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,t
 data=imputeVariable(as.data.table(data),processingShareParamenters)
 
 
+## CARLO MODIFICATION check if sum of processing share by productive process is less than 1
+# to do this i need the zero weight
+zeros <- as.character(ReadDatatable('zero_weight')[,item_code]) 
+data=data[,weight:=ifelse(measuredItemChildCPC %in% zeros,0,1)]
+
+
+data=data[,processingShareByProcess:=sum(processingShare*weight), by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")]
+data=data[,excProcShare:=ifelse(processingShareByProcess>1,processingShareByProcess-1,0)]
+data=data[,allocExcShare:=processingShare/sum(processingShare), by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")]
+data=data[,processingShare:=processingShare-excProcShare*allocExcShare]
+data=data[,processingShareByProcess_new:=sum(processingShare*weight), by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")]
+
+
+
+
 
 ## Force the processing share not exceeding 1 
 data[processingShare>1,processingShare:=1 ]

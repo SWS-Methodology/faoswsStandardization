@@ -181,10 +181,10 @@ sessionItems =
          "all" = FBSItems)
 
 ##'  The year dimention depends on the session: 
-startYear=swsContext.computationParams$startYear
+startYear=2000
 # imputationStartYear = startYear
-imputationStartYear=swsContext.computationParams$startImputation
-endYear=swsContext.computationParams$endYear
+imputationStartYear=2014
+endYear=2016
 
 areaKeys=selectedCountry
 
@@ -283,7 +283,7 @@ for(geo in   seq_along(allCountries)){
       tree=rbindlist(treeLevels)
       
       tree = tree %>%
-        dplyr::group_by(geographicAreaM49,timePointYears,measuredItemChildCPC) %>%
+        dplyr::group_by_("geographicAreaM49","timePointYears","measuredItemChildCPC") %>%
         dplyr::mutate(processingLevel = max(processingLevel,na.rm=TRUE))
       
       tree = as.data.table(tree)
@@ -516,7 +516,7 @@ for(geo in   seq_along(allCountries)){
             
             inputOutputdata[shareDownUp=="NaN",shareDownUp:=0]
             inputOutputdata$PG1 = NA
-            inputOutputdata=calculateProcessingShareFBS_NW(inputOutputdata, param=params)
+            inputOutputdata=calculateProcessingShareFBS(inputOutputdata, param=params)
             
             ##-------------------------------------------------------------------------------------------------------------------------------------    
             
