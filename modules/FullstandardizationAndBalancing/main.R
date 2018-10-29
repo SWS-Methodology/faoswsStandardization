@@ -257,7 +257,7 @@ key2 = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = li
   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = c("5071","5165")),
   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
   timePointYears = Dimension(name = "timePointYears", keys = paste(c(2000:2016),sep=""))))
-  
+
 
 ##############################################################
 ####################### DOWNLOAD  DATA #######################
@@ -267,8 +267,49 @@ message("Reading SUA data...")
 
 data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
                            elementCol = "measuredElementSuaFbs")
+
+
+#################################################################################################SUMEDA MODIFICATION- Adding the element stock change for stockcommodities where is not presented in sua unbalanced. 
+
+
+Utilization_Table = ReadDatatable("utilization_table_2018")
+Stock_Items = dplyr::filter(Utilization_Table,!is.na(stock))
+Stock_Items$classification_stock = "Stock_Item"
+Stock_Items = dplyr::select_(Stock_Items,"cpc_code","classification_stock")
+Stock_Items <- data.table(Stock_Items)
+Stock_Items <- unique(Stock_Items$cpc_code)
+
+
+
+dataStock <- data[measuredElementSuaFbs == "stock_change" & measuredItemFbsSua %in% Stock_Items]
+
+Stock_Items_Nonex<-Stock_Items[!Stock_Items %in% (unique(dataStock$measuredItemFbsSua))]
+
+
+
+
+data_with_stock <- expand.grid(measuredElementSuaFbs = "stock_change", geographicAreaM49 = unique(data$geographicAreaM49),
+                               measuredItemFbsSua = Stock_Items_Nonex, timePointYears = c(2014:2016), flagObservationStatus = "I",
+                               flagMethod = "e" )
+
+data_with_stock=data.table(data_with_stock)
+
+data_with_stock[, measuredElementSuaFbs := as.character(measuredElementSuaFbs)]
+data_with_stock[, geographicAreaM49 := as.character(geographicAreaM49)]
+data_with_stock[, measuredItemFbsSua := as.character(measuredItemFbsSua)]
+data_with_stock[, timePointYears := as.character(timePointYears)]
+
+data_with_stock[, Value := NA]
+data <- rbind(data,data_with_stock)
+
+
+
+
+##################################################################################################### Sumeda's modification ends
+
+
 data2 = elementCodesToNames(data = GetData(key2), itemCol = "measuredItemFbsSua",
-                           elementCol = "measuredElementSuaFbs")
+                            elementCol = "measuredElementSuaFbs")
 message("convert element codes into element names")
 
 data[measuredElementSuaFbs=="foodmanufacturing",measuredElementSuaFbs:="foodManufacturing"]
@@ -289,12 +330,11 @@ data=convertSugarCodes(data)
 ############### CREATE THE COLUMN "OFFICIAL" #################
 ##############################################################
 flagValidTable = ReadDatatable("valid_flags")
-Utilization_Table = ReadDatatable("utilization_table_2018")
-Stock_Items = dplyr::filter(Utilization_Table,!is.na(stock))
-Stock_Items$classification_stock = "Stock_Item"
 Feed_Items = dplyr::filter(Utilization_Table,feed_desc%in%c("Potential Feed","FeedOnly"))
 Feed_Items = dplyr::rename(Feed_Items,classification_feed= feed_desc)
 Feed_Items = dplyr::select_(Feed_Items,"cpc_code","classification_feed")
+Stock_Items = dplyr::filter(Utilization_Table,!is.na(stock))
+Stock_Items$classification_stock = "Stock_Item"
 Stock_Items = dplyr::select_(Stock_Items,"cpc_code","classification_stock")
 Feed_Items$classification_feed = "feedOnly"
 Fruit_Veg_Food = ReadDatatable("food_items_fruit_veg")
@@ -617,12 +657,12 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
   }
   
   out = standardizationWrapper_NW(data = data, tree = tree, fbsTree = fbsTree, 
-                               standParams = params, printCodes = printCodes,
-                               nutrientData = nutrientData,
-                               debugFile = params$createIntermetiateFile
-                               ,batchnumber = batchnumber,
-                               utilizationTable = utilizationTable,
-                               cutItems=cutItems)
+                                  standParams = params, printCodes = printCodes,
+                                  nutrientData = nutrientData,
+                                  debugFile = params$createIntermetiateFile
+                                  ,batchnumber = batchnumber,
+                                  utilizationTable = utilizationTable,
+                                  cutItems=cutItems)
   return(out)
 }
 
