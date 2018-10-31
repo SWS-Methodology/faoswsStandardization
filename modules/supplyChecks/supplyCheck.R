@@ -216,7 +216,7 @@ data_lag_final[, delta_calories := calories - calories_lag ]
 
 
 
-printData <- subset(data_lag_final, delta_supply < 0 & delta_calories > 0 & calories>0 ) 
+printData <- subset(data_lag_final, delta_supply < 0 & delta_calories > 2 & calories>1 ) 
 
 
 printcases <- printData[,c("geographicAreaM49","measuredItemFbsSua","timePointYears"),with=FALSE]
