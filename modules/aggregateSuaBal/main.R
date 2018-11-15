@@ -292,5 +292,5 @@ aggDataWide<-nameData("suafbs","fbs_balanced_",aggDataWide)
 bodyImbalances= paste("The Email contains the FBS aggregates by DES calculated at SUA BALANCED LEVEL.",
                       sep='\n')
 
-sendMailAttachment(setDT(aggDataWide),"ImbalanceList",bodyImbalances)
+sendMailAttachment(setDT(aggDataWide),"FbsAggAtSUA",bodyImbalances)
 

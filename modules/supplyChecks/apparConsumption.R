@@ -7,6 +7,7 @@ library(faoswsUtil)
 library(sendmailR)
 library(dplyr)
 library(faoswsFlag)
+library(faoswsStandardization)
 
 
 ## set up for the test environment and parameters
