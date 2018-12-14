@@ -142,13 +142,29 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
 
 
 
-data = data = GetData(key,omitna=F)
+
+data = GetData(key,omitna = F, normalized=F)
+data=normalise(data, areaVar = "geographicAreaM49",
+               itemVar = "measuredItemFbsSua", elementVar = "measuredElementSuaFbs",
+               yearVar = "timePointYears", flagObsVar = "flagObservationStatus",
+               flagMethodVar = "flagMethod", valueVar = "Value",
+               removeNonExistingRecords = F)
+
+
 
 
 ################# get protected flags
 protectedFlags<-ReadDatatable(table = "valid_flags")
 
 keys = c("flagObservationStatus", "flagMethod")
+
+
+commDef=ReadDatatable("fbs_commodity_definitions")
+# 
+primaryProxyPrimary=commDef$cpc[commDef[,proxy_primary=="X" | primary_commodity=="X"]]
+primary=commDef$cpc[commDef[,primary_commodity=="X"]]
+ProxyPrimary=commDef$cpc[commDef[,proxy_primary=="X"]]
+food=commDef$cpc[commDef[,food_item=="X"]]
 
 ###########################################################
 ##### calculate historical ratios                     #####
@@ -215,7 +231,7 @@ sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredEl
 loss<-sua_unb2 %>% filter(measuredElementSuaFbs==5016)
 loss<-loss %>% mutate(outl=abs(ratio-mean_ratio)>0.05)
 outl_loss<-loss %>% filter((outl==T & timePointYears>2013) )
-impute_loss<-outl_loss %>% filter(supply>=0 & mean_ratio>=0 & mean_ratio<=1 & Protected==F)
+impute_loss<-outl_loss %>% filter(supply>=0 & mean_ratio>0 & mean_ratio<=1 & Protected==F & measuredItemFbsSua %in% food & measuredItemFbsSua %in% primaryProxyPrimary)
 impute_loss<-impute_loss %>% mutate(impute=supply*mean_ratio)
 impute_loss<-impute_loss %>% mutate(diff=Value-impute)
 
@@ -226,14 +242,26 @@ impute_loss<-impute_loss[,colnames(data)]
 impute_loss[,6]<-c("E")
 impute_loss[,7]<-c("e")
 
-
-
+##### INDUSTRIAL
+## ind
+ind<-sua_unb %>% filter(measuredElementSuaFbs==5165)
+ind<-ind %>% mutate(outl=abs(ratio-mean_ratio)>0.05)
+outl_ind<-ind %>% filter((outl==T & timePointYears>2013) )
+impute_ind<-outl_ind %>% filter(supply>=0 & mean_ratio>=0 & mean_ratio<=1 & Protected==F )
+#outl_feed %>% filter(supply<0 | mean_ratio<0 | mean_ratio>1) %>% write.csv( file = "feed_to_check.csv")
+impute_ind<-impute_ind %>% mutate(impute=supply*mean_ratio)
+#impute_feed %>% write.csv( file = "feed_outliers.csv")
+colnames(impute_ind)[7]<-"pippo"
+colnames(impute_ind)[18]<-"Value"
+impute_ind<-impute_ind[,colnames(data)] 
+impute_ind[,6]<-c("E")
+impute_ind[,7]<-c("e")
 
 
 ################################################################
 #####  save data                                           #####
 ################################################################
-impute=rbind(impute_feed,impute_seed,impute_loss)
+impute=rbind(impute_feed,impute_seed,impute_loss,impute_ind)
 out<-as.data.table(impute)
 
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)

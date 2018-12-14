@@ -151,31 +151,7 @@ items=nameData("suafbs","sua_balanced",subset(kcalData2,Aggregation=="Item"))
  
  toSend=rbind(GTWide,kcalDataWide)
  
-# fbsTree<-ReadDatatable("fbs_tree")
-# fbsCodes<-GetCodeList(domain = "suafbs", dataset = "fbs_balanced_", "measuredItemFbsSua")
-# fbsCodes=subset(fbsCodes,grepl("^S",code))
-# fbsCodes=subset(fbsCodes,grepl("[[:upper:]]\\s",description))
-# fbsCodes$code<-gsub("^S","",fbsCodes$code)
-# 
-# fbsTree <- merge(fbsTree,fbsCodes,by.x = "id1",by.y = "code")
-# 
-# 
-# kcalData_id <- merge(kcalData,fbsTree,by.x = "measuredItemFbsSua",by.y = "item_sua_fbs")
-# 
-# totalDes=kcalData_id[,totDES:=sum(Value, na.rm = T), by=c("geographicAreaM49,timePointYears,id1")]
-# 
-# #kcalData<-kcalData[,totDES:=sum(Value, na.rm = T), by=c("geographicAreaM49,timePointYears,id1")]
-# #kcalData<-kcalData[,totDES:=sum(Value, na.rm = T), by=c("geographicAreaM49,timePointYears,id2")]
-# 
- # kcalData2 = melt.data.table(totalDES,id.vars = c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua","timePointYears","Value","totDES"),
- #                           measure.vars = "totDES")
-# kcalData2 = dcast.data.table(setDT(kcalData2),geographicAreaM49+measuredItemFbsSua~timePointYears + totDES, fun.aggregate = NULL,value.var = "Value")
-# 
-# #kcalData<-nameData("suafbs","fbs_balanced",sua_balanced_data)
-# 
-# 
-# #sua_balanced_data$measuredItemFbsSua <- paste0("'",sua_balanced_data$measuredItemFbsSua,sep = "")
-# 
+
 
 
 bodySuaBALAggregation= paste("The Email contains the aggregated caloric intake at sua balanced level",
@@ -229,7 +205,7 @@ sua_balanced_data[, perc.imbalance := 100*abs(imbalance)/sum(ifelse(is.na(Value)
                   by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
 
 
-imbToSend=subset(sua_balanced_data,measuredItemFbsSua %in% food & timePointYears>=2014 & abs(imbalance)>1)
+imbToSend=subset(sua_balanced_data,measuredItemFbsSua %in% food & timePointYears>=2014 & abs(imbalance)>100 & abs(perc.imbalance)>1)
 imbToSend=unique(imbToSend, incomparables=FALSE, fromLast=FALSE, by=c("geographicAreaM49","measuredItemFbsSua","timePointYears","imbalance"))
 imbToSend$measuredElementSuaFbs<-NULL
 imbToSend$Value<-NULL
@@ -243,3 +219,78 @@ bodyImbalances= paste("The Email contains the list of imbalanced food items at S
                              sep='\n')
 
 sendMailAttachment(setDT(imbToSend),"ImbalanceList",bodyImbalances)
+
+
+#### FBS AGGREGATES AT SUA LEVEL (NO STANDARDIZATION INVOLVED HERE)
+
+
+fbsTree<-ReadDatatable("fbs_tree")
+fbsCodes<-GetCodeList(domain = "suafbs", dataset = "fbs_balanced_", "measuredItemFbsSua")
+fbsCodes=subset(fbsCodes,grepl("^S",code))
+fbsCodes=subset(fbsCodes,grepl("[[:upper:]]\\s",description))
+fbsCodes$code<-gsub("^S","",fbsCodes$code)
+# 
+fbsTree <- merge(fbsTree,fbsCodes,by.x = "id1",by.y = "code")
+
+
+
+#########
+kcalData <- subset(sua_balanced_data, measuredElementSuaFbs %in% c("664"))
+
+kcalData[,6:7]<-NULL
+
+
+# 
+# 
+kcalData <- merge(kcalData,fbsTree,by.x = "measuredItemFbsSua",by.y = "item_sua_fbs")
+# 
+# totalDes=kcalData_id[,totDES:=sum(Value, na.rm = T), by=c("geographicAreaM49,timePointYears,id1")]
+# 
+# #kcalData<-kcalData[,totDES:=sum(Value, na.rm = T), by=c("geographicAreaM49,timePointYears,id1")]
+agg4=kcalData[,desAgg4:=sum(Value, na.rm = T), by=c("geographicAreaM49","timePointYears","id4")]
+agg3=kcalData[,desAgg3:=sum(Value, na.rm = T), by=c("geographicAreaM49","timePointYears","id3")]
+agg2=kcalData[,desAgg2:=sum(Value, na.rm = T), by=c("geographicAreaM49","timePointYears","id2")]
+agg1=kcalData[,desAgg1:=sum(Value, na.rm = T), by=c("geographicAreaM49","timePointYears","id1")]
+
+
+agg4=agg4[,c("geographicAreaM49","measuredItemFbsSua","measuredElementSuaFbs","timePointYears","id4","desAgg4"),with=F]
+agg3=agg3[,c("geographicAreaM49","measuredItemFbsSua","measuredElementSuaFbs","timePointYears","id3","desAgg3"),with=F]
+agg2=agg2[,c("geographicAreaM49","measuredItemFbsSua","measuredElementSuaFbs","timePointYears","id2","desAgg2"),with=F]
+agg1=agg1[,c("geographicAreaM49","measuredItemFbsSua","measuredElementSuaFbs","timePointYears","id1","desAgg1"),with=F]
+
+agg4[,measuredItemFbsSua:=id4]
+agg4[,id4:=NULL]
+setnames(agg4,"desAgg4","Value")
+agg4=unique(agg4)
+
+agg3[,measuredItemFbsSua:=id3]
+agg3[,id3:=NULL]
+setnames(agg3,"desAgg3","Value")
+agg3=unique(agg3)
+
+agg2[,measuredItemFbsSua:=id2]
+agg2[,id2:=NULL]
+setnames(agg2,"desAgg2","Value")
+agg2=unique(agg2)
+
+
+agg1[,measuredItemFbsSua:=id1]
+agg1[,id1:=NULL]
+setnames(agg1,"desAgg1","Value")
+
+agg1=unique(agg1)
+
+aggData=rbind(agg1,agg2,agg3,agg4)
+aggData[,Value:=round(Value,0)]
+
+aggDataWide = dcast.data.table(setDT(aggData),geographicAreaM49+
+                                 measuredItemFbsSua ~timePointYears , fun.aggregate = NULL,value.var = "Value")
+aggDataWide$measuredItemFbsSua<-gsub("^2","S2",aggDataWide$measuredItemFbsSua)
+aggDataWide<-nameData("suafbs","fbs_balanced_",aggDataWide)
+
+
+bodyImbalances= paste("The Email contains the FBS aggregates by DES calculated at SUA BALANCED LEVEL.",
+                      sep='\n')
+
+sendMailAttachment(setDT(aggDataWide),"FbsAggAtSUA",bodyImbalances)
+

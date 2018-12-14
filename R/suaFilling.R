@@ -206,6 +206,13 @@ suaFilling = function(data, p = p, tree=tree,
     #    stock here are incremented or reduced of an amount proportional 
     #    to their value in respect to other utilization
     
+    
+    ##############
+    ##############SUMEDA####################
+    ##########
+    # Comment 1: The statement above does not correspond to the code. All the utilization are reduced by 30%. 
+    
+    
     # if the reduction of maximum 30% is enought to cover all imbalance
     dataNegImb_ptol=rbind(dataNegImb[abs(imbalance)<=(pTolerance*sumUtils)],
                           dataNegImbP[abs(imbalance)<=(pTolerance*sumUtils)])
@@ -381,6 +388,11 @@ suaFilling = function(data, p = p, tree=tree,
     # & force production always (not just if SumUtils==0)
     
     # dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils)&sumUtils==0,
+    
+    
+    #Comment by SUMEDA ===== here the condition SumUtils==0 is missing. Therefore, it is overwriting  the production values computed in the above step no matter the condition
+    # sumUtils>0 or sumUtils ==0. To check!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
     dataNegImb[ProtectedProd=="TRUE"&abs(imbalance)>(pTolerance*sumUtils),
                newValue:=ifelse(get(p$elementVar)==p$productionCode,
                                 ifelse(is.na(Value),0,Value)+abs(imbalance),NA)]
@@ -393,6 +405,7 @@ suaFilling = function(data, p = p, tree=tree,
     
     actualCommodities = dataPosImbAll[,unique(measuredItemSuaFbs)]
     
+    # cristina <- copy(dataPosImbAll)
     
     for (i in actualCommodities){
       # If none of the utilization is activable based in the utilization Table
@@ -402,14 +415,14 @@ suaFilling = function(data, p = p, tree=tree,
         # CRISTINA change made august 2018
         # Save these data outside and send them for manual check and adjustment
         # (before everything was send conventionally on food)
-       
+        
         # dataPosImbAll[measuredItemSuaFbs==i
         #               &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))&
         #                 get(p$elementVar)==p$foodCode&
         #                 food_classification=="Food"&
         #                 !Protected==TRUE,Value:=Value+imbalance]
         
-
+        
         NoBalanced = dataPosImbAll[measuredItemSuaFbs==i]
         
         setnames(NoBalanced, "measuredItemSuaFbs", "measuredItemFbsSua")
@@ -430,9 +443,25 @@ suaFilling = function(data, p = p, tree=tree,
         
       }else{
         # Se tutti i Value sono popolati
+        
+        ################################################################################################ SUMEDA####################################################### 
+        
+        #####SUMEDA : Previouse version
+        
+        
+        
+        # if(length(dataPosImbAll[measuredItemSuaFbs==i
+        #                         &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
+        #                         &!is.na(rank)&(is.na(Value)),Value])==0){
+        
+        
+        ###############################################################SUMEDAA###########################################################
+        
+        
         if(length(dataPosImbAll[measuredItemSuaFbs==i
                                 &!(get(p$elementVar)%in%c(eleToExclude,p$stockCode))
-                                &!is.na(rank)&(is.na(Value)),Value])==0){
+                                &!is.na(rank)&(is.na(Value)),Value])==0){   
+          
           # distribuisci inbalance proporzionalmente ai value stessi (considerando anche quelli che non hanno 
           # eventualmente ranking)
           # e diminuendo lo stock negativo, se presente
@@ -442,12 +471,51 @@ suaFilling = function(data, p = p, tree=tree,
           #                     # &!is.na(rank)
           #                     &Value>0,Value],na.rm=TRUE)
           # 
-          dataPosImbAll[measuredItemSuaFbs==i
-                        &!(get(p$elementVar)%in%eleToExclude)
-                        # &!is.na(rank)                              ############### change 5/15/2018
-                        &Value!=0,
-                        newValue:=ifelse(is.na(Value),NA,
-                                         Value+Value*(imbalance/(sumUtils+(sumSupstock-sumSup))))]
+          
+          
+          #Sumeda: if the commodity is not stockable, the imbalance is distributed to all utilizations including also stock
+          
+          if (!(i %in% unique(Stock_Items$cpc_code))){###SUMEDA
+            
+            dataPosImbAll[measuredItemSuaFbs==i
+                          &!(get(p$elementVar)%in%eleToExclude)
+                          # &!is.na(rank)                              ############### change 5/15/2018 #cristina version without the condition 
+                          &Value!=0, 
+                          newValue:=ifelse(is.na(Value),NA,
+                                           Value+Value*(imbalance/(sumUtils+(sumSupstock-sumSup))))]
+            
+          }else {#Sumeda::: if the commodity is stockable, it arises two senarios. 1. the stock figure is zero and 2. the stock figure is non-zero
+            
+            if (dim(dataPosImbAll[measuredItemSuaFbs==i #sumeda
+                                  &(get(p$elementVar)%in%c(p$stockCode))
+                                  & Value !=0 & !is.na(Value)])[1] != 0){#Sumeda :: if the stock figure is non zero, it will follow the above method to allocate the imbalance
+              
+              dataPosImbAll[measuredItemSuaFbs==i #sumeda
+                            &!(get(p$elementVar)%in%eleToExclude)
+                            # &!is.na(rank)                              
+                            & Value!=0, 
+                            newValue:=ifelse(is.na(Value),NA,
+                                             Value+Value*(imbalance/(sumUtils+(sumSupstock-sumSup))))]
+              
+              
+            }else {#sumeda :: if the stock figure is zero, it is useless to have a proportion since stock is zero. So what I did is, I allocate all the imbalance to stock. 
+              
+              
+              
+              dataPosImbAll[measuredElementSuaFbs == "stockChange" & is.na(Value), Value := 0]
+              dataPosImbAll[measuredItemSuaFbs==i & measuredElementSuaFbs == "stockChange" 
+                            &!(get(p$elementVar)%in%eleToExclude)
+                            # &!is.na(rank)                             
+                            , 
+                            newValue:= Value + imbalance]
+              
+              
+            }
+            
+            
+          }
+          
+          
         }else{
           #se un valore non 'e popolato e non 'e stock
           if(length(dataPosImbAll[measuredItemSuaFbs==i
@@ -620,7 +688,7 @@ suaFilling = function(data, p = p, tree=tree,
     
     data = as.data.table(data)
     
-    }  #this brackets refer only at the second loop
+  }  #this brackets refer only at the second loop
   
   data[, c("imbalance","sumUtils","sumSup") := NULL]   
   

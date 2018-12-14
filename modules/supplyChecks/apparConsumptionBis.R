@@ -111,7 +111,7 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
 
 
 
-sua_data_full = GetData(key)
+sua_data_full = GetData(key, omitna = F)
 
 
 sua_data <- subset(sua_data_full, measuredElementSuaFbs %in% c("5510","5610","5910","664"))
@@ -122,10 +122,10 @@ sua_data[is.na(Value), Value := 0]
 sua_data<- sua_data %>% group_by(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs) %>% 
    mutate(oldprod=sum(Value[timePointYears<2014 & measuredElementSuaFbs=="5510"]))
 
-sua_data<- sua_data %>% group_by(geographicAreaM49, measuredItemFbsSua) %>% mutate(drop=any(oldprod>0))
+sua_data<- sua_data %>% group_by(geographicAreaM49, measuredItemFbsSua) %>% mutate(keep=any(oldprod>0))
 sua_data=as.data.table(sua_data)
 
-sua_data <- subset(sua_data, drop==F)
+sua_data <- subset(sua_data, keep==T)
 
 
 sua_data[, c("flagObservationStatus","flagMethod") := NULL]
@@ -159,8 +159,6 @@ livestock<- c("02111","02112","02121.01","02122","02123","02131","02132","02133"
 #print apparent consumption
 
 
-commDef=ReadDatatable("fbs_commodity_definitions")
-primary=commDef$cpc[commDef[,primary_commodity=="X"]]
 
 apparentConsumption <- copy (sua_data)
 
@@ -170,9 +168,7 @@ apparentConsumption <- subset(apparentConsumption, timePointYears %in% c(2014:20
 
 apparentConsumption <- subset(apparentConsumption, measuredItemFbsSua %!in% livestock)
 
-apparentConsumption <- subset(apparentConsumption, supply < -10 )
-apparentConsumption <- subset(apparentConsumption, measuredItemFbsSua %in% primary )
-
+apparentConsumption <- subset(apparentConsumption, supply < -1000 )
 
 apparentConsumption<- apparentConsumption[,c("geographicAreaM49","measuredItemFbsSua","timePointYears"),with=FALSE]
 
