@@ -33,6 +33,8 @@
 ##'   or barley (and there is availability in all three products) our final 
 ##'   table will have three rows (beer/wheat, beer/maize, beer/barley).
 ##'   
+##' @export   
+##' 
 
 calculateAvailability = function(tree, standParams){
     

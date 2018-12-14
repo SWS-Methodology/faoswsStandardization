@@ -74,7 +74,7 @@
 ##' @export
 ##' 
 
-standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
+standardizationWrapper = function(data, tree, fbsTree = NULL, standParams,
                                      nutrientData = NULL, printCodes = c(),
                                      debugFile= NULL,batchnumber=batchnumber,
                                      utilizationTable = utilizationTable,cutItems=cutItems
@@ -226,7 +226,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     ungroup()
   data = as.data.table(data)
   
-  data=suaFilling_NW(data, p=p, tree=tree,
+  data=suaFilling(data, p=p, tree=tree,
                      primaryCommodities = primaryEl, debugFile=p$createIntermetiateFile,
                      stockCommodities = stockCommodities,
                      utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=TRUE)
@@ -415,7 +415,7 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
   
   data = as.data.table(data)
   
-  data=suaFilling_NW(data, p=p, tree=tree,
+  data=suaFilling(data, p=p, tree=tree,
                      primaryCommodities = primaryEl,
                      debugFile = params$createIntermetiateFile, stockCommodities = stockCommodities,
                      utilizationTable = utilizationTable, imbalanceThreshold = 10,loop1=FALSE)
@@ -764,6 +764,8 @@ standardizationWrapper_NW = function(data, tree, fbsTree = NULL, standParams,
     data2keep=copy(data.table(data.frame(data)))
     
     ##################### 
+    
+    # Cristina: problem may be here
     setnames(data, "measuredItemSuaFbs", "measuredItemFbsSua")
     standData=data.table(data.frame(data))
     standData=standData[,.(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears,

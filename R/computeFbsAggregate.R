@@ -17,6 +17,8 @@
 ##'   
 ##' @return A list of four data.tables, each containing the final FBS data at
 ##'   the four different FBS levels.
+##'   
+##' @export   
 ##' 
 
 computeFbsAggregate = function(data, fbsTree, standParams){

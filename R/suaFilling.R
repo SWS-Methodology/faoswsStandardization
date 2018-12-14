@@ -48,7 +48,7 @@
 ##' @return the Value column of the passed data.table is updated 
 ##'   
 
-suaFilling_NW = function(data, p = p, tree=tree,
+suaFilling = function(data, p = p, tree=tree,
                          primaryCommodities = c(), stockCommodities = c(),
                          debugFile= NULL,
                          utilizationTable=c(), 

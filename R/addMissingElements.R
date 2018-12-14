@@ -11,7 +11,7 @@
 ##'   
 ##' @return The same data.table as what was passed ("data") but possibly with
 ##'   additional rows.
-##'   
+##' @export   
 
 addMissingElements = function(data, standParams){
   

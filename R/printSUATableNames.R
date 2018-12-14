@@ -14,6 +14,8 @@
 ##' @return Nothing is returned, but a table is returned in a nice format to 
 ##'   show the current SUA data.
 ##'   
+##' @export   
+##'  
 
 ## Function for printing the main table
 printSUATableNames = function(data, standParams, printCodes, printProcessing = TRUE,

@@ -20,6 +20,8 @@
 ##' @param cut is a vector of primary Equivalent commodities
 ##' @return A data.table with the aggregated primary commodities.
 ##'   
+##' @export   
+##' 
 
 finalStandardizationToPrimary = function(data, tree, standParams,
                                          sugarHack = TRUE, specificTree = TRUE,

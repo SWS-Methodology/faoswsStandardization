@@ -616,7 +616,7 @@ standardizationVectorized = function(data, tree, nutrientData,batchnumber,
     
   }
   
-  out = standardizationWrapper_NW(data = data, tree = tree, fbsTree = fbsTree, 
+  out = standardizationWrapper(data = data, tree = tree, fbsTree = fbsTree, 
                                standParams = params, printCodes = printCodes,
                                nutrientData = nutrientData,
                                debugFile = params$createIntermetiateFile

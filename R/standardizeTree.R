@@ -35,6 +35,8 @@
 ##' @return A data.table with the commodities standardized to the highest level 
 ##'   in the tree.
 ##'   
+##' @export   
+##'   
 
 standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
                            sugarHack = TRUE){
