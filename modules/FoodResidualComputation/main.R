@@ -37,7 +37,8 @@ if(CheckDebug()){
 
 startYear1 = 2004
 startYear=2014
-endYear = 2016
+# endYear = 2016
+endYear= as.numeric(swsContext.computationParams$endYear)
 geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = startYear:endYear
@@ -119,7 +120,7 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
 #Pull SUA Data
 
 
-suaData = GetData(key,omitna = F)
+suaData = GetData(key,omitna = F,normalized=F)
 suaData=normalise(suaData, areaVar = "geographicAreaM49",
                   itemVar = "measuredItemFbsSua", elementVar = "measuredElementSuaFbs",
                   yearVar = "timePointYears", flagObsVar = "flagObservationStatus",
