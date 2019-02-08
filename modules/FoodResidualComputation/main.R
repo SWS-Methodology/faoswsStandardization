@@ -119,8 +119,7 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
 #Pull SUA Data
 
 
-
-suaData = GetData(key,omitna = F, normalized=F)
+suaData = GetData(key,omitna = F)
 suaData=normalise(suaData, areaVar = "geographicAreaM49",
                   itemVar = "measuredItemFbsSua", elementVar = "measuredElementSuaFbs",
                   yearVar = "timePointYears", flagObsVar = "flagObservationStatus",

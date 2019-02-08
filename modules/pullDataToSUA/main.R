@@ -130,12 +130,39 @@ setnames(agData, c("measuredElement", "measuredItemCPC"),
 ################################################
 #####        Harvest from Industrial       #####
 ################################################
+
+################################################################################################################################
+
 # temporary solution til codes will be updated
+
+
+# message("Pulling data from industrial domain")      
+# indEleDim = Dimension(name = "measuredElement",
+#                       keys = industrialCode)
+# 
+# indKey = DatasetKey(domain = "industrialUse", dataset = "industrialusedata",
+#                     dimensions = list(
+#                       geographicAreaM49 = geoDim,
+#                       measuredElement = indEleDim,
+#                       measuredItemCPC = itemDim,
+#                       timePointYears = timeDim)
+# )
+# indData = GetData(indKey)
+# setnames(indData, c("measuredElement", "measuredItemCPC"),
+#          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+
+
+
+#We decided to pull industrial data not from Industrial Use domain, instead from  production and agriculture  domain. 
+
+################################################################################################################################
+
+
 message("Pulling data from industrial domain")
 indEleDim = Dimension(name = "measuredElement",
                       keys = industrialCode)
 
-indKey = DatasetKey(domain = "industrialUse", dataset = "industrialusedata",
+indKey = DatasetKey(domain = "agriculture", dataset = "aproduction",
                     dimensions = list(
                       geographicAreaM49 = geoDim,
                       measuredElement = indEleDim,
@@ -145,6 +172,7 @@ indKey = DatasetKey(domain = "industrialUse", dataset = "industrialusedata",
 indData = GetData(indKey)
 setnames(indData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+
 
 
 
