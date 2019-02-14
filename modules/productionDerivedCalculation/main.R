@@ -64,8 +64,6 @@ suppressMessages({
 #                       854,704,231,887,894,760,862,860)
 
 
-top48FBSCountries=c()
-
 R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
 
 if(CheckDebug()){
@@ -170,7 +168,7 @@ selectedCountry =
   switch(geoImputationSelection,
          "session" = sessionCountry,
          "all" = FBScountries)
-selectedCountry = selectedCountry[!selectedCountry%in%top48FBSCountries]
+# selectedCountry = selectedCountry[!selectedCountry%in%top48FBSCountries]
 
 Validation_Param = swsContext.computationParams$Validation
 
@@ -184,11 +182,11 @@ sessionItems =
          "all" = FBSItems)
 
 ##'  The year dimention depends on the session: 
-startYear=2000
+startYear=as.integer(swsContext.computationParams$startYear)
 # imputationStartYear = startYear
-imputationStartYear=2014
-endYear=2016
-
+imputationStartYear=as.integer(swsContext.computationParams$startImputation)
+endYear = as.integer(swsContext.computationParams$endYear)
+endYear=2017
 areaKeys=selectedCountry
 
 
@@ -1053,7 +1051,7 @@ setnames(imputed, "measuredItemChildCPC", "measuredItemFbsSua")
 
 SaveData(domain = sessionKey@domain,
          dataset = sessionKey@dataset,
-         data =  imputed[!geographicAreaM49%in%top48FBSCountries])
+         data =  imputed)
 
 if (nrow(BadProcessingShares) > 0) {
   from = "sws@fao.org"
