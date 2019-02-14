@@ -517,7 +517,7 @@ for(geo in   seq_along(allCountries)){
             
             inputOutputdata[shareDownUp=="NaN",shareDownUp:=0]
             inputOutputdata$PG1 = NA
-            inputOutputdata=calculateProcessingShareFBS(inputOutputdata, param=params)
+            inputOutputdata=calculateProcessingShareFBS_NW(inputOutputdata, param=params)
             
             ##-------------------------------------------------------------------------------------------------------------------------------------    
             
