@@ -51,7 +51,7 @@ if(CheckDebug()){
 startYear = as.numeric(2010)
 
 #endYear = as.numeric(swsContext.computationParams$endYear)
-endYear = as.numeric(2016)
+endYear = as.numeric(2017)
 #geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = startYear:endYear
@@ -124,38 +124,38 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_balanced", dimensions = list(
 
 sua_balanced_data = GetData(key)
 # 
- kcalData <- subset(sua_balanced_data, measuredElementSuaFbs %in% c("664"))
- 
- kcalData[,6:7]<-NULL
- 
- kcalData<-kcalData %>% group_by(geographicAreaM49,timePointYears) %>%  mutate(totDES=sum(Value,na.rm = T))
+kcalData <- subset(sua_balanced_data, measuredElementSuaFbs %in% c("664"))
 
- kcalData2 = melt.data.table(setDT(kcalData),id.vars = c("geographicAreaM49","measuredItemFbsSua","timePointYears"),
-                             measure.vars = c("Value","totDES"))
- setnames(kcalData2, "variable", "Aggregation")
- setnames(kcalData2, "value", "Value")
- 
- kcalData2[,Aggregation:=ifelse(Aggregation=="Value","Item","GRAND TOTAL")]
- 
- grandTotal=subset(kcalData2,Aggregation=="GRAND TOTAL")
- grandTotal[,measuredItemFbsSua:="S2901"]
- grandTotal=unique(grandTotal)
- grandTotal=nameData("suafbs","fbs_balanced_",grandTotal)
+kcalData[,6:7]<-NULL
+
+kcalData<-kcalData %>% group_by(geographicAreaM49,timePointYears) %>%  mutate(totDES=sum(Value,na.rm = T))
+
+kcalData2 = melt.data.table(setDT(kcalData),id.vars = c("geographicAreaM49","measuredItemFbsSua","timePointYears"),
+                            measure.vars = c("Value","totDES"))
+setnames(kcalData2, "variable", "Aggregation")
+setnames(kcalData2, "value", "Value")
+
+kcalData2[,Aggregation:=ifelse(Aggregation=="Value","Item","GRAND TOTAL")]
+
+grandTotal=subset(kcalData2,Aggregation=="GRAND TOTAL")
+grandTotal[,measuredItemFbsSua:="S2901"]
+grandTotal=unique(grandTotal)
+grandTotal=nameData("suafbs","fbs_balanced_",grandTotal)
 items=nameData("suafbs","sua_balanced",subset(kcalData2,Aggregation=="Item"))
- 
- kcalDataWide = dcast.data.table(setDT(items),geographicAreaM49+geographicAreaM49_description+
-                                   measuredItemFbsSua+measuredItemFbsSua_description~timePointYears , 
-                                 fun.aggregate = NULL,value.var = "Value")
- GTWide = dcast.data.table(setDT(grandTotal),geographicAreaM49+geographicAreaM49_description+
-                             measuredItemFbsSua+measuredItemFbsSua_description~timePointYears , fun.aggregate = NULL,value.var = "Value")
- 
- toSend=rbind(GTWide,kcalDataWide)
- 
+
+kcalDataWide = dcast.data.table(setDT(items),geographicAreaM49+geographicAreaM49_description+
+                                  measuredItemFbsSua+measuredItemFbsSua_description~timePointYears , 
+                                fun.aggregate = NULL,value.var = "Value")
+GTWide = dcast.data.table(setDT(grandTotal),geographicAreaM49+geographicAreaM49_description+
+                            measuredItemFbsSua+measuredItemFbsSua_description~timePointYears , fun.aggregate = NULL,value.var = "Value")
+
+toSend=rbind(GTWide,kcalDataWide)
+
 
 
 
 bodySuaBALAggregation= paste("The Email contains the aggregated caloric intake at sua balanced level",
-                          sep='\n')
+                             sep='\n')
 
 sendMailAttachment(toSend,"SuaBalAggregation",bodySuaBALAggregation)
 
@@ -175,33 +175,33 @@ food=commDef$cpc[commDef[,food_item=="X"]]
 
 
 sua_balanced_data[, imbalance := sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
-                               ifelse(measuredElementSuaFbs == "5510", 1,
-                                      ifelse(measuredElementSuaFbs == "5610", 1,
-                                             ifelse(measuredElementSuaFbs == "5910", -1,
-                                                    ifelse(measuredElementSuaFbs == "5071", -1,
-                                                           ifelse(measuredElementSuaFbs == "5141", -1,
-                                                                  ifelse(measuredElementSuaFbs == "5023", -1,
-                                                                         ifelse(measuredElementSuaFbs == "5520", -1,
-                                                                                ifelse(measuredElementSuaFbs == "5016", -1,
-                                                                                       ifelse(measuredElementSuaFbs == "5525", -1,
-                                                                                              ifelse(measuredElementSuaFbs == "5165", -1,
-                                                                                                     ifelse(measuredElementSuaFbs == "5164", -1,
-                                                                                                            ifelse(measuredElementSuaFbs == "5166", -1,0))))))))))))),
-          by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
+                                       ifelse(measuredElementSuaFbs == "5510", 1,
+                                              ifelse(measuredElementSuaFbs == "5610", 1,
+                                                     ifelse(measuredElementSuaFbs == "5910", -1,
+                                                            ifelse(measuredElementSuaFbs == "5071", -1,
+                                                                   ifelse(measuredElementSuaFbs == "5141", -1,
+                                                                          ifelse(measuredElementSuaFbs == "5023", -1,
+                                                                                 ifelse(measuredElementSuaFbs == "5520", -1,
+                                                                                        ifelse(measuredElementSuaFbs == "5016", -1,
+                                                                                               ifelse(measuredElementSuaFbs == "5525", -1,
+                                                                                                      ifelse(measuredElementSuaFbs == "5165", -1,
+                                                                                                             ifelse(measuredElementSuaFbs == "5164", -1,
+                                                                                                                    ifelse(measuredElementSuaFbs == "5166", -1,0))))))))))))),
+                  by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
 
 sua_balanced_data[, perc.imbalance := 100*abs(imbalance)/sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
-                                                      ifelse(measuredElementSuaFbs == 5510, 1,
-                                                             ifelse(measuredElementSuaFbs == 5610, 1,
-                                                                    ifelse(measuredElementSuaFbs == 5910, -1,
-                                                                           ifelse(measuredElementSuaFbs == 5071, -1,
-                                                                                  ifelse(measuredElementSuaFbs == 5141, 0,
-                                                                                         ifelse(measuredElementSuaFbs == 5023, 0,
-                                                                                                ifelse(measuredElementSuaFbs == 5520, 0,
-                                                                                                       ifelse(measuredElementSuaFbs == 5016, 0,
-                                                                                                              ifelse(measuredElementSuaFbs == 5525, 0,
-                                                                                                                     ifelse(measuredElementSuaFbs == 5165, 0,
-                                                                                                                            ifelse(measuredElementSuaFbs == 5164, 0,
-                                                                                                                                   ifelse(measuredElementSuaFbs == 5166, 0,0))))))))))))),
+                                                               ifelse(measuredElementSuaFbs == 5510, 1,
+                                                                      ifelse(measuredElementSuaFbs == 5610, 1,
+                                                                             ifelse(measuredElementSuaFbs == 5910, -1,
+                                                                                    ifelse(measuredElementSuaFbs == 5071, -1,
+                                                                                           ifelse(measuredElementSuaFbs == 5141, 0,
+                                                                                                  ifelse(measuredElementSuaFbs == 5023, 0,
+                                                                                                         ifelse(measuredElementSuaFbs == 5520, 0,
+                                                                                                                ifelse(measuredElementSuaFbs == 5016, 0,
+                                                                                                                       ifelse(measuredElementSuaFbs == 5525, 0,
+                                                                                                                              ifelse(measuredElementSuaFbs == 5165, 0,
+                                                                                                                                     ifelse(measuredElementSuaFbs == 5164, 0,
+                                                                                                                                            ifelse(measuredElementSuaFbs == 5166, 0,0))))))))))))),
                   by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
 
 
@@ -216,7 +216,7 @@ data.table::setorder(imbToSend,-perc.imbalance)
 imbToSend=nameData("suafbs","sua_balanced",imbToSend)
 
 bodyImbalances= paste("The Email contains the list of imbalanced food items at SUA bal level. Please check them.",
-                             sep='\n')
+                      sep='\n')
 
 sendMailAttachment(setDT(imbToSend),"ImbalanceList",bodyImbalances)
 

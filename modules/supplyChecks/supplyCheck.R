@@ -28,7 +28,7 @@ if(CheckDebug()){
 }
 
 startYear = 2013
-endYear = 2016
+endYear = 2017
 geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = startYear:endYear
@@ -110,7 +110,7 @@ suaBalancedData_DES <- subset(sua_balanced_data, measuredElementSuaFbs %in% c("5
 suaBalancedData_DES[, c("flagObservationStatus","flagMethod") := NULL]
 
 suaBalancedData_DES <- dcast.data.table(suaBalancedData_DES, geographicAreaM49 + measuredItemFbsSua +
-                          timePointYears ~ measuredElementSuaFbs, value.var = "Value")
+                                          timePointYears ~ measuredElementSuaFbs, value.var = "Value")
 
 
 
@@ -134,7 +134,7 @@ suaBalancedData_DES[,supply := production+imports-exports]
 apparentConsumption <- copy (suaBalancedData_DES)
 
 
-apparentConsumption <- subset(apparentConsumption, timePointYears %in% c(2014:2016))
+apparentConsumption <- subset(apparentConsumption, timePointYears %in% c(2014:2017))
 
 
 apparentConsumption <- subset(apparentConsumption, supply < 0 & supply>1000)
@@ -147,7 +147,7 @@ apparentConsumption[,timePointYears_description := NULL]
 
 #### send mail
 bodyApparent= paste("The Email contains a list of negative apparent consumptions at sua balanced level. It is advisable to check them all one by one and decide course of action.",
-                      sep='\n')
+                    sep='\n')
 
 sendMailAttachment(apparentConsumption,"apparentConsumption",bodyApparent)
 
@@ -171,7 +171,7 @@ suaBalancedData_lag = list()
 for (i in 1:length(suaBalancedData_DES)){
   
   data_lag= data.table(suaBalancedData_DES[[i]])
- 
+  
   
   suaBalancedData_lag[[i]] <- data_lag[order(timePointYears),supply_lag:= shift(supply), by= c("measuredItemFbsSua")] 
   suaBalancedData_lag[[i]] <- data_lag[order(timePointYears),calories_lag:= shift(calories), by= c("measuredItemFbsSua")] 
@@ -198,7 +198,7 @@ data_lag_final[is.na(calories_lag), calories_lag := 0]
 
 #Eliminiate year 2013
 
-data_lag_final <- subset(data_lag_final, timePointYears %in% c(2014:2016))
+data_lag_final <- subset(data_lag_final, timePointYears %in% c(2014:2017))
 
 
 
@@ -228,7 +228,7 @@ printcases[, timePointYears_description := NULL]
 
 bodySupplyCondition= paste("The Email contains a list of cases where consumption is increasing despite a decrease in supply.",
                            "It is advisable to adjust the figures in order to have a more realistic consumption behavior.",
-                    sep='\n')
+                           sep='\n')
 
 sendMailAttachment(printcases,"supplyCondition",bodySupplyCondition)
 
