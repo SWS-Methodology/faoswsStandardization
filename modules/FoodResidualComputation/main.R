@@ -442,6 +442,9 @@ dataTosave[, flagMethod := "i"]
 
 dataTosave=rbind(dataTosave,touristData)
 
+#2010 is adhoc variable. 
+
+dataTosave <- subset(dataTosave, timePointYears %in% c(2010:endYear))
 
 setcolorder(dataTosave, c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
                           "timePointYears", "Value", "flagObservationStatus", "flagMethod"))
