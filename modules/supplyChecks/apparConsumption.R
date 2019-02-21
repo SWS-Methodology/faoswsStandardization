@@ -37,7 +37,7 @@ if(CheckDebug()){
 #endYear = as.numeric(2016)
 
 startYear = 2010
-endYear = 2016
+endYear = 2017 # TODO: parameterise
 geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = startYear:endYear
@@ -174,7 +174,9 @@ apparentConsumption <- subset(apparentConsumption, supply < -10 )
 apparentConsumption <- subset(apparentConsumption, measuredItemFbsSua %in% primary )
 
 
-apparentConsumption<- apparentConsumption[,c("geographicAreaM49","measuredItemFbsSua","timePointYears"),with=FALSE]
+#apparentConsumption<- apparentConsumption[,c("geographicAreaM49","measuredItemFbsSua","timePointYears"),with=FALSE]
+
+setcolorder(apparentConsumption, c("geographicAreaM49", "measuredItemFbsSua", "timePointYears", "supply", "production", "imports", "exports"))
 
 apparentConsumption <-nameData("suafbs","sua_unbalanced",apparentConsumption)
 
