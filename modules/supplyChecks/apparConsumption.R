@@ -192,5 +192,5 @@ sendMailAttachment(apparentConsumption,"apparentConsumption",bodyApparent)
 #apparent consumption is the list of commodities,countries and years where supply is negative.
 
 
-
+print("Module ran successfully. Check your e-mail.")
 
