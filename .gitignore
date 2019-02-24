@@ -12,3 +12,6 @@ sandbox/*.zip
 .Rhistory
 .RData
 modules/pullDataToSUA/sws.yml
+
+# vim files
+*.sw[a-z]
