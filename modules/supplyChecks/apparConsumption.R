@@ -28,6 +28,8 @@ if(CheckDebug()){
   )
 }
 
+# Value below which supply must fall in order to be a case to be investigated
+THRESHOLD <- -1000
 
 
 #startYear = as.numeric(swsContext.computationParams$startYear)
@@ -150,7 +152,7 @@ apparentConsumption <-
   sua_data[
     timePointYears %in% 2014:endYear &
       !(measuredItemFbsSua %in% livestock) &
-      supply < -10 &
+      supply < THRESHOLD &
       measuredItemFbsSua %in% primary
   ]
 
@@ -161,7 +163,9 @@ setcolorder(apparentConsumption, c("geographicAreaM49", "measuredItemFbsSua", "t
 apparentConsumption <- nameData("suafbs", "sua_unbalanced", apparentConsumption, except = "timePointYears")
 
 #### send mail
-bodyApparent <- "The Email contains a list of negative apparent consumptions at sua unbalanced level. Negative values higher than -1000 have been filtered out"
+bodyApparent <- paste("The Email contains a list of negative apparent consumptions",
+                      "at sua unbalanced level. Negative values higher than",
+                      THRESHOLD, "have been filtered out.")
 
 sendMailAttachment(apparentConsumption, "apparentConsumption", bodyApparent)
 
