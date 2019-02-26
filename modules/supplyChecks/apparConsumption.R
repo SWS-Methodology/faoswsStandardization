@@ -121,10 +121,11 @@ sua_data <-
     oldprod := sum(Value[as.numeric(timePointYears) < 2014 & measuredElementSuaFbs == "5510"]),
     .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs)
   ][,
-    drop := any(oldprod > 0),
+    previously_produced := any(oldprod > 0),
     .(geographicAreaM49, measuredItemFbsSua)
   ][
-    drop == FALSE & timePointYears > 2013
+    #previously_produced == FALSE & timePointYears > 2013
+    timePointYears > 2013
   ][,
     c("flagObservationStatus","flagMethod") := NULL
   ]
