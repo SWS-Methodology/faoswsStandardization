@@ -256,7 +256,7 @@ key2 = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = li
   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = c("5071","5165")),
   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-  timePointYears = Dimension(name = "timePointYears", keys = paste(c(2000:2016),sep=""))))
+  timePointYears = Dimension(name = "timePointYears", keys = paste(c(2000:2017),sep="")))) # TODO: parameterise
 
 
 ##############################################################
@@ -289,7 +289,7 @@ Stock_Items_Nonex<-Stock_Items[!Stock_Items %in% (unique(dataStock$measuredItemF
 
 
 data_with_stock <- expand.grid(measuredElementSuaFbs = "stock_change", geographicAreaM49 = unique(data$geographicAreaM49),
-                               measuredItemFbsSua = Stock_Items_Nonex, timePointYears = c(2014:2016), flagObservationStatus = "I",
+                               measuredItemFbsSua = Stock_Items_Nonex, timePointYears = c(2014:2017), flagObservationStatus = "I", # TODO: parameterise
                                flagMethod = "e" )
 
 data_with_stock=data.table(data_with_stock)

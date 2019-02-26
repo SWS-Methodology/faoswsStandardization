@@ -39,7 +39,7 @@ if(CheckDebug()){
 }
 
 startYear = 2013
-endYear = 2016
+endYear = 2017 # TODO: parameterise
 geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = startYear:endYear
