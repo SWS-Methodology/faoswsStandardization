@@ -128,7 +128,7 @@ kcalData <- subset(sua_balanced_data, measuredElementSuaFbs %in% c("664"))
 
 kcalData[,6:7]<-NULL
 
-kcalData<-kcalData %>% group_by(geographicAreaM49,timePointYears) %>%  mutate(totDES=sum(Value,na.rm = T))
+kcalData<-kcalData %>% group_by(geographicAreaM49,timePointYears) %>%  dplyr::mutate(totDES=sum(Value,na.rm = T))
 
 kcalData2 = melt.data.table(setDT(kcalData),id.vars = c("geographicAreaM49","measuredItemFbsSua","timePointYears"),
                             measure.vars = c("Value","totDES"))
