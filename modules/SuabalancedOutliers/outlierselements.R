@@ -221,7 +221,7 @@ if (nrow(imbToSend) > 0) {
   bodyImbalances= paste("The Email contains the list of outliers for the following elements: Production, Food, Feed, Seed, Loss, Processed, Industrial Use. Please check them.",
                       sep='\n')
 
-  sendMailAttachment(setDT(imbToSend),"SuaBalancedOutliers",bodyImbalances)
+  sendMailAttachment(setDT(imbToSend),"Outliers_elements_SUA_BAL",bodyImbalances)
   print("Outliers found, please check email.")
 } else {
   print("No outliers found.")
