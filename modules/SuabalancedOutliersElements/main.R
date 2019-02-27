@@ -35,7 +35,8 @@ if(CheckDebug()){
   message("Not on server, so setting up environment...")
   
   library(faoswsModules)
-  SETT <- ReadSettings("modules/SuabalancedOutliersElements/sws.yml")
+  ## SETT <- ReadSettings("modules/outlierImputation/sws.yml")
+  SETT <- ReadSettings("C:/Users/VALDIVIACR/Desktop/FAO/R/version faostandardization october 2018/faoswsStandardization/modules/fullStandardizationAndBalancing/sws.yaml")
   R_SWS_SHARE_PATH <- SETT[["share"]]  
   ## Get SWS Parameters
   SetClientFiles(dir = SETT[["certdir"]])
@@ -146,19 +147,19 @@ primary=commDef$cpc[commDef[,primary_item=="X"]]
 
 data_unbal=data_unbal[timePointYears>=2011 & timePointYears<=2013]
 
-data_unbal <-data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua, measuredElementSuaFbs) %>% mutate(Meanold=mean(Value,na.rm=T))
+data_unbal <-data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua, measuredElementSuaFbs) %>% dplyr::mutate(Meanold=mean(Value,na.rm=T))
 
-data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
+data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
 data_unbal$prod[is.na(data_unbal$prod)]<-0
-data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(imp=sum(Value[measuredElementSuaFbs==5610]))
+data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(imp=sum(Value[measuredElementSuaFbs==5610]))
 data_unbal$imp[is.na(data_unbal$imp)]<-0
-data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(exp=sum(Value[measuredElementSuaFbs==5910]))
+data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(exp=sum(Value[measuredElementSuaFbs==5910]))
 data_unbal$exp[is.na(data_unbal$exp)]<-0
-data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(stock=sum(Value[measuredElementSuaFbs==5071]))
+data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(stock=sum(Value[measuredElementSuaFbs==5071]))
 data_unbal$stock[is.na(data_unbal$stock)]<-0
-data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(supply=prod+imp-exp-stock)
-data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% mutate(ratio_old=Value/supply)
-data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(mean_ratio=mean(ratio_old,na.rm=T))
+data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(supply=prod+imp-exp-stock)
+data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% dplyr::mutate(ratio_old=Value/supply)
+data_unbal<- data_unbal %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% dplyr::mutate(mean_ratio=mean(ratio_old,na.rm=T))
 
 
 data_unbal=data_unbal[,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", "Meanold", "mean_ratio")]
@@ -173,23 +174,23 @@ data$Meanold[is.na(data$Meanold)]<-0
 data$Value[is.na(data$Value)]<-0
 data$mean_ratio[is.na(data$mean_ratio)]<-0
 
-data<-data%>%  mutate(ratio_val=(Value/Meanold))
+data<-data%>%  dplyr::mutate(ratio_val=(Value/Meanold))
 
-data<- data%>%   mutate(outlier= (ratio_val>2 | ratio_val<0.5) & timePointYears>2013)
+data<- data%>%   dplyr::mutate(outlier= (ratio_val>2 | ratio_val<0.5) & timePointYears>2013)
 
 
-data<-  data%>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
+data<-  data%>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
 data$prod[is.na(data$prod)]<-0
-data<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(imp=sum(Value[measuredElementSuaFbs==5610]))
+data<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(imp=sum(Value[measuredElementSuaFbs==5610]))
 data$imp[is.na(data$imp)]<-0
-data<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(exp=sum(Value[measuredElementSuaFbs==5910]))
+data<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(exp=sum(Value[measuredElementSuaFbs==5910]))
 data$exp[is.na(data$exp)]<-0
-data<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(stock=sum(Value[measuredElementSuaFbs==5071]))
+data<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(stock=sum(Value[measuredElementSuaFbs==5071]))
 data$stock[is.na(data$stock)]<-0
-data<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(supply=prod+imp-exp-stock)
-data<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% mutate(ratio_supp=Value/supply)
+data<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(supply=prod+imp-exp-stock)
+data<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% dplyr::mutate(ratio_supp=Value/supply)
 
-data<-data%>% mutate(outl_on_supp=(abs(ratio_supp-mean_ratio)>=0.1))
+data<-data%>% dplyr::mutate(outl_on_supp=(abs(ratio_supp-mean_ratio)>=0.1))
 
 data=as.data.table(data)
 data=data[measuredElementSuaFbs!=5610 & measuredElementSuaFbs!=5910 & measuredElementSuaFbs!=5071 & measuredElementSuaFbs!=664]
@@ -201,8 +202,8 @@ setDT(data)
 #imbToSend=subset(data,timePointYears>=2014 & ((outlier==T & outl_on_supp==T & (measuredElementSuaFbs==5520|measuredElementSuaFbs==5525|measuredElementSuaFbs==5016|measuredElementSuaFbs==5023|measuredElementSuaFbs==5165|measuredElementSuaFbs==5141))|(outlier==T & (measuredElementSuaFbs==5510))|(Value==0 & Meanold!=0)|(Value!=0 & Meanold==0)|(abs(Meanold-Value)>50000 & outlier==T)))
 imbToSend=subset(data,timePointYears>=2014 & ((outlier==T & outl_on_supp==T & (measuredElementSuaFbs==5520|measuredElementSuaFbs==5525|measuredElementSuaFbs==5016|measuredElementSuaFbs==5023|measuredElementSuaFbs==5165|measuredElementSuaFbs==5141) & (abs(Meanold-Value)>10000))|(outlier==T & (measuredElementSuaFbs==5510) & (abs(Meanold-Value)>10000))))
 setDT(imbToSend)
-imbToSend<-imbToSend%>% mutate(keep=(Value==0 & Meanold!=0))
-imbToSend<-imbToSend%>% mutate(keep2=(Value!=0 & Meanold==0))
+imbToSend<-imbToSend%>% dplyr::mutate(keep=(Value==0 & Meanold!=0))
+imbToSend<-imbToSend%>% dplyr::mutate(keep2=(Value!=0 & Meanold==0))
 imbToSend=subset(imbToSend, (Value>10000 & keep==FALSE & keep2==FALSE))
 setnames(imbToSend,"Meanold","Historical_value2011_2013")
 
@@ -215,9 +216,4 @@ imbToSend=nameData("suafbs","sua_balanced",imbToSend)
 bodyImbalances= paste("The Email contains the list of outliers for the following elements: Production, Food, Feed, Seed, Loss, Processed, Industrial Use. Please check them.",
                       sep='\n')
 
-sendMailAttachment(setDT(imbToSend),"Element_Outliers_SUAbal",bodyImbalances)
-
-
-
-
-
+sendMailAttachment(setDT(imbToSend),"SuaBalancedOutliers",bodyImbalances)

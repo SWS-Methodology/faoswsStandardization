@@ -57,7 +57,7 @@ if(CheckDebug()){
   message("Not on server, so setting up environment...")
   
   library(faoswsModules)
-  SETT <- ReadSettings("modules/outlierImputation/sws.yml")
+  SETT <- ReadSettings("C:/Users/VALDIVIACR/Desktop/FAO/R/version faostandardization october 2018/faoswsStandardization/modules/fullStandardizationAndBalancing/sws.yaml")
   
   R_SWS_SHARE_PATH <- SETT[["share"]]  
   ## Get SWS Parameters
@@ -169,7 +169,7 @@ data=nameData("sua_fbs","sua_unbalanced",data)
 data$Value[is.na(data$Value)]<-0
 #lossData=subset(data,measuredElementSuaFbs == "5016")
 
-sua_unb<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(Meanold=mean(Value[timePointYears<2014],na.rm=T))
+sua_unb<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% dplyr::mutate(Meanold=mean(Value[timePointYears<2014],na.rm=T))
 sua_unb$Meanold[is.na(sua_unb$Meanold)]<-0
 sua_unb$Value[is.na(sua_unb$Value)]<-0
 #sua_unb <- merge(sua_unb, protectedFlags, by = keys)
@@ -178,30 +178,30 @@ sua_unb$Value[is.na(sua_unb$Value)]<-0
 
 
 ##
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
 sua_unb$prod[is.na(sua_unb$prod)]<-0
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(imp=sum(Value[measuredElementSuaFbs==5610]))
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(imp=sum(Value[measuredElementSuaFbs==5610]))
 sua_unb$imp[is.na(sua_unb$imp)]<-0
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(exp=sum(Value[measuredElementSuaFbs==5910]))
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(exp=sum(Value[measuredElementSuaFbs==5910]))
 sua_unb$exp[is.na(sua_unb$exp)]<-0
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(supply=prod+imp-exp)
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% mutate(ratio=Value/supply)
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(supply=prod+imp-exp)
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% dplyr::mutate(ratio=Value/supply)
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% dplyr::mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
 
 
 
 ## loss careful supply definition changes
-sua_unb2<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(supply=prod+imp)
-sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% mutate(ratio=Value/supply)
-sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
+sua_unb2<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(supply=prod+imp)
+sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% dplyr::mutate(ratio=Value/supply)
+sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% dplyr::mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
 
 
 loss<-sua_unb2 %>% filter(measuredElementSuaFbs==5016)
-loss<-loss %>% mutate(outl=(abs(ratio-mean_ratio)>=0.05) | (ratio==0 & mean_ratio>0)) 
+loss<-loss %>% dplyr::mutate(outl=(abs(ratio-mean_ratio)>=0.05) | (ratio==0 & mean_ratio>0)) 
 outl_loss<-loss %>% filter((outl==T & timePointYears>2013) )
 impute_loss<-outl_loss %>% filter(supply>=0 & mean_ratio>0 & mean_ratio<1 & measuredItemFbsSua %in% food & measuredItemFbsSua %in% primaryProxyPrimary)
-impute_loss<-impute_loss %>% mutate(impute=supply*mean_ratio)
-impute_loss<-impute_loss %>% mutate(diff=Value-impute)
+impute_loss<-impute_loss %>% dplyr::mutate(impute=supply*mean_ratio)
+impute_loss<-impute_loss %>% dplyr::mutate(diff=Value-impute)
 impute_loss=setnames(impute_loss,"Value","pippo")
 impute_loss=setnames(impute_loss,"impute","Value")
 
@@ -221,21 +221,25 @@ impute_loss[,flagMethod:="e"]
 ################################################################
 out<-as.data.table(impute_loss)
 
-stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
-paste0(stats$inserted, " observations written, ",
-       stats$ignored, " weren't updated, ",
-       stats$discarded, " had problems.")
-
-################################################################
-#####  send Email with notification of correct execution   #####
-################################################################
-
-## Initiate email
-from = "sws@fao.org"
-to = swsContext.userEmail
-subject = "Impute Losses plug-in has correctly run"
-body = "The plug-in has saved the imputed losses in your session"
-
-sendmailR::sendmail(from, to, subject , body)
-paste0("Email sent to ", swsContext.userEmail)
-
+if (nrow(out) > 0) {
+  stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
+  paste0(stats$inserted, " observations written, ",
+         stats$ignored, " weren't updated, ",
+         stats$discarded, " had problems.")
+  
+  ################################################################
+  #####  send Email with notification of correct execution   #####
+  ################################################################
+  
+  ## Initiate email
+  from = "sws@fao.org"
+  to = swsContext.userEmail
+  subject = "Impute Losses plug-in has correctly run"
+  body = "The plug-in has saved the imputed losses in your session"
+  
+  sendmailR::sendmail(from, to, subject , body)
+  paste0("Email sent to ", swsContext.userEmail)
+  
+} else {
+  print("No loss figures were imputed.")
+}
