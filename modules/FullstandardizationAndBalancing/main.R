@@ -256,7 +256,7 @@ key2 = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = li
   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = c("5071","5165")),
   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-  timePointYears = Dimension(name = "timePointYears", keys = paste(c(2000:2017),sep="")))) # TODO: parameterise
+  timePointYears = Dimension(name = "timePointYears", keys = paste(c(2000:2016),sep="")))) # TODO: parameterise
 
 
 ##############################################################
@@ -289,7 +289,7 @@ Stock_Items_Nonex<-Stock_Items[!Stock_Items %in% (unique(dataStock$measuredItemF
 
 
 data_with_stock <- expand.grid(measuredElementSuaFbs = "stock_change", geographicAreaM49 = unique(data$geographicAreaM49),
-                               measuredItemFbsSua = Stock_Items_Nonex, timePointYears = c(2014:2017), flagObservationStatus = "I", # TODO: parameterise
+                               measuredItemFbsSua = Stock_Items_Nonex, timePointYears = c(2014:2016), flagObservationStatus = "I", # TODO: parameterise
                                flagMethod = "e" )
 
 data_with_stock=data.table(data_with_stock)
@@ -898,8 +898,8 @@ print(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumbe
 if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
   FORCED_PROD = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"),
                            header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-                                                            "timePointYears","Value"),
-                           colClasses = c("character","character","character","character","character"))
+                                                            "timePointYears","Value", "flagObservationStatus","flagMethod"),
+                           colClasses = c("character","character","character","character","character", "character", "character"))
   FORCED_PROD = data.table(FORCED_PROD)
   message=(paste0( length(FORCED_PROD[,unique(measuredItemFbsSua)])," commodities have a FORCED Official Production"))
   
