@@ -898,8 +898,8 @@ print(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumbe
 if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
   FORCED_PROD = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"),
                            header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-                                                            "timePointYears","Value", "flagObservationStatus","flagMethod"),
-                           colClasses = c("character","character","character","character","character", "character", "character"))
+                                                            "timePointYears","Value"),
+                           colClasses = c("character","character","character","character","character"))
   FORCED_PROD = data.table(FORCED_PROD)
   message=(paste0( length(FORCED_PROD[,unique(measuredItemFbsSua)])," commodities have a FORCED Official Production"))
   
