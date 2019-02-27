@@ -35,8 +35,7 @@ if(CheckDebug()){
   message("Not on server, so setting up environment...")
   
   library(faoswsModules)
-  ## SETT <- ReadSettings("modules/outlierImputation/sws.yml")
-  SETT <- ReadSettings("C:/Users/VALDIVIACR/Desktop/FAO/R/version faostandardization october 2018/faoswsStandardization/modules/fullStandardizationAndBalancing/sws.yaml")
+  SETT <- ReadSettings("modules/SuabalancedOutliersElements/sws.yml")
   R_SWS_SHARE_PATH <- SETT[["share"]]  
   ## Get SWS Parameters
   SetClientFiles(dir = SETT[["certdir"]])
