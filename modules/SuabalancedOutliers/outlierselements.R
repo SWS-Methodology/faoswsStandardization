@@ -205,20 +205,24 @@ setDT(imbToSend)
 imbToSend<-imbToSend%>% mutate(keep=(Value==0 & Meanold!=0))
 imbToSend<-imbToSend%>% mutate(keep2=(Value!=0 & Meanold==0))
 imbToSend=subset(imbToSend, (Value>10000 & keep==FALSE & keep2==FALSE))
-setnames(imbToSend,"Meanold","Historical_value2011_2013")
-
-imbToSend=imbToSend[,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", "timePointYears", "Value", "flagObservationStatus", "flagMethod", "Historical_value2011_2013")]
 
 
-#data.table::setorder(imbToSend,-perc.imbalance)
-imbToSend=nameData("suafbs","sua_balanced",imbToSend)
+if (nrow(imbToSend) > 0) {
+  setnames(imbToSend,"Meanold","Historical_value2011_2013")
 
-bodyImbalances= paste("The Email contains the list of outliers for the following elements: Production, Food, Feed, Seed, Loss, Processed, Industrial Use. Please check them.",
+  imbToSend=imbToSend[,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", "timePointYears", "Value", "flagObservationStatus", "flagMethod", "Historical_value2011_2013")]
+
+  setDT(imbToSend)
+
+
+  #data.table::setorder(imbToSend,-perc.imbalance)
+  imbToSend=nameData("suafbs","sua_balanced",imbToSend)
+
+  bodyImbalances= paste("The Email contains the list of outliers for the following elements: Production, Food, Feed, Seed, Loss, Processed, Industrial Use. Please check them.",
                       sep='\n')
 
-sendMailAttachment(setDT(imbToSend),"SuaBalancedOutliers",bodyImbalances)
-
-
-
-
-
+  sendMailAttachment(setDT(imbToSend),"SuaBalancedOutliers",bodyImbalances)
+  print("Outliers found, please check email.")
+} else {
+  print("No outliers found.")
+}
