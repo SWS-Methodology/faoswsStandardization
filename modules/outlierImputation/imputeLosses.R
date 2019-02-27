@@ -57,7 +57,7 @@ if(CheckDebug()){
   message("Not on server, so setting up environment...")
   
   library(faoswsModules)
-  SETT <- ReadSettings("modules/outlierImputation//sws.yml")
+  SETT <- ReadSettings("modules/outlierImputation/sws.yml")
   
   R_SWS_SHARE_PATH <- SETT[["share"]]  
   ## Get SWS Parameters
@@ -68,8 +68,10 @@ if(CheckDebug()){
   )
 }
 
-startYear=2014
-endYear = 2016
+startYear = as.numeric(swsContext.computationParams$startYear)
+#startYear = as.numeric(2013)
+
+endYear = as.numeric(swsContext.computationParams$endYear)
 geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
 yearVals = startYear:endYear
@@ -145,13 +147,13 @@ keys = c("flagObservationStatus", "flagMethod")
 
 data = GetData(key,omitna = F, normalized=F)
 data=normalise(data, areaVar = "geographicAreaM49",
-                  itemVar = "measuredItemFbsSua", elementVar = "measuredElementSuaFbs",
-                  yearVar = "timePointYears", flagObsVar = "flagObservationStatus",
-                  flagMethodVar = "flagMethod", valueVar = "Value",
-                  removeNonExistingRecords = F)
+               itemVar = "measuredItemFbsSua", elementVar = "measuredElementSuaFbs",
+               yearVar = "timePointYears", flagObsVar = "flagObservationStatus",
+               flagMethodVar = "flagMethod", valueVar = "Value",
+               removeNonExistingRecords = F)
 
 # loss=subset(data,measuredElementSuaFbs == "5016" & flagObservationStatus=="E" & flagMethod=="e")
- commDef=ReadDatatable("fbs_commodity_definitions")
+commDef=ReadDatatable("fbs_commodity_definitions")
 # 
 primaryProxyPrimary=commDef$cpc[commDef[,proxy_primary=="X" | primary_commodity=="X"]]
 primary=commDef$cpc[commDef[,primary_commodity=="X"]]
