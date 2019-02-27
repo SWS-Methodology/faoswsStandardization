@@ -215,7 +215,7 @@ imbToSend=nameData("suafbs","sua_balanced",imbToSend)
 bodyImbalances= paste("The Email contains the list of outliers for the following elements: Production, Food, Feed, Seed, Loss, Processed, Industrial Use. Please check them.",
                       sep='\n')
 
-sendMailAttachment(setDT(imbToSend),"SuaBalancedOutliers",bodyImbalances)
+sendMailAttachment(setDT(imbToSend),"Element_Outliers_SUAbal",bodyImbalances)
 
 
 
