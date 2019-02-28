@@ -303,7 +303,7 @@ timeSeriesData[, measuredElementSuaFbs := "5141"]
 
 food_classicfication_global = ReadDatatable("food_classification")
 
-food_classicfication_global=select(food_classicfication_global, c("measured_item_cpc","type"))
+food_classicfication_global=food_classicfication_global[, .(measured_item_cpc, type)]
 
 setnames(food_classicfication_global,c("measured_item_cpc","type"),c("measuredItemFbsSua","type_global"))
 
@@ -390,9 +390,17 @@ otherElements <- dcast.data.table(otherElements, geographicAreaM49 + measuredIte
                                    timePointYears ~ measuredElementSuaFbs, value.var = "Value")
 
 
+if (!is.na(colnames(otherElements)["5164"])){
+
 setnames(otherElements, c("5016","5071","5164","5165","5520","5525"),
          c("loss","stock","tourist","industrial","feed","seed"))
 
+} else {
+  
+  setnames(otherElements, c("5016","5071","5165","5520","5525"),
+           c("loss","stock","industrial","feed","seed"))
+  
+}
 
 #merge other elements to the time series table 
 
@@ -416,14 +424,30 @@ timeSeriesData[, primary := ifelse(measuredItemFbsSua %in% primary, "primary", "
 #Assign zero for NA before the calculation
 
 
+if (!is.na(colnames(timeSeriesData)["5164"])){
+
+
 cols= c("stock","loss","industrial","feed","seed","tourist")
+
+} else {
+  
+  
+  cols= c("stock","loss","industrial","feed","seed") 
+}
 
 for (j in cols)
   set(timeSeriesData,which(is.na(timeSeriesData[[j]])),j,0)
 
 
-timeSeriesData[primary == "not-primary", foodHat_nonprimary := netSupply - (stock+feed+seed+loss+industrial+tourist)]
 
+if (!is.na(colnames(timeSeriesData)["5164"])){
+
+timeSeriesData[primary == "not-primary", foodHat_nonprimary := netSupply - (stock+feed+seed+loss+industrial+tourist)]
+} else {
+  
+  timeSeriesData[primary == "not-primary", foodHat_nonprimary := netSupply - (stock+feed+seed+loss+industrial)] 
+  
+}
 
 ##########################
 
