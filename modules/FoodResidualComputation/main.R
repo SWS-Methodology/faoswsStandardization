@@ -252,7 +252,8 @@ foodData <- merge(foodData, food_classification_country_specific, by = c("geogra
 
 setnames(foodData, "foodClassification", "type")
 
-foodData <- foodData[type %in% c("Food Residual")]
+
+# foodData <- foodData[type %in% c("Food Residual")]
 
 
 keys = c("flagObservationStatus", "flagMethod")
@@ -287,7 +288,7 @@ timeSeriesData <- merge(timeSeriesData,food_classification_country_specific, by 
 setnames(timeSeriesData, "foodClassification", "type")
 
 
-timeSeriesData <- subset(timeSeriesData, type == "Food Residual")
+# timeSeriesData <- subset(timeSeriesData, type == "Food Residual")
 
 
 
@@ -297,6 +298,24 @@ timeSeriesData <- merge(timeSeriesData, foodDataMerge, all.x = T,
 timeSeriesData[, measuredElementSuaFbs := "5141"]
 
 
+
+#### puling global food classification table
+
+food_classicfication_global = ReadDatatable("food_classification")
+
+food_classicfication_global=select(food_classicfication_global, c("measured_item_cpc","type"))
+
+setnames(food_classicfication_global,c("measured_item_cpc","type"),c("measuredItemFbsSua","type_global"))
+
+timeSeriesData <- merge(timeSeriesData,food_classicfication_global,by = c("measuredItemFbsSua"),all.x = TRUE )
+
+
+timeSeriesData[, type := ifelse(is.na(food), type_global,type)]
+
+timeSeriesData[,type_global := NULL]
+
+
+timeSeriesData = subset(timeSeriesData , type ==  "Food Residual")
 
 #pull trade data 
 tradeData <- subset(suaData, measuredElementSuaFbs %in% c("5610","5910") )
@@ -353,7 +372,9 @@ keys = c("measuredItemFbsSua")
 timeSeriesData <- merge(timeSeriesData,shares, by=keys, all.x = TRUE)
 timeSeriesData=setDT(timeSeriesData)
 
-timeSeriesData[food==0 & noProd>0, food:=share*imports]  ## CARLO
+
+
+timeSeriesData[(dplyr::near(food, 0) | is.na(food)) & noProd>0, food:=share*imports]  ## CARLO
 timeSeriesData[food>0 & is.na(noProd) & netSupply<0, food:=0]  ## CARLO
 
 
