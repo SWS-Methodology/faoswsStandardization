@@ -57,8 +57,7 @@ if(CheckDebug()){
   message("Not on server, so setting up environment...")
   
   library(faoswsModules)
-  SETT <- ReadSettings("C:/Users/VALDIVIACR/Desktop/FAO/R/version faostandardization october 2018/faoswsStandardization/modules/fullStandardizationAndBalancing/sws.yaml")
-  
+  SETT <- ReadSettings("modules/outlierImputation/sws.yml")
   R_SWS_SHARE_PATH <- SETT[["share"]]  
   ## Get SWS Parameters
   SetClientFiles(dir = SETT[["certdir"]])
@@ -175,8 +174,6 @@ sua_unb$Value[is.na(sua_unb$Value)]<-0
 #sua_unb <- merge(sua_unb, protectedFlags, by = keys)
 
 
-
-
 ##
 sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
 sua_unb$prod[is.na(sua_unb$prod)]<-0
@@ -198,7 +195,9 @@ sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredEl
 
 loss<-sua_unb2 %>% filter(measuredElementSuaFbs==5016)
 loss<-loss %>% dplyr::mutate(outl=(abs(ratio-mean_ratio)>=0.05) | (ratio==0 & mean_ratio>0)) 
-outl_loss<-loss %>% filter((outl==T & timePointYears>2013) )
+loss$flagObservationStatus[is.na(loss$flagObservationStatus)]<-"I"
+loss$flagMethod[is.na(loss$flagMethod)]<-"e"
+outl_loss<-loss %>% filter((outl==T & timePointYears>2013 & (!((flagObservationStatus=="" & flagMethod=="q")|(flagObservationStatus=="T" & flagMethod=="p") |(flagObservationStatus=="" & flagMethod=="p")|(flagObservationStatus=="E" & flagMethod=="f")))))
 impute_loss<-outl_loss %>% filter(supply>=0 & mean_ratio>0 & mean_ratio<1 & measuredItemFbsSua %in% food & measuredItemFbsSua %in% primaryProxyPrimary)
 impute_loss<-impute_loss %>% dplyr::mutate(impute=supply*mean_ratio)
 impute_loss<-impute_loss %>% dplyr::mutate(diff=Value-impute)
@@ -243,3 +242,4 @@ if (nrow(out) > 0) {
 } else {
   print("No loss figures were imputed.")
 }
+
