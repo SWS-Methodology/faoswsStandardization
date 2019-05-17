@@ -1,6 +1,6 @@
-##' # Pull data from different domains to sua 
+##' # Pull data from sua unbalanced
 ##'
-##' **Author: Carlo Del Bello**
+##' **Author: Cristina Valdivia**
 ##'
 ##' **Description:**
 ##'
@@ -30,32 +30,13 @@ library(faoswsUtil)
 library(faoswsFlag)
 
 
-# oldProductionCode = c("51","11","21","131") ## 51: prod, other for animals
-# foodCode = "5141"
-# importCode = "5610"
-# exportCode = "5910"
-# oldFeedCode = "101"
-# oldSeedCode = "111"
-# 
-# #oldLossCode = "121"
-# lossCode = "5016"
-# industrialCode = "5165"
-# touristCode = "100"
-# suaTouristCode = "5164"
-# # Convert tourism units to tonnes
-# # touristConversionFactor = -1/1000
-# touristConversionFactor = 1
-# # warning("Stocks is change in stocks, not absolute! This needs to be changed")
-# stocksCode = c("5071","5113")
-# 
-# ## set up for the test environment and parameters
-# R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
+
 
 if(CheckDebug()){
   message("Not on server, so setting up environment...")
   
   library(faoswsModules)
-  SETT <- ReadSettings("modules/outlierImputation/sws.yml")
+  SETT <- ReadSettings("C:/Users/modules/outlierImputation")
   
   R_SWS_SHARE_PATH <- SETT[["share"]]  
   ## Get SWS Parameters
@@ -66,11 +47,22 @@ if(CheckDebug()){
   )
 }
 
+
 #startYear = as.numeric(swsContext.computationParams$startYear)
 startYear = as.numeric(2011)
 
 #endYear = as.numeric(swsContext.computationParams$endYear)
-endYear = as.numeric(2016)
+endYear = as.numeric(2017)
+
+#years to consider for outlier detections
+
+startYearOutl = as.numeric(swsContext.computationParams$startYearoutl)
+endYearOutl = as.numeric(swsContext.computationParams$endYearoutl)
+yearValsOutl = startYearOutl:endYearOutl
+
+#endYear = as.numeric(swsContext.computationParams$endYear)
+endYear = as.numeric(2017)
+
 
 geoM49 = swsContext.computationParams$geom49
 stopifnot(startYear <= endYear)
@@ -85,23 +77,8 @@ sessionCountries =
 geoKeys = GetCodeList(domain = "agriculture", dataset = "aproduction",
                       dimension = "geographicAreaM49")[type == "country", code]
 
-top48FBSCountries = c(4,24,50,68,104,120,140,144,148,1248,170,178,218,320,
-                      324,332,356,360,368,384,404,116,408,450,454,484,508,
-                      524,562,566,586,604,608,716,646,686,762,834,764,800,
-                      854,704,231,887,894,760,862,860)
 
-selectedCountries = setdiff(geoKeys,top48FBSCountries)
-
-
-
-##Select the countries based on the user input parameter
-selectedGEOCode =
-  switch(geoM49,
-         "session" = sessionCountries,
-         "all" = selectedCountries)
-
-
-
+selectedGEOCode =sessionCountries
 
 
 #########################################
@@ -143,14 +120,43 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
 
 
 
-data = GetData(key,omitna = F, normalized=F)
-data=normalise(data, areaVar = "geographicAreaM49",
-               itemVar = "measuredItemFbsSua", elementVar = "measuredElementSuaFbs",
-               yearVar = "timePointYears", flagObsVar = "flagObservationStatus",
-               flagMethodVar = "flagMethod", valueVar = "Value",
-               removeNonExistingRecords = F)
+data = GetData(key,omitna = F, normalized=T)
+
+#write.csv(data, "data_before_outlier_plugin.csv", row.names = F)
+
+##adding missing lines
+
+data2014_2017<-data %>% dplyr::filter(timePointYears>=2014 & timePointYears<=2017)
+
+data2011_2013<-data %>% dplyr::filter(timePointYears>=2011 & timePointYears<=2013)
 
 
+
+
+
+data2<-dcast(data, formula = geographicAreaM49+  measuredElementSuaFbs+ measuredItemFbsSua ~ timePointYears, value.var = "Value")
+data3<-melt(data2, id.vars = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua"))
+data3$variable<-as.character(data3$variable)
+data3<-data3 %>% dplyr::filter(is.na(value) & variable>=2014 & variable<=2017 & (measuredElementSuaFbs==5520|measuredElementSuaFbs==5525|measuredElementSuaFbs==5016|measuredElementSuaFbs==5165))
+data3[,"coladd"]<-"E"
+data3[,"coladd2"]<-"e"
+
+
+data3<-as.data.table(data3)
+data4<-data3[,colnames(data)] 
+setnames(data3, data4)
+data2014_2017<-data2014_2017 %>% dplyr::filter(!is.na(Value))
+
+
+datafinal<-rbind(data2011_2013, data2014_2017, data3)
+data<-datafinal
+
+#miss<-data %>% filter(measuredElementSuaFbs==5520|measuredElementSuaFbs==5525|measuredElementSuaFbs==5165)
+#miss<- miss %>% group_by(geographicAreaM49,measuredItemFbsSua) %>% mutate(Meanold=mean(Value[timePointYears<2014],na.rm=T))
+#miss$Meanold[is.na(miss$Meanold)]<-0
+#miss<-miss %>% filter(Meanold!=0)
+
+#miss<- miss %>% group_by(geographicAreaM49,measuredItemFbsSua, measuredElementSuaFbs) %>% mutate(sumyears=sum(as.integer(timePointYears[timePointYears>=2014])))
 
 
 ################# get protected flags
@@ -170,115 +176,247 @@ food=commDef$cpc[commDef[,food_item=="X"]]
 ##### calculate historical ratios                     #####
 ###########################################################
 
-sua_unb<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(Meanold=mean(Value[timePointYears<2014],na.rm=T))
+sua_unb<- data %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% dplyr::mutate(Meanold=mean(Value[timePointYears<2014],na.rm=T))
 sua_unb$Meanold[is.na(sua_unb$Meanold)]<-0
 sua_unb$Value[is.na(sua_unb$Value)]<-0
+sua_unb$flagObservationStatus[is.na(sua_unb$Value)]<-0
+
 sua_unb <- merge(sua_unb, protectedFlags, by = keys)
 
-
-
+##Added by Valdivia
+attach(sua_unb)
+sua_unb$Protected[flagObservationStatus=="E" & flagMethod %in% c("e","f")]<-FALSE
 
 ##
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(prod=sum(Value[measuredElementSuaFbs==5510]))
 sua_unb$prod[is.na(sua_unb$prod)]<-0
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(imp=sum(Value[measuredElementSuaFbs==5610]))
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(imp=sum(Value[measuredElementSuaFbs==5610]))
 sua_unb$imp[is.na(sua_unb$imp)]<-0
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(exp=sum(Value[measuredElementSuaFbs==5910]))
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(exp=sum(Value[measuredElementSuaFbs==5910]))
 sua_unb$exp[is.na(sua_unb$exp)]<-0
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(supply=prod+imp-exp)
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% mutate(ratio=Value/supply)
-sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(supply=prod+imp-exp)
 
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% dplyr::mutate(ratio=Value/supply)
+
+sua_unb$ratio[sua_unb$ratio<0]<-NA 
+
+sua_unb<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% dplyr::mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
+sua_unb<- sua_unb %>% dplyr::mutate(Diff_val=Value-Meanold)
+
+
+sua_unb<-as.data.table(sua_unb)
+sua_unb[, mean_ratio2 :=  ifelse(mean_ratio>1, 1, mean_ratio)
+        ]
+
+utiLARGERsup<-sua_unb %>% dplyr::filter(mean_ratio>1 & (measuredElementSuaFbs==5520|measuredElementSuaFbs==5525|measuredElementSuaFbs==5165|measuredElementSuaFbs==5016))
 
 ## feed
-feed<-sua_unb %>% filter(measuredElementSuaFbs==5520 & abs(supply)>0)
-feed<-feed %>% mutate(outl=abs(ratio-mean_ratio)>0.1)
-outl_feed<-feed %>% filter((outl==T & timePointYears>2013) )
-impute_feed<-outl_feed %>% filter(supply>=0 & mean_ratio>=0 & mean_ratio<=1 & Protected==F )
+feed<-sua_unb %>% dplyr::filter(measuredElementSuaFbs==5520 & abs(supply)>0)
+
+feed=data.table(feed)
+
+
+
+feed <-
+  feed %>%
+  dplyr::mutate(
+    outl =
+      abs(ratio-mean_ratio) > 0.1 |
+      mean_ratio==1 |
+      mean_ratio>1|
+      (mean_ratio!=0 & ratio==0) |
+      ((Value>2*Meanold | Value<0.5*Meanold) & (Diff_val > 10000 | Diff_val < -10000))
+  )
+
+
+
+outl_feed<-feed %>% dplyr::filter((outl==T & timePointYears%in%yearValsOutl) )
+impute_feed<-outl_feed %>% dplyr::filter(supply>=0 & mean_ratio>=0 & Protected==F )
 #outl_feed %>% filter(supply<0 | mean_ratio<0 | mean_ratio>1) %>% write.csv( file = "feed_to_check.csv")
-impute_feed<-impute_feed %>% mutate(impute=supply*mean_ratio)
+
+
+impute_feed<-impute_feed %>% dplyr::mutate(impute=supply*mean_ratio2)
+
 #impute_feed %>% write.csv( file = "feed_outliers.csv")
 colnames(impute_feed)[7]<-"pippo"
-colnames(impute_feed)[18]<-"Value"
+colnames(impute_feed)[20]<-"Value"
 impute_feed<-impute_feed[,colnames(data)] 
-impute_feed[,6]<-c("E")
-impute_feed[,7]<-c("e")
+
+if (nrow(impute_feed)> 0) {
+  impute_feed[,6]<-c("E")
+  impute_feed[,7]<-c("e")
+  
+}
 
 
-## seed
-seed<-sua_unb %>% filter(measuredElementSuaFbs==5525)
-seed<-seed %>% mutate(outl=abs(ratio-mean_ratio)>0.05)
-outl_seed<-seed %>% filter((outl==T & timePointYears>2013) )
-impute_seed<-outl_seed %>% filter(supply>=0 & mean_ratio>=0 & mean_ratio<=1 & Protected==F )
+
+## seed careful ratio of seed is measured over production
+sua_unb2<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(supply=prod)
+sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% dplyr::mutate(ratio=Value/supply)
+sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% dplyr::mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
+
+seed<-sua_unb2 %>% dplyr::filter(measuredElementSuaFbs==5525)
+
+seed <-
+  seed %>%
+  dplyr::mutate(
+    outl =
+      abs(ratio-mean_ratio) > 0.05 |
+      mean_ratio==1 |
+      mean_ratio>1 |
+      (mean_ratio!=0 & ratio==0) |
+      ((Value>2*Meanold | Value<0.5*Meanold) & (Diff_val > 10000 | Diff_val < -10000))
+  )
+
+
+outl_seed<-seed %>% dplyr::filter((outl==T & timePointYears%in%yearValsOutl) )
+impute_seed<-outl_seed %>% dplyr::filter(supply>=0 & mean_ratio>=0 & Protected==F )
 #outl_feed %>% filter(supply<0 | mean_ratio<0 | mean_ratio>1) %>% write.csv( file = "feed_to_check.csv")
-impute_seed<-impute_seed %>% mutate(impute=supply*mean_ratio)
+impute_seed<-impute_seed %>% dplyr::mutate(impute=supply*mean_ratio2)
 #impute_feed %>% write.csv( file = "feed_outliers.csv")
 colnames(impute_seed)[7]<-"pippo"
-colnames(impute_seed)[18]<-"Value"
+colnames(impute_seed)[20]<-"Value"
 impute_seed<-impute_seed[,colnames(data)] 
-impute_seed[,6]<-c("E")
-impute_seed[,7]<-c("e")
 
+if (nrow(impute_seed)> 0) {
+  impute_seed[,6]<-c("E")
+  impute_seed[,7]<-c("e")
+  
+}
+
+
+rm(sua_unb2)
 
 
 
 ## loss careful supply definition changes
-sua_unb2<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% mutate(supply=prod+imp)
-sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% mutate(ratio=Value/supply)
-sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
+sua_unb2<- sua_unb %>% group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>% dplyr::mutate(supply=prod+imp)
+sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears) %>% dplyr::mutate(ratio=Value/supply)
+sua_unb2<- sua_unb2 %>% group_by(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs) %>% dplyr::mutate(mean_ratio=mean(ratio[timePointYears<2014 & timePointYears>2010],na.rm=T))
 
 
-loss<-sua_unb2 %>% filter(measuredElementSuaFbs==5016)
-loss<-loss %>% mutate(outl=abs(ratio-mean_ratio)>0.05)
-outl_loss<-loss %>% filter((outl==T & timePointYears>2013) )
-impute_loss<-outl_loss %>% filter(supply>=0 & mean_ratio>0 & mean_ratio<=1 & Protected==F & measuredItemFbsSua %in% food & measuredItemFbsSua %in% primaryProxyPrimary)
-impute_loss<-impute_loss %>% mutate(impute=supply*mean_ratio)
-impute_loss<-impute_loss %>% mutate(diff=Value-impute)
+loss<-sua_unb2 %>% dplyr::filter(measuredElementSuaFbs==5016)
+
+loss <-
+  loss %>%
+  dplyr::mutate(
+    outl =
+      abs(ratio-mean_ratio) > 0.05 |mean_ratio>1|
+      ((Value>2*Meanold | Value<0.5*Meanold) & (Diff_val > 10000 | Diff_val < -10000))
+  )
+
+outl_loss<-loss %>% dplyr::filter((outl==T & timePointYears%in%yearValsOutl) )
+impute_loss<-outl_loss %>% dplyr::filter(supply>=0 & mean_ratio>0 & Protected==F & measuredItemFbsSua %in% food & measuredItemFbsSua %in% primaryProxyPrimary)
+impute_loss<-impute_loss %>% dplyr::mutate(impute=supply*mean_ratio2)
 
 
 colnames(impute_loss)[7]<-"pippo"
-colnames(impute_loss)[18]<-"Value"
+colnames(impute_loss)[20]<-"Value"
 impute_loss<-impute_loss[,colnames(data)] 
-impute_loss[,6]<-c("E")
-impute_loss[,7]<-c("e")
+
+if (nrow(impute_loss)> 0) {
+  impute_loss[,6]<-c("E")
+  impute_loss[,7]<-c("e")
+  
+}
+
 
 ##### INDUSTRIAL
 ## ind
-ind<-sua_unb %>% filter(measuredElementSuaFbs==5165)
-ind<-ind %>% mutate(outl=abs(ratio-mean_ratio)>0.05)
-outl_ind<-ind %>% filter((outl==T & timePointYears>2013) )
-impute_ind<-outl_ind %>% filter(supply>=0 & mean_ratio>=0 & mean_ratio<=1 & Protected==F )
+ind<-sua_unb %>% dplyr::filter(measuredElementSuaFbs==5165)
+
+
+ind <-
+  ind %>%
+  dplyr::mutate(
+    outl =
+      abs(ratio-mean_ratio) > 0.05 |
+      mean_ratio==1 |
+      mean_ratio>1|
+      (mean_ratio!=0 & ratio==0) |
+      ((Value>2*Meanold | Value<0.5*Meanold) & (Diff_val > 10000 | Diff_val < -10000))
+  )
+
+
+outl_ind<-ind %>% dplyr::filter((outl==T & timePointYears%in%yearValsOutl) )
+impute_ind<-outl_ind %>% dplyr::filter(supply>=0 & mean_ratio>=0 & Protected==F )
 #outl_feed %>% filter(supply<0 | mean_ratio<0 | mean_ratio>1) %>% write.csv( file = "feed_to_check.csv")
-impute_ind<-impute_ind %>% mutate(impute=supply*mean_ratio)
+impute_ind<-impute_ind %>% dplyr::mutate(impute=supply*mean_ratio2)
 #impute_feed %>% write.csv( file = "feed_outliers.csv")
 colnames(impute_ind)[7]<-"pippo"
-colnames(impute_ind)[18]<-"Value"
+colnames(impute_ind)[20]<-"Value"
 impute_ind<-impute_ind[,colnames(data)] 
-impute_ind[,6]<-c("E")
-impute_ind[,7]<-c("e")
 
+if (nrow(impute_loss)> 0) {
+  impute_ind[,6]<-c("E")
+  impute_ind[,7]<-c("e")
+  
+}
+
+impute_feed<-as.data.table(impute_feed)
+impute_seed<-as.data.table(impute_seed)
+impute_loss<-as.data.table(impute_loss)
+impute_ind<-as.data.table(impute_ind)
 
 ################################################################
 #####  save data                                           #####
 ################################################################
 impute=rbind(impute_feed,impute_seed,impute_loss,impute_ind)
+impute<-impute %>% dplyr::filter(Value!=0)
 out<-as.data.table(impute)
 
-stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
-paste0(stats$inserted, " observations written, ",
-       stats$ignored, " weren't updated, ",
-       stats$discarded, " had problems.")
-
 ################################################################
-#####  send Email with notification of correct execution   #####
+#####  save data                                           #####
 ################################################################
+#the following dataset contains cases where the mean of an utilization for the period 2011-2013 was larger than supply excluding stocks
+utiLARGERsup$timePointYears<-NULL
+utiLARGERsup$Value<-NULL
+utiLARGERsup$prod<-NULL
+utiLARGERsup$imp<-NULL
+utiLARGERsup$exp<-NULL
+utiLARGERsup$supply<-NULL
+utiLARGERsup$ratio<-NULL
+utiLARGERsup$Diff_val<-NULL
+utiLARGERsup$mean_ratio2<-NULL
+utiLARGERsup$Valid<-NULL
+utiLARGERsup$Protected<-NULL
+utiLARGERsup$Meanold<-NULL
+utiLARGERsup$flagMethod<-NULL
+utiLARGERsup$flagObservationStatus<-NULL
 
-## Initiate email
-from = "sws@fao.org"
-to = swsContext.userEmail
-subject = "PullDataToSua plug-in has correctly run"
-body = "The plug-in has saved the SUAs in your session"
+utiLARGERsup<-unique(utiLARGERsup)
 
-sendmailR::sendmail(from, to, subject , body)
-paste0("Email sent to ", swsContext.userEmail)
+
+
+if (nrow(out) > 0) {
+  stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
+  paste0(stats$inserted, " observations written, ",
+         stats$ignored, " weren't updated, ",
+         stats$discarded, " had problems.")
+  
+  ################################################################
+  #####  send Email with notification of correct execution   #####
+  ################################################################
+  
+  ## Initiate email
+  from = "sws@fao.org"
+  to = swsContext.userEmail
+  subject = "Outlier plug-in has correctly run"
+  body = "The plug-in has replaced outliers and saved imputed values in your session"
+  
+  sendmailR::sendmail(from, to, subject , body)
+  paste0("Email sent to ", swsContext.userEmail)
+  
+} else {
+  print("No outliers were detected and replaced.")
+}
+
+
+setDT(utiLARGERsup)
+
+
+bodyOutliers= paste("The Email contains a list of items with one or more utilizations that historically were larger than supply.",
+                    sep='\n')
+
+sendMailAttachment(utiLARGERsup,"Util_larger_supply",bodyOutliers)
 
