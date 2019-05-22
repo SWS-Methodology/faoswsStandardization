@@ -81,7 +81,8 @@ if(CheckDebug()){
   GetTestEnvironment(baseUrl = SETTINGS[["server"]],
                      token = SETTINGS[["token"]])
   
-  dir=paste0("C:/Work/SWS/FBS/Production/DerivedProduction/Output/")
+  # dir=paste0("C:/Work/SWS/FBS/Production/DerivedProduction/Output/")
+  dir=getwd()
   
 }
 sessionKey = swsContext.datasets[[1]]
@@ -304,11 +305,28 @@ for(geo in   seq_along(allCountries)){
       ##'  Get all the primary starting from the processed item (stored in the data.table: processed_item )
       primaryInvolved=getPrimary(processedCPC, treeRestricted, params)
       
-      ##'  Get all the children of primary commodities involved (all levels)
-      primaryInvolvedDescendents=getChildren( commodityTree = treeRestricted,
-                                              parentColname ="measuredItemParentCPC",
-                                              childColname = "measuredItemChildCPC",
-                                              topNodes =primaryInvolved )
+      
+#Sumeda : primaryInvolvedDescendents inlcudes all primaries and its related processed items. However, the processed items are stored in "processedCPC" 
+#where it is generated using a data table called "processed_items". This list is not complete. Some processed commodities are ignored.
+
+      
+      
+      # 
+      # 
+      # ##'  Get all the children of primary commodities involved (all levels)
+      # primaryInvolvedDescendents=getChildren( commodityTree = treeRestricted,
+      #                                         parentColname ="measuredItemParentCPC",
+      #                                         childColname = "measuredItemChildCPC",
+      #                                         topNodes =primaryInvolved )
+      # 
+      # 
+          
+#Sumeda : Creates "primaryInvolvedDescendents" vector in such a way that it includes all parent, child in the tree. 
+      
+      
+      primaryInvolvedDescendents <- unique(c(treeRestricted$measuredItemParentCPC, treeRestricted$measuredItemChildCPC))
+      
+      
       
       ##' For some countris (not included in the FBS country list) there are no processed commodities to be imputed,
       ##' and the next steps cannot be run.
@@ -514,6 +532,7 @@ for(geo in   seq_along(allCountries)){
             ##'   those at the level of the loop)
             inputOutputdata= merge(dataMergeTree,dataProcessed, by=c("geographicAreaM49","measuredItemChildCPC","timePointYears"),all.y=TRUE) 
             
+           
             
             inputOutputdata[shareDownUp=="NaN",shareDownUp:=0]
             inputOutputdata$PG1 = NA
