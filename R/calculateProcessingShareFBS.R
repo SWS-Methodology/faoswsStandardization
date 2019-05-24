@@ -80,9 +80,56 @@ counts=counts[,c(param$geoVar, param$childVar, param$parentVar), with=FALSE]
 data=data[counts, ,on=c(param$geoVar, param$childVar, param$parentVar)]
 
 ## impute processingSharing
-data=arrange(data,geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,timePointYears)
-data=imputeVariable(as.data.table(data),processingShareParamenters)
+# NOTE: on 20190523 it was decided to replace the ensemble imputation with a
+# 3-year moving average (actually it was decided before, never implemented).
+# This may be temporaty or not, thus the structure of this function still
+# keeps the ensemble framework, though the actual imputation is replaced
+# (carried out by imputeVariable() is commented. New code goes from
+# "STARTSMOVAV" to until "ENDMOVAV", so that if can be changed back easily
+# to ensemble if required.
+#
+#data=arrange(data,geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,timePointYears)
+#data=imputeVariable(as.data.table(data),processingShareParamenters)
+#
+# STARTSMOVAV
+my_movav <- function(x, order = 3) {
+  # order should be > 2
+  stopifnot(order >= 3)
 
+  non_missing <- sum(!is.na(x))
+
+  # For cases that have just two non-missing observations
+  order <- ifelse(order > 2 & non_missing == 2, 2, order)
+
+  if (non_missing == 1) {
+    x[is.na(x)] <- na.omit(x)[1]
+  } else if (non_missing >= order) {
+    n <- 1
+    while(any(is.na(x)) & n <= 10) {
+      movav <- suppressWarnings(RcppRoll::roll_mean(x, order, fill = 'extend', align = 'right'))
+      movav <- data.table::shift(movav)
+      x[is.na(x)] <- movav[is.na(x)]
+      n <- n + 1
+    }
+
+    x <- zoo::na.fill(x, 'extend')
+  }
+
+  return(x)
+}
+
+data <-
+  data.table(data)[
+    order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)
+  ][,
+    processingShare_avg := my_movav(processingShare, order = 3),
+    .(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC)
+  ]
+
+data[is.na(processingShare), `:=`(processingShare = processingShare_avg, processingShareFlagObservationStatus = "I", processingShareFlagMethod = "e")]
+
+data[, processingShare_avg := NULL]
+# ENDMOVAV
 
 ## CARLO MODIFICATION check if sum of processing share by productive process is less than 1
 # to do this i need the zero weight
