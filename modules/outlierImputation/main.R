@@ -1,4 +1,4 @@
-##' # Pull data from sua unbalanced
+##' # Pull data from different domains to sua
 ##'
 ##' **Author: Cristina Valdivia**
 ##'
@@ -205,8 +205,7 @@ sua_unb<- sua_unb %>% dplyr::mutate(Diff_val=Value-Meanold)
 
 
 sua_unb<-as.data.table(sua_unb)
-sua_unb[, mean_ratio2 :=  ifelse(mean_ratio>1, 1, mean_ratio)
-        ]
+sua_unb[, mean_ratio2 :=  ifelse(mean_ratio>1, 1, mean_ratio)]
 
 utiLARGERsup<-sua_unb %>% dplyr::filter(mean_ratio>1 & (measuredElementSuaFbs==5520|measuredElementSuaFbs==5525|measuredElementSuaFbs==5165|measuredElementSuaFbs==5016))
 
@@ -217,6 +216,7 @@ feed=data.table(feed)
 
 
 
+##following row changed by Valdivia to balance items where feed is the only utilization
 feed <-
   feed %>%
   dplyr::mutate(
@@ -260,6 +260,7 @@ seed<-sua_unb2 %>% dplyr::filter(measuredElementSuaFbs==5525)
 seed <-
   seed %>%
   dplyr::mutate(
+    mean_ratio2 = ifelse(mean_ratio > 1, 1, mean_ratio),
     outl =
       abs(ratio-mean_ratio) > 0.05 |
       mean_ratio==1 |
@@ -300,6 +301,7 @@ loss<-sua_unb2 %>% dplyr::filter(measuredElementSuaFbs==5016)
 loss <-
   loss %>%
   dplyr::mutate(
+    mean_ratio2 = ifelse(mean_ratio > 1, 1, mean_ratio),
     outl =
       abs(ratio-mean_ratio) > 0.05 |mean_ratio>1|
       ((Value>2*Meanold | Value<0.5*Meanold) & (Diff_val > 10000 | Diff_val < -10000))
@@ -368,7 +370,7 @@ out<-as.data.table(impute)
 ################################################################
 #####  save data                                           #####
 ################################################################
-#the following dataset contains cases where the mean of an utilization for the period 2011-2013 was larger than supply excluding stocks
+
 utiLARGERsup$timePointYears<-NULL
 utiLARGERsup$Value<-NULL
 utiLARGERsup$prod<-NULL
