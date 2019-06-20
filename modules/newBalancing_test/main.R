@@ -1,4 +1,6 @@
-#sapply(dir('c:/Users/mongeau.FAODOMAIN/Dropbox/GitHub/SWS-Methodology/faoswsStandardization/R', pattern = '\\.R$', full.names = TRUE), source)
+# Always source files in R/ (useful for local runs).
+# Your WD should be in faoswsStandardization/
+sapply(dir("R", full.names = TRUE), source)
 
 # Temporary method flags:
 # h = food only
