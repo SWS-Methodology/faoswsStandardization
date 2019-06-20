@@ -1787,12 +1787,14 @@ if (FIX_OUTLIERS == TRUE) {
       tmp_file_outliers
     )
 
-    send_mail(
-      from = "do-not-reply@fao.org",
-      to = swsContext.userEmail,
-      subject = "Outliers fixed",
-      body = c("See the attached CSV.", tmp_file_outliers)
-    )
+    if (!CheckDebug()) {
+      send_mail(
+        from = "do-not-reply@fao.org",
+        to = swsContext.userEmail,
+        subject = "Outliers fixed",
+        body = c("See the attached CSV.", tmp_file_outliers)
+      )
+    }
 
     data[
       !is.na(Value_imputed),
@@ -2525,16 +2527,18 @@ if (nrow(data_suabal) > 0) {
 
 out <- SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData, waitTimeout = 20000)
 
-send_mail(
-  from = "do-not-reply@fao.org",
-  to = swsContext.userEmail,
-  subject = "Imbalanced items, processing shares, and negative availability",
-  body = c("See the attached CSVs.",
-           tmp_file_name_imb,
-           tmp_file_name_shares,
-           tmp_file_name_negative,
-           tmp_file_name_non_exist)
-)
+if (!CheckDebug()) {
+  send_mail(
+    from = "do-not-reply@fao.org",
+    to = swsContext.userEmail,
+    subject = "Imbalanced items, processing shares, and negative availability",
+    body = c("See the attached CSVs.",
+             tmp_file_name_imb,
+             tmp_file_name_shares,
+             tmp_file_name_negative,
+             tmp_file_name_non_exist)
+  )
+}
 
 
 print(paste(out$inserted + out$ignored, "observations written and problems with", out$discarded))
