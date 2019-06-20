@@ -926,7 +926,7 @@ data[,
   `:=`(
     opening_stocks = Value[measuredElementSuaFbs == "5113"],
     opening_stocks_protected = Protected[measuredElementSuaFbs == "5113"],
-    opening_stocks_official := Official[measuredElementSuaFbs == "5113"]
+    opening_stocks_official = Official[measuredElementSuaFbs == "5113"]
   ),
   by = c("geographicAreaM49", "timePointYears", "measuredItemFbsSua")
 ]
