@@ -22,7 +22,7 @@ calculateImbalance <- function(data,
                                keep_supply = TRUE,
                                keep_utilizations = TRUE) {
 
-  stopifnot(is.data.table(x1))
+  stopifnot(is.data.table(data))
 
   data[,
     `:=`(
