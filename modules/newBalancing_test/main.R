@@ -244,7 +244,7 @@ do_optim <- function(d) {
 }
 
 
-my_optim <- function(d) {
+balance_optimization <- function(d) {
   myres_optim <- do_optim(d)
 
   res <- myres_optim[d[, list(measuredElementSuaFbs, Value)],
@@ -257,6 +257,44 @@ my_optim <- function(d) {
   return(res$adj)
 }
 
+################### / optim stuff ###########################
+
+
+balance_proportional <- function(data) {
+
+  x <- copy(data)
+
+  calculateImbalance(x)
+
+  x <-
+    x[
+      Protected == FALSE &
+        !measuredElementSuaFbs %in%
+          c("production", "imports", "exports", "stockChange", "foodManufacturing"),
+      list(measuredElementSuaFbs, measuredItemSuaFbs, Value,
+           mov_share, imbalance, min_threshold, max_threshold)
+    ]
+
+  # Recalculate mov_share, as we are excluding protected values
+  x[, mov_share := mov_share / sum(mov_share, na.rm = TRUE)]
+
+  x[, adjusted_value := Value + mov_share * imbalance]
+
+  # The following two cases are mutually exclusive (at least, they should: test)
+  x[imbalance > 0 & adjusted_value > max_threshold, adjusted_value := max_threshold]
+
+  x[imbalance < 0 & adjusted_value < min_threshold, adjusted_value := min_threshold]
+
+  x <-
+    merge(
+      data,
+      x[, list(measuredElementSuaFbs, measuredItemSuaFbs, adjusted_value)],
+      by = c("measuredElementSuaFbs", "measuredItemSuaFbs"),
+      all.x = TRUE
+    )
+
+  return(x$adjusted_value)
+}
 
 
 
@@ -300,7 +338,6 @@ rollavg <- function(x, order = 3) {
 }
 
 
-################### / optim stuff ###########################
 
 
 
@@ -501,7 +538,13 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           # FIXME: remove this (ugly) global assignment
           x <<- data_level_with_imbalance[levels_to_optimize[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
 
-          x[, adjusted_value := my_optim(x)]
+          if (BALANCING_METHOD == "proportional") {
+            x[, adjusted_value := balance_proportional(x)]
+          } else if (BALANCING_METHOD == "optimization") {
+            x[, adjusted_value := balance_optimization(x)]
+          } else {
+            stop("Invalid balancing method.")
+          }
 
           x[
             !is.na(adjusted_value) & adjusted_value != Value,
@@ -637,6 +680,8 @@ if (CheckDebug()) {
   COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
   #COUNTRY <- swsContext.computationParams$country
 }
+
+BALANCING_METHOD <- swsContext.computationParams$balancing_method
 
 THRESHOLD_METHOD <- swsContext.computationParams$threshold_method
 
@@ -1924,18 +1969,32 @@ data <- data[!(measuredElementSuaFbs == 'stock_change' & stockable == 'FALSE')]
 # Remove residual and tourist (for now)
 data <- data[!(measuredElementSuaFbs %chin% c('residual', 'tourist'))]
 
-#data[
-#  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
-#  movsum_value := RcppRoll::roll_sum(shift(Value), 3, fill = 'extend', align = 'right'),
-#  by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-#]
-#
-#data[
-#  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
-#  mov_share := movsum_value / sum(movsum_value, na.rm = TRUE),
-#  by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-#]
-#
+data[
+  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
+  movsum_value := RcppRoll::roll_sum(shift(Value), 3, fill = 'extend', align = 'right'),
+  by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+]
+
+data[
+  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
+  mov_share := movsum_value / sum(movsum_value, na.rm = TRUE),
+  by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+]
+
+# Impute share if missing
+data[
+  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
+  mov_share := rollavg(mov_share),
+  by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+]
+
+# Set sum of shares = 1
+data[
+  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
+  mov_share := mov_share / sum(mov_share, na.rm = TRUE),
+  by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+]
+
 #data[
 #  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
 #  movshare_sd := RcppRoll::roll_sd(shift(mov_share), 3, fill = 'extend', align = 'right'),
@@ -1956,38 +2015,29 @@ uniqueLevels <- uniqueLevels[timePointYears >= 2014][order(timePointYears)]
 print("NEWBAL: set thresholds")
 
 
-if (THRESHOLD_METHOD == 'level') { ############ DON'T USE
+if (THRESHOLD_METHOD == 'nolimits') {
+
+  data[, min_threshold := -Inf]
+  data[, max_threshold := Inf]
+
+} else if (THRESHOLD_METHOD == 'level') { ############ DON'T USE
 
   data[,
     `:=`(
-      min_treshold = min(Value[timePointYears %in% 2000:2013], na.rm = TRUE),
-      max_treshold = max(Value[timePointYears %in% 2000:2013], na.rm = TRUE)
+      min_threshold = min(Value[timePointYears %in% 2000:2013], na.rm = TRUE),
+      max_threshold = max(Value[timePointYears %in% 2000:2013], na.rm = TRUE)
     ),
     by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
-  ]
-
-  data[,
-    `:=`(
-      min_adj = min_treshold / Value,
-      max_adj = max_treshold / Value
-    )
   ]
 
 } else if (THRESHOLD_METHOD == 'levelquartile') {
 
   data[,
     `:=`(
-      min_treshold = quantile(Value[timePointYears %in% 2000:2013], 0.25, na.rm = TRUE),
-      max_treshold = quantile(Value[timePointYears %in% 2000:2013], 0.75, na.rm = TRUE)
+      min_threshold = quantile(Value[timePointYears %in% 2000:2013], 0.25, na.rm = TRUE),
+      max_threshold = quantile(Value[timePointYears %in% 2000:2013], 0.75, na.rm = TRUE)
     ),
     by = .("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
-  ]
-
-  data[,
-    `:=`(
-      min_adj = min_treshold / Value,
-      max_adj = max_treshold / Value
-    )
   ]
 
 } else if (THRESHOLD_METHOD == 'share') {
@@ -2024,15 +2074,8 @@ if (THRESHOLD_METHOD == 'level') { ############ DON'T USE
 
   data[,
     `:=`(
-      min_util_value = supply * min_util_share,
-      max_util_value = supply * max_util_share
-    )
-  ]
-
-  data[,
-    `:=`(
-      min_adj = min_util_value / Value,
-      max_adj = max_util_value / Value
+      min_threshold = supply * min_util_share,
+      max_threshold = supply * max_util_share
     )
   ]
 
@@ -2072,15 +2115,8 @@ if (THRESHOLD_METHOD == 'level') { ############ DON'T USE
 
   data[,
     `:=`(
-      min_util_value = supply * min_util_share,
-      max_util_value = supply * max_util_share
-    )
-  ]
-
-  data[,
-    `:=`(
-      min_adj = min_util_value / Value,
-      max_adj = max_util_value / Value
+      min_threshold = supply * min_util_share,
+      max_threshold = supply * max_util_share
     )
   ]
 
@@ -2123,15 +2159,8 @@ if (THRESHOLD_METHOD == 'level') { ############ DON'T USE
 
   data[,
     `:=`(
-      min_util_value = supply * min_util_share,
-      max_util_value = supply * max_util_share
-    )
-  ]
-
-  data[,
-    `:=`(
-      min_adj = min_util_value / Value,
-      max_adj = max_util_value / Value
+      min_threshold = supply * min_util_share,
+      max_threshold = supply * max_util_share
     )
   ]
 
@@ -2141,12 +2170,23 @@ if (THRESHOLD_METHOD == 'level') { ############ DON'T USE
   stop("Invalid method.")
 }
 
+data[,
+  `:=`(
+    min_adj = min_threshold / Value,
+    max_adj = max_threshold / Value
+  )
+]
+
 
 data[min_adj > 1, min_adj := 0.9]
 data[min_adj < 0, min_adj := 0.01]
 
 data[max_adj < 1, max_adj := 1.1]
 data[max_adj > 10, max_adj := 10] # XXX Too much?
+
+# Recalculate the levels, given the recalculation of adj factors
+data[, min_threshold := Value * min_adj]
+data[, max_threshold := Value * max_adj]
 
 # We need the min and max to be "near" one (but not too near) in case of
 # Protected figures, so that they are not changed
