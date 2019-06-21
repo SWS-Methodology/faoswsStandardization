@@ -209,7 +209,7 @@ do_optim <- function(d) {
 
   my_protected <- d$Protected
 
-  names(my_lower) <- names(my_upper) <- names(my_protected) <- x$measuredElementSuaFbs
+  names(my_lower) <- names(my_upper) <- names(my_protected) <- d$measuredElementSuaFbs
 
   my_lower <- my_lower[elem_names]
   my_upper <- my_upper[elem_names]
