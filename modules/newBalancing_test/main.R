@@ -1,3 +1,5 @@
+print("NEWBAL: start")
+
 # Always source files in R/ (useful for local runs).
 # Your WD should be in faoswsStandardization/
 sapply(dir("R", full.names = TRUE), source)
@@ -8,6 +10,7 @@ sapply(dir("R", full.names = TRUE), source)
 # s = imbalance assigned to stock
 # - = optimization
 
+print("NEWBAL: define functions")
 
 ######### FUNCTIONS: at some point, they will be moved out of this file. ##
 
@@ -280,10 +283,9 @@ balance_proportional <- function(data) {
 
   x[, adjusted_value := Value + mov_share * imbalance]
 
-  # The following two cases are mutually exclusive (at least, they should: test)
-  x[imbalance > 0 & adjusted_value > max_threshold, adjusted_value := max_threshold]
+  x[adjusted_value > Value & adjusted_value > max_threshold, adjusted_value := max_threshold]
 
-  x[imbalance < 0 & adjusted_value < min_threshold, adjusted_value := min_threshold]
+  x[adjusted_value < Value & adjusted_value < min_threshold, adjusted_value := min_threshold]
 
   x <-
     merge(
@@ -636,6 +638,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
 
 
 
+print("NEWBAL: end functions")
 
 
 
@@ -680,6 +683,8 @@ if (CheckDebug()) {
   COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
   #COUNTRY <- swsContext.computationParams$country
 }
+
+print("NEWBAL: parameters")
 
 BALANCING_METHOD <- swsContext.computationParams$balancing_method
 
@@ -935,7 +940,7 @@ if (CheckDebug()) {
 }
 
 #       # If need to read from session:
-#       GetTestEnvironment(baseUrl = SETTINGS[["server"]], token = 'f677bdc4-b5d9-49c7-b06c-d2ce26d6dea7')
+#       GetTestEnvironment(baseUrl = SETTINGS[["server"]], token = 'edfe83e1-47d8-499d-88fa-35e6a9dca850')
 #
 #       key <- swsContext.datasets[[2]]
 #
@@ -2017,10 +2022,14 @@ print("NEWBAL: set thresholds")
 
 if (THRESHOLD_METHOD == 'nolimits') {
 
+  print("NEWBAL: thresholds, nolimits")
+
   data[, min_threshold := -Inf]
   data[, max_threshold := Inf]
 
 } else if (THRESHOLD_METHOD == 'level') { ############ DON'T USE
+
+  print("NEWBAL: thresholds, level")
 
   data[,
     `:=`(
@@ -2032,15 +2041,19 @@ if (THRESHOLD_METHOD == 'nolimits') {
 
 } else if (THRESHOLD_METHOD == 'levelquartile') {
 
+  print("NEWBAL: thresholds, share")
+
   data[,
     `:=`(
       min_threshold = quantile(Value[timePointYears %in% 2000:2013], 0.25, na.rm = TRUE),
       max_threshold = quantile(Value[timePointYears %in% 2000:2013], 0.75, na.rm = TRUE)
     ),
-    by = .("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
+    by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
   ]
 
 } else if (THRESHOLD_METHOD == 'share') {
+
+  print("NEWBAL: thresholds, share")
 
   data[,
     supply :=
@@ -2049,7 +2062,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
         - Value[measuredElementSuaFbs %in% c('exports', 'stockChange')],
         na.rm = TRUE
       ),
-    by = .("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+    by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
 
   data[supply < 0, supply := 0]
@@ -2083,6 +2096,8 @@ if (THRESHOLD_METHOD == 'nolimits') {
 
 } else if (THRESHOLD_METHOD == "sharequartile") {
 
+  print("NEWBAL: thresholds, sharequartile")
+
   data[,
     supply :=
       sum(
@@ -2090,7 +2105,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
         - Value[measuredElementSuaFbs %in% c('exports', 'stockChange')],
         na.rm = TRUE
       ),
-    by = .("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+    by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
 
   data[supply < 0, supply := 0]
@@ -2123,6 +2138,9 @@ if (THRESHOLD_METHOD == 'nolimits') {
   data[, supply := NULL]
 
 } else if (THRESHOLD_METHOD == "sharedeviation1") { #  XXXXXXXXXXXXX don't use. DO NOT.
+
+  print("NEWBAL: thresholds, sharedeviation1")
+
   data[,
     supply :=
       sum(
@@ -2130,7 +2148,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
         - Value[measuredElementSuaFbs %in% c('exports', 'stockChange')],
         na.rm = TRUE
       ),
-    by = .("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+    by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
 
   data[supply < 0, supply := 0]
