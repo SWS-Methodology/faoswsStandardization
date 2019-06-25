@@ -61,7 +61,7 @@ if(CheckDebug()){
   library(faoswsModules)
   SETT <- ReadSettings("modules/pullDataToSUA/sws.yml")
   
-  R_SWS_SHARE_PATH <- SETT[["share"]]  
+  #R_SWS_SHARE_PATH <- SETT[["share"]]  
   ## Get SWS Parameters
   SetClientFiles(dir = SETT[["certdir"]])
   GetTestEnvironment(
@@ -383,7 +383,7 @@ message("Pulling data from Trade")
 
 eleTradeDim = Dimension(name = "measuredElementTrade",
                         keys = c(importCode, exportCode))
-tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")), waitTimeout = 2000000)
+#tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")), waitTimeout = 2000000)
 
 timeTradeDim = Dimension(name = "timePointYears", keys = as.character(yearVals))
 
@@ -403,7 +403,7 @@ setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
 ################################################
 
 message("Merging data files together and saving")
-out = do.call("rbind", list(agData, stockData,foodData, lossData, tradeData, tourData,indData))
+out = rbind(agData, stockData,foodData, lossData, tradeData, tourData,indData)
 #protected data
 #### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
 # now we have to delete all the wrong values:
@@ -422,6 +422,44 @@ out[geographicAreaM49=="392"&measuredElementSuaFbs=="5141"&measuredItemSuaFbs=="
 
 out <- out[!is.na(Value),]
 setnames(out,"measuredItemSuaFbs","measuredItemFbsSua")
+
+# Wipe cells stored on SWS that were not pulled (non existing cells)
+
+key_unb <-
+  DatasetKey(
+    domain = "suafbs",
+    dataset = "sua_unbalanced",
+    dimensions =
+      list(
+        geographicAreaM49 =
+          Dimension(name = "geographicAreaM49",
+                    keys = unique(out$geographicAreaM49)),
+        measuredElementSuaFbs =
+          Dimension(name = "measuredElementSuaFbs",
+                    keys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", 'measuredElementSuaFbs')$code),
+        measuredItemFbsSua =
+          Dimension(name = "measuredItemFbsSua",
+                    keys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", 'measuredItemFbsSua')$code),
+        timePointYears =
+          Dimension(name = "timePointYears",
+                    keys = unique(out$timePointYears))
+      )
+  )
+
+data_suaunbal <- GetData(key_unb)
+
+non_existing <-
+  data_suaunbal[!out, on = c('geographicAreaM49', 'measuredElementSuaFbs', 'measuredItemFbsSua', 'timePointYears')]
+
+non_existing[, `:=`(Value = NA_real_, flagObservationStatus = NA_character_, flagMethod = NA_character_)]
+
+if (nrow(non_existing) > 0) {
+  message(paste("PullData: there were", nrow(non_existing), "non existing observations"))
+  out <- rbind(out, non_existing)
+}
+
+# / Wipe cells
+
 
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
 
