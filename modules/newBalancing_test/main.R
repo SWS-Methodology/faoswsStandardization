@@ -1,3 +1,5 @@
+start_time <- Sys.time()
+
 print("NEWBAL: start")
 
 # Always source files in R/ (useful for local runs).
@@ -2532,47 +2534,53 @@ calories_per_capita[, c("food", "calories", "population") := NULL]
 standData <- rbind(standData, calories_per_capita)[!is.na(Value)]
 
 
+# Download also calories
+elemKeys_all <- c(elemKeys, "664")
+
 
 # Get ALL data from SUA BALANCED, do an anti-join, set to NA whatever was not
 # generated here so to clean the session on unbalanced of non-existing cells
 
 if (CheckDebug()) {
-  key <-
+  key_all <-
     DatasetKey(
       domain = "suafbs",
       dataset = "sua_balanced",
       dimensions =
         list(
           geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
-          measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
+          measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys_all),
           measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-          timePointYears = Dimension(name = "timePointYears", keys = as.character(2014:2017))
+          # Get from 2010, just for the SUA aggregation
+          timePointYears = Dimension(name = "timePointYears", keys = as.character(2010:2017))
         )
     )
 } else {
-  key <- swsContext.datasets[[1]]
+  key_all <- swsContext.datasets[[1]]
 
-  key@dimensions$timePointYears@keys <- as.character(2014:2017)
-  key@dimensions$measuredItemFbsSua@keys <- itemKeys
-  key@dimensions$measuredElementSuaFbs@keys <- elemKeys
-  key@dimensions$geographicAreaM49@keys <- COUNTRY
+  key_all@dimensions$timePointYears@keys <- as.character(2010:2017)
+  key_all@dimensions$measuredItemFbsSua@keys <- itemKeys
+  key_all@dimensions$measuredElementSuaFbs@keys <- elemKeys_all
+  key_all@dimensions$geographicAreaM49@keys <- COUNTRY
 }
 
 
-data_suabal <- GetData(key)
+data_suabal <- GetData(key_all)
 
-if (nrow(data_suabal) > 0) {
+if (nrow(data_suabal[timePointYears >= 2014]) > 0) {
 
-  data_suabal <-
+  data_suabal_missing <-
     data_suabal[
+      timePointYears >= 2014
+    ][
       !standData,
       on = c('geographicAreaM49', 'measuredElementSuaFbs',
              'measuredItemFbsSua', 'timePointYears')
     ]
 
-  if (nrow(data_suabal) > 0) {
+  if (nrow(data_suabal_missing) > 0) {
 
-    data_suabal[,
+    data_suabal_missing[,
       `:=`(
         Value = NA_real_,
         flagObservationStatus = NA_character_,
@@ -2580,25 +2588,130 @@ if (nrow(data_suabal) > 0) {
       )
     ]
 
-    standData <- rbind(standData, data_suabal)
+    standData <- rbind(standData, data_suabal_missing)
   }
 }
 
 
+########## DES calculation
+
+des <- 
+  rbind(
+    data_suabal[
+      measuredElementSuaFbs == '664' & timePointYears %in% 2010:2013
+    ][,
+      list(Value = sum(Value, na.rm = TRUE)),
+      by = c('geographicAreaM49', 'timePointYears', 'measuredItemFbsSua')
+    ],
+    standData[
+      measuredElementSuaFbs == '664' & timePointYears >= 2014
+    ][,
+      list(Value = sum(Value, na.rm = TRUE)),
+      by = c('geographicAreaM49', 'timePointYears', 'measuredItemFbsSua')
+    ]
+  )
+
+des <-
+  rbind(
+    des,
+    des[,
+      list(measuredItemFbsSua = 'S2901', Value = sum(Value)),
+      by = c('geographicAreaM49', 'timePointYears')
+    ]
+  )
+
+des[, Value := round(Value, 2)]
+
+des_cast <-
+  dcast(
+    des,
+    geographicAreaM49 + measuredItemFbsSua ~ timePointYears,
+    fun.aggregate = sum,
+    value.var = "Value"
+  )
+
+des_cast <- nameData("suafbs", "sua_balanced", des_cast)
+
+# The "000" is a trick so that it appears in first place after ordering
+des_cast[measuredItemFbsSua == "S2901", measuredItemFbsSua_description := paste0("000", measuredItemFbsSua_description)]
+
+des_cast <- des_cast[order(measuredItemFbsSua_description)]
+
+des_cast[, measuredItemFbsSua_description := sub("^000", "", measuredItemFbsSua_description)]
+
+
+# Main items are considered those for which in at least one
+# year their calories were at least 50.
+des_main <-
+  des_cast[measuredItemFbsSua %chin% c("S2901", des[Value > 50, unique(measuredItemFbsSua)])]
+
+des_main <-
+  rbind(
+    des_main,
+    des_main[,
+      lapply(.SD, function(x) round(sum(x[-1]) / x[1] * 100, 2)),
+      .SDcols = c(sort(unique(des$timePointYears)))
+    ],
+    fill = TRUE
+  )
+
+des_main[
+  is.na(measuredItemFbsSua),
+  measuredItemFbsSua_description := "PERCENTAGE OF MAIN OVER TOTAL"
+]
+
+des_cast[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+des_main[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+
+tmp_file_des      <- tempfile(pattern = paste0("DES_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_des_main <- tempfile(pattern = paste0("DES_MAIN_ITEMS_", COUNTRY, "_"), fileext = '.csv')
+
+write.csv(des_cast, tmp_file_des)
+write.csv(des_main, tmp_file_des_main)
+
+########## / DES calculation
+
+
+
+
 out <- SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData, waitTimeout = 20000)
 
-if (!CheckDebug()) {
-  send_mail(
-    from = "do-not-reply@fao.org",
-    to = swsContext.userEmail,
-    subject = "Imbalanced items, processing shares, and negative availability",
-    body = c("See the attached CSVs.",
-             tmp_file_name_imb,
-             tmp_file_name_shares,
-             tmp_file_name_negative,
-             tmp_file_name_non_exist)
-  )
+if (exists("out")) {
+
+  body_message <-
+    sprintf(
+      "Plugin completed in %1.2f minutes.
+      Parameters:
+        country = %s,
+        balancing method = %s,
+        thresold method = %s,
+        fix_outliers = %s",
+      difftime(Sys.time(), start_time, units = "min"),
+      COUNTRY,
+      BALANCING_METHOD,
+      THRESHOLD_METHOD,
+      FIX_OUTLIERS
+    )
+
+  if (!CheckDebug()) {
+    send_mail(
+      from = "do-not-reply@fao.org",
+      to = swsContext.userEmail,
+      subject = "Results from newBalancing plugin",
+      body = c(body_message,
+               tmp_file_name_imb,
+               tmp_file_name_shares,
+               tmp_file_name_negative,
+               tmp_file_name_non_exist,
+               tmp_file_des,
+               tmp_file_des_main)
+    )
+  }
+
+  print(paste(out$inserted + out$ignored, "observations written and problems with", out$discarded))
+
+} else {
+
+  print("The newBalancing plugin had a problem when saving data.")
+
 }
-
-
-print(paste(out$inserted + out$ignored, "observations written and problems with", out$discarded))
