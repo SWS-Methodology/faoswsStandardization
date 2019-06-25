@@ -1845,8 +1845,9 @@ if (FIX_OUTLIERS == TRUE) {
       send_mail(
         from = "do-not-reply@fao.org",
         to = swsContext.userEmail,
-        subject = "Outliers fixed",
-        body = c("See the attached CSV.", tmp_file_outliers)
+        subject = "Outliers fixed by newBalancing plugin",
+        body = c("There were some outliers (Value), fixed by newBalancing (Value_imputed)",
+                 tmp_file_outliers)
       )
     }
 
