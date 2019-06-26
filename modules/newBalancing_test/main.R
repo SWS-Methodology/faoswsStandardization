@@ -6,11 +6,23 @@ print("NEWBAL: start")
 # Your WD should be in faoswsStandardization/
 sapply(dir("R", full.names = TRUE), source)
 
-# Temporary method flags:
-# h = food only
-# c = production created
-# s = imbalance assigned to stock
-# - = optimization
+# Flags set by this plugin. These are temporary: once the testing phase is over,
+# most of these should be changed to I,e, E,e, I,i.
+#
+# E,i: Food processing generated
+# E,c: Balancing: production modified to compensate net trade
+# E,s: Balancing: stocks modified
+# E,h: Balancing: imbalance to food, given food is only utilization
+# E,-: Balancing: utilization modified
+# E,u: Stocks variation generated
+# M,i: Derived production generated
+# E,e: Outlier replaced
+# T,c: Opening stocks updated
+# I,i: Residual item (identity)
+# M,q: Cases for which flags were not set.
+#
+# M,q should not happen, but added so to check.
+
 
 print("NEWBAL: define functions")
 
@@ -412,7 +424,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           `:=`(
             Value = ifelse(is.na(Value), 0, Value) + food_proc,
             flagObservationStatus = "E",
-            flagMethod = "u",
+            flagMethod = "i",
             Protected = ifelse(lev == min_processingLevel, TRUE, FALSE)
           )
         ][,
@@ -501,7 +513,6 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data_level[
         Protected == FALSE & food_resid == TRUE & outside(imbalance, -100, 100) & measuredElementSuaFbs == "food",
         `:=`(
-          # XXX: this should be a temporary solution, unless we have a clean "food residual"
           Value = ifelse(Value + imbalance >= 0, Value + imbalance, 0),
           flagObservationStatus = "E",
           flagMethod = "h"
@@ -687,6 +698,8 @@ if (CheckDebug()) {
 }
 
 print("NEWBAL: parameters")
+
+STOP_AFTER_DERIVED <- as.logical(swsContext.computationParams$stop_after_derived)
 
 BALANCING_METHOD <- swsContext.computationParams$balancing_method
 
@@ -1517,7 +1530,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         !is.na(imputed_deriv_value),
       `:=`(
         Value = imputed_deriv_value,
-        flagObservationStatus = "E", flagMethod = "u")]
+        flagObservationStatus = "M", flagMethod = "i")]
 
     data[, imputed_deriv_value := NULL]
   }
@@ -1526,7 +1539,40 @@ if (length(primaryInvolvedDescendents) == 0) {
 print("NEWBAL: end of derived production loop")
 
 
+if (STOP_AFTER_DERIVED == TRUE) {
+  print("NEWBAL: stop after production of derived")
 
+  data_deriv <-
+    data[
+      measuredElementSuaFbs == 'production' &
+        timePointYears %in% 2014:2017 &
+        !dplyr::near(Value, 0) &
+        Protected == FALSE,
+      list(
+        geographicAreaM49,
+        measuredElementSuaFbs = "5510",
+        measuredItemFbsSua = measuredItemSuaFbs,
+        timePointYears,
+        Value,
+        flagObservationStatus,
+        flagMethod
+      )
+    ]
+
+  out <- SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data_deriv, waitTimeout = 20000)
+
+  if (exists("out")) {
+
+    print(paste(out$inserted + out$ignored, "derived products written"))
+
+  } else {
+
+    print("The newBalancing plugin had a problem when saving derived data.")
+
+  }
+
+  stop("Plugin stopped after derived, as requested. This is fine.")
+}
 
 
 computed_shares <- rbindlist(computed_shares)
@@ -2335,8 +2381,6 @@ print("NEWBAL: end of balancing loop")
 
 standData <- rbindlist(standData)
 
-
-
 standData[,
   `:=`(
     supply =
@@ -2366,7 +2410,8 @@ opening_stocks_data <-
       timePointYears,
       Value = opening_stocks,
       flagObservationStatus,
-      flagMethod
+      flagMethod,
+      Protected
     )
   ]
 
@@ -2380,7 +2425,8 @@ imbalances <-
         timePointYears,
         Value = imbalance,
         flagObservationStatus = "I",
-        flagMethod = "i"
+        flagMethod = "i",
+        Protected = FALSE
       )
     ]
   )
@@ -2448,12 +2494,13 @@ codes <- tibble::tribble(
   "5016", "loss",
   "5510", "production",
   "5525", "seed",
-  "5071",  "stockChange"
+  "5071", "stockChange"
 )
 
 setDT(codes)
 
 standData <- standData[codes, on = c('measuredElementSuaFbs' = 'name')]
+
 
 standData <-
   standData[,
@@ -2464,27 +2511,17 @@ standData <-
       timePointYears,
       Value,
       flagObservationStatus,
-      flagMethod
+      flagMethod,
+      Protected
     )
   ]
 
 standData <- standData[!is.na(Value)]
 
-standData <-
-  standData[
-    is.na(flagObservationStatus),
-    `:=`(
-      flagObservationStatus = "E",
-      flagMethod = "u"
-    )
-  ]
-
-standData <- rbind(standData, imbalances, opening_stocks_data)
-
-standData <- standData[timePointYears >= 2014][!is.na(Value)]
-
-
-
+# These cases should not happen (i.e., all flags should already be
+# set), but in any case, add specific flags so to check.
+standData[is.na(flagObservationStatus), flagObservationStatus := "M"]
+standData[is.na(flagMethod), flagObservationStatus := "q"]
 
 
 # Calculate calories
@@ -2500,8 +2537,8 @@ calories_per_capita <-
         measuredItemFbsSua,
         timePointYears,
         food = Value,
-        flagObservationStatus = "E",
-        flagMethod = "u"
+        flagObservationStatus = "T",
+        flagMethod = "i"
       )
     ],
     # Calories
@@ -2529,10 +2566,17 @@ calories_per_capita <-
 
 calories_per_capita[, Value := food * calories / population / 365 * 10]
 
+calories_per_capita[, Protected := FALSE]
+
 calories_per_capita[, c("food", "calories", "population") := NULL]
 
+standData <- rbind(standData, imbalances, opening_stocks_data, calories_per_capita)
 
-standData <- rbind(standData, calories_per_capita)[!is.na(Value)]
+standData[dplyr::near(Value, 0) & Protected == FALSE, Value := NA_real_]
+
+standData <- standData[timePointYears >= 2014][!is.na(Value)]
+
+standData[, Protected := NULL]
 
 
 # Download also calories
