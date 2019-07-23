@@ -679,6 +679,7 @@ library(faoswsBalancing)
 library(faoswsStandardization)
 library(dplyr)
 library(data.table)
+library(tidyr)
 
 
 #  32 = Argentina
@@ -762,7 +763,7 @@ tree=as.data.frame(tree)
 tree = tree %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
   arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
-  fill(Value,.direction="up")
+  tidyr::fill(Value,.direction="up")
 tree = as.data.table(tree)
 
 # XXX remove NAs
