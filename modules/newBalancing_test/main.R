@@ -758,6 +758,12 @@ validateTree(tree)
 ## therefore here we are re-changing it
 
 tree[Value == 0, Value := NA]
+tree=as.data.frame(tree)
+tree = tree %>%
+  group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
+  arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
+  fill(Value,.direction="up")
+tree = as.data.table(tree)
 
 # XXX remove NAs
 tree <- tree[!is.na(Value)]
