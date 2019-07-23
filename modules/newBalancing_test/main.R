@@ -475,7 +475,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       # Assign imbalance to food if food "only" (not "residual") item
       
       data_level[
-        Protected == FALSE & food_resid == TRUE & outside(imbalance, -100, 100) & measuredElementSuaFbs == "food",
+        Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
         `:=`(
           Value = ifelse(Value + imbalance >= 0, Value + imbalance, 0),
           flagObservationStatus = "E",
@@ -503,10 +503,10 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       ###    ]
       
       
-      if (nrow(data_level[outside(imbalance, -100, 100)]) > 0) {
+      if (nrow(data_level[outside(imbalance, -1, 1)]) > 0) {
         
-        data_level_no_imbalance <- data_level[between(imbalance, -100, 100)]
-        data_level_with_imbalance <- data_level[outside(imbalance, -100, 100)]
+        data_level_no_imbalance <- data_level[between(imbalance, -1, 1)]
+        data_level_with_imbalance <- data_level[outside(imbalance, -1, 1)]
         
         levels_to_optimize <- unique(data_level_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
         
@@ -557,7 +557,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data_level[,
                  Value_0 := ifelse(is.na(Value), 0, Value)
                  ][
-                   outside(imbalance, -100, 100) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
+                   outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
                    change_stocks :=
                      # The numbers indicate the case. Assignmnet (value and flags) will be done below
                      case_when(
@@ -2124,13 +2124,43 @@ if (THRESHOLD_METHOD == 'nolimits') {
   
   data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
   
-  data[,
+  
+  #No change in the  min/max threshold for Seed (decided by Salar on 22/07/2019)
+  data[measuredElementSuaFbs == "seed",
        `:=`(
-         min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)-min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*.5,0),
-         max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)+max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*.5,1)
+         min_util_share = min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE),
+         max_util_share = max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)
        ),
        by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
        ]
+  
+  
+  
+  
+  
+  #Relaxing the min/max threshold of food,loss and feed by 10 % (decided by Salar on 22/07/2019)
+  
+  data[measuredElementSuaFbs %in% c("food","loss","feed"),
+       `:=`(
+         min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)-min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*.1,0),
+         max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)+max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*.1,1)
+       ),
+       by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
+       ]
+  
+  #Relaxing the min/max threshold of industrial by 100 % (decided by Salar on 22/07/2019)
+  
+  data[measuredElementSuaFbs %in% c("industrial"),
+       `:=`(
+         min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)-min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*1,0),
+         max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)+max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*1,1)
+       ),
+       by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
+       ]
+  
+  
+  
+  
   
   data[is.infinite(min_util_share) | is.nan(min_util_share), min_util_share := NA_real_]
   
@@ -2438,7 +2468,7 @@ imbalances <-
 
 imbalances_to_send <-
   standData[
-    !is.na(Value) & outside(imbalance, -100, 100) & timePointYears >= 2014,
+    !is.na(Value) & outside(imbalance, -1, 1) & timePointYears >= 2014,
     list(
       geographicAreaM49,
       year = timePointYears,
