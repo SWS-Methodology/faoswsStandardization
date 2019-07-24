@@ -1572,7 +1572,27 @@ if (STOP_AFTER_DERIVED == TRUE) {
       )
       ]
   
-  out <- SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data_deriv, waitTimeout = 20000)
+  data_stock <-
+    data[
+      measuredElementSuaFbs == 'stock_change' &
+        timePointYears %in% 2014:2017 &
+        !dplyr::near(Value, 0) &
+        Protected == FALSE,
+      list(
+        geographicAreaM49,
+        measuredElementSuaFbs = "5071",
+        measuredItemFbsSua = measuredItemSuaFbs,
+        timePointYears,
+        Value,
+        flagObservationStatus,
+        flagMethod
+      )
+      ]
+  
+  data_to_save <- rbind(data_deriv,data_stock)
+  
+  
+  out <- SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data_to_save, waitTimeout = 20000)
   
   if (exists("out")) {
     
