@@ -764,7 +764,8 @@ tree=as.data.frame(tree)
 tree = tree %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
   arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
-  tidyr::fill(Value,.direction="up")
+  tidyr::fill(Value,.direction="up") %>%
+  tidyr::fill(Value,.direction="down")
 tree = as.data.table(tree)
 
 # XXX remove NAs
