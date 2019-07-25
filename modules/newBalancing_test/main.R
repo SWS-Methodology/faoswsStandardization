@@ -1613,7 +1613,7 @@ if (STOP_AFTER_DERIVED == TRUE) {
   
   
   
-  data_to_save <- rbind(data_deriv,data_stock)
+  data_to_save <- rbind(data_deriv,data_stock_to_save)
   
   
   out <- SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data_to_save, waitTimeout = 20000)
