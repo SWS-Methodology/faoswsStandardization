@@ -1192,12 +1192,16 @@ computed_shares_send <- list()
 # Keep negative availability
 negative_availability <- list()
 
+data_stock <- vector(mode = "list", length = length(unique(tree$processingLevel)))
+
 print("NEWBAL: starting derived production loop")
 
 if (length(primaryInvolvedDescendents) == 0) {
   message("No primary commodity involved in this country")
 } else {
   for (lev in sort(unique(tree$processingLevel))) {
+
+    
     
     treeCurrentLevel <-
       tree[
@@ -1346,6 +1350,10 @@ if (length(primaryInvolvedDescendents) == 0) {
           ]
       
     }
+    
+    data_stock[[lev +1]] <- copy(data)
+    
+    
     
     dataMergeTree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stock_change')]
     
@@ -1572,11 +1580,23 @@ if (STOP_AFTER_DERIVED == TRUE) {
       )
       ]
   
-  data_stock <-
-    data[
+  
+  
+  data_stock <- rbindlist(data_stock)
+  
+  data_stock <- subset(data_stock, measuredElementSuaFbs == "stock_change" & timePointYears %in% c(2014:2017))
+  
+  
+  data_stock <- data_stock[!is.na(Value)]
+  
+  
+  data_stock <- data_stock[!duplicated(data_stock[,c("geographicAreaM49","timePointYears","measuredItemSuaFbs"),with = F])]
+  
+  
+  data_stock_to_save <-
+    data_stock[
       measuredElementSuaFbs == 'stock_change' &
         timePointYears %in% 2014:2017 &
-        !dplyr::near(Value, 0) &
         Protected == FALSE,
       list(
         geographicAreaM49,
@@ -1588,6 +1608,10 @@ if (STOP_AFTER_DERIVED == TRUE) {
         flagMethod
       )
       ]
+  
+  
+  
+  
   
   data_to_save <- rbind(data_deriv,data_stock)
   
