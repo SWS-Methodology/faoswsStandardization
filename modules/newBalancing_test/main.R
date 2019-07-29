@@ -971,6 +971,9 @@ data <- GetData(key)
 # LOAD
 # data <- readRDS(paste0('c:/Users/mongeau.FAODOMAIN/tmp/new_balancing/data_', COUNTRY, '.rds'))
 data_Production = filter(data,measuredElementSuaFbs%in%c("5610","5910","5510"))
+data_Production = data_Production %>%
+  tidyr::complete(measuredElementSuaFbs,nesting(geographicAreaM49,measuredItemFbsSua,timePointYears)) %>%
+  ungroup()
 data_Production$Value_temp = data_Production$Value
 data_Production$Value_temp[is.na(data_Production$Value_temp)] = 0
 data_Production = select(data_Production,-flagObservationStatus,-flagMethod,-Value)
@@ -979,8 +982,8 @@ data_Production = data_Production %>%
   dplyr::filter(timePointYears%in%c("2014","2015","2016","2017")) %>%
   dplyr::filter(!measuredItemFbsSua%in%unique(Primary$cpc_code)) %>%
   dplyr::group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>%
-  dplyr::filter(`5510`<`5610`-`5910`) %>%
-  dplyr::mutate(Value = max(`5510`,`5610`-`5910`,na.rm=TRUE)) %>%
+  dplyr::filter(`5510`<`5910`-`5610`) %>%
+  dplyr::mutate(Value = max(`5510`,`5910`-`5610`,na.rm=TRUE)) %>%
   dplyr::mutate(measuredElementSuaFbs = "5510") %>%
   ungroup()
 data_Production$flagObservationStatus = "E"
