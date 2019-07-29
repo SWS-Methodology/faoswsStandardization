@@ -295,12 +295,22 @@ balance_proportional <- function(data) {
   
   # Recalculate mov_share, as we are excluding protected values
   x[, mov_share := mov_share / sum(mov_share, na.rm = TRUE)]
+  x = as.data.frame(x)
+  x$Value_temp = x$Value
+  x$Value_temp[is.na(x$Value_temp)] = 0
+  x = as.data.table(x)
   
-  x[, adjusted_value := ifelse(Value + mov_share * imbalance>=0,Value + mov_share * imbalance,0)]
+  # x[, adjusted_value := ifelse(Value + mov_share * imbalance>=0,Value + mov_share * imbalance,0)]
+  x[, adjusted_value := ifelse(Value_temp + mov_share * imbalance>=0,Value_temp + mov_share * imbalance,0)]
   
-  x[adjusted_value > Value & adjusted_value > max_threshold, adjusted_value := max_threshold]
+  # x[adjusted_value > Value & adjusted_value > max_threshold, adjusted_value := max_threshold]
+  x[adjusted_value > Value_temp & adjusted_value > max_threshold, adjusted_value := max_threshold]
   
-  x[adjusted_value < Value & adjusted_value < min_threshold, adjusted_value := min_threshold]
+  # x[adjusted_value < Value & adjusted_value < min_threshold, adjusted_value := min_threshold]
+  x[adjusted_value < Value_temp & adjusted_value < min_threshold, adjusted_value := min_threshold]
+  x = as.data.frame(x)
+  x = dplyr::select(x,-Value_temp)
+  x = as.data.table(x)
   
   x <-
     merge(
@@ -390,13 +400,19 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
     # is food. Food processing can also be another possible utilization and
     # if there is that does not change its food-residualness, this is why
     # the check is done before assigning food processing.
+    # NW: I have commented the conditions out
+    # Now it only checks to make sure that food is the only utilization
+    # We noticed that some of the food items were missing from the utilization table
+    # This is still different from the previous approach of assigning all of the imbalance to 
+    # food when "none of the other utilizations are activable"
     
     data[,
          food_resid :=
            # It's a food item & ...
-           measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] &
+           # measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] &
            # food exists & ...
-           !is.na(Value[measuredElementSuaFbs == 'food']) &
+           # !is.na(Value[measuredElementSuaFbs == 'food']) &
+           Food_Median > 0 & !is.na(Food_Median) &
            # ... is the only utilization
            all(is.na(Value[!(measuredElementSuaFbs %in%
                                c('food', 'production', 'imports', 'exports', 'stockChange'))])),
@@ -478,7 +494,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data_level[
         Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
         `:=`(
-          Value = ifelse(Value + imbalance >= 0, Value + imbalance, 0),
+          Value = ifelse(is.na(Value)&imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
           flagObservationStatus = "E",
           flagMethod = "h"
         )
@@ -693,7 +709,7 @@ library(tidyr)
 # 710 = south africa
 
 if (CheckDebug()) {
-  COUNTRY <- "1248"
+  COUNTRY <- "686"
 } else {
   COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
   #COUNTRY <- swsContext.computationParams$country
@@ -2463,7 +2479,12 @@ for (i in seq_len(nrow(uniqueLevels))) {
   }
   
   filter <- uniqueLevels[i, ]
-  
+  data = as.data.frame(data)
+  data = data %>%
+    group_by(geographicAreaM49,measuredItemSuaFbs) %>%
+    mutate(Food_Median = median(Value[measuredElementSuaFbs=="food"],na.rm=TRUE)) %>%
+    ungroup()
+  data = as.data.table(data)
   dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
   
   utilizationTableSubset <-
