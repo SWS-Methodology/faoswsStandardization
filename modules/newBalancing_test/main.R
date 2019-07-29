@@ -1092,7 +1092,7 @@ items_to_generate_stocks <-
     # all ...
     unique(intersect(c(data$measuredItemSuaFbs, primaryInvolvedDescendents), stockable_items)),
     # ... except those for which already available
-    unique(data[measuredElementSuaFbs == 'stock_change']$measuredItemSuaFbs)
+    unique(data[measuredElementSuaFbs == 'stock_change' & flagObservationStatus == "T" & flagMethod == "f"]$measuredItemSuaFbs)
   )
 
 stock <-
@@ -1192,7 +1192,7 @@ computed_shares_send <- list()
 # Keep negative availability
 negative_availability <- list()
 
-data_stock <- vector(mode = "list", length = length(unique(tree$processingLevel)))
+data_stock_1<- vector(mode = "list", length = length(unique(tree$processingLevel)))
 
 print("NEWBAL: starting derived production loop")
 
@@ -1351,7 +1351,7 @@ if (length(primaryInvolvedDescendents) == 0) {
       
     }
     
-    data_stock[[lev +1]] <- copy(data)
+    data_stock_1[[lev +1]] <- copy(data)
     
     
     
@@ -1582,41 +1582,7 @@ if (STOP_AFTER_DERIVED == TRUE) {
   
   
   
-  data_stock <- rbindlist(data_stock)
-  
-  data_stock <- subset(data_stock, measuredElementSuaFbs == "stock_change" & timePointYears %in% c(2014:2017))
-  
-  
-  data_stock <- data_stock[!is.na(Value)]
-  
-  
-  data_stock <- data_stock[!duplicated(data_stock[,c("geographicAreaM49","timePointYears","measuredItemSuaFbs"),with = F])]
-  
-  
-  data_stock_to_save <-
-    data_stock[
-      measuredElementSuaFbs == 'stock_change' &
-        timePointYears %in% 2014:2017 &
-        Protected == FALSE,
-      list(
-        geographicAreaM49,
-        measuredElementSuaFbs = "5071",
-        measuredItemFbsSua = measuredItemSuaFbs,
-        timePointYears,
-        Value,
-        flagObservationStatus,
-        flagMethod
-      )
-      ]
-  
-  
-  
-  
-  
-  data_to_save <- rbind(data_deriv,data_stock_to_save)
-  
-  
-  out <- SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data_to_save, waitTimeout = 20000)
+  out <- SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data_deriv, waitTimeout = 20000)
   
   if (exists("out")) {
     
@@ -1708,6 +1674,8 @@ fake_opening_stocks <-
               ]
 
 
+
+  
 # generate stocks for ALL
 data_for_stocks <-
   data[
@@ -1797,6 +1765,67 @@ data[
   ][,
     delta := NULL
     ]
+
+# 
+
+
+#save stock data in SUA Unbalanced
+
+data_stock_1 <- rbindlist(data_stock_1)
+
+data_stock_1 <- subset(data_stock_1, measuredElementSuaFbs == "stock_change" & timePointYears %in% c(2014:2017))
+
+
+data_stock_1 <- data_stock_1[!is.na(Value)]
+
+
+data_stock_1 <- data_stock_1[!duplicated(data_stock_1[,c("geographicAreaM49","timePointYears","measuredItemSuaFbs"),with = F])]
+
+data_stock_to_save_1 <-
+  data_stock_1[
+    measuredElementSuaFbs == 'stock_change' &
+      timePointYears %in% 2014:2017 &
+      Protected == FALSE,
+    list(
+      geographicAreaM49,
+      measuredElementSuaFbs = "5071",
+      measuredItemFbsSua = measuredItemSuaFbs,
+      timePointYears,
+      Value,
+      flagObservationStatus,
+      flagMethod
+    )
+    ]
+
+
+data_stock_to_save_2 <-
+  data[
+    measuredElementSuaFbs == 'stock_change' &
+      timePointYears %in% 2014:2017 &
+      Protected == FALSE,
+    list(
+      geographicAreaM49,
+      measuredElementSuaFbs = "5071",
+      measuredItemFbsSua = measuredItemSuaFbs,
+      timePointYears,
+      Value,
+      flagObservationStatus,
+      flagMethod
+    )
+    ]
+
+data_stock_to_save_2 <- data_stock_to_save_2[!is.na(Value)]
+
+data_stock_to_save <- rbind(data_stock_to_save_1,data_stock_to_save_2)
+
+
+data_stock_to_save <- data_stock_to_save[!duplicated(data_stock_to_save[,c("geographicAreaM49","timePointYears","measuredItemFbsSua"),with = F])]
+
+
+SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data_stock_to_save, waitTimeout = 20000)
+
+
+
 
 
 # XXX when we arrive here, delta stocks in 2014 for primary commodities with
