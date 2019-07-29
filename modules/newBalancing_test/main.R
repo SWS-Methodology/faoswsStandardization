@@ -456,37 +456,6 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       # This is used only to check whether production needs to be generated,
       # hence no stocks are considered.
       
-      data_level[,
-                 supply :=
-                   sum(
-                     Value[measuredElementSuaFbs %chin% c('production', 'imports')],
-                     - Value[measuredElementSuaFbs %chin% c('exports')],
-                     # XXX: should stocks be included?
-                     #- Value[measuredElementSuaFbs %chin% c('exports', 'stockChange')],
-                     na.rm = TRUE
-                   ),
-                 # year is quite unnecessary, but let's use it in any case
-                 by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-                 ]
-      
-      
-      # When production needs to be created
-      
-      data_level[
-        Protected == FALSE &
-          # Not primary
-          measuredItemSuaFbs %chin% Utilization_Table[primary_item != "X"]$cpc_code &
-          measuredElementSuaFbs == 'production' &
-          supply < 0 &
-          stockable == FALSE,
-        `:=`(
-          Value = ifelse(is.na(Value), 0, Value) - supply,
-          flagObservationStatus = "E",
-          flagMethod = "c"
-        )
-        ]
-      
-      
       calculateImbalance(data_level)
       
       # Assign imbalance to food if food "only" (not "residual") item
@@ -931,8 +900,6 @@ itemKeys <- itemKeys$code
 #food_only_items <- food_classification_country_specific[food_classification == 'Food Residual', measured_item_cpc]
 
 
-Utilization_Table <- ReadDatatable("utilization_table_2018")
-
 stockable_items <- Utilization_Table[stock == 'X', cpc_code]
 
 zeroWeight <- ReadDatatable("zero_weight")[, item_code]
@@ -997,18 +964,34 @@ if (CheckDebug()) {
 
 print("NEWBAL: download data")
 
+Utilization_Table <- ReadDatatable("utilization_table_2018")
+Primary = filter(Utilization_Table,primary_item=="X",!is.na(primary_item))
 
 data <- GetData(key)
 # LOAD
 # data <- readRDS(paste0('c:/Users/mongeau.FAODOMAIN/tmp/new_balancing/data_', COUNTRY, '.rds'))
-
-
-
-
-
-
-
-
+data_Production = filter(data,measuredElementSuaFbs%in%c("5610","5910","5510"))
+data_Production$Value_temp = data_Production$Value
+data_Production$Value_temp[is.na(data_Production$Value_temp)] = 0
+data_Production = select(data_Production,-flagObservationStatus,-flagMethod,-Value)
+data_Production = spread(data_Production,measuredElementSuaFbs,Value_temp)
+data_Production = data_Production %>%
+  dplyr::filter(timePointYears%in%c("2014","2015","2016","2017")) %>%
+  dplyr::filter(!measuredItemFbsSua%in%unique(Primary$cpc_code)) %>%
+  dplyr::group_by(geographicAreaM49,measuredItemFbsSua,timePointYears) %>%
+  dplyr::filter(`5510`<`5610`-`5910`) %>%
+  dplyr::mutate(Value = max(`5510`,`5610`-`5910`,na.rm=TRUE)) %>%
+  dplyr::mutate(measuredElementSuaFbs = "5510") %>%
+  ungroup()
+data_Production$flagObservationStatus = "E"
+data_Production$flagMethod = "c"
+data_Production = dplyr::select(data_Production,-`5510`,-`5610`,-`5910`)
+data_Production = data_Production[,colnames(data)]
+data <- dplyr::anti_join(data, data_Production, by = c("geographicAreaM49",
+                                                       "measuredElementSuaFbs",
+                                                       "measuredItemFbsSua",
+                                                       "timePointYears")) %>% dplyr::bind_rows(data_Production)
+data = as.data.table(data)
 
 data <- merge(data, flagValidTable, by = c("flagObservationStatus", "flagMethod"), all.x = TRUE)
 
@@ -1216,7 +1199,7 @@ if (length(primaryInvolvedDescendents) == 0) {
   message("No primary commodity involved in this country")
 } else {
   for (lev in sort(unique(tree$processingLevel))) {
-
+    
     
     
     treeCurrentLevel <-
@@ -1691,7 +1674,7 @@ fake_opening_stocks <-
 
 
 
-  
+
 # generate stocks for ALL
 data_for_stocks <-
   data[
