@@ -474,8 +474,8 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       
       data_level[
         Protected == FALSE &
-          # Not primary
-          measuredItemSuaFbs %chin% Utilization_Table[primary_item != "X"]$cpc_code &
+          # Only primary
+          measuredItemSuaFbs %chin% Utilization_Table[primary_item == "X"]$cpc_code &
           measuredElementSuaFbs == 'production' &
           supply < 0 &
           stockable == FALSE,
@@ -486,6 +486,22 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
         ]
       
+      # Send these in a separate list
+      data_OUTPUT = data_level[
+        Protected == FALSE &
+          # Only primary
+          !(measuredItemSuaFbs %chin% Utilization_Table[primary_item == "X"]$cpc_code) &
+          measuredElementSuaFbs == 'production' &
+          supply < 0 &
+          stockable == FALSE,
+        `:=`(
+          Value = ifelse(is.na(Value), 0, Value) - supply,
+          flagObservationStatus = "E",
+          flagMethod = "c"
+        )
+        ]
+      
+      data_OUTPUT = dplyr::filter(data_OUTPUT,flagObservationStatus == "E",flagMethod = "c")
       
       calculateImbalance(data_level)
       
@@ -2600,6 +2616,8 @@ tmp_file_name_imb       <- tempfile(pattern = paste0("IMBALANCE_", COUNTRY, "_")
 tmp_file_name_shares    <- tempfile(pattern = paste0("SHARES_", COUNTRY, "_"), fileext = '.csv')
 tmp_file_name_negative  <- tempfile(pattern = paste0("NEGATIVE_AVAILAB_", COUNTRY, "_"), fileext = '.csv')
 tmp_file_name_non_exist <- tempfile(pattern = paste0("NONEXISTENT_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_name_NegNetTrade <- tempfile(pattern = paste0("NEG_NET_TRADE_", COUNTRY, "_"), fileext = '.csv')
+
 
 
 if (!file.exists(dirname(tmp_file_name_imb))) {
@@ -2610,6 +2628,8 @@ write.csv(imbalances_to_send,          tmp_file_name_imb)
 write.csv(computed_shares_send,        tmp_file_name_shares)
 write.csv(negative_availability,       tmp_file_name_negative)
 write.csv(non_existing_for_imputation, tmp_file_name_non_exist)
+write.csv(data_OUTPUT, tmp_file_name_NegNetTrade)
+
 
 saveRDS(
   computed_shares_send,
@@ -2886,7 +2906,8 @@ if (exists("out")) {
                tmp_file_name_negative,
                tmp_file_name_non_exist,
                tmp_file_des,
-               tmp_file_des_main)
+               tmp_file_des_main,
+               tmp_file_name_NegNetTrade)
     )
   }
   
