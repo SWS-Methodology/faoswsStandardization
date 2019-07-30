@@ -799,14 +799,14 @@ THRESHOLD_METHOD <- 'share'
 
 FIX_OUTLIERS <- as.logical(swsContext.computationParams$fix_outliers)
 
-#NEW_THRESHOLDS <- as.logical(swsContext.computationParams$new_thresholds)
-NEW_THRESHOLDS<-TRUE
+NEW_THRESHOLDS <- as.logical(swsContext.computationParams$new_thresholds)
+#NEW_THRESHOLDS<-TRUE
 
-#NEW_STOCKS_POSITION <- as.logical(swsContext.computationParams$new_stocks_position)
-NEW_STOCKS_POSITION<-TRUE
+NEW_STOCKS_POSITION <- as.logical(swsContext.computationParams$new_stocks_position)
+#NEW_STOCKS_POSITION<-TRUE
 
-#NEW_FOOD_RESIDUAL <- as.logical(swsContext.computationParams$new_food_residual)
-NEW_FOOD_RESIDUAL<-TRUE
+NEW_FOOD_RESIDUAL <- as.logical(swsContext.computationParams$new_food_residual)
+#NEW_FOOD_RESIDUAL<-TRUE
 
 
 YEARS <- as.character(2000:2017)
@@ -1532,7 +1532,10 @@ if (length(primaryInvolvedDescendents) == 0) {
     dataMergeTree[shareDownUp < 0, shareDownUp := 0]
     dataMergeTree[is.nan(shareDownUp), shareDownUp := 0]
     
-    
+    #correcting ShareDownUp
+    dataMergeTree[,Nparent:=uniqueN(measuredItemParentCPC),
+                  by = c('geographicAreaM49', 'timePointYears', 'measuredItemChildCPC')][,`:=`(shareDownUp=ifelse(Nparent==1,1,shareDownUp),
+                                                                                               Nparent=NULL)]
     # Key here was implicitly set by a previous order()
     setkey(dataMergeTree, NULL)
     
