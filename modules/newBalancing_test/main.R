@@ -1216,7 +1216,7 @@ if (length(primaryInvolvedDescendents) == 0) {
   message("No primary commodity involved in this country")
 } else {
   for (lev in sort(unique(tree$processingLevel))) {
-
+    
     
     
     treeCurrentLevel <-
@@ -1691,7 +1691,7 @@ fake_opening_stocks <-
 
 
 
-  
+
 # generate stocks for ALL
 data_for_stocks <-
   data[
