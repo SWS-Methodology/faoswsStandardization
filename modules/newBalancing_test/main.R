@@ -879,6 +879,7 @@ popSWS[geographicAreaM49 == "156", geographicAreaM49 := "1248"]
 # 5164 Residual other uses [t]
 # 5141 Food [t]
 # 664 Food Supply (/capita/day) [Kcal]
+Utilization_Table <- ReadDatatable("utilization_table_2018")
 
 elemKeys <- c("5510", "5610", "5071", "5113", "5023", "5910", "5016",
               "5165", "5520", "5525", "5164", "5166", "5141")
@@ -964,7 +965,6 @@ if (CheckDebug()) {
 
 print("NEWBAL: download data")
 
-Utilization_Table <- ReadDatatable("utilization_table_2018")
 Primary = filter(Utilization_Table,primary_item=="X",!is.na(primary_item))
 
 data <- GetData(key)
