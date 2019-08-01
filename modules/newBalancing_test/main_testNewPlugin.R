@@ -432,6 +432,14 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
          ]   
   }
     
+    #Checking if the commodity has past value before assigning the residual imbalance at the end
+    #of the balancing procees
+    data[,
+         `:=`(feed_resid =
+                Feed_Median > 0 & !is.na(Feed_Median),
+              industrial_resid=Industrial_Median > 0 & !is.na(Industrial_Median)),
+         by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+         ] 
      
     # Commodities with missing processing level => they are not in the tree.
     # This should be investigated, they will be balanced separately.
@@ -488,8 +496,8 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       
       data_level[
         Protected == FALSE &
-          # Not primary
-          measuredItemSuaFbs %chin% Utilization_Table[primary_item != "X"]$cpc_code &
+          # Only primary
+          measuredItemSuaFbs %chin% Utilization_Table[primary_item == "X"]$cpc_code &
           measuredElementSuaFbs == 'production' &
           supply < 0 &
           stockable == FALSE,
@@ -519,9 +527,9 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
                          # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
                          Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
                          # case 4: if value + imbalance send LESS than 20% of supply, send all
-                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance <= supply * 0.2)      ~ 4L,
+                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (opening_stocks+Value_0 + imbalance <= supply * 0.2)      ~ 4L,
                          # case 5: if value + imbalance send MORE than 20% of supply, send 20% of supply
-                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance > supply * 0.2)       ~ 5L
+                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (opening_stocks+Value_0 + imbalance > supply * 0.2)       ~ 5L
                        )
                      ]
         
@@ -529,7 +537,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         data_level[change_stocks == 2L, Value := Value_0 + imbalance]
         data_level[change_stocks == 3L, Value := - opening_stocks]
         data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-        data_level[change_stocks == 5L, Value := supply * 0.2]
+        data_level[change_stocks == 5L, Value := supply * 0.2 ]
         
         data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
@@ -640,31 +648,55 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
                      # The numbers indicate the case. Assignmnet (value and flags) will be done below
                      case_when(
                        # case 1: we don't want stocks to change sign.
-                       sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
+                       #sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
                        # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
-                       Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <= opening_stocks ~ 2L,
+                       (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks ~ 1L,
                        # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
-                       Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
+                       (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 2L,
                        # case 4: if value + imbalance send LESS than 20% of supply, send all
-                       Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance <= supply * 0.2)      ~ 4L,
+                      (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 0.2)      ~ 3L,
                        # case 5: if value + imbalance send MORE than 20% of supply, send 20% of supply
-                       Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance > supply * 0.2)       ~ 5L
+                    (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 0.2)       ~ 4L
                      )
                    ]
       
-      data_level[change_stocks == 1L, Value := 0]
-      data_level[change_stocks == 2L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 3L, Value := - opening_stocks]
-      data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 5L, Value := supply * 0.2]
+      data_level[change_stocks == 1L, Value := Value_0 + imbalance]
+      data_level[change_stocks == 2L, Value := -opening_stocks]
+      data_level[change_stocks == 3L, Value := Value_0 + imbalance]
+      data_level[change_stocks == 4L, Value := max(supply * 0.2-opening_stocks,0)]
       
-      data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
+      data_level[change_stocks %in% 1L:4L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
       
       data_level[, Value_0 := NULL]
   }     
       # Recalculate imbalance
-      
       calculateImbalance(data_level)
+      
+      #Assign the residual imbalance to industrial if the conditions are met
+      data_level[
+        Protected == FALSE & industrial_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "industrial",
+        `:=`(
+          Value = ifelse(is.na(Value)&imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
+          flagObservationStatus = "E",
+          flagMethod = "h"
+        )
+        ]
+      # Recalculate imbalance
+      calculateImbalance(data_level)
+      
+      #Assign the residual imbalance to feed if the conditions are met
+      data_level[
+        Protected == FALSE & feed_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "feed",
+        `:=`(
+          Value = ifelse(is.na(Value)&imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
+          flagObservationStatus = "E",
+          flagMethod = "h"
+        )
+        ]
+     
+      calculateImbalance(data_level)
+      
+      
       
       # Now, let's calculate food processing
       # TODO: change name of `x_to_food`
@@ -770,7 +802,7 @@ library(tidyr)
 # 710 = south africa
 
 if (CheckDebug()) {
-  COUNTRY <- "686"
+  COUNTRY <- "36"
 } else {
   COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
   #COUNTRY <- swsContext.computationParams$country
@@ -808,6 +840,8 @@ NEW_STOCKS_POSITION <- as.logical(swsContext.computationParams$new_stocks_positi
 NEW_FOOD_RESIDUAL <- as.logical(swsContext.computationParams$new_food_residual)
 #NEW_FOOD_RESIDUAL<-TRUE
 
+#RESIDUAL_BALANCING<-as.logical(swsContext.computationParams$residual_balancing)
+RESIDUAL_BALANCING<-TRUE
 
 YEARS <- as.character(2000:2017)
 
@@ -855,7 +889,11 @@ tree = tree %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
   arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
   tidyr::fill(Value,.direction="up") %>%
-  tidyr::fill(Value,.direction="down")
+  tidyr::fill(Value,.direction="up") %>%
+  tidyr::fill(flagObservationStatus,.direction="up") %>%
+  tidyr::fill(flagObservationStatus,.direction="down") %>%
+  tidyr::fill(flagMethod,.direction="up") %>%
+  tidyr::fill(flagMethod,.direction="down")
 tree = as.data.table(tree)
 
 tree_to_send<-tree_to_send %>% 
@@ -1531,11 +1569,11 @@ if (length(primaryInvolvedDescendents) == 0) {
     dataMergeTree[shareDownUp > 1, shareDownUp := 1]
     dataMergeTree[shareDownUp < 0, shareDownUp := 0]
     dataMergeTree[is.nan(shareDownUp), shareDownUp := 0]
-    
-    #correcting ShareDownUp
-    dataMergeTree[,Nparent:=uniqueN(measuredItemParentCPC),
-                  by = c('geographicAreaM49', 'timePointYears', 'measuredItemChildCPC')][,`:=`(shareDownUp=ifelse(Nparent==1,1,shareDownUp),
-                                                                                               Nparent=NULL)]
+    # 
+    # #correcting ShareDownUp
+    # dataMergeTree[,Nparent:=uniqueN(measuredItemParentCPC),
+    #               by = c('geographicAreaM49', 'timePointYears', 'measuredItemChildCPC')][,`:=`(shareDownUp=ifelse(Nparent==1,1,shareDownUp),
+    #                                                                                            Nparent=NULL)]
     # Key here was implicitly set by a previous order()
     setkey(dataMergeTree, NULL)
     
@@ -2579,6 +2617,8 @@ for (i in seq_len(nrow(uniqueLevels))) {
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs) %>%
     mutate(Food_Median = median(Value[measuredElementSuaFbs=="food"],na.rm=TRUE)) %>%
+    mutate(Feed_Median = median(Value[measuredElementSuaFbs=="feed"],na.rm=TRUE)) %>%
+    mutate(Industrial_Median = median(Value[measuredElementSuaFbs=="industrial"],na.rm=TRUE)) %>%
     ungroup()
   data = as.data.table(data)
   dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
@@ -2664,7 +2704,6 @@ imbalances <-
               ]
   )
 
-
 imbalances_to_send <-
   standData[
     !is.na(Value) & outside(imbalance, -1, 1) & timePointYears >= 2014,
@@ -2683,6 +2722,9 @@ imbalances_to_send <-
     )
     ]
 
+data_OUTPUT = imbalances_to_send %>%
+  filter(utilizations==0,imbalance<0,round(imbalance,10)==round(supply,10),measuredElementSuaFbs%in%c("production","imports","exports"))
+
 imbalances_to_send <-
   nameData('suafbs', 'sua_unbalanced', imbalances_to_send, except = c('measuredElementSuaFbs'))
 
@@ -2696,7 +2738,7 @@ tmp_file_name_imb       <- tempfile(pattern = paste0("IMBALANCE_", COUNTRY, "_")
 tmp_file_name_shares    <- tempfile(pattern = paste0("SHARES_", COUNTRY, "_"), fileext = '.csv')
 tmp_file_name_negative  <- tempfile(pattern = paste0("NEGATIVE_AVAILAB_", COUNTRY, "_"), fileext = '.csv')
 tmp_file_name_non_exist <- tempfile(pattern = paste0("NONEXISTENT_", COUNTRY, "_"), fileext = '.csv')
-
+tmp_file_name_NegNetTrade <- tempfile(pattern = paste0("NEG_NET_TRADE_", COUNTRY, "_"), fileext = '.csv')
 
 if (!file.exists(dirname(tmp_file_name_imb))) {
   dir.create(dirname(tmp_file_name_imb), recursive = TRUE)
@@ -2706,6 +2748,7 @@ write.csv(imbalances_to_send,          tmp_file_name_imb)
 write.csv(computed_shares_send,        tmp_file_name_shares)
 write.csv(negative_availability,       tmp_file_name_negative)
 write.csv(non_existing_for_imputation, tmp_file_name_non_exist)
+write.csv(data_OUTPUT, tmp_file_name_NegNetTrade)
 
 saveRDS(
   computed_shares_send,
@@ -2963,12 +3006,18 @@ if (exists("out")) {
       country = %s,
       balancing method = %s,
       thresold method = %s,
-      fix_outliers = %s",
+      fix_outliers = %s,
+      new_thresholds = %s,
+      new_stocks_position = %s,
+      new_food_residual = %s",
       difftime(Sys.time(), start_time, units = "min"),
       COUNTRY,
       BALANCING_METHOD,
       THRESHOLD_METHOD,
-      FIX_OUTLIERS
+      FIX_OUTLIERS,
+      NEW_THRESHOLDS,
+      NEW_STOCKS_POSITION,
+      NEW_FOOD_RESIDUAL
     )
   
   if (!CheckDebug()) {
@@ -2983,7 +3032,8 @@ if (exists("out")) {
                tmp_file_name_negative,
                tmp_file_name_non_exist,
                tmp_file_des,
-               tmp_file_des_main)
+               tmp_file_des_main,
+               tmp_file_name_NegNetTrade)
     )
   }
   
