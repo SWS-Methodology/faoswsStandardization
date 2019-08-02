@@ -501,7 +501,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
         ]
       
-      data_OUTPUT = dplyr::filter(data_OUTPUT,flagObservationStatus == "E",flagMethod = "c")
+      data_OUTPUT = dplyr::filter(data_OUTPUT,flagObservationStatus == "E",flagMethod == "c")
       
       calculateImbalance(data_level)
       
@@ -797,7 +797,11 @@ tree = tree %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
   arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
   tidyr::fill(Value,.direction="up") %>%
-  tidyr::fill(Value,.direction="down")
+  tidyr::fill(Value,.direction="down") %>%
+  tidyr::fill(flagObservationStatus,.direction="up") %>%
+  tidyr::fill(flagObservationStatus,.direction="down") %>%
+  tidyr::fill(flagMethod,.direction="up") %>%
+  tidyr::fill(flagMethod,.direction="down")
 tree = as.data.table(tree)
 
 # XXX remove NAs
