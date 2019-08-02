@@ -648,29 +648,32 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
                      # The numbers indicate the case. Assignmnet (value and flags) will be done below
                      case_when(
                        # case 1: we don't want stocks to change sign.
-                       #sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
+                       sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
                        # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
-                       (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks ~ 1L,
+                       Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks ~ 2L,
                        # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
-                       (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 2L,
+                       Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
                        # case 4: if value + imbalance send LESS than 20% of supply, send all
-                      (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 0.2)      ~ 3L,
+                       Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 0.2)      ~ 4L,
                        # case 5: if value + imbalance send MORE than 20% of supply, send 20% of supply
-                    (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 0.2)       ~ 4L
+                       Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 0.2)       ~ 5L
                      )
                    ]
       
       data_level[change_stocks == 1L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 2L, Value := -opening_stocks]
-      data_level[change_stocks == 3L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 4L, Value := max(supply * 0.2-opening_stocks,0)]
+      data_level[change_stocks == 2L, Value := Value_0 + imbalance]
+      data_level[change_stocks == 3L, Value := -opening_stocks]
+      data_level[change_stocks == 4L, Value := Value_0 + imbalance]
+      data_level[change_stocks == 5L, Value := max(supply * 0.2-opening_stocks,0)]
       
-      data_level[change_stocks %in% 1L:4L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
+      data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
       
       data_level[, Value_0 := NULL]
   }     
       # Recalculate imbalance
       calculateImbalance(data_level)
+      
+      if(RESIDUAL_BALANCING==TRUE){
       
       #Assign the residual imbalance to industrial if the conditions are met
       data_level[
@@ -695,7 +698,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         ]
      
       calculateImbalance(data_level)
-      
+      } 
       
       
       # Now, let's calculate food processing
@@ -840,8 +843,11 @@ NEW_STOCKS_POSITION <- as.logical(swsContext.computationParams$new_stocks_positi
 NEW_FOOD_RESIDUAL <- as.logical(swsContext.computationParams$new_food_residual)
 #NEW_FOOD_RESIDUAL<-TRUE
 
-#RESIDUAL_BALANCING<-as.logical(swsContext.computationParams$residual_balancing)
-RESIDUAL_BALANCING<-TRUE
+FILL_EXTRACTION_RATES<-as.logical(swsContext.computationParams$fill_extraction_rates)
+#FILL_EXTRACTION_RATES<-TRUE
+
+RESIDUAL_BALANCING<-as.logical(swsContext.computationParams$residual_balancing)
+#RESIDUAL_BALANCING<-TRUE
 
 YEARS <- as.character(2000:2017)
 
@@ -884,17 +890,20 @@ validateTree(tree)
 
 tree[Value == 0, Value := NA]
 tree_to_send<-tree[is.na(Value) & measuredElementSuaFbs=="extractionRate",]
+
+if(FILL_EXTRACTION_RATES==TRUE){
 tree=as.data.frame(tree)
 tree = tree %>%
   group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
   arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
   tidyr::fill(Value,.direction="up") %>%
-  tidyr::fill(Value,.direction="up") %>%
+  tidyr::fill(Value,.direction="down") %>%
   tidyr::fill(flagObservationStatus,.direction="up") %>%
   tidyr::fill(flagObservationStatus,.direction="down") %>%
   tidyr::fill(flagMethod,.direction="up") %>%
   tidyr::fill(flagMethod,.direction="down")
 tree = as.data.table(tree)
+}
 
 tree_to_send<-tree_to_send %>% 
   dplyr::anti_join(tree[is.na(Value) & measuredElementSuaFbs=="extractionRate",]) %>%
@@ -2706,7 +2715,7 @@ imbalances <-
 
 imbalances_to_send <-
   standData[
-    !is.na(Value) & outside(imbalance, -1, 1) & timePointYears >= 2014,
+    !is.na(Value) & outside(imbalance, -100, 100) & timePointYears >= 2014,
     list(
       geographicAreaM49,
       year = timePointYears,
@@ -3007,17 +3016,21 @@ if (exists("out")) {
       balancing method = %s,
       thresold method = %s,
       fix_outliers = %s,
+      fill_extraction_rates= %s,
       new_thresholds = %s,
       new_stocks_position = %s,
-      new_food_residual = %s",
+      new_food_residual = %s,
+      residual_balancing= %s",
       difftime(Sys.time(), start_time, units = "min"),
       COUNTRY,
       BALANCING_METHOD,
       THRESHOLD_METHOD,
       FIX_OUTLIERS,
+      FILL_EXTRACTION_RATES,
       NEW_THRESHOLDS,
       NEW_STOCKS_POSITION,
-      NEW_FOOD_RESIDUAL
+      NEW_FOOD_RESIDUAL,
+      RESIDUAL_BALANCING
     )
   
   if (!CheckDebug()) {
