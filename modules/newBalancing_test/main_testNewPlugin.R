@@ -889,33 +889,51 @@ validateTree(tree)
 ## therefore here we are re-changing it
 
 tree[Value == 0, Value := NA]
-tree_to_send<-tree[is.na(Value) & measuredElementSuaFbs=="extractionRate",]
 
-if(FILL_EXTRACTION_RATES==TRUE){
-tree=as.data.frame(tree)
-tree = tree %>%
-  group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
-  arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemParentCPC,measuredItemChildCPC) %>%
-  tidyr::fill(Value,.direction="up") %>%
-  tidyr::fill(Value,.direction="down") %>%
-  tidyr::fill(flagObservationStatus,.direction="up") %>%
-  tidyr::fill(flagObservationStatus,.direction="down") %>%
-  tidyr::fill(flagMethod,.direction="up") %>%
-  tidyr::fill(flagMethod,.direction="down")
-tree = as.data.table(tree)
+tree_to_send <- tree[is.na(Value) & measuredElementSuaFbs=="extractionRate"]
+
+if (FILL_EXTRACTION_RATES == TRUE) {
+  tree <-
+    tree %>%
+    group_by(geographicAreaM49, measuredElementSuaFbs, measuredItemParentCPC, measuredItemChildCPC) %>%
+    arrange(geographicAreaM49, measuredElementSuaFbs, measuredItemParentCPC, measuredItemChildCPC) %>%
+    tidyr::fill(Value, flagObservationStatus, flagMethod, .direction = "up") %>%
+    tidyr::fill(Value, flagObservationStatus, flagMethod, .direction = "down") %>%
+    setDT()
 }
 
-tree_to_send<-tree_to_send %>% 
-  dplyr::anti_join(tree[is.na(Value) & measuredElementSuaFbs=="extractionRate",]) %>%
-  dplyr::select(-Value)%>%
-  dplyr::left_join(tree)
-
-tree_to_send<-tree_to_send[,c(1,2,3,4,5,8,6,7)]
+# TODO: add explicit columns names in joins
+tree_to_send <-
+  tree_to_send %>% 
+  dplyr::anti_join(tree[is.na(Value) & measuredElementSuaFbs=="extractionRate"]) %>%
+  dplyr::select(-Value) %>%
+  dplyr::left_join(tree) %>%
+  setDT()
 
 tree_to_send <-
-  nameData('suafbs', 'sua_unbalanced', tree_to_send, except = c('measuredElementSuaFbs'))
-tmp_file_name_extr<- tempfile(pattern = paste0("FILLED_ER_", COUNTRY, "_"), fileext = '.csv')
+  tree_to_send[,
+    .(geographicAreaM49, measuredElementSuaFbs, measuredItemParentCPC,
+      measuredItemChildCPC, timePointYears, Value, flagObservationStatus, flagMethod)]
+
+setnames(
+  tree_to_send,
+  c("measuredItemParentCPC", "measuredItemChildCPC"),
+  c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree")
+)
+
+tree_to_send <-
+  nameData("suafbs", "ess_fbs_commodity_tree2", tree_to_send, except = c('measuredElementSuaFbs'))
+
+tree_to_send[,
+  `:=`(
+    measuredItemParentCPC_tree = paste0("'", measuredItemParentCPC_tree),
+    measuredItemChildCPC_tree = paste0("'", measuredItemChildCPC_tree))
+]
+
+tmp_file_name_extr <- tempfile(pattern = paste0("FILLED_ER_", COUNTRY, "_"), fileext = '.csv')
+
 write.csv(tree_to_send, tmp_file_name_extr)
+
 # XXX remove NAs
 tree <- tree[!is.na(Value)]
 
