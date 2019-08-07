@@ -2372,12 +2372,18 @@ if (THRESHOLD_METHOD == 'nolimits') {
        ]
   
   data[supply < 0, supply := 0]
+
+  # `util_share` is the utilization share, defined over supply: for validated
+  # years (i.e, until 2013), it should sum up to 1, given that utilizations
+  # were balanced. For non-validated years (or better, for non balanced SUAs)
+  # it does not sum to 1. min and max are defined over the validated years,
+  # so using shares that sum to 1.
   
   data[!(measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange")), util_share := Value / supply]
 
   data[util_share < 0, util_share := 0] # This really shouldn't happen
 
-  data[util_share > 1.01, util_share := 1] # 1.01 to allow small divergences from 1 (e.g., 1.00023)
+  data[util_share > 1, util_share := 1]
   
   data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
   
