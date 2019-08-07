@@ -2381,11 +2381,11 @@ if (THRESHOLD_METHOD == 'nolimits') {
   
   data[!(measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange")), util_share := Value / supply]
 
+  data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
+
   data[util_share < 0, util_share := 0] # This really shouldn't happen
 
   data[util_share > 1, util_share := 1]
-  
-  data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
   
   if (NEW_THRESHOLDS == TRUE) {
     #No change in the  min/max threshold for Seed (decided by Salar on 22/07/2019)
