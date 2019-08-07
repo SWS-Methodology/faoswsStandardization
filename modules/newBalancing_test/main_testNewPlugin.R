@@ -21,6 +21,10 @@ sapply(dir("R", full.names = TRUE), source)
 # T,c: Opening stocks updated
 # I,i: Residual item (identity)
 # M,q: Cases for which flags were not set.
+# T,i: Calories per capita created
+# T,f: USDA stocks data
+# I,e: Module imputation
+# E,b: Final balancing (industrial, Feed)
 #
 # M,q should not happen, but added so to check.
 
