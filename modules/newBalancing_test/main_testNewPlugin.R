@@ -922,7 +922,7 @@ setnames(
 )
 
 tree_to_send <-
-  nameData("suafbs", "ess_fbs_commodity_tree2", tree_to_send, except = c('measuredElementSuaFbs'))
+  nameData("suafbs", "ess_fbs_commodity_tree2", tree_to_send, except = c('measuredElementSuaFbs', 'timePointYears'))
 
 tree_to_send[,
   `:=`(
@@ -1358,7 +1358,7 @@ computed_shares_send <- list()
 # Keep negative availability
 negative_availability <- list()
 
-data_stock_1<- vector(mode = "list", length = length(unique(tree$processingLevel)))
+data_stock_1 <- vector(mode = "list", length = length(unique(tree$processingLevel)))
 
 print("NEWBAL: starting derived production loop")
 
@@ -1366,8 +1366,6 @@ if (length(primaryInvolvedDescendents) == 0) {
   message("No primary commodity involved in this country")
 } else {
   for (lev in sort(unique(tree$processingLevel))) {
-    
-    
     
     treeCurrentLevel <-
       tree[
@@ -2371,44 +2369,44 @@ if (THRESHOLD_METHOD == 'nolimits') {
   
   data[supply < 0, supply := 0]
   
-  data[, util_share := Value / supply]
+  data[!(measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange")), util_share := Value / supply]
+
+  data[util_share < 0, util_share := 0] # This really should't happen
+
+  data[util_share > 1.01, util_share := 1] # 1.01 to allow small divergences from 1 (e.g., 1.00023)
   
   data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
   
-  if (NEW_THRESHOLDS==TRUE){
-  #No change in the  min/max threshold for Seed (decided by Salar on 22/07/2019)
-  data[measuredElementSuaFbs == "seed",
-       `:=`(
-         min_util_share = min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE),
-         max_util_share = max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)
-       ),
-       by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
-       ]
-  
-  
-  
-  
-  
-  #Relaxing the min/max threshold of food,loss and feed by 10 % (decided by Salar on 22/07/2019)
-  
-  data[measuredElementSuaFbs %in% c("food","loss","feed"),
-       `:=`(
-         min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)-min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*.1,0),
-         max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)+max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*.1,1)
-       ),
-       by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
-       ]
-  
-  #Relaxing the min/max threshold of industrial by 100 % (decided by Salar on 22/07/2019)
-  
-  data[measuredElementSuaFbs %in% c("industrial"),
-       `:=`(
-         min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)-min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*1,0),
-         max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)+max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*1,1)
-       ),
-       by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
-       ]
-  }else{
+  if (NEW_THRESHOLDS == TRUE) {
+    #No change in the  min/max threshold for Seed (decided by Salar on 22/07/2019)
+    data[measuredElementSuaFbs == "seed",
+         `:=`(
+           min_util_share = min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE),
+           max_util_share = max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)
+         ),
+         by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
+         ]
+    
+    #Relaxing the min/max threshold of food,loss and feed by 10 % (decided by Salar on 22/07/2019)
+    
+    data[measuredElementSuaFbs %in% c("food","loss","feed"),
+         `:=`(
+           min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)-min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*.1,0),
+           max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)+max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*.1,1)
+         ),
+         by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
+         ]
+    
+    #Relaxing the min/max threshold of industrial by 100 % (decided by Salar on 22/07/2019)
+    
+    data[measuredElementSuaFbs %in% c("industrial"),
+         `:=`(
+           min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)-min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*1,0),
+           max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)+max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*1,1)
+         ),
+         by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
+         ]
+  } else {
     data[,
          `:=`(
            min_util_share = min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE),
@@ -2417,9 +2415,6 @@ if (THRESHOLD_METHOD == 'nolimits') {
          by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
          ]
   }
-  
-  
-  
   
   data[is.infinite(min_util_share) | is.nan(min_util_share), min_util_share := NA_real_]
   
