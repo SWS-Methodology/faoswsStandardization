@@ -2375,7 +2375,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
   
   data[!(measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange")), util_share := Value / supply]
 
-  data[util_share < 0, util_share := 0] # This really should't happen
+  data[util_share < 0, util_share := 0] # This really shouldn't happen
 
   data[util_share > 1.01, util_share := 1] # 1.01 to allow small divergences from 1 (e.g., 1.00023)
   
