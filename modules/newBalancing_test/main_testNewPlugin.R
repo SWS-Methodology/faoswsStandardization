@@ -2583,7 +2583,7 @@ data_complete <-
 data_complete <-
   merge(
     data_complete,
-    data[, .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears, Value)],
+    data[Value > 0, .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears, Value)],
     by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs", "timePointYears"),
     all.x = TRUE
   )
@@ -2599,18 +2599,20 @@ data_complete <-
       na_post = sum(is.na(Value[timePointYears >= 2014]))
     ),
     by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs")
-  ][,
-    i := NULL
   ]
 
 new_elements <-
   data_complete[
     na_pre == t_pre & na_post < t_post
   ][,
-    .(geographicAreaM49, measuredElementSuaFbs, measuredItemSuaFbs)
+    .(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua = measuredItemSuaFbs)
   ][
-    order(geographicAreaM49, measuredElementSuaFbs, measuredItemSuaFbs)
+    order(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua)
   ]
+
+new_elements <- nameData("suafbs", "sua_unbalanced", new_elements, except = "measuredElementSuaFbs")
+
+new_elements[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
 tmp_file_name_new <- tempfile(pattern = paste0("NEW_ELEMENTS_", COUNTRY, "_"), fileext = '.csv')
 
@@ -2804,6 +2806,30 @@ imbalances_to_send <-
       utilizations
     )
     ]
+
+d_imbal_info <-
+  unique(
+    imbalances_to_send[,
+      .(
+        geographicAreaM49,
+        year,
+        measuredItemFbsSua,
+        supply = round(supply, 2),
+        imbalance = round(imbalance, 2),
+        perc_imb = round(abs(imbalance / supply) * 100, 2)
+      )
+    ]
+  )
+
+imbalances_info <-
+  c(
+    all_items = nrow(unique(standData[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])),
+    imb_tot = nrow(d_imbal_info),
+    imb_pos_supply = nrow(d_imbal_info[supply > 0]),
+    imb_gt_5percent = nrow(d_imbal_info[supply > 0][perc_imb > 5]),
+    imb_avg_percent = d_imbal_info[supply > 0, mean(abs(perc_imb))]
+  )
+
 
 data_OUTPUT = imbalances_to_send %>%
   filter(utilizations==0,imbalance<0,round(imbalance,10)==round(supply,10),measuredElementSuaFbs%in%c("production","imports","exports"))
@@ -3085,17 +3111,36 @@ if (exists("out")) {
   body_message <-
     sprintf(
       "Plugin completed in %1.2f minutes.
-      Parameters:
-      country = %s,
-      balancing method = %s,
-      thresold method = %s,
-      fix_outliers = %s,
-      fill_extraction_rates= %s,
-      new_thresholds = %s,
-      new_stocks_position = %s,
-      new_food_residual = %s,
+
+      ###############################################
+      ############ Imbalances information ###########
+      # (imbalance greater than 100 t in abs value) #
+      ###############################################
+
+      unbalanced items: %s (out of %s)
+      unbalanced items for items with positive supply: %s
+      unbalanced items for items with imbalance > 5%%: %s
+      average percent imbalance in absolute value: %s
+
+      ###############################################
+      ############       Parameters       ###########
+      ###############################################
+
+      country = %s
+      balancing method = %s
+      thresold method = %s
+      fix_outliers = %s
+      fill_extraction_rates= %s
+      new_thresholds = %s
+      new_stocks_position = %s
+      new_food_residual = %s
       residual_balancing= %s",
       difftime(Sys.time(), start_time, units = "min"),
+      imbalances_info[['imb_tot']],
+      scales::comma(imbalances_info[['all_items']]),
+      imbalances_info[['imb_pos_supply']],
+      imbalances_info[['imb_gt_5percent']],
+      scales::comma(imbalances_info[['imb_avg_percent']], nsmall = 2),
       COUNTRY,
       BALANCING_METHOD,
       THRESHOLD_METHOD,
