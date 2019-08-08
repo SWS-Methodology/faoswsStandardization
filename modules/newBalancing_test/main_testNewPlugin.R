@@ -2569,6 +2569,57 @@ data[
 
 
 
+# Filter elements that appear for the first time
+
+data_complete <-
+  data.table(
+    geographicAreaM49 = unique(data$geographicAreaM49),
+    timePointYears = sort(unique(data$timePointYears)))[
+      unique(data[, .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs)]),
+      on = "geographicAreaM49",
+      allow.cartesian = TRUE
+    ]
+
+data_complete <-
+  merge(
+    data_complete,
+    data[, .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears, Value)],
+    by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs", "timePointYears"),
+    all.x = TRUE
+  )
+
+data_complete[, y := 1]
+
+data_complete <-
+  data_complete[,
+    .(
+      t_pre   = sum(y[timePointYears <= 2013]),
+      t_post  = sum(y[timePointYears >= 2014]),
+      na_pre  = sum(is.na(Value[timePointYears <= 2013])),
+      na_post = sum(is.na(Value[timePointYears >= 2014]))
+    ),
+    by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs")
+  ][,
+    i := NULL
+  ]
+
+new_elements <-
+  data_complete[
+    na_pre == t_pre & na_post < t_post
+  ][,
+    .(geographicAreaM49, measuredElementSuaFbs, measuredItemSuaFbs)
+  ][
+    order(geographicAreaM49, measuredElementSuaFbs, measuredItemSuaFbs)
+  ]
+
+tmp_file_name_new <- tempfile(pattern = paste0("NEW_ELEMENTS_", COUNTRY, "_"), fileext = '.csv')
+
+write.csv(new_elements, tmp_file_name_new)
+
+# / Filter elements that appear for the first time
+
+
+
 ## 1 => year = 2014
 i <- 1
 
@@ -3069,6 +3120,7 @@ if (exists("out")) {
                tmp_file_name_non_exist,
                tmp_file_des,
                tmp_file_des_main,
+               tmp_file_name_new,
                tmp_file_name_NegNetTrade)
     )
   }
