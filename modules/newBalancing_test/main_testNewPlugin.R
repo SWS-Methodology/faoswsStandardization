@@ -685,7 +685,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         `:=`(
           Value = ifelse(is.na(Value)&imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
           flagObservationStatus = "E",
-          flagMethod = "h"
+          flagMethod = "b"
         )
         ]
       # Recalculate imbalance
@@ -697,7 +697,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         `:=`(
           Value = ifelse(is.na(Value)&imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
           flagObservationStatus = "E",
-          flagMethod = "h"
+          flagMethod = "b"
         )
         ]
      
