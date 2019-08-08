@@ -1791,11 +1791,13 @@ setnames(
 
 computed_shares_send[, zero_weigth := Child %in% zeroWeight]
 
+computed_shares_send[, `:=`(Child = paste0("'", Child), Parent = paste0("'", Parent))]
 
 negative_availability <- rbindlist(negative_availability)
 
 negative_availability <- nameData("suafbs", "sua_unbalanced", negative_availability)
 
+negative_availability[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
 ## XXX fix these cases (check why these conditions happen)
 # (COMMENTED AS THEY SHOULD HAVE BEEN ALREADY FIXED)
@@ -2830,18 +2832,26 @@ imbalances_info <-
     imb_avg_percent = d_imbal_info[supply > 0, mean(abs(perc_imb))]
   )
 
-
-data_OUTPUT = imbalances_to_send %>%
-  filter(utilizations==0,imbalance<0,round(imbalance,10)==round(supply,10),measuredElementSuaFbs%in%c("production","imports","exports"))
-
 imbalances_to_send <-
   nameData('suafbs', 'sua_unbalanced', imbalances_to_send, except = c('measuredElementSuaFbs'))
+
+imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+
+data_OUTPUT <-
+  imbalances_to_send[
+    utilizations == 0 &
+      imbalance < 0 &
+      round(imbalance, 10) == round(supply, 10) &
+      measuredElementSuaFbs %in% c("production", "imports", "exports")
+  ]
 
 non_existing_for_imputation <-
   data.table(measuredItemFbsSua = non_existing_for_imputation)
 
 non_existing_for_imputation <-
   nameData('suafbs', 'sua_unbalanced', non_existing_for_imputation)
+
+non_existing_for_imputation[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
 tmp_file_name_imb       <- tempfile(pattern = paste0("IMBALANCE_", COUNTRY, "_"), fileext = '.csv')
 tmp_file_name_shares    <- tempfile(pattern = paste0("SHARES_", COUNTRY, "_"), fileext = '.csv')
