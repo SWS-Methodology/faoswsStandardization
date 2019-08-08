@@ -3122,10 +3122,9 @@ if (exists("out")) {
     sprintf(
       "Plugin completed in %1.2f minutes.
 
-      ###############################################
-      ############ Imbalances information ###########
-      # (imbalance greater than 100 t in abs value) #
-      ###############################################
+      ################################################
+      # Imbalances (greater than 100 t in abs value) #
+      ################################################
 
       unbalanced items: %s (out of %s)
       unbalanced items for items with positive supply: %s
@@ -3144,7 +3143,35 @@ if (exists("out")) {
       new_thresholds = %s
       new_stocks_position = %s
       new_food_residual = %s
-      residual_balancing= %s",
+      residual_balancing= %s
+
+      ###############################################
+      ##############       Files       ##############
+      ###############################################
+
+      The following files are attached:
+
+      - FILLED_ER_*.csv = filled extraction rates
+
+      - IMBALANCE_*.csv = (description to be added)
+
+      - SHARES_*.csv = (description to be added)
+
+      - NEGATIVE_AVAILAB_*.csv = (description to be added)
+
+      - NONEXISTENT_*.csv = items for which no production, imports,
+          or exports exist after 2013
+
+      - DES_*.csv = calculation of DES (total and by items)
+
+      - DES_MAIN_ITEMS_*.csv = as DES_*.csv, but only with items that
+          accounted for at least 50 calories in at least one year
+          from 2010-2014, so, basically, the 'main' items
+
+      - NEW_ELEMENTS_*.csv = elements that appear for the first time
+
+      - NEG_NET_TRADE_*.csv = (description to be added)
+      ",
       difftime(Sys.time(), start_time, units = "min"),
       imbalances_info[['imb_tot']],
       scales::comma(imbalances_info[['all_items']]),
