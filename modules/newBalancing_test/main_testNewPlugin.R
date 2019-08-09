@@ -440,7 +440,13 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
     #of the balancing procees
     data[,
          `:=`(feed_resid =
-                Feed_Median > 0 & !is.na(Feed_Median),
+                # It's a feed item or have past value & ...
+                (measuredItemSuaFbs %in% Utilization_Table[feed == 'X', cpc_code] |
+                (Feed_Median > 0 & !is.na(Feed_Median))) &
+                #feed is the only utilization....
+                all(is.na(Value[!(measuredElementSuaFbs %in%
+                                    c('feed', 'production', 'imports', 'exports', 'stockChange'))])),
+              # It's a industrial item or have past value & ...
               industrial_resid=Industrial_Median > 0 & !is.na(Industrial_Median)),
          by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
          ] 
