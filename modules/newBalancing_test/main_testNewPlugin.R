@@ -1268,7 +1268,7 @@ items_to_generate_stocks <-
     # all ...
     unique(intersect(c(data$measuredItemSuaFbs, primaryInvolvedDescendents), stockable_items)),
     # ... except those for which already available
-    unique(data[measuredElementSuaFbs == 'stock_change' & flagObservationStatus == "T" & flagMethod == "f"]$measuredItemSuaFbs)
+    unique(data[measuredElementSuaFbs == 'stock_change' & flagObservationStatus == "T" & flagMethod == "p"]$measuredItemSuaFbs)
   )
 
 stock <-
@@ -1728,7 +1728,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         !is.na(imputed_deriv_value),
       `:=`(
         Value = imputed_deriv_value,
-        flagObservationStatus = "M", flagMethod = "i")]
+        flagObservationStatus = "I", flagMethod = "c")]
     
     data[, imputed_deriv_value := NULL]
   }
