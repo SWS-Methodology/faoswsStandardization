@@ -601,7 +601,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       
       if (nrow(data_level[outside(imbalance, -1, 1)]) > 0) {
         
-        data_level_no_imbalance <- data_level[between(imbalance, -1, 1)]
+        data_level_no_imbalance <- data_level[data.table::between(imbalance, -1, 1)]
         data_level_with_imbalance <- data_level[outside(imbalance, -1, 1)]
         
         levels_to_optimize <- unique(data_level_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
