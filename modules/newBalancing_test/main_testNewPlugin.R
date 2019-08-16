@@ -2744,6 +2744,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
     #mutate(Value=replace(Value,measuredElementSuaFbs=="feed" & is.na(Feed_Median),NA)) %>%
     ungroup()
   data = as.data.table(data)
+  for(j in 1:10){
   dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
   
   utilizationTableSubset <-
@@ -2769,7 +2770,8 @@ for (i in seq_len(nrow(uniqueLevels))) {
       #fbsTree = fbsTree,
       #cutItems = cutItems
     )
-  
+  data = standData[[i]]
+  }
   
 }
 
