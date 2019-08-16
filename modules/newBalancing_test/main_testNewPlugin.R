@@ -413,10 +413,10 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
     data[,
          food_resid :=
            # It's a food item & ...
-           # measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] &
+           (measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] |
            # food exists & ...
            # !is.na(Value[measuredElementSuaFbs == 'food']) &
-           Food_Median > 0 & !is.na(Food_Median) &
+           Food_Median > 0 & !is.na(Food_Median)) &
            # ... is the only utilization
            all(is.na(Value[!(measuredElementSuaFbs %in%
                                c('food', 'production', 'imports', 'exports', 'stockChange'))])),
@@ -553,12 +553,15 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         
         data_level[, Value_0 := NULL]
       } 
+      
+      # Recalculate imbalance
+      calculateImbalance(data_level)
       # Assign imbalance to food if food "only" (not "residual") item
       if(NEW_FOOD_RESIDUAL==TRUE){
       data_level[
         Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
         `:=`(
-          Value = ifelse(is.na(Value)&imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
+          Value = ifelse(is.na(Value) & imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
           flagObservationStatus = "E",
           flagMethod = "h"
         )
@@ -578,7 +581,6 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         
           
       # Recalculate imbalance
-      
       calculateImbalance(data_level)
       
       ###    data_level[,
@@ -674,12 +676,38 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data_level[change_stocks == 2L, Value := Value_0 + imbalance]
       data_level[change_stocks == 3L, Value := -opening_stocks]
       data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 5L, Value := max(supply * 0.2-opening_stocks,0)]
+      data_level[change_stocks == 5L, Value := supply * 0.2]
       
       data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
-      
+        
       data_level[, Value_0 := NULL]
   }     
+      # Recalculate imbalance
+      calculateImbalance(data_level)
+      # Assign imbalance to food if food "only" (not "residual") item
+      if(NEW_FOOD_RESIDUAL==TRUE){
+        data_level[
+          Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
+          `:=`(
+            Value = ifelse(is.na(Value) & imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
+            flagObservationStatus = "E",
+            flagMethod = "h"
+          )
+          ]
+      }else{
+        
+        data_level[
+          Protected == FALSE & food_resid == TRUE & outside(imbalance, -100, 100) & measuredElementSuaFbs == "food",
+          `:=`(
+            Value = ifelse(Value + imbalance >= 0, Value + imbalance, 0),
+            flagObservationStatus = "E",
+            flagMethod = "h"
+          )
+          ] 
+        
+      } 
+      
+      
       # Recalculate imbalance
       calculateImbalance(data_level)
       
@@ -1101,7 +1129,6 @@ flagValidTable <- ReadDatatable("valid_flags")
 
 # XXX: we decided to unprotect E,e (replaced outliers)
 flagValidTable[flagObservationStatus == 'E' & flagMethod == 'e', Protected := FALSE]
-
 
 # utilizationTable=ReadDatatable("utilization_table")
 utilizationTable <-
@@ -2425,10 +2452,12 @@ if (THRESHOLD_METHOD == 'nolimits') {
          by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
          ]
   } else {
+    std<-sd(data$util_share[data$timePointYears %in% 2000:2013],na.rm = T)
+    CV<-std/moy
     data[,
          `:=`(
-           min_util_share = min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE),
-           max_util_share = max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)
+           min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*(1-CV),0),
+           max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*(1+CV),1)
          ),
          by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
          ]
@@ -2709,9 +2738,10 @@ for (i in seq_len(nrow(uniqueLevels))) {
   data = as.data.frame(data)
   data = data %>%
     group_by(geographicAreaM49,measuredItemSuaFbs) %>%
-    mutate(Food_Median = median(Value[measuredElementSuaFbs=="food"],na.rm=TRUE)) %>%
-    mutate(Feed_Median = median(Value[measuredElementSuaFbs=="feed"],na.rm=TRUE)) %>%
-    mutate(Industrial_Median = median(Value[measuredElementSuaFbs=="industrial"],na.rm=TRUE)) %>%
+    mutate(Food_Median = median(Value[measuredElementSuaFbs=="food" & timePointYears %in%2000:2013],na.rm=TRUE)) %>%
+    mutate(Feed_Median = median(Value[measuredElementSuaFbs=="feed" & timePointYears %in%2000:2013],na.rm=TRUE)) %>%
+    mutate(Industrial_Median = median(Value[measuredElementSuaFbs=="industrial" & timePointYears %in%2000:2013],na.rm=TRUE)) %>%
+    #mutate(Value=replace(Value,measuredElementSuaFbs=="feed" & is.na(Feed_Median),NA)) %>%
     ungroup()
   data = as.data.table(data)
   dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
