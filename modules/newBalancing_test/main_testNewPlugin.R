@@ -870,22 +870,23 @@ BALANCING_METHOD <- "proportional"
 #THRESHOLD_METHOD <- swsContext.computationParams$threshold_method
 THRESHOLD_METHOD <- 'share'
 
-FIX_OUTLIERS <- as.logical(swsContext.computationParams$fix_outliers)
+#FIX_OUTLIERS <- as.logical(swsContext.computationParams$fix_outliers)
+FIX_OUTLIERS <- TRUE
 
 NEW_THRESHOLDS <- as.logical(swsContext.computationParams$new_thresholds)
 #NEW_THRESHOLDS<-TRUE
 
-NEW_STOCKS_POSITION <- as.logical(swsContext.computationParams$new_stocks_position)
-#NEW_STOCKS_POSITION<-TRUE
+#NEW_STOCKS_POSITION <- as.logical(swsContext.computationParams$new_stocks_position)
+NEW_STOCKS_POSITION <- TRUE
 
-NEW_FOOD_RESIDUAL <- as.logical(swsContext.computationParams$new_food_residual)
-#NEW_FOOD_RESIDUAL<-TRUE
+#NEW_FOOD_RESIDUAL <- as.logical(swsContext.computationParams$new_food_residual)
+NEW_FOOD_RESIDUAL <- TRUE
 
-FILL_EXTRACTION_RATES<-as.logical(swsContext.computationParams$fill_extraction_rates)
-#FILL_EXTRACTION_RATES<-TRUE
+#FILL_EXTRACTION_RATES<-as.logical(swsContext.computationParams$fill_extraction_rates)
+FILL_EXTRACTION_RATES <- TRUE
 
-RESIDUAL_BALANCING<-as.logical(swsContext.computationParams$residual_balancing)
-#RESIDUAL_BALANCING<-TRUE
+#RESIDUAL_BALANCING <- as.logical(swsContext.computationParams$residual_balancing)
+RESIDUAL_BALANCING <- TRUE
 
 YEARS <- as.character(2000:2017)
 
