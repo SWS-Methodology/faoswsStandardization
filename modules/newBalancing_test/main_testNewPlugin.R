@@ -843,7 +843,7 @@ library(tidyr)
 # 710 = south africa
 
 if (CheckDebug()) {
-  COUNTRY <- "36"
+  COUNTRY <- "686"
 } else {
   COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
   #COUNTRY <- swsContext.computationParams$country
@@ -2452,9 +2452,9 @@ if (THRESHOLD_METHOD == 'nolimits') {
          by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
          ]
   } else {
-    std<-sd(data$util_share[data$timePointYears %in% 2000:2013],na.rm = T)
-    CV<-std/moy
-    data[,
+    CV<-sd(data$util_share[data$timePointYears %in% 2000:2013],na.rm = T)/mean(data$util_share[data$timePointYears %in% 2000:2013],na.rm = T)
+   
+     data[,
          `:=`(
            min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*(1-CV),0),
            max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*(1+CV),1)
@@ -2744,9 +2744,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
     #mutate(Value=replace(Value,measuredElementSuaFbs=="feed" & is.na(Feed_Median),NA)) %>%
     ungroup()
   data = as.data.table(data)
-  for(j in 1:10){
-  dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
-  
+ 
   utilizationTableSubset <-
     utilizationTable[uniqueLevels[i, list(geographicAreaM49)], on = 'geographicAreaM49']
   
@@ -2754,7 +2752,8 @@ for (i in seq_len(nrow(uniqueLevels))) {
   
   treeSubset[, c("geographicAreaM49", "timePointYears") := NULL]
   
-  
+    dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
+    for(j in 1:10){
   #print(i); flush.console()
   
   #debug(newBalancing)
@@ -2770,7 +2769,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
       #fbsTree = fbsTree,
       #cutItems = cutItems
     )
-  data = standData[[i]]
+  dataSubset = as.data.table(standData[[i]])
   }
   
 }
