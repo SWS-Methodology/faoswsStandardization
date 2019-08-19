@@ -3167,7 +3167,7 @@ if (exists("out")) {
       unbalanced items: %s (out of %s)
       unbalanced items for items with positive supply: %s
       unbalanced items for items with imbalance > 5%%: %s
-      average percent imbalance in absolute value: %s
+      average percent imbalance in absolute value: %1.2f
 
       ###############################################
       ############       Parameters       ###########
@@ -3212,10 +3212,10 @@ if (exists("out")) {
       ",
       difftime(Sys.time(), start_time, units = "min"),
       imbalances_info[['imb_tot']],
-      scales::comma(imbalances_info[['all_items']]),
+      prettyNum(imbalances_info[['all_items']], big.mark = ","),
       imbalances_info[['imb_pos_supply']],
       imbalances_info[['imb_gt_5percent']],
-      scales::comma(imbalances_info[['imb_avg_percent']], nsmall = 2),
+      imbalances_info[['imb_avg_percent']],
       COUNTRY,
       BALANCING_METHOD,
       THRESHOLD_METHOD,
