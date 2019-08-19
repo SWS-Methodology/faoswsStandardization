@@ -2453,15 +2453,21 @@ if (THRESHOLD_METHOD == 'nolimits') {
          by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
          ]
   } else {
-    CV<-sd(data$util_share[data$timePointYears %in% 2000:2013],na.rm = T)/mean(data$util_share[data$timePointYears %in% 2000:2013],na.rm = T)
+
+    data[,
+      CV := sd(util_share[data$timePointYears %in% 2000:2013], na.rm = TRUE) / mean(util_share[data$timePointYears %in% 2000:2013], na.rm = TRUE),
+      by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
+    ]
+
+    data[is.na(CV) | is.infinite(CV) | is.nan(CV), CV := 0]
    
-     data[,
-         `:=`(
-           min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*(1-CV),0),
-           max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*(1+CV),1)
-         ),
-         by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
-         ]
+    data[,
+        `:=`(
+          min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*(1-CV),0),
+          max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*(1+CV),1)
+        ),
+        by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
+        ]
   }
   
   data[is.infinite(min_util_share) | is.nan(min_util_share), min_util_share := NA_real_]
