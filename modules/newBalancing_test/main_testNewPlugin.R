@@ -956,6 +956,22 @@ tree[Value == 0, Value := NA]
 tree_to_send <- tree[is.na(Value) & measuredElementSuaFbs=="extractionRate"]
 
 if (FILL_EXTRACTION_RATES == TRUE) {
+
+  expanded_tree <-
+    merge(
+      data.table(
+        geographicAreaM49 = unique(tree$geographicAreaM49),
+        timePointYears = as.character(min(tree$timePointYears):max(tree$timePointYears))
+      ),
+      unique(tree[, .(geographicAreaM49, measuredElementSuaFbs,
+                      measuredItemParentCPC, measuredItemChildCPC)]),
+      by = "geographicAreaM49",
+      all = TRUE,
+      allow.cartesian = TRUE
+    )
+
+  tree <- tree[expanded_tree, on = colnames(expanded_tree)]
+
   tree <-
     tree %>%
     group_by(geographicAreaM49, measuredElementSuaFbs, measuredItemParentCPC, measuredItemChildCPC) %>%
