@@ -16,13 +16,13 @@ sapply(dir("R", full.names = TRUE), source)
 # E,h: Balancing: imbalance to food, given food is only utilization
 # E,-: Balancing: utilization modified
 # E,u: Stocks variation generated
-# M,i: Derived production generated
+# I,c: Derived production generated
 # E,e: Outlier replaced
 # T,c: Opening stocks updated
 # I,i: Residual item (identity)
 # M,q: Cases for which flags were not set.
 # T,i: Calories per capita created
-# T,f: USDA stocks data
+# T,p: USDA stocks data
 # I,e: Module imputation
 # E,b: Final balancing (industrial, Feed)
 #
