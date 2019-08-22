@@ -3511,22 +3511,26 @@ if (exists("out")) {
 
       The following files are attached:
 
+      - PLOT_MAIN_DES_ITEMS_*.pdf = Plot of main DES items (> 100 Calories)
+
+      - PLOT_MAIN_DES_DIFF_*.pdf = Plot of main DES Calories variations
+
+      - DES_MAIN_ITEMS_*.csv = as DES_*.csv, but only with items that
+          accounted for at least 50 calories in at least one year
+          from 2010-2014, so, basically, the 'main' items
+
+      - DES_*.csv = calculation of DES (total and by items)
+
+      - SHARES_*.csv = (description to be added)
+
       - FILLED_ER_*.csv = filled extraction rates
 
       - IMBALANCE_*.csv = (description to be added)
-
-      - SHARES_*.csv = (description to be added)
 
       - NEGATIVE_AVAILAB_*.csv = (description to be added)
 
       - NONEXISTENT_*.csv = items for which no production, imports,
           or exports exist after 2013
-
-      - DES_*.csv = calculation of DES (total and by items)
-
-      - DES_MAIN_ITEMS_*.csv = as DES_*.csv, but only with items that
-          accounted for at least 50 calories in at least one year
-          from 2010-2014, so, basically, the 'main' items
 
       - NEW_ELEMENTS_*.csv = elements that appear for the first time
 
@@ -3535,9 +3539,6 @@ if (exists("out")) {
 
       - NEG_NET_TRADE_*.csv = (description to be added)
 
-      - PLOT_MAIN_DES_ITEMS_*.pdf = Plot of main DES items (> 100 Calories)
-
-      - PLOT_MAIN_DES_DIFF_*.pdf = Plot of main DES Calories variations
       ",
       difftime(Sys.time(), start_time, units = "min"),
       imbalances_info[['imb_tot']],
@@ -3562,18 +3563,19 @@ if (exists("out")) {
       to = swsContext.userEmail,
       subject = "Results from newBalancing plugin",
       body = c(body_message,
-               tmp_file_name_extr,
-               tmp_file_name_imb,
+               tmp_file_plot_main_des_items,
+               tmp_file_plot_main_des_diff,
+               tmp_file_des_main,
+               tmp_file_des,
                tmp_file_name_shares,
+               tmp_file_name_imb,
+               tmp_file_name_extr,
                tmp_file_name_negative,
                tmp_file_name_non_exist,
-               tmp_file_des,
-               tmp_file_des_main,
                tmp_file_name_new,
                tmp_file_name_fix_shares,
-               tmp_file_name_NegNetTrade,
-               tmp_file_plot_main_des_items,
-               tmp_file_plot_main_des_diff)
+               tmp_file_name_NegNetTrade
+              )
     )
   }
   
