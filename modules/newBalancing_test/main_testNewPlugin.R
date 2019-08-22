@@ -3368,6 +3368,60 @@ des <-
 
 des[, Value := round(Value, 2)]
 
+##### Plot of main DES absolute variations
+
+des_diff <-
+  des[
+    order(geographicAreaM49, measuredItemFbsSua, timePointYears)
+  ][,
+    .(year = timePointYears, diff = Value - shift(Value)),
+    .(geographicAreaM49, item = measuredItemFbsSua)
+  ][
+    year != min(year)
+  ]
+
+des_diff <-
+  des_diff[item %in% des_diff[diff > 20]$item]
+
+des_diff[item == "S2901", item := "GRAND TOTAL"]
+
+plot_main_des_diff <-
+  ggplot(des_diff, aes(x = year, diff, group = item, color = item)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  ggtitle("Absolute variation of DES and main variations of items")
+
+tmp_file_plot_main_des_diff <-
+  tempfile(pattern = paste0("PLOT_MAIN_DES_DIFF_", COUNTRY, "_"), fileext = '.pdf')
+
+ggsave(tmp_file_plot_main_des_diff, plot = plot_main_des_diff)
+
+##### / Plot of main DES absolute variations
+
+##### Plot of main DES
+
+main_des_items <-
+  des[,
+    .(geographicAreaM49, year = timePointYears, item = measuredItemFbsSua, Value)
+  ][
+    item %in% des[Value > 100]$measuredItemFbsSua][order(geographicAreaM49, item, year)
+  ]
+
+main_des_items[item == "S2901", item := "GRAND TOTAL"]
+
+plot_main_des_items <-
+  ggplot(main_des_items, aes(x = year, Value, group = item, color = item)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  ggtitle("Main DES items (> 100 Calories)")
+
+tmp_file_plot_main_des_items <-
+  tempfile(pattern = paste0("PLOT_MAIN_DES_ITEMS_", COUNTRY, "_"), fileext = '.pdf')
+
+ggsave(tmp_file_plot_main_des_items, plot = plot_main_des_items)
+
+##### / Plot of main DES
+
 des_cast <-
   dcast(
     des,
@@ -3480,6 +3534,10 @@ if (exists("out")) {
           was fixed, to keep it consistent with its main co-product
 
       - NEG_NET_TRADE_*.csv = (description to be added)
+
+      - PLOT_MAIN_DES_ITEMS_*.pdf = Plot of main DES items (> 100 Calories)
+
+      - PLOT_MAIN_DES_DIFF_*.pdf = Plot of main DES Calories variations
       ",
       difftime(Sys.time(), start_time, units = "min"),
       imbalances_info[['imb_tot']],
@@ -3513,7 +3571,9 @@ if (exists("out")) {
                tmp_file_des_main,
                tmp_file_name_new,
                tmp_file_name_fix_shares,
-               tmp_file_name_NegNetTrade)
+               tmp_file_name_NegNetTrade,
+               tmp_file_plot_main_des_items,
+               tmp_file_plot_main_des_diff)
     )
   }
   
