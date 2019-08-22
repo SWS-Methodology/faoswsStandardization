@@ -3515,19 +3515,19 @@ if (exists("out")) {
 
       - PLOT_MAIN_DES_DIFF_*.pdf = Plot of main DES Calories variations
 
+      - DES_*.csv = calculation of DES (total and by items)
+
       - DES_MAIN_ITEMS_*.csv = as DES_*.csv, but only with items that
           accounted for at least 50 calories in at least one year
           from 2010-2014, so, basically, the 'main' items
 
-      - DES_*.csv = calculation of DES (total and by items)
-
-      - SHARES_*.csv = (description to be added)
+      - SHARES_*.csv = Parents/Children shares, availability, etc.
 
       - FILLED_ER_*.csv = filled extraction rates
 
-      - IMBALANCE_*.csv = (description to be added)
+      - IMBALANCE_*.csv = imbalances, supply and utilizations
 
-      - NEGATIVE_AVAILAB_*.csv = (description to be added)
+      - NEGATIVE_AVAILAB_*.csv = items with negative availability
 
       - NONEXISTENT_*.csv = items for which no production, imports,
           or exports exist after 2013
@@ -3537,7 +3537,7 @@ if (exists("out")) {
       - FIXED_PROC_SHARES_*.csv = items for which the processing share
           was fixed, to keep it consistent with its main co-product
 
-      - NEG_NET_TRADE_*.csv = (description to be added)
+      - NEG_NET_TRADE_*.csv = negative net trade
 
       ",
       difftime(Sys.time(), start_time, units = "min"),
@@ -3565,8 +3565,8 @@ if (exists("out")) {
       body = c(body_message,
                tmp_file_plot_main_des_items,
                tmp_file_plot_main_des_diff,
-               tmp_file_des_main,
                tmp_file_des,
+               tmp_file_des_main,
                tmp_file_name_shares,
                tmp_file_name_imb,
                tmp_file_name_extr,
