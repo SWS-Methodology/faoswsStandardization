@@ -3013,23 +3013,30 @@ for (i in seq_len(nrow(uniqueLevels))) {
   treeSubset[, c("geographicAreaM49", "timePointYears") := NULL]
   
     dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
-    for(j in 1:10){
-  #print(i); flush.console()
-  
-  #debug(newBalancing)
-  standData[[i]] <-
-    newBalancing(
-      data = dataSubset,
-      tree = treeSubset,
-      #nutrientData = subNutrientData,
-      #batchnumber = batchnumber,
-      utilizationTable = utilizationTableSubset, # XXX: this one needs to be removed
-      Utilization_Table = Utilization_Table,
-      zeroWeight = zeroWeight #,
-      #fbsTree = fbsTree,
-      #cutItems = cutItems
-    )
-  dataSubset = as.data.table(standData[[i]])
+
+  for (j in 1:10) {
+    #print(i); flush.console()
+
+    #debug(newBalancing)
+    standData[[i]] <-
+      newBalancing(
+        data = dataSubset,
+        tree = treeSubset,
+        #nutrientData = subNutrientData,
+        #batchnumber = batchnumber,
+        utilizationTable = utilizationTableSubset, # XXX: this one needs to be removed
+        Utilization_Table = Utilization_Table,
+        zeroWeight = zeroWeight #,
+        #fbsTree = fbsTree,
+        #cutItems = cutItems
+      )
+
+    # FIXME: we are now assigning the "Protected" flag to ALL processing as
+    # after the first loop it should have been computed and that value SHOULD
+    # never be touched again.
+    standData[[i]][measuredElementSuaFbs == "foodManufacturing", Protected := TRUE]
+
+    dataSubset = as.data.table(standData[[i]])
   }
   
 }
