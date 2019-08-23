@@ -310,6 +310,7 @@ balance_proportional <- function(data) {
   
   x <- copy(data)
   
+  for (j in 1:10) {
   calculateImbalance(x)
   
   x <-
@@ -347,6 +348,7 @@ balance_proportional <- function(data) {
       by = c("measuredElementSuaFbs", "measuredItemSuaFbs"),
       all.x = TRUE
     )
+  }
   
   return(x$adjusted_value)
 }
@@ -450,7 +452,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
     data[,
          food_resid :=
            # It's a food item & ...
-           measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] &
+           #measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] &
            # food exists & ...
            !is.na(Value[measuredElementSuaFbs == 'food']) &
            # ... is the only utilization
@@ -700,7 +702,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data_level[change_stocks == 2L, Value := Value_0 + imbalance]
       data_level[change_stocks == 3L, Value := -opening_stocks]
       data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 5L, Value := supply * 0.2]
+      data_level[change_stocks == 5L, Value := supply * 0.2 ]
       
       data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
@@ -867,7 +869,7 @@ library(tidyr)
 # 710 = south africa
 
 if (CheckDebug()) {
-  COUNTRY <- "686"
+  COUNTRY <- "360"
 } else {
   COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
   #COUNTRY <- swsContext.computationParams$country
@@ -3014,7 +3016,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
   
     dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
 
-  for (j in 1:10) {
+  #for (j in 1:10) {
     #print(i); flush.console()
 
     #debug(newBalancing)
@@ -3034,10 +3036,10 @@ for (i in seq_len(nrow(uniqueLevels))) {
     # FIXME: we are now assigning the "Protected" flag to ALL processing as
     # after the first loop it should have been computed and that value SHOULD
     # never be touched again.
-    standData[[i]][measuredElementSuaFbs == "foodManufacturing", Protected := TRUE]
+    #standData[[i]][measuredElementSuaFbs == "foodManufacturing", Protected := TRUE]
 
-    dataSubset = as.data.table(standData[[i]])
-  }
+    #dataSubset = as.data.table(standData[[i]])
+  #}
   
 }
 
