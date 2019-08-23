@@ -3381,7 +3381,7 @@ des_diff <-
   ]
 
 des_diff <-
-  des_diff[item %in% des_diff[diff > 20]$item]
+  des_diff[item %in% des_diff[abs(diff) > 20]$item]
 
 des_diff[item == "S2901", item := "GRAND TOTAL"]
 
