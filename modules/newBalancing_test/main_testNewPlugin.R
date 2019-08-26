@@ -541,10 +541,10 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         ]
       
       calculateImbalance(data_level)
+
+      # Try to assign the maximum of imbalance to stocks
       
-      if (NEW_STOCKS_POSITION==FALSE){   
-        # Try to assign the maximum of imbalance to stocks
-        
+      if (NEW_STOCKS_POSITION == FALSE) {   
         data_level[,
                    Value_0 := ifelse(is.na(Value), 0, Value)
                    ][
@@ -555,29 +555,30 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
                          # case 1: we don't want stocks to change sign.
                          sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
                          # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
-                         Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <= opening_stocks ~ 2L,
+                         Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks ~ 2L,
                          # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
                          Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
                          # case 4: if value + imbalance send LESS than 20% of supply, send all
-                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (opening_stocks+Value_0 + imbalance <= supply * 0.2)      ~ 4L,
+                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 0.2)      ~ 4L,
                          # case 5: if value + imbalance send MORE than 20% of supply, send 20% of supply
-                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (opening_stocks+Value_0 + imbalance > supply * 0.2)       ~ 5L
+                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 0.2)       ~ 5L
                        )
                      ]
         
         data_level[change_stocks == 1L, Value := 0]
         data_level[change_stocks == 2L, Value := Value_0 + imbalance]
-        data_level[change_stocks == 3L, Value := - opening_stocks]
+        data_level[change_stocks == 3L, Value := -opening_stocks]
         data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-        data_level[change_stocks == 5L, Value := supply * 0.2 ]
-        
+        data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 0.2,supply * 0.2-opening_stocks,0)]
+   
         data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
-        
+          
         data_level[, Value_0 := NULL]
-      } 
+      }
       
       # Recalculate imbalance
       calculateImbalance(data_level)
+
       # Assign imbalance to food if food "only" (not "residual") item
       if(NEW_FOOD_RESIDUAL==TRUE){
       data_level[
@@ -672,41 +673,40 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       # At this point the imbalance (in the best case scenario) be zero, the following re-calculation is useful only for debugging
       
       calculateImbalance(data_level)
-      
-      
-  if (NEW_STOCKS_POSITION==TRUE){   
-      # Try to assign the maximum of imbalance to stocks
-      
-      data_level[,
-                 Value_0 := ifelse(is.na(Value), 0, Value)
-                 ][
-                   outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
-                   change_stocks :=
-                     # The numbers indicate the case. Assignmnet (value and flags) will be done below
-                     case_when(
-                       # case 1: we don't want stocks to change sign.
-                       sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
-                       # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
-                       Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks ~ 2L,
-                       # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
-                       Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
-                       # case 4: if value + imbalance send LESS than 20% of supply, send all
-                       Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 0.2)      ~ 4L,
-                       # case 5: if value + imbalance send MORE than 20% of supply, send 20% of supply
-                       Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 0.2)       ~ 5L
-                     )
-                   ]
-      
-      data_level[change_stocks == 1L, Value := 0]
-      data_level[change_stocks == 2L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 3L, Value := -opening_stocks]
-      data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 0.2,supply * 0.2-opening_stocks,0)]
- 
-      data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
+
+      if (NEW_STOCKS_POSITION == TRUE) {
+        data_level[,
+                   Value_0 := ifelse(is.na(Value), 0, Value)
+                   ][
+                     outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
+                     change_stocks :=
+                       # The numbers indicate the case. Assignmnet (value and flags) will be done below
+                       case_when(
+                         # case 1: we don't want stocks to change sign.
+                         sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
+                         # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
+                         Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks ~ 2L,
+                         # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
+                         Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
+                         # case 4: if value + imbalance send LESS than 20% of supply, send all
+                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 0.2)      ~ 4L,
+                         # case 5: if value + imbalance send MORE than 20% of supply, send 20% of supply
+                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 0.2)       ~ 5L
+                       )
+                     ]
         
-      data_level[, Value_0 := NULL]
-  }     
+        data_level[change_stocks == 1L, Value := 0]
+        data_level[change_stocks == 2L, Value := Value_0 + imbalance]
+        data_level[change_stocks == 3L, Value := -opening_stocks]
+        data_level[change_stocks == 4L, Value := Value_0 + imbalance]
+        data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 0.2,supply * 0.2-opening_stocks,0)]
+   
+        data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
+          
+        data_level[, Value_0 := NULL]
+      }
+      
+      
       # Recalculate imbalance
       calculateImbalance(data_level)
       # Assign imbalance to food if food "only" (not "residual") item
@@ -902,7 +902,7 @@ NEW_THRESHOLDS <- as.logical(swsContext.computationParams$new_thresholds)
 #NEW_THRESHOLDS<-TRUE
 
 #NEW_STOCKS_POSITION <- as.logical(swsContext.computationParams$new_stocks_position)
-NEW_STOCKS_POSITION <- TRUE
+NEW_STOCKS_POSITION <- FALSE
 
 #NEW_FOOD_RESIDUAL <- as.logical(swsContext.computationParams$new_food_residual)
 NEW_FOOD_RESIDUAL <- TRUE
@@ -3278,7 +3278,7 @@ calories_per_capita[, c("food", "calories", "population") := NULL]
 
 standData <- rbind(standData, imbalances, opening_stocks_data, calories_per_capita)
 
-standData[dplyr::near(Value, 0) & Protected == FALSE, Value := NA_real_]
+#standData[dplyr::near(Value, 0) & Protected == FALSE, Value := NA_real_]
 
 standData <- standData[timePointYears >= 2014][!is.na(Value)]
 
