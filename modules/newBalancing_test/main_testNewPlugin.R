@@ -702,13 +702,8 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data_level[change_stocks == 2L, Value := Value_0 + imbalance]
       data_level[change_stocks == 3L, Value := -opening_stocks]
       data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 0.2,
-                                                      ifelse(supply * 0.2-opening_stocks>Value_0 + imbalance,
-                                                             ifelse(opening_stocks<Value_0 + imbalance,opening_stocks,
-                                                                    0),
-                                                             supply * 0.2-opening_stocks),
-                                                      0) ]
-      
+      data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 0.2,supply * 0.2-opening_stocks,0)]
+ 
       data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
       data_level[, Value_0 := NULL]
@@ -874,7 +869,7 @@ library(tidyr)
 # 710 = south africa
 
 if (CheckDebug()) {
-  COUNTRY <- "360"
+  COUNTRY <- "643"
 } else {
   COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
   #COUNTRY <- swsContext.computationParams$country
