@@ -445,7 +445,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
            Food_Median > 0 & !is.na(Food_Median) &
            # ... is the only utilization
            all(is.na(Value[!(measuredElementSuaFbs %in%
-                               c('food', 'production', 'imports', 'exports', 'stockChange'))])),
+                               c('food', 'production', 'imports', 'exports', 'stockChange','foodManufacturing'))])),
          by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
          ]
   }else{
@@ -467,11 +467,11 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
     data[,
          `:=`(feed_resid =
                 # It's a feed item or have past value & ...
-                (measuredItemSuaFbs %in% Utilization_Table[feed == 'X', cpc_code] |
-                (Feed_Median > 0 & !is.na(Feed_Median))) &
+                #(measuredItemSuaFbs %in% Utilization_Table[feed == 'X', cpc_code] |
+                (Feed_Median > 0 & !is.na(Feed_Median)) &
                 #feed is the only utilization....
                 all(is.na(Value[!(measuredElementSuaFbs %in%
-                                    c('feed', 'production', 'imports', 'exports', 'stockChange'))])),
+                                    c('feed', 'production', 'imports', 'exports', 'stockChange','foodManufacturing'))])),
               # It's a industrial item or have past value & ...
               industrial_resid=Industrial_Median > 0 & !is.na(Industrial_Median)),
          by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
@@ -702,7 +702,12 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data_level[change_stocks == 2L, Value := Value_0 + imbalance]
       data_level[change_stocks == 3L, Value := -opening_stocks]
       data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 5L, Value := supply * 0.2 ]
+      data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 0.2,
+                                                      ifelse(supply * 0.2-opening_stocks>Value_0 + imbalance,
+                                                             ifelse(opening_stocks<Value_0 + imbalance,opening_stocks,
+                                                                    0),
+                                                             supply * 0.2-opening_stocks),
+                                                      0) ]
       
       data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
