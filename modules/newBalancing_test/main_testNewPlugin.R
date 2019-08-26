@@ -2336,25 +2336,16 @@ if (FIX_OUTLIERS == TRUE) {
   dout[is.na(Protected), Protected := FALSE]
   
   dout[,
-       exists := sum(!is.na(Value[timePointYears %in% 2011:2013])) > 0,
-       by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
-       ]
-  
-  dout <- dout[exists == TRUE]
-  
-  #dout <- copy(data)
-  
-  dout[,
-       `:=`(
-         production = Value[measuredElementSuaFbs  == "production"],
-         supply     = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
-                          - Value[measuredElementSuaFbs == "exports"], # XXX stocks?
-                          na.rm = TRUE),
-         domsupply  = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
-                          na.rm = TRUE)
-       ),
-       by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears')
-       ]
+    `:=`(
+      production = Value[measuredElementSuaFbs  == "production"],
+      supply     = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
+                       - Value[measuredElementSuaFbs == "exports"], # XXX stocks?
+                       na.rm = TRUE),
+      domsupply  = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
+                       na.rm = TRUE)
+    ),
+    by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears')
+  ]
   
   dout[measuredElementSuaFbs %in% c("feed", "industrial"), element_supply := supply]
   dout[measuredElementSuaFbs == "seed", element_supply := production]
@@ -2365,12 +2356,27 @@ if (FIX_OUTLIERS == TRUE) {
   dout[, ratio := Value / element_supply]
   
   dout[,
-       `:=`(
-         mean_ratio = mean(ratio[timePointYears %in% 2011:2013], na.rm = TRUE),
-         Meanold    = mean(Value[timePointYears < 2014], na.rm = TRUE)
-       ),
-       by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
-       ]
+    `:=`(
+      mean_ratio = mean(ratio[timePointYears %in% 2011:2013], na.rm = TRUE),
+      Meanold    = mean(Value[timePointYears < 2014], na.rm = TRUE)
+    ),
+    by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
+  ]
+
+  # If the element is new, there will be no `mean_ratio` and `Meanold`, thus we
+  # use the new values to re-calculate them.
+
+  dout[
+    timePointYears >= 2014 & (is.na(mean_ratio) | is.nan(mean_ratio) | is.infinite(mean_ratio)),
+    mean_ratio := mean(ratio[timePointYears >= 2014], na.rm = TRUE),
+    by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
+  ]
+
+  dout[
+    timePointYears >= 2014 & (is.na(Meanold) | is.nan(Meanold) | is.infinite(Meanold)),
+    Meanold := mean(Meanold[timePointYears >= 2014], na.rm = TRUE),
+    by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
+  ]
   
   dout[mean_ratio > 1, mean_ratio := 1]
   
@@ -2389,7 +2395,7 @@ if (FIX_OUTLIERS == TRUE) {
          (mean_ratio != 0 & dplyr::near(ratio, 0)) |
          (outside(Value / Meanold, 0.5, 2) & outside(Value - Meanold, -10000, 10000))),
     impute := element_supply * mean_ratio
-    ]
+  ]
   
   
   # Remove imputation for loss that is non-food and non-primaryProxyPrimary
@@ -2398,7 +2404,7 @@ if (FIX_OUTLIERS == TRUE) {
       !(measuredItemSuaFbs %in% food_items &
           measuredItemSuaFbs %in% primaryProxyPrimary_items),
     impute := NA_real_
-    ]
+  ]
   
   dout <-
     dout[
@@ -2410,7 +2416,7 @@ if (FIX_OUTLIERS == TRUE) {
         timePointYears,
         Value_imputed = impute
       )
-      ]
+    ]
   
   if (nrow(dout) > 0) {
     
