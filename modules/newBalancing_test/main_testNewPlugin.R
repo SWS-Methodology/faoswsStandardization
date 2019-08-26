@@ -1941,10 +1941,10 @@ if (length(primaryInvolvedDescendents) == 0) {
     # XXX: change this name
     computed_shares_send[[as.character(lev)]] <-
       dataMergeTree[,
-                    list(geographicAreaM49, timePointYears, measuredItemParentCPC,
-                         measuredItemChildCPC, extractionRate, shareDownUp,
-                         processingShare, availability_parent = availability)
-                    ]
+        list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+             measuredItemChildCPC, extractionRate, shareDownUp,
+             processingShare, availability_parent = availability)
+      ]
     
     dataMergeTree <-
       dataMergeTree[,
@@ -1963,27 +1963,23 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs', 'measuredElementSuaFbs'),
         all.x = TRUE
       )
-    
-    computed_shares_send[[as.character(lev)]] <-
-      # XXX stock_change may change below (and also production, if required)
-      data[
+
+    z <- data[
         measuredElementSuaFbs %in% c("production", "imports", "exports", "stock_change"),
         list(geographicAreaM49, timePointYears, measuredItemSuaFbs, measuredElementSuaFbs,
-             Value, Protected, imputed_deriv_value)
-        ][
-          computed_shares_send[[as.character(lev)]],
-          on = c('geographicAreaM49'  = 'geographicAreaM49',
-                 'timePointYears'     = 'timePointYears',
-                 'measuredItemSuaFbs' = 'measuredItemChildCPC')
-          ][,
-            final_value :=
-              ifelse(
-                measuredElementSuaFbs == 'production' & Protected == TRUE,
-                Value,
-                imputed_deriv_value
-              )
-            ]
+             Value = ifelse(measuredElementSuaFbs == 'production' & Protected == FALSE, imputed_deriv_value, Value),
+             Protected)
+        ]
+
+    z <- dcast(z, geographicAreaM49+timePointYears+measuredItemSuaFbs~measuredElementSuaFbs, value.var = c("Value", "Protected"))
     
+    # XXX stock_change may change below (and also production, if required)
+
+    computed_shares_send[[as.character(lev)]] <-
+      z[computed_shares_send[[as.character(lev)]],
+        on = c('geographicAreaM49'  = 'geographicAreaM49',
+               'timePointYears'     = 'timePointYears',
+               'measuredItemSuaFbs' = 'measuredItemChildCPC')]
     
     # Assign if non-protected (XXX: here only measuredItemSuaFbs that are child should be assigned)
     # XXX I was told to save only 2014 onwards
@@ -2065,12 +2061,14 @@ if (nrow(fixed_proc_shares) > 0) {
 
 computed_shares <- rbindlist(computed_shares)
 
-computed_shares_send <- rbindlist(computed_shares_send)
+computed_shares_send <- rbindlist(computed_shares_send, fill = TRUE)
+
+colnames(computed_shares_send) <- sub("Value_", "", colnames(computed_shares_send))
 
 setnames(
   computed_shares_send,
-  c("timePointYears", "measuredItemSuaFbs", "measuredItemParentCPC", "measuredElementSuaFbs"),
-  c("year", "measuredItemChildCPC_tree", "measuredItemParentCPC_tree", "element")
+  c("timePointYears", "measuredItemSuaFbs", "measuredItemParentCPC"),
+  c("year", "measuredItemChildCPC_tree", "measuredItemParentCPC_tree")
 )
 
 computed_shares_send <- nameData("suafbs", "ess_fbs_commodity_tree2", computed_shares_send)
@@ -3388,7 +3386,7 @@ des_diff <-
   ]
 
 des_diff <-
-  des_diff[item %in% des_diff[diff > 20]$item]
+  des_diff[item %in% des_diff[abs(diff) > 20]$item]
 
 des_diff[item == "S2901", item := "GRAND TOTAL"]
 
