@@ -697,7 +697,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
                      )
                    ]
       
-      data_level[change_stocks == 1L, Value := Value_0 + imbalance]
+      data_level[change_stocks == 1L, Value := 0]
       data_level[change_stocks == 2L, Value := Value_0 + imbalance]
       data_level[change_stocks == 3L, Value := -opening_stocks]
       data_level[change_stocks == 4L, Value := Value_0 + imbalance]
@@ -868,7 +868,7 @@ library(tidyr)
 # 710 = south africa
 
 if (CheckDebug()) {
-  COUNTRY <- "643"
+  COUNTRY <- "840"
 } else {
   COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
   #COUNTRY <- swsContext.computationParams$country
@@ -3006,7 +3006,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
     mutate(Food_Median = median(Value[measuredElementSuaFbs=="food" & timePointYears %in%2000:2013],na.rm=TRUE)) %>%
     mutate(Feed_Median = median(Value[measuredElementSuaFbs=="feed" & timePointYears %in%2000:2013],na.rm=TRUE)) %>%
     mutate(Industrial_Median = median(Value[measuredElementSuaFbs=="industrial" & timePointYears %in%2000:2013],na.rm=TRUE)) %>%
-    #mutate(Value=replace(Value,measuredElementSuaFbs=="feed" & is.na(Feed_Median),NA)) %>%
+    # mutate(Value=replace(Value,measuredElementSuaFbs=="feed" & is.na(Feed_Median),NA)) %>%
     ungroup()
   data = as.data.table(data)
  
