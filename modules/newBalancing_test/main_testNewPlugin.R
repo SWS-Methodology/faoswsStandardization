@@ -887,6 +887,11 @@ if (CheckDebug()) {
   R_SWS_SHARE_PATH = "//hqlprsws1.hq.un.fao.org/sws_r_share"
 }
 
+USER <- regmatches(
+  swsContext.username,
+  regexpr("(?<=/).+$", swsContext.username, perl = TRUE)
+)
+
 STOP_AFTER_DERIVED <- as.logical(swsContext.computationParams$stop_after_derived)
 
 #BALANCING_METHOD <- swsContext.computationParams$balancing_method
@@ -933,7 +938,8 @@ params$official <- "Official"
 
 p <- params
 
-
+shareDownUp_file <-
+  file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_", COUNTRY, ".csv"))
 
 
 #####################################  TREE #################################
@@ -1487,6 +1493,74 @@ coproduct_table_or <- unique(coproduct_table_or)
 # / Tables that will be required by the co-product issue (fix processingShare)
 
 
+if (file.exists(shareDownUp_file)) {
+
+  SHAREDOWNUP_LOADED <- TRUE
+
+  shareDownUp_previous <- fread(shareDownUp_file, colClasses = c(rep("character", 4), "numeric", "logical"))
+
+  # Check on consistency of shareDownUp
+  shareDownUp_invalid <-
+    shareDownUp_previous[,
+      .(sum_shares = sum(shareDownUp)),
+      by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+    ][
+      !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+    ]
+
+  if (nrow(shareDownUp_invalid) > 0) {
+
+    shareDownUp_invalid <-
+      shareDownUp_previous[
+        shareDownUp_invalid,
+        on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+      ]
+
+    write.csv(
+      shareDownUp_invalid,
+      file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+    )
+
+    if (!CheckDebug()) {
+      send_mail(
+        from = "do-not-reply@fao.org",
+        to = swsContext.userEmail,
+        subject = "Some shareDownUp are invalid",
+        body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
+                file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+      )
+    }
+
+    unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+
+    stop("Some shares are invalid. Check your email.")
+  }
+
+  shareDownUp_previous[,
+    `:=`(
+      measuredItemParentCPC = sub("'", "", measuredItemParentCPC),
+      measuredItemChildCPC = sub("'", "", measuredItemChildCPC)
+    )
+  ]
+
+  setnames(shareDownUp_previous, "shareDownUp", "shareDownUp_prev")
+
+
+} else {
+
+  SHAREDOWNUP_LOADED <- FALSE
+
+  shareDownUp_previous <-
+    data.table(
+      geographicAreaM49 = character(),
+      timePointYears = character(),
+      measuredItemParentCPC = character(),
+      measuredItemChildCPC = character(),
+      shareDownUp_prev = numeric(),
+      protect_share = logical()
+    )
+}
+
 
 # Keep processingShare and shareDownUp
 computed_shares <- list()
@@ -1732,6 +1806,19 @@ if (length(primaryInvolvedDescendents) == 0) {
     dataMergeTree[shareDownUp > 1, shareDownUp := 1]
     dataMergeTree[shareDownUp < 0, shareDownUp := 0]
     dataMergeTree[is.nan(shareDownUp), shareDownUp := 0]
+
+    dataMergeTree <-
+      merge(
+        dataMergeTree,
+        shareDownUp_previous,
+        by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
+        all.x = TRUE
+      )
+
+    dataMergeTree[protect_share == TRUE, shareDownUp := shareDownUp_prev]
+
+    dataMergeTree[, c("shareDownUp_prev", "protect_share") := NULL]
+
     # 
     # #correcting ShareDownUp
     # dataMergeTree[,Nparent:=uniqueN(measuredItemParentCPC),
@@ -1761,7 +1848,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     dataMergeTree[timePointYears >= 2014 & Protected == FALSE, Value := NA][, Protected := NULL]
     
-    dataMergeTree <- dataMergeTree[, processingShare := Value / extractionRate * shareDownUp / availability]
+    dataMergeTree[, processingShare := Value / extractionRate * shareDownUp / availability]
     
     # Fix weird processing shares. This should in theory never happen, but it does in some cases.
     dataMergeTree[processingShare < 0, processingShare := 0]
@@ -1990,6 +2077,80 @@ if (length(primaryInvolvedDescendents) == 0) {
   }
 }
 
+computed_shares <- rbindlist(computed_shares)
+
+# Check on consistency of shareDownUp
+shareDownUp_invalid <-
+  computed_shares[,
+    .(sum_shares = sum(shareDownUp)),
+    by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+  ][
+    !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+  ]
+
+if (nrow(shareDownUp_invalid) > 0) {
+
+  shareDownUp_invalid <-
+    computed_shares[
+      shareDownUp_invalid,
+      on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+    ]
+
+  write.csv(
+    shareDownUp_invalid,
+    file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+  )
+
+  if (!CheckDebug()) {
+    send_mail(
+      from = "do-not-reply@fao.org",
+      to = swsContext.userEmail,
+      subject = "Some shareDownUp are invalid",
+      body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
+              file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+    )
+  }
+
+  unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+
+  stop("Some shares are invalid. Check your email.")
+}
+# / Check on consistency of shareDownUp
+
+shareDownUp_save <-
+  computed_shares[,
+    .(geographicAreaM49, timePointYears, measuredItemParentCPC,
+      measuredItemChildCPC, shareDownUp)]
+
+if (nrow(shareDownUp_previous) == 0) {
+  shareDownUp_save[, protect_share := FALSE]
+} else {
+  shareDownUp_save <-
+    merge(
+      computed_shares[, -"processingShare", with = FALSE],
+      shareDownUp_previous[
+        protect_share == TRUE,
+        .(geographicAreaM49, timePointYears, measuredItemParentCPC, measuredItemChildCPC, protect_share)
+      ],
+      by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
+      all = TRUE)
+
+  shareDownUp_save[is.na(protect_share), protect_share := FALSE]
+}
+
+shareDownUp_save[,
+  `:=`(
+    measuredItemParentCPC = paste0("'", measuredItemParentCPC),
+    measuredItemChildCPC = paste0("'", measuredItemChildCPC)
+  )
+]
+
+if (!file.exists(dirname(shareDownUp_file))) {
+  dir.create(dirname(tmp_file_outliers), recursive = TRUE)
+}
+
+write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
+
 print("NEWBAL: end of derived production loop")
 
 
@@ -2020,6 +2181,15 @@ if (STOP_AFTER_DERIVED == TRUE) {
   if (exists("out")) {
     
     print(paste(out$inserted + out$ignored, "derived products written"))
+
+    if (!CheckDebug()) {
+      send_mail(
+        from = "do-not-reply@fao.org",
+        to = swsContext.userEmail,
+        subject = "Production of derived items created",
+        body = paste("The plugin stopped after production of derived items. A file with shareDownUp is available in", sub("/work/SWS_R_Share/", "", shareDownUp_file))
+      )
+    }
     
   } else {
     
@@ -2052,8 +2222,6 @@ if (nrow(fixed_proc_shares) > 0) {
 } else {
   fixed_proc_shares <- data.table(info = "No processing shares need to be fixed.")
 }
-
-computed_shares <- rbindlist(computed_shares)
 
 computed_shares_send <- rbindlist(computed_shares_send, fill = TRUE)
 
@@ -3511,6 +3679,14 @@ if (exists("out")) {
       residual_balancing= %s
 
       ###############################################
+      ###########       ShareDownUp       ###########
+      ###############################################
+
+      shareDownUp can be modified here:
+
+      %s
+
+      ###############################################
       ##############       Files       ##############
       ###############################################
 
@@ -3559,7 +3735,8 @@ if (exists("out")) {
       NEW_THRESHOLDS,
       NEW_STOCKS_POSITION,
       NEW_FOOD_RESIDUAL,
-      RESIDUAL_BALANCING
+      RESIDUAL_BALANCING,
+      sub('/work/SWS_R_Share/', '', shareDownUp_file)
     )
   
   if (!CheckDebug()) {
