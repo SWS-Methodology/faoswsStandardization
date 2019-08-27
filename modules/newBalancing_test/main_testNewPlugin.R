@@ -2160,9 +2160,7 @@ if (STOP_AFTER_DERIVED == TRUE) {
   data_deriv <-
     data[
       measuredElementSuaFbs == 'production' &
-        timePointYears %in% 2014:2017 &
-        !dplyr::near(Value, 0) &
-        Protected == FALSE,
+        timePointYears %in% 2014:2017,
       list(
         geographicAreaM49,
         measuredElementSuaFbs = "5510",
@@ -2393,7 +2391,6 @@ data[
     delta := NULL
     ]
 
-# 
 
 
 #save stock data in SUA Unbalanced
@@ -2411,8 +2408,7 @@ data_stock_1 <- data_stock_1[!duplicated(data_stock_1[,c("geographicAreaM49","ti
 data_stock_to_save_1 <-
   data_stock_1[
     measuredElementSuaFbs == 'stock_change' &
-      timePointYears %in% 2014:2017 &
-      Protected == FALSE,
+      timePointYears %in% 2014:2017,
     list(
       geographicAreaM49,
       measuredElementSuaFbs = "5071",
@@ -2428,8 +2424,7 @@ data_stock_to_save_1 <-
 data_stock_to_save_2 <-
   data[
     measuredElementSuaFbs == 'stock_change' &
-      timePointYears %in% 2014:2017 &
-      Protected == FALSE,
+      timePointYears %in% 2014:2017,
     list(
       geographicAreaM49,
       measuredElementSuaFbs = "5071",
