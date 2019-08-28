@@ -496,7 +496,8 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
             Value = ifelse(is.na(Value), 0, Value) + food_proc,
             flagObservationStatus = "E",
             flagMethod = "i",
-            Protected = ifelse(lev == min_processingLevel, TRUE, FALSE)
+            #Protected = ifelse(lev == min_processingLevel, TRUE, FALSE)
+            Protected = FALSE 
           )
           ][,
             food_proc := NULL
@@ -1630,7 +1631,7 @@ if (length(primaryInvolvedDescendents) == 0) {
                   min_year := timePointYears == min(timePointYears),
                   by = c("geographicAreaM49", "measuredItemSuaFbs")
                   ][
-                    min_year == TRUE, opening_stocks := ifelse(!is.na(supply), supply, 0)
+                    min_year == TRUE, opening_stocks := ifelse(!is.na(supply), 0.2 * supply, 0)
                     ]
       
       
@@ -2295,7 +2296,7 @@ fake_opening_stocks <-
             by = c("geographicAreaM49", "measuredItemSuaFbs")
             ][
               min_year == TRUE,
-              opening_stocks := ifelse(!is.na(supply), supply, 0)
+              opening_stocks := ifelse(!is.na(supply), 0.2 * supply, 0)
               ]
 
 
@@ -3202,7 +3203,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
     # FIXME: we are now assigning the "Protected" flag to ALL processing as
     # after the first loop it should have been computed and that value SHOULD
     # never be touched again.
-    #standData[[i]][measuredElementSuaFbs == "foodManufacturing", Protected := TRUE]
+    standData[[i]][measuredElementSuaFbs == "foodManufacturing", Protected := TRUE]
 
     #dataSubset = as.data.table(standData[[i]])
   #}
