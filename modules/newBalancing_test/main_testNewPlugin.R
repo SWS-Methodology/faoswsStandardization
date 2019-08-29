@@ -2781,6 +2781,65 @@ data[is.na(Protected), Protected := FALSE]
 uniqueLevels <- uniqueLevels[timePointYears >= 2014][order(timePointYears)]
 
 
+# Filter elements that appear for the first time
+
+data_complete <-
+  data.table(
+    geographicAreaM49 = unique(data$geographicAreaM49),
+    timePointYears = sort(unique(data$timePointYears)))[
+      unique(data[, .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs)]),
+      on = "geographicAreaM49",
+      allow.cartesian = TRUE
+    ]
+
+data_complete <-
+  merge(
+    data_complete,
+    data[Value > 0, .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears, Value)],
+    by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs", "timePointYears"),
+    all.x = TRUE
+  )
+
+data_complete[, y := 1]
+
+data_complete <-
+  data_complete[,
+    .(
+      t_pre   = sum(y[timePointYears <= 2013]),
+      t_post  = sum(y[timePointYears >= 2014]),
+      na_pre  = sum(is.na(Value[timePointYears <= 2013])),
+      na_post = sum(is.na(Value[timePointYears >= 2014]))
+    ),
+    by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs")
+  ]
+
+new_elements <-
+  data_complete[
+    na_pre == t_pre & na_post < t_post
+  ][,
+    .(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua = measuredItemSuaFbs)
+  ][
+    order(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua)
+  ]
+
+new_loss <-
+  new_elements[
+    measuredElementSuaFbs == "loss",
+    .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua, new_loss = TRUE)
+  ]
+
+new_elements <- nameData("suafbs", "sua_unbalanced", new_elements, except = "measuredElementSuaFbs")
+
+new_elements[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+
+tmp_file_name_new <- tempfile(pattern = paste0("NEW_ELEMENTS_", COUNTRY, "_"), fileext = '.csv')
+
+write.csv(new_elements, tmp_file_name_new)
+
+# / Filter elements that appear for the first time
+
+
+
 print("NEWBAL: set thresholds")
 
 
@@ -3001,6 +3060,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
   stop("Invalid method.")
 }
 
+
 data[,
      `:=`(
        min_adj = min_threshold / Value,
@@ -3014,6 +3074,29 @@ data[min_adj < 0, min_adj := 0.01]
 
 data[max_adj < 1, max_adj := 1.1]
 data[max_adj > 10, max_adj := 10] # XXX Too much?
+
+# Fix for new "loss" element. If loss gets in as a new utilization,
+# remove the thresholds for food.
+
+data <-
+  merge(
+    data,
+    new_loss,
+    by = c('geographicAreaM49', 'measuredItemSuaFbs'),
+    all.x = TRUE
+  )
+
+data[
+  new_loss == TRUE & measuredElementSuaFbs == "food",
+  `:=`(min_adj = 0, max_adj = 10)
+] # XXX is 10 enough?
+
+data[, new_loss := NULL]
+
+# / Fix for new "loss" element. If loss gets in as a new utilization,
+# / remove the thresholds for food.
+
+
 
 # Recalculate the levels, given the recalculation of adj factors
 data[, min_threshold := Value * min_adj]
@@ -3034,57 +3117,6 @@ data[
   ]
 
 
-
-# Filter elements that appear for the first time
-
-data_complete <-
-  data.table(
-    geographicAreaM49 = unique(data$geographicAreaM49),
-    timePointYears = sort(unique(data$timePointYears)))[
-      unique(data[, .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs)]),
-      on = "geographicAreaM49",
-      allow.cartesian = TRUE
-    ]
-
-data_complete <-
-  merge(
-    data_complete,
-    data[Value > 0, .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears, Value)],
-    by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs", "timePointYears"),
-    all.x = TRUE
-  )
-
-data_complete[, y := 1]
-
-data_complete <-
-  data_complete[,
-    .(
-      t_pre   = sum(y[timePointYears <= 2013]),
-      t_post  = sum(y[timePointYears >= 2014]),
-      na_pre  = sum(is.na(Value[timePointYears <= 2013])),
-      na_post = sum(is.na(Value[timePointYears >= 2014]))
-    ),
-    by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs")
-  ]
-
-new_elements <-
-  data_complete[
-    na_pre == t_pre & na_post < t_post
-  ][,
-    .(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua = measuredItemSuaFbs)
-  ][
-    order(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua)
-  ]
-
-new_elements <- nameData("suafbs", "sua_unbalanced", new_elements, except = "measuredElementSuaFbs")
-
-new_elements[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
-
-tmp_file_name_new <- tempfile(pattern = paste0("NEW_ELEMENTS_", COUNTRY, "_"), fileext = '.csv')
-
-write.csv(new_elements, tmp_file_name_new)
-
-# / Filter elements that appear for the first time
 
 
 
