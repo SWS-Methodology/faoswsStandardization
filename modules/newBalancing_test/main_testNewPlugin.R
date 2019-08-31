@@ -3445,34 +3445,37 @@ imbalances <-
 imbalances_to_send <-
   standData[
     !is.na(Value) & outside(imbalance, -100, 100) & timePointYears >= 2014,
-    list(
-      geographicAreaM49,
-      year = timePointYears,
-      measuredItemFbsSua = measuredItemSuaFbs,
-      measuredElementSuaFbs,
-      flagObservationStatus,
-      flagMethod,
-      Value,
-      imbalance,
-      imbalance_percent,
-      supply,
-      utilizations
-    )
+    .(country = geographicAreaM49, year = timePointYears, measuredItemSuaFbs,
+      element = measuredElementSuaFbs, value = Value,
+      flag = paste(flagObservationStatus, flagMethod, sep = ","))
     ]
 
-d_imbal_info <-
-  unique(
-    imbalances_to_send[,
-      .(
-        geographicAreaM49,
-        year,
-        measuredItemFbsSua,
-        supply = round(supply, 2),
-        imbalance = round(imbalance, 2),
-        perc_imb = round(abs(imbalance / supply) * 100, 2)
-      )
-    ]
+imbalances_to_send <-
+  dcast(
+    imbalances_to_send,
+    country + measuredItemSuaFbs + year ~ element,
+    value.var = c("value", "flag")
   )
+
+names(imbalances_to_send) <- sub("value_", "", names(imbalances_to_send))
+
+imbalances_to_send <-
+  merge(
+    imbalances_to_send,
+    unique(standData[, .(country = geographicAreaM49, year = timePointYears,
+                         measuredItemSuaFbs, supply, utilizations, imbalance,
+                         imbalance_percent)]),
+    by = c("country", "year", "measuredItemSuaFbs"),
+    all.x = TRUE
+  )
+
+d_imbal_info <-
+  imbalances_to_send[,
+    .(country, year, measuredItemSuaFbs,
+      supply = round(supply, 2),
+      imbalance = round(imbalance, 2),
+      perc_imb = round(abs(imbalance / supply) * 100, 2))
+  ]
 
 imbalances_info <-
   c(
@@ -3483,18 +3486,21 @@ imbalances_info <-
     imb_avg_percent = d_imbal_info[supply > 0, mean(abs(perc_imb))]
   )
 
+setnames(imbalances_to_send, "measuredItemSuaFbs", "measuredItemFbsSua")
+
 imbalances_to_send <-
   nameData('suafbs', 'sua_unbalanced', imbalances_to_send, except = c('measuredElementSuaFbs'))
 
 imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
-data_OUTPUT <-
+data_negtrade <-
   imbalances_to_send[
     utilizations == 0 &
       imbalance < 0 &
-      round(imbalance, 10) == round(supply, 10) &
-      measuredElementSuaFbs %in% c("production", "imports", "exports")
+      round(imbalance, 10) == round(supply, 10)
   ]
+
+data_negtrade[, imbalance_percent := NULL]
 
 non_existing_for_imputation <-
   data.table(measuredItemFbsSua = non_existing_for_imputation)
@@ -3520,7 +3526,7 @@ write.csv(computed_shares_send,        tmp_file_name_shares)
 write.csv(negative_availability,       tmp_file_name_negative)
 write.csv(non_existing_for_imputation, tmp_file_name_non_exist)
 write.csv(fixed_proc_shares,           tmp_file_name_fix_shares)
-write.csv(data_OUTPUT, tmp_file_name_NegNetTrade)
+write.csv(data_negtrade,               tmp_file_name_NegNetTrade)
 
 saveRDS(
   computed_shares_send,
