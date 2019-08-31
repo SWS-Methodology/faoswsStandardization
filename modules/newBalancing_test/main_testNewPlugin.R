@@ -3813,6 +3813,8 @@ des_main[
   measuredItemFbsSua_description := "PERCENTAGE OF MAIN OVER TOTAL"
   ]
 
+des_main <- des_main[order(-get(names(des_main)[ncol(des_main)]))]
+
 des_cast[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 des_main[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
