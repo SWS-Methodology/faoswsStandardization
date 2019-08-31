@@ -402,9 +402,9 @@ balance_optimization <- function(d) {
 
 
 balance_proportional <- function(data) {
-  
+
   x <- copy(data)
-  
+
   x <-
     x[
       Protected == FALSE &
@@ -413,26 +413,20 @@ balance_proportional <- function(data) {
       list(measuredElementSuaFbs, measuredItemSuaFbs, Value,
            mov_share, imbalance, min_threshold, max_threshold)
       ]
-  
+
   # Recalculate mov_share, as we are excluding protected values
   x[, mov_share := mov_share / sum(mov_share, na.rm = TRUE)]
-  x = as.data.frame(x)
-  x$Value_temp = x$Value
-  x$Value_temp[is.na(x$Value_temp)] = 0
-  x = as.data.table(x)
-  
-  # x[, adjusted_value := ifelse(Value + mov_share * imbalance>=0,Value + mov_share * imbalance,0)]
-  x[, adjusted_value := ifelse(Value_temp + mov_share * imbalance>=0,Value_temp + mov_share * imbalance,0)]
-  
-  # x[adjusted_value > Value & adjusted_value > max_threshold, adjusted_value := max_threshold]
-  x[adjusted_value > Value_temp & adjusted_value > max_threshold, adjusted_value := max_threshold]
-  
-  # x[adjusted_value < Value & adjusted_value < min_threshold, adjusted_value := min_threshold]
-  x[adjusted_value < Value_temp & adjusted_value < min_threshold, adjusted_value := min_threshold]
-  x = as.data.frame(x)
-  x = dplyr::select(x,-Value_temp)
-  x = as.data.table(x)
-  
+
+  x[is.na(Value), Value := 0]
+
+  x[, adjusted_value := ifelse(Value + mov_share * imbalance >= 0, Value + mov_share * imbalance, 0)]
+
+  x[adjusted_value > Value & adjusted_value > max_threshold, adjusted_value := max_threshold]
+
+  x[adjusted_value < Value & adjusted_value < min_threshold, adjusted_value := min_threshold]
+
+  x[, Value := NULL]
+
   x <-
     merge(
       data,
@@ -440,8 +434,8 @@ balance_proportional <- function(data) {
       by = c("measuredElementSuaFbs", "measuredItemSuaFbs"),
       all.x = TRUE
     )
-  
-  return(x$adjusted_value)
+
+  return(as.numeric(x$adjusted_value))
 }
 
 
