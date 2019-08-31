@@ -617,6 +617,9 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       calculateImbalance(data_level)
 
       # Try to assign the maximum of imbalance to stocks
+
+      # NOTE: in the conditions below, 2 was 0.2, indicating that no more than
+      # 20% should go to stocks. Now, the condition was relaxed a lot (200%)
       
       data_level[,
         Value_0 := ifelse(is.na(Value), 0, Value)
@@ -628,13 +631,13 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
             # case 1: we don't want stocks to change sign.
             sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
             # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
-            Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks ~ 2L,
+            Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks  ~ 2L,
             # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
             Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
-            # case 4: if value + imbalance send LESS than 20% of supply, send all
-            Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 0.2)      ~ 4L,
-            # case 5: if value + imbalance send MORE than 20% of supply, send 20% of supply
-            Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 0.2)       ~ 5L
+            # case 4: if value + imbalance send LESS than 200% of supply, send all
+            Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 2)  ~ 4L,
+            # case 5: if value + imbalance send MORE than 200% of supply, send 200% of supply
+            Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 2)   ~ 5L
           )
       ]
 
@@ -642,7 +645,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data_level[change_stocks == 2L, Value := Value_0 + imbalance]
       data_level[change_stocks == 3L, Value := -opening_stocks]
       data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 0.2,supply * 0.2-opening_stocks,0)]
+      data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 2, supply * 2 - opening_stocks, 0)]
 
       data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
