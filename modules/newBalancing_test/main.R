@@ -1,4 +1,3 @@
-# test for github
 start_time <- Sys.time()
 
 print("NEWBAL: start")
