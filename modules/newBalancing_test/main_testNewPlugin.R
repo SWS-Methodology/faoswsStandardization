@@ -2648,7 +2648,7 @@ if (FIX_OUTLIERS == TRUE) {
     `:=`(
       production = Value[measuredElementSuaFbs  == "production"],
       supply     = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
-                       - Value[measuredElementSuaFbs == "exports"], # XXX stocks?
+                       - Value[measuredElementSuaFbs %in% c("exports", "stock_change")],
                        na.rm = TRUE),
       domsupply  = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
                        na.rm = TRUE)
