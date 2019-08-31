@@ -2865,15 +2865,6 @@ uniqueLevels <- uniqueLevels[order(geographicAreaM49, timePointYears)]
 #
 #parentNodes <- parentNodes[level == 0, node]
 
-aggFun <- function(x) {
-  if (length(x) > 1)
-    stop("x should only be one value!")
-  return(sum(x))
-}
-
-
-
-
 
 
 # FIXME: some names are set lowercase, but should be now camelCase
