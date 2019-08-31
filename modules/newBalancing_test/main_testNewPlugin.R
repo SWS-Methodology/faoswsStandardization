@@ -908,7 +908,6 @@ BALANCING_METHOD <- "proportional"
 #THRESHOLD_METHOD <- swsContext.computationParams$threshold_method
 THRESHOLD_METHOD <- 'share'
 
-#FIX_OUTLIERS <- as.logical(swsContext.computationParams$fix_outliers)
 FIX_OUTLIERS <- TRUE
 
 #FILL_EXTRACTION_RATES<-as.logical(swsContext.computationParams$fill_extraction_rates)
@@ -2619,12 +2618,12 @@ print("NEWBAL: start outliers")
 # re-writing of Cristina's outliers plugin with data.table syntax #
 
 if (FIX_OUTLIERS == TRUE) {
-  
+
   commDef <- ReadDatatable("fbs_commodity_definitions") # XXX: updated?
   # 
   primaryProxyPrimary_items <- commDef[proxy_primary == "X" | primary_commodity == "X"]$cpc
   food_items <- commDef[food_item == "X"]$cpc
-  
+
   dout <-
     CJ(
       measuredItemSuaFbs = unique(data$measuredItemSuaFbs),
@@ -2632,7 +2631,7 @@ if (FIX_OUTLIERS == TRUE) {
       geographicAreaM49 = unique(data$geographicAreaM49),
       timePointYears = unique(data$timePointYears)
     )
-  
+
   dout <-
     merge(
       dout,
@@ -2641,9 +2640,9 @@ if (FIX_OUTLIERS == TRUE) {
              'measuredItemSuaFbs', 'measuredElementSuaFbs'),
       all.x = TRUE
     )
-  
+
   dout[is.na(Protected), Protected := FALSE]
-  
+
   dout[,
     `:=`(
       production = Value[measuredElementSuaFbs  == "production"],
@@ -2655,15 +2654,15 @@ if (FIX_OUTLIERS == TRUE) {
     ),
     by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears')
   ]
-  
+
   dout[measuredElementSuaFbs %in% c("feed", "industrial"), element_supply := supply]
   dout[measuredElementSuaFbs == "seed", element_supply := production]
   dout[measuredElementSuaFbs == "loss", element_supply := domsupply]
-  
+
   dout[element_supply < 0, element_supply := NA_real_]
-  
+
   dout[, ratio := Value / element_supply]
-  
+
   dout[,
     `:=`(
       mean_ratio = mean(ratio[timePointYears %in% 2011:2013], na.rm = TRUE),
@@ -2686,11 +2685,11 @@ if (FIX_OUTLIERS == TRUE) {
     Meanold := mean(Meanold[timePointYears >= 2014], na.rm = TRUE),
     by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
   ]
-  
+
   dout[mean_ratio > 1, mean_ratio := 1]
-  
+
   dout[, abs_diff_threshold := ifelse(measuredElementSuaFbs == "feed", 0.1, 0.05)]
-  
+
   dout[
     Protected == FALSE &
       timePointYears %in% 2014:2017 & # XXX: parameterise
@@ -2705,8 +2704,8 @@ if (FIX_OUTLIERS == TRUE) {
          (outside(Value / Meanold, 0.5, 2) & outside(Value - Meanold, -10000, 10000))),
     impute := element_supply * mean_ratio
   ]
-  
-  
+
+
   # Remove imputation for loss that is non-food and non-primaryProxyPrimary
   dout[
     measuredElementSuaFbs == "loss" &
@@ -2714,7 +2713,7 @@ if (FIX_OUTLIERS == TRUE) {
           measuredItemSuaFbs %in% primaryProxyPrimary_items),
     impute := NA_real_
   ]
-  
+
   dout <-
     dout[
       !is.na(impute) & (is.na(Value) | round(Value, 1) != round(impute, 1)),
@@ -2726,7 +2725,7 @@ if (FIX_OUTLIERS == TRUE) {
         Value_imputed = impute
       )
     ]
-  
+
   if (nrow(dout) > 0) {
     
     data <-
@@ -3836,7 +3835,6 @@ if (exists("out")) {
       country = %s
       balancing method = %s
       thresold method = %s
-      fix_outliers = %s
       fill_extraction_rates= %s
 
       ###############################################
@@ -3891,7 +3889,6 @@ if (exists("out")) {
       COUNTRY,
       BALANCING_METHOD,
       THRESHOLD_METHOD,
-      FIX_OUTLIERS,
       FILL_EXTRACTION_RATES,
       sub('/work/SWS_R_Share/', '', shareDownUp_file)
     )
