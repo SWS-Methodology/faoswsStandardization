@@ -1742,6 +1742,8 @@ if (length(primaryInvolvedDescendents) == 0) {
           by = c("geographicAreaM49", "measuredItemSuaFbs")
         ][
           min_year == TRUE, opening_stocks := ifelse(!is.na(supply), 0.2 * supply, 0)
+        ][,
+          supply := NULL
         ]
       
       
@@ -1763,16 +1765,18 @@ if (length(primaryInvolvedDescendents) == 0) {
           order(measuredItemSuaFbs, geographicAreaM49, timePointYears)
         ][,
           delta := supply - RcppRoll::roll_mean(supply, 2, fill = 'extend', align = 'right')
-        ][,
-          supply := NULL
         ]
 
-      if (nrow(historical_avail_stocks) > 0) {
+      data_histmod_stocks <-
+        data[
+          measuredItemSuaFbs %chin% treeCurrentLevel$measuredItemParentCPC &
+            measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs
+        ]
+
+      if (nrow(data_histmod_stocks) > 0) {
+
         data_histmod_stocks <-
-          data[
-            measuredItemSuaFbs %chin% treeCurrentLevel$measuredItemParentCPC &
-              measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs
-          ][,
+          data_histmod_stocks[,
             .(
               supply_inc =
                 sum(
@@ -1831,6 +1835,11 @@ if (length(primaryInvolvedDescendents) == 0) {
       
       # If generated delta is greater than supply, set it to 20% of supply
       data_for_stocks[delta > 0 & delta > 0.2 * supply, delta := 0.2 * supply]
+
+      # XXX
+      if ("opening_stocks" %!in% names(data_for_stocks)) {
+        data_for_stocks[min_year == TRUE, opening_stocks := 0.2 * supply]
+      }
       
       # Fix stocks
       data_for_stocks <-
