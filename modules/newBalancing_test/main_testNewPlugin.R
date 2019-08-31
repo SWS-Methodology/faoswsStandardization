@@ -947,7 +947,7 @@ stopifnot(nrow(tree) > 0)
 
 tree <- tree[geographicAreaM49 %chin% COUNTRY]
 
-validateTree(tree)
+faoswsUtil::validateTree(tree)
 
 ## NA ExtractionRates are recorded in the sws dataset as 0
 ## for the standardization, we nee them to be treated as NA
