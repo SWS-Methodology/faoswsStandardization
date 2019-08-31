@@ -2403,6 +2403,20 @@ computed_shares_send[, `:=`(Child = paste0("'", Child), Parent = paste0("'", Par
 
 negative_availability <- rbindlist(negative_availability)
 
+negative_availability <-
+  dcast(
+    negative_availability,
+    country + year + measuredItemFbsSua ~ element,
+    value.var = "Value"
+  )
+
+negative_availability[,
+  availability :=
+    ifelse(is.na(production), 0, production) +
+    ifelse(is.na(imports), 0, imports) -
+    ifelse(is.na(exports), 0, exports)
+]
+
 negative_availability <- nameData("suafbs", "sua_unbalanced", negative_availability)
 
 negative_availability[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
