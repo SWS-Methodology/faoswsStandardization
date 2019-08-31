@@ -3775,6 +3775,35 @@ ggsave(tmp_file_plot_main_des_items, plot = plot_main_des_items)
 
 ##### / Plot of main DES
 
+##### Plot of main diff avg DES
+des_main_diff_avg <-
+  des[
+    measuredItemFbsSua != "S2901",
+    .(pre = mean(Value[timePointYears <= 2013]), post = mean(Value[timePointYears >= 2014])),
+    .(geographicAreaM49, measuredItemFbsSua)]
+
+des_main_diff_avg <- des_main_diff_avg[abs(post - pre) > 20]
+
+des_main_diff_avg <- melt(des_main_diff_avg, c("geographicAreaM49", "measuredItemFbsSua"))
+
+des_main_diff_avg <- nameData("suafbs", "sua_unbalanced", des_main_diff_avg, except = "geographicAreaM49")
+
+plot_des_main_diff_avg <-
+  ggplot(des_main_diff_avg, aes(x = measuredItemFbsSua_description, y = value, group = variable, fill = variable)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  ggtitle("Main diff (> 20 Cal) in DES average pre (<= 2013) and post (>= 2014)")
+
+
+tmp_file_plot_des_main_diff_avg <-
+  tempfile(pattern = paste0("PLOT_DES_MAIN_DIFF_AVG_", COUNTRY, "_"), fileext = '.pdf')
+
+ggsave(tmp_file_plot_des_main_diff_avg, plot = plot_des_main_diff_avg)
+
+
+##### Plot of main diff avg DES
+
+
 des_cast <-
   dcast(
     des,
@@ -3798,6 +3827,8 @@ des_cast[, measuredItemFbsSua_description := sub("^000", "", measuredItemFbsSua_
 des_main <-
   des_cast[measuredItemFbsSua %chin% c("S2901", des[Value > 50, unique(measuredItemFbsSua)])]
 
+des_main <- des_main[order(-get(names(des_main)[ncol(des_main)]))]
+
 des_main <-
   rbind(
     des_main,
@@ -3811,9 +3842,7 @@ des_main <-
 des_main[
   is.na(measuredItemFbsSua),
   measuredItemFbsSua_description := "PERCENTAGE OF MAIN OVER TOTAL"
-  ]
-
-des_main <- des_main[order(-get(names(des_main)[ncol(des_main)]))]
+]
 
 des_cast[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 des_main[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
@@ -3873,6 +3902,9 @@ if (exists("out")) {
 
       - PLOT_MAIN_DES_DIFF_*.pdf = Plot of main DES Calories variations
 
+      - PLOT_DES_MAIN_DIFF_AVG_*.pdf = Plot of main variations (> 20 Calories)
+          in the AVERAGE DES pre (year <= 2013) and post (year >= 2014)
+
       - DES_*.csv = calculation of DES (total and by items)
 
       - DES_MAIN_ITEMS_*.csv = as DES_*.csv, but only with items that
@@ -3919,6 +3951,7 @@ if (exists("out")) {
       body = c(body_message,
                tmp_file_plot_main_des_items,
                tmp_file_plot_main_des_diff,
+               tmp_file_plot_des_main_diff_avg,
                tmp_file_des,
                tmp_file_des_main,
                tmp_file_name_shares,
