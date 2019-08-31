@@ -3099,6 +3099,7 @@ data[, max_threshold := Value * max_adj]
 
 data[Protected == TRUE, min_adj := 0.999]
 data[Protected == TRUE, max_adj := 1.001]
+
 # This fix should also be done in optim function?
 data[
   dplyr::near(min_adj, 1) & dplyr::near(max_adj, 1),
@@ -3107,9 +3108,15 @@ data[
     max_adj = 1.001
   )
 ]
-
-
-
+ 
+data[,
+  `:=`(
+    Food_Median       = median(Value[measuredElementSuaFbs=="food" & timePointYears %in% 2000:2013], na.rm=TRUE),
+    Feed_Median       = median(Value[measuredElementSuaFbs=="feed" & timePointYears %in% 2000:2013], na.rm=TRUE),
+    Industrial_Median = median(Value[measuredElementSuaFbs=="industrial" & timePointYears %in% 2000:2013], na.rm=TRUE)
+  ),
+  by = c("geographicAreaM49", "measuredItemSuaFbs")
+]
 
 
 ## 1 => year = 2014
@@ -3189,16 +3196,6 @@ for (i in seq_len(nrow(uniqueLevels))) {
   
   filter <- uniqueLevels[i, ]
 
-  data = as.data.frame(data)
-  data = data %>%
-    group_by(geographicAreaM49,measuredItemSuaFbs) %>%
-    mutate(Food_Median = median(Value[measuredElementSuaFbs=="food" & timePointYears %in%2000:2013],na.rm=TRUE)) %>%
-    mutate(Feed_Median = median(Value[measuredElementSuaFbs=="feed" & timePointYears %in%2000:2013],na.rm=TRUE)) %>%
-    mutate(Industrial_Median = median(Value[measuredElementSuaFbs=="industrial" & timePointYears %in%2000:2013],na.rm=TRUE)) %>%
-    # mutate(Value=replace(Value,measuredElementSuaFbs=="feed" & is.na(Feed_Median),NA)) %>%
-    ungroup()
-  data = as.data.table(data)
- 
   utilizationTableSubset <-
     utilizationTable[uniqueLevels[i, list(geographicAreaM49)], on = 'geographicAreaM49']
   
