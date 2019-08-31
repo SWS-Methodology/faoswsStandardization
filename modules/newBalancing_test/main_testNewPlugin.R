@@ -33,6 +33,101 @@ print("NEWBAL: define functions")
 
 ######### FUNCTIONS: at some point, they will be moved out of this file. ##
 
+`%!in%` <- Negate(`%in%`)
+
+
+# RemainingToProcessedParent() and RemainingProdChildToAssign() will
+# be used in the derivation of shareDownUp
+
+RemainingToProcessedParent <- function(data) {
+  
+  data <-
+    data%>%
+    group_by(geographicAreaM49, measuredItemParentCPC, timePointYears) %>%
+    dplyr::mutate(
+      parent_already_processed =
+        ifelse(
+          is.na(parent_qty_processed),
+          parent_qty_processed,
+          sum(processed_to_child / extractionRate, na.rm = TRUE)
+        )
+    ) %>%
+    dplyr::mutate(remaining_processed_parent = round(parent_qty_processed - parent_already_processed))%>%
+    dplyr::mutate(remaining_processed_parent = ifelse(remaining_processed_parent < 0, 0, remaining_processed_parent)) %>%
+    #in case we have only one child left(new) we assign the remaing parent quantity to process
+    dplyr::mutate(
+      only_child_left =
+        ifelse(
+          sum(is.na(processed_to_child)) == 1 &
+            is.na(processed_to_child) &
+            !is.na(production_of_child) &
+            !is.na(parent_qty_processed) &
+            production_of_child > 0,
+          TRUE,
+          FALSE
+        )
+    ) %>%
+    dplyr::mutate(
+      processed_to_child =
+        ifelse(
+          only_child_left == TRUE,
+          remaining_processed_parent * extractionRate,
+          processed_to_child)
+    ) %>%
+    #After the assignment, we update the remaining quantity to process for parent
+    dplyr::mutate(
+      parent_already_processed =
+        ifelse(
+          is.na(parent_qty_processed),
+          parent_qty_processed,
+          sum(processed_to_child / extractionRate, na.rm = TRUE)
+        )
+    ) %>%
+    dplyr::mutate(remaining_processed_parent = round(parent_qty_processed - parent_already_processed))%>%
+    dplyr::mutate(remaining_processed_parent = ifelse(remaining_processed_parent < 0, 0, remaining_processed_parent)) %>%
+    ungroup() %>%
+    as.data.frame()
+  
+  return(data)
+}
+
+
+RemainingProdChildToAssign <- function(data) {
+  
+  data <-
+    data %>%
+    group_by(geographicAreaM49, measuredItemChildCPC, timePointYears) %>%
+    dplyr::mutate(available_processed_child = sum(processed_to_child, na.rm = TRUE)) %>%
+    dplyr::mutate(remaining_to_process_child = round(production_of_child - available_processed_child)) %>%
+    dplyr::mutate(remaining_to_process_child = ifelse(remaining_to_process_child < 0, 0, remaining_to_process_child)) %>%
+    #in case we have one parent left
+    dplyr::mutate(
+      only_parent_left =
+        ifelse(
+          sum(is.na(processed_to_child)) == 1 &
+            is.na(processed_to_child) &
+            !is.na(parent_qty_processed) &
+            parent_qty_processed >= 0,
+          TRUE,
+          FALSE
+        )
+    ) %>%
+    dplyr::mutate(processed_to_child = ifelse(only_parent_left == TRUE, remaining_to_process_child, processed_to_child)) %>%
+    #update the remaining production to assign for children
+    dplyr::mutate(available_processed_child = sum(processed_to_child, na.rm = TRUE)) %>%
+    dplyr::mutate(remaining_to_process_child = round(production_of_child - available_processed_child)) %>%
+    dplyr::mutate(remaining_to_process_child = ifelse(remaining_to_process_child < 0, 0, remaining_to_process_child)) %>%
+    ungroup() %>%
+    as.data.frame()
+  
+  return(data)
+  
+}
+
+
+
+
+
 # The fmax function is used when fixing the processingShare of coproducts.
 # If TRUE it means that "+" or "or" cases are involved.
 fmax <- function(child, main, share, plusor = FALSE) {
@@ -1435,6 +1530,154 @@ data <- data[!(measuredItemSuaFbs %in% non_existing_for_imputation)]
 
 ############################################### Create derived production ###################################
 
+print("NEWBAL: derivation of shareDownUp")
+
+############# ShareDownUp ----------------------------------------
+
+# Using the whole tree not by level
+ExtrRate <-
+  tree[
+    !is.na(Value) & measuredElementSuaFbs == 'extractionRate',
+    list(
+      measuredItemParentCPC,
+      geographicAreaM49,
+      measuredItemChildCPC,
+      timePointYears,
+      extractionRate = Value,
+      processingLevel
+    )
+  ]
+
+data_tree <-
+  data[measuredElementSuaFbs %chin%
+       c('production', 'imports', 'exports', 'stock_change','foodmanufacturing')]
+
+setnames(data_tree, "measuredItemSuaFbs", "measuredItemParentCPC")
+
+data_tree <-
+  merge(
+    data_tree,
+    ExtrRate,
+    by = c(params$parentVar, params$geoVar, params$yearVar),
+    allow.cartesian = TRUE
+  )
+
+data_tree <-
+  data_tree[,
+    .(measuredItemParentCPC, geographicAreaM49, timePointYears,
+      measuredElementSuaFbs,flagObservationStatus,flagMethod,
+      Value,Official,measuredItemChildCPC,extractionRate, processingLevel)
+  ]
+
+
+# dataset to calculate the number of parent of each child and the number of children of each parent
+
+data_count <-
+  data_tree %>%
+  distinct(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears) %>%
+  dplyr::filter(measuredItemChildCPC %!in% zeroWeight) %>%
+  #Caculate the number of parent of each child
+  group_by(geographicAreaM49, measuredItemChildCPC, timePointYears) %>%
+  dplyr::mutate(number_of_parent = n()) %>%
+  ungroup() %>%
+  #calculate the number of children of each parent
+  group_by(geographicAreaM49, measuredItemParentCPC, timePointYears) %>%
+  dplyr::mutate(number_of_children = n()) %>%
+  ungroup()
+
+
+data_tree <-
+  data_tree %>%
+  left_join(
+    data_count,
+    by = c("measuredItemParentCPC", "geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+  ) %>%
+  # Merge with the dataset contain the processed quantities for parent
+  left_join(
+    data_tree %>%
+      dplyr::filter(measuredElementSuaFbs == "foodmanufacturing") %>%
+      distinct(geographicAreaM49, measuredItemParentCPC, timePointYears, Value) %>%
+      dplyr::rename(parent_qty_processed = Value),
+    by = c("measuredItemParentCPC", "geographicAreaM49", "timePointYears")
+  ) %>%
+  distinct(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC,
+           timePointYears, extractionRate, parent_qty_processed,
+           processingLevel, number_of_parent, number_of_children)
+
+
+#extract production data for child commodities
+
+dataprodchild <-
+  data[
+    measuredElementSuaFbs == 'production',
+    .(geographicAreaM49, measuredItemChildCPC = measuredItemSuaFbs, timePointYears,
+      production_of_child = Value, flagObservationStatus, flagMethod)
+  ]
+
+data_tree <-
+  data_tree %>%
+  left_join(dataprodchild, by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")) %>% 
+  #remove zero weight to avoid double counting
+  dplyr::filter(measuredItemChildCPC %!in% zeroWeight ) %>%
+  #Quantity of parent destined to the production of the given child (only for child with one parent for the moment)
+  #dplyr::mutate(processed_to_child=ifelse(number_of_parent==1,production_of_child/extractionRate,NA_real_)) %>%
+  dplyr::mutate(processed_to_child = ifelse(number_of_parent == 1, production_of_child, NA_real_)) %>%
+  #if a parent has one child, all its processed quantity is destined to the production of that unique child
+  #this help us have the partial processed quanty in case of mutiple parent
+  dplyr::mutate(processed_to_child = ifelse(number_of_children == 1, parent_qty_processed * extractionRate, processed_to_child)) %>%
+  dplyr::mutate(processed_to_child = ifelse(production_of_child == 0, 0, processed_to_child)) %>%
+  as.tbl()
+
+# XXX 3?
+for (k in 1:3) {
+  data_tree <- RemainingToProcessedParent(data_tree)
+  data_tree <- RemainingProdChildToAssign(data_tree)
+}
+
+data_tree <- RemainingToProcessedParent(data_tree)
+
+data_tree <-
+  data_tree %>%
+  group_by(geographicAreaM49,measuredItemChildCPC,timePointYears) %>%
+  dplyr::mutate(
+    processed_to_child =
+      ifelse(
+        number_of_parent > 1 & is.na(processed_to_child),
+        (remaining_to_process_child * is.na(processed_to_child) * remaining_processed_parent) / sum((remaining_processed_parent * is.na(processed_to_child)), na.rm = TRUE),
+        processed_to_child)
+  ) %>%
+  ungroup() %>%
+  group_by(geographicAreaM49, measuredItemParentCPC, timePointYears) %>%
+  dplyr::mutate(parent_already_processed = sum(processed_to_child, na.rm = TRUE)) %>%
+  dplyr::mutate(remaining_processed_parent = round(parent_qty_processed - parent_already_processed)) %>%
+  dplyr::mutate(remaining_processed_parent = ifelse(remaining_processed_parent < 0, 0, remaining_processed_parent)) %>%
+  ungroup() %>%
+  group_by(geographicAreaM49, measuredItemChildCPC, timePointYears) %>%
+  dplyr::mutate(shareDownUp = processed_to_child / sum(processed_to_child, na.rm = TRUE)) %>%
+  # it is necessary to correct some cases
+  dplyr::mutate(shareDownUp = ifelse(is.na(shareDownUp) & number_of_parent == 1, 1, shareDownUp))%>%
+  dplyr::mutate(shareDownUp = ifelse((production_of_child == 0 | is.na(production_of_child)) & timePointYears < 2014, 0, shareDownUp))%>%
+  dplyr::mutate(shareDownUp = ifelse((parent_qty_processed == 0 | is.na(parent_qty_processed)) & timePointYears < 2014, 0, shareDownUp))%>%
+  arrange(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)%>%
+  group_by(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC)%>%
+  dplyr::mutate(ShareDownUp_avg = rollavg(shareDownUp, order = 3))%>%
+  ungroup() %>%
+  group_by(geographicAreaM49, measuredItemChildCPC, timePointYears) %>%
+  dplyr::mutate(ShareDownUp_avg = ShareDownUp_avg / sum(ShareDownUp_avg, na.rm = TRUE)) %>%
+  dplyr::mutate(shareDownUp = ifelse(timePointYears > 2013, ShareDownUp_avg, shareDownUp)) %>%
+  ungroup()
+
+data_tree <-
+  ExtrRate[, .(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)] %>%
+  left_join(data_tree, c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", "timePointYears")) %>%
+  dplyr::mutate(shareDownUp = ifelse(is.na(shareDownUp), 0, shareDownUp)) %>%
+  distinct(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears, shareDownUp) %>%
+  setDT()
+
+
+# / ShareDownUp -------------------------------------------------------
+
+
 
 # Tables that will be required by the co-product issue (fix processingShare)
 
@@ -1741,6 +1984,14 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c(params$parentVar, params$geoVar, params$yearVar),
         allow.cartesian = TRUE
       )
+
+    dataMergeTree <-
+      merge(
+        dataMergeTree,
+        data_tree,
+        by = c(params$parentVar, params$childVar,params$geoVar, params$yearVar),
+        allow.cartesian = TRUE
+      )
     
     dataMergeTree[,
                   availability :=
@@ -1789,12 +2040,12 @@ if (length(primaryInvolvedDescendents) == 0) {
     # Fixed:
     #dataMergeTree[, sumAvail := sum(sort(unique(availabilitieChildEquivalent), na.last = TRUE)), by = c(params$childVar, params$yearVar, params$geoVar)] #, "measuredElementSuaFbs")]
     # Better (set to NA when zero?):
-    dataMergeTree[,
-                  sumAvail := sum(unique(na.omit(availabilitieChildEquivalent))),
-                  by = c(params$childVar, params$yearVar, params$geoVar)  #, "measuredElementSuaFbs"
-                  ]
+    #dataMergeTree[,
+    #              sumAvail := sum(unique(na.omit(availabilitieChildEquivalent))),
+    #              by = c(params$childVar, params$yearVar, params$geoVar)  #, "measuredElementSuaFbs"
+    #              ]
     
-    dataMergeTree[, shareDownUp := availabilitieChildEquivalent / sumAvail]
+    #dataMergeTree[, shareDownUp := availabilitieChildEquivalent / sumAvail]
     
     ## XXX check these cases
     #dataMergeTree[shareDownUp > 1]
