@@ -520,32 +520,18 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
     # We noticed that some of the food items were missing from the utilization table
     # This is still different from the previous approach of assigning all of the imbalance to 
     # food when "none of the other utilizations are activable"
-  if (NEW_FOOD_RESIDUAL==TRUE){
     data[,
-         food_resid :=
-           # It's a food item & ...
-           #(measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] |
-           # food exists & ...
-           # !is.na(Value[measuredElementSuaFbs == 'food']) &
-           Food_Median > 0 & !is.na(Food_Median) &
-           # ... is the only utilization
-           all(is.na(Value[!(measuredElementSuaFbs %in%
-                               c('food', 'production', 'imports', 'exports', 'stockChange','foodManufacturing'))])),
-         by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-         ]
-  }else{
-    data[,
-         food_resid :=
-           # It's a food item & ...
-           measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] &
-           # food exists & ...
-           !is.na(Value[measuredElementSuaFbs == 'food']) &
-           # ... is the only utilization
-           all(is.na(Value[!(measuredElementSuaFbs %in%
-                               c('food', 'production', 'imports', 'exports', 'stockChange'))])),
-         by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-         ]   
-  }
+      food_resid :=
+        # It's a food item & ...
+        #(measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] |
+        # food exists & ...
+        # !is.na(Value[measuredElementSuaFbs == 'food']) &
+        Food_Median > 0 & !is.na(Food_Median) &
+        # ... is the only utilization
+        all(is.na(Value[!(measuredElementSuaFbs %in%
+                            c('food', 'production', 'imports', 'exports', 'stockChange','foodManufacturing'))])),
+      by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+    ]
     
     #Checking if the commodity has past value before assigning the residual imbalance at the end
     #of the balancing procees
@@ -632,43 +618,40 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
 
       # Try to assign the maximum of imbalance to stocks
       
-      if (NEW_STOCKS_POSITION == FALSE) {   
-        data_level[,
-                   Value_0 := ifelse(is.na(Value), 0, Value)
-                   ][
-                     outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
-                     change_stocks :=
-                       # The numbers indicate the case. Assignmnet (value and flags) will be done below
-                       case_when(
-                         # case 1: we don't want stocks to change sign.
-                         sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
-                         # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
-                         Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks ~ 2L,
-                         # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
-                         Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
-                         # case 4: if value + imbalance send LESS than 20% of supply, send all
-                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 0.2)      ~ 4L,
-                         # case 5: if value + imbalance send MORE than 20% of supply, send 20% of supply
-                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 0.2)       ~ 5L
-                       )
-                     ]
+      data_level[,
+        Value_0 := ifelse(is.na(Value), 0, Value)
+      ][
+        outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
+        change_stocks :=
+          # The numbers indicate the case. Assignmnet (value and flags) will be done below
+          case_when(
+            # case 1: we don't want stocks to change sign.
+            sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
+            # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
+            Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks ~ 2L,
+            # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
+            Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
+            # case 4: if value + imbalance send LESS than 20% of supply, send all
+            Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 0.2)      ~ 4L,
+            # case 5: if value + imbalance send MORE than 20% of supply, send 20% of supply
+            Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 0.2)       ~ 5L
+          )
+      ]
+
+      data_level[change_stocks == 1L, Value := 0]
+      data_level[change_stocks == 2L, Value := Value_0 + imbalance]
+      data_level[change_stocks == 3L, Value := -opening_stocks]
+      data_level[change_stocks == 4L, Value := Value_0 + imbalance]
+      data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 0.2,supply * 0.2-opening_stocks,0)]
+
+      data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
-        data_level[change_stocks == 1L, Value := 0]
-        data_level[change_stocks == 2L, Value := Value_0 + imbalance]
-        data_level[change_stocks == 3L, Value := -opening_stocks]
-        data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-        data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 0.2,supply * 0.2-opening_stocks,0)]
-   
-        data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
-          
-        data_level[, Value_0 := NULL]
-      }
+      data_level[, Value_0 := NULL]
       
       # Recalculate imbalance
       calculateImbalance(data_level)
 
       # Assign imbalance to food if food "only" (not "residual") item
-      if(NEW_FOOD_RESIDUAL==TRUE){
       data_level[
         Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
         `:=`(
@@ -676,20 +659,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           flagObservationStatus = "E",
           flagMethod = "h"
         )
-        ]
-      }else{
-        
-        data_level[
-          Protected == FALSE & food_resid == TRUE & outside(imbalance, -100, 100) & measuredElementSuaFbs == "food",
-          `:=`(
-            Value = ifelse(Value + imbalance >= 0, Value + imbalance, 0),
-            flagObservationStatus = "E",
-            flagMethod = "h"
-          )
-          ] 
-        
-      } 
-        
+      ]
           
       for (j in 1:10) {
 
@@ -760,96 +730,46 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       
       # At this point the imbalance (in the best case scenario) be zero, the following re-calculation is useful only for debugging
       
-      calculateImbalance(data_level)
-
-      if (NEW_STOCKS_POSITION == TRUE) {
-        data_level[,
-                   Value_0 := ifelse(is.na(Value), 0, Value)
-                   ][
-                     outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
-                     change_stocks :=
-                       # The numbers indicate the case. Assignmnet (value and flags) will be done below
-                       case_when(
-                         # case 1: we don't want stocks to change sign.
-                         sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
-                         # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
-                         Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks ~ 2L,
-                         # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
-                         Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
-                         # case 4: if value + imbalance send LESS than 20% of supply, send all
-                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 0.2)      ~ 4L,
-                         # case 5: if value + imbalance send MORE than 20% of supply, send 20% of supply
-                         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 0.2)       ~ 5L
-                       )
-                     ]
-        
-        data_level[change_stocks == 1L, Value := 0]
-        data_level[change_stocks == 2L, Value := Value_0 + imbalance]
-        data_level[change_stocks == 3L, Value := -opening_stocks]
-        data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-        data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 0.2,supply * 0.2-opening_stocks,0)]
-   
-        data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
-          
-        data_level[, Value_0 := NULL]
-      }
-      
-      
       # Recalculate imbalance
       calculateImbalance(data_level)
       # Assign imbalance to food if food "only" (not "residual") item
-      if(NEW_FOOD_RESIDUAL==TRUE){
-        data_level[
-          Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
-          `:=`(
-            Value = ifelse(is.na(Value) & imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
-            flagObservationStatus = "E",
-            flagMethod = "h"
-          )
-          ]
-      }else{
-        
-        data_level[
-          Protected == FALSE & food_resid == TRUE & outside(imbalance, -100, 100) & measuredElementSuaFbs == "food",
-          `:=`(
-            Value = ifelse(Value + imbalance >= 0, Value + imbalance, 0),
-            flagObservationStatus = "E",
-            flagMethod = "h"
-          )
-          ] 
-        
-      } 
-      
+
+      data_level[
+        Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
+        `:=`(
+          Value = ifelse(is.na(Value) & imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
+          flagObservationStatus = "E",
+          flagMethod = "h"
+        )
+      ]
       
       # Recalculate imbalance
       calculateImbalance(data_level)
       
-      if(RESIDUAL_BALANCING==TRUE){
       
-      #Assign the residual imbalance to industrial if the conditions are met
+      # Assign the residual imbalance to industrial if the conditions are met
       data_level[
         Protected == FALSE & industrial_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "industrial",
         `:=`(
-          Value = ifelse(is.na(Value)&imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
+          Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
           flagObservationStatus = "E",
           flagMethod = "b"
         )
-        ]
-      # Recalculate imbalance
+      ]
+
       calculateImbalance(data_level)
       
       #Assign the residual imbalance to feed if the conditions are met
       data_level[
         Protected == FALSE & feed_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "feed",
         `:=`(
-          Value = ifelse(is.na(Value)&imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
+          Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
           flagObservationStatus = "E",
           flagMethod = "b"
         )
-        ]
+      ]
      
       calculateImbalance(data_level)
-      } 
       
       
       # Now, let's calculate food processing
@@ -991,20 +911,8 @@ THRESHOLD_METHOD <- 'share'
 #FIX_OUTLIERS <- as.logical(swsContext.computationParams$fix_outliers)
 FIX_OUTLIERS <- TRUE
 
-NEW_THRESHOLDS <- as.logical(swsContext.computationParams$new_thresholds)
-#NEW_THRESHOLDS<-TRUE
-
-#NEW_STOCKS_POSITION <- as.logical(swsContext.computationParams$new_stocks_position)
-NEW_STOCKS_POSITION <- FALSE
-
-#NEW_FOOD_RESIDUAL <- as.logical(swsContext.computationParams$new_food_residual)
-NEW_FOOD_RESIDUAL <- TRUE
-
 #FILL_EXTRACTION_RATES<-as.logical(swsContext.computationParams$fill_extraction_rates)
 FILL_EXTRACTION_RATES <- TRUE
-
-#RESIDUAL_BALANCING <- as.logical(swsContext.computationParams$residual_balancing)
-RESIDUAL_BALANCING <- TRUE
 
 YEARS <- as.character(2000:2017)
 
@@ -3147,73 +3055,38 @@ if (THRESHOLD_METHOD == 'nolimits') {
 
   data[util_share > 1, util_share := 1]
   
-  if (NEW_THRESHOLDS == TRUE) {
-    #No change in the  min/max threshold for Seed (decided by Salar on 22/07/2019)
-    data[measuredElementSuaFbs == "seed",
-         `:=`(
-           min_util_share = min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE),
-           max_util_share = max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)
-         ),
-         by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
-         ]
-    
-    #Relaxing the min/max threshold of food,loss and feed by 10 % (decided by Salar on 22/07/2019)
-    
-    data[measuredElementSuaFbs %in% c("food","loss","feed"),
-         `:=`(
-           min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)-min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*.1,0),
-           max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)+max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*.1,1)
-         ),
-         by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
-         ]
-    
-    #Relaxing the min/max threshold of industrial by 100 % (decided by Salar on 22/07/2019)
-    
-    data[measuredElementSuaFbs %in% c("industrial"),
-         `:=`(
-           min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)-min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*1,0),
-           max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)+max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)*1,1)
-         ),
-         by = c("measuredItemSuaFbs", "measuredElementSuaFbs","geographicAreaM49")
-         ]
-  } else {
+  # "relax" thresholds by applying CV
 
-    elem_CV <-
-      data[
-        timePointYears %in% 2000:2013,
-        .(stdev = sd(util_share, na.rm = TRUE), avg = mean(util_share, na.rm = TRUE)),
-        by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
-      ][,
-        `:=`(
-          CV = ifelse(!is.na(stdev) & avg > 0, stdev / avg, 0),
-          stdev = NULL,
-          avg = NULL
-        )
-      ]
-
-    #data[,
-    #  CV := sd(util_share[data$timePointYears %in% 2000:2013], na.rm = TRUE) / mean(util_share[data$timePointYears %in% 2000:2013], na.rm = TRUE),
-    #  by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
-    #]
-
-    data <-
-      merge(
-        data,
-        elem_CV,
-        by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs"),
-        all.x = TRUE
-      )
-
-    rm(elem_CV)
-   
-    data[,
-      `:=`(
-        min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE) * (1 - CV), 0),
-        max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE) * (1 + CV), 1)
-      ),
+  elem_CV <-
+    data[
+      timePointYears %in% 2000:2013,
+      .(stdev = sd(util_share, na.rm = TRUE), avg = mean(util_share, na.rm = TRUE)),
       by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
+    ][,
+      `:=`(
+        CV = ifelse(!is.na(stdev) & avg > 0, stdev / avg, 0),
+        stdev = NULL,
+        avg = NULL
+      )
     ]
-  }
+
+  data <-
+    merge(
+      data,
+      elem_CV,
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs"),
+      all.x = TRUE
+    )
+
+  rm(elem_CV)
+
+  data[,
+    `:=`(
+      min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE) * (1 - CV), 0),
+      max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE) * (1 + CV), 1)
+    ),
+    by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
+  ]
   
   data[is.infinite(min_util_share) | is.nan(min_util_share), min_util_share := NA_real_]
   
@@ -3965,10 +3838,6 @@ if (exists("out")) {
       thresold method = %s
       fix_outliers = %s
       fill_extraction_rates= %s
-      new_thresholds = %s
-      new_stocks_position = %s
-      new_food_residual = %s
-      residual_balancing= %s
 
       ###############################################
       ###########       ShareDownUp       ###########
@@ -4024,10 +3893,6 @@ if (exists("out")) {
       THRESHOLD_METHOD,
       FIX_OUTLIERS,
       FILL_EXTRACTION_RATES,
-      NEW_THRESHOLDS,
-      NEW_STOCKS_POSITION,
-      NEW_FOOD_RESIDUAL,
-      RESIDUAL_BALANCING,
       sub('/work/SWS_R_Share/', '', shareDownUp_file)
     )
   
