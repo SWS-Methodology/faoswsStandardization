@@ -495,13 +495,11 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           `:=`(
             Value = ifelse(is.na(Value), 0, Value) + food_proc,
             flagObservationStatus = "E",
-            flagMethod = "i",
-            #Protected = ifelse(lev == min_processingLevel, TRUE, FALSE)
-            Protected = FALSE 
+            flagMethod = "i"
           )
-          ][,
-            food_proc := NULL
-            ]
+        ][,
+          food_proc := NULL
+        ]
         
         rm(food_proc_table)
       }
