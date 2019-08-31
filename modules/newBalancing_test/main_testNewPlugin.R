@@ -1721,6 +1721,8 @@ if (length(primaryInvolvedDescendents) == 0) {
   message("No primary commodity involved in this country")
 } else {
   for (lev in sort(unique(tree$processingLevel))) {
+
+    print(paste("NEWBAL: derived production loop, level", lev))
     
     treeCurrentLevel <-
       tree[
