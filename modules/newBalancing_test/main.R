@@ -1,3 +1,11 @@
+library(faosws)
+library(faoswsUtil)
+library(faoswsBalancing)
+library(faoswsStandardization)
+library(dplyr)
+library(data.table)
+library(tidyr)
+
 start_time <- Sys.time()
 
 print("NEWBAL: start")
@@ -831,14 +839,6 @@ print("NEWBAL: end functions")
 
 
 
-
-library(faosws)
-library(faoswsUtil)
-library(faoswsBalancing)
-library(faoswsStandardization)
-library(dplyr)
-library(data.table)
-library(tidyr)
 
 
 #  32 = Argentina
