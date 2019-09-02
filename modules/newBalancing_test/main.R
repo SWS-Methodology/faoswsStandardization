@@ -33,7 +33,7 @@ print("NEWBAL: define functions")
 ######### FUNCTIONS: at some point, they will be moved out of this file. ####
 
 coeffs_stocks_mod <- function(x) {
-  tmp <- lm(data = x, supply_inc ~ supply_exc + trend)
+  tmp <- lm(data = x[timePointYears <= 2013], supply_inc ~ supply_exc + trend)
 
   as.list(tmp$coefficients)
 }
@@ -2424,6 +2424,10 @@ computed_shares_send[, zero_weigth := Child %in% zeroWeight]
 computed_shares_send[, `:=`(Child = paste0("'", Child), Parent = paste0("'", Parent))]
 
 negative_availability <- rbindlist(negative_availability)
+
+# FIXME: stocks may be generated twice for parents in multiple level,
+# (though, the resulting figures are the same). Fix in the prod deriv loop.
+negative_availability <- unique(negative_availability)
 
 negative_availability <-
   dcast(
