@@ -15,26 +15,7 @@ print("NEWBAL: start")
 sapply(dir("R", full.names = TRUE), source)
 
 # Flags set by this plugin. These are temporary: once the testing phase is over,
-# most of these should be changed to I,e, E,e, I,i.
-#
-# E,i: Food processing generated
-# E,c: Balancing: production modified to compensate net trade
-# E,s: Balancing: stocks modified
-# E,h: Balancing: imbalance to food, given food is only utilization
-# E,-: Balancing: utilization modified
-# E,u: Stocks variation generated
-# I,c: Derived production generated
-# E,e: Outlier replaced
-# T,c: Opening stocks updated
-# I,i: Residual item (identity)
-# M,q: Cases for which flags were not set.
-# T,i: Calories per capita created
-# T,p: USDA stocks data
-# I,e: Module imputation
-# E,b: Final balancing (industrial, Feed)
-#
-# M,q should not happen, but added so to check.
-
+# most of these should be changed to I,e, E,e, I,i. See the email sent.
 
 print("NEWBAL: define functions")
 
@@ -3414,6 +3395,70 @@ standData[
   imbalance_percent := imbalance / supply * 100
 ]
 
+# If the imbalance is relatively small (less than 5% in absoulte value)
+# a new allocation is done, this time with no limits.
+
+if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
+
+  standData_no_imbalance <- standData[data.table::between(imbalance, -1, 1)]
+  standData_with_imbalance <- standData[outside(imbalance, -1, 1)]
+
+  levels_to_optimize <- unique(standData_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
+
+  D_adj <- list()
+
+  for (i in 1:nrow(levels_to_optimize)) {
+    #print(i) ; flush.console()
+    # FIXME: remove this (ugly) global assignment
+    x <<- standData_with_imbalance[levels_to_optimize[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
+
+    # The following two instructions basically imply to assign the
+    # (small) imbalance with no limits
+
+    x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange") &
+      Protected == FALSE & !is.na(min_threshold), min_threshold := 0]
+
+    x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange") &
+      Protected == FALSE & !is.na(max_threshold), max_threshold := Inf]
+
+    if (BALANCING_METHOD == "proportional") {
+      x[, adjusted_value := balance_proportional(x)]
+    } else if (BALANCING_METHOD == "optimization") {
+      x[, adjusted_value := balance_optimization(x)]
+    } else {
+      stop("Invalid balancing method.")
+    }
+
+    x[
+      !is.na(adjusted_value) & adjusted_value != Value,
+      `:=`(
+        Value = adjusted_value,
+        flagObservationStatus = "E",
+        flagMethod = "n"
+      )
+    ]
+
+    D_adj[[i]] <- x
+
+    rm(x)
+  }
+
+  standData_with_imbalance <- rbindlist(D_adj)
+
+  standData_with_imbalance[, adjusted_value := NULL]
+
+  standData <- rbind(standData_with_imbalance, standData_no_imbalance)
+
+}
+
+calculateImbalance(standData)
+
+standData[
+  supply > 0,
+  imbalance_percent := imbalance / supply * 100
+]
+
+
 opening_stocks_data <-
   standData[
     !is.na(Value) & measuredElementSuaFbs == 'stockChange',
@@ -3895,6 +3940,27 @@ if (exists("out")) {
       shareDownUp can be modified here:
 
       %s
+
+      ###############################################
+      ##############       Flags       ##############
+      ###############################################
+
+      E,-: Balancing: utilization modified
+      E,b: Final balancing (industrial, Feed)
+      E,c: Balancing: production modified to compensate net trade
+      E,e: Outlier replaced
+      E,h: Balancing: imbalance to food, given food is only utilization
+      E,i: Food processing generated
+      E,n: Balancing of small imbalances
+      E,s: Balancing: stocks modified
+      E,u: Stocks variation generated
+      I,c: Derived production generated
+      I,e: Module imputation
+      I,i: Residual item (identity)
+      M,q: Cases for which flags were not set (should never happen)
+      T,c: Opening stocks updated
+      T,i: Calories per capita created
+      T,p: USDA stocks data
 
       ###############################################
       ##############       Files       ##############
