@@ -861,11 +861,7 @@ print("NEWBAL: end functions")
 # 643 = Russia
 # 710 = south africa
 
-if (CheckDebug()) {
-  COUNTRY <- "840"
-} else {
-  COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
-}
+COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
 
 print("NEWBAL: parameters")
 
