@@ -3407,21 +3407,9 @@ print("NEWBAL: end of balancing loop")
 
 standData <- rbindlist(standData)
 
-standData[,
-  `:=`(
-    supply =
-      sum(Value[measuredElementSuaFbs %chin% c('production', 'imports')],
-          - Value[measuredElementSuaFbs %chin% c('exports', 'stockChange')],
-          na.rm = TRUE),
-    utilizations =
-      sum(Value[!(measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stockChange'))],
-          na.rm = TRUE)
-  ),
-  # year is quite unnesessary, but let's use it in any case
-  by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-][,
-  imbalance := supply - utilizations
-][
+calculateImbalance(standData)
+
+standData[
   supply > 0,
   imbalance_percent := imbalance / supply * 100
 ]
