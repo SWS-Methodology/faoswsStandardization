@@ -890,6 +890,8 @@ BALANCING_METHOD <- "proportional"
 #THRESHOLD_METHOD <- swsContext.computationParams$threshold_method
 THRESHOLD_METHOD <- 'share'
 
+RELAX_THRESHOLDS <- as.logical(swsContext.computationParams$relax_thresholds)
+
 FIX_OUTLIERS <- TRUE
 
 #FILL_EXTRACTION_RATES<-as.logical(swsContext.computationParams$fill_extraction_rates)
@@ -3057,38 +3059,40 @@ if (THRESHOLD_METHOD == 'nolimits') {
 
   data[util_share > 1, util_share := 1]
   
-  # "relax" thresholds by applying CV
+  if (RELAX_THESHOLDS == TRUE) {
+    # "relax" thresholds by applying CV
 
-  elem_CV <-
-    data[
-      timePointYears %in% 2000:2013,
-      .(stdev = sd(util_share, na.rm = TRUE), avg = mean(util_share, na.rm = TRUE)),
-      by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
-    ][,
-      `:=`(
-        CV = ifelse(!is.na(stdev) & avg > 0, stdev / avg, 0),
-        stdev = NULL,
-        avg = NULL
+    elem_CV <-
+      data[
+        timePointYears %in% 2000:2013,
+        .(stdev = sd(util_share, na.rm = TRUE), avg = mean(util_share, na.rm = TRUE)),
+        by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
+      ][,
+        `:=`(
+          CV = ifelse(!is.na(stdev) & avg > 0, stdev / avg, 0),
+          stdev = NULL,
+          avg = NULL
+        )
+      ]
+
+    data <-
+      merge(
+        data,
+        elem_CV,
+        by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs"),
+        all.x = TRUE
       )
+
+    rm(elem_CV)
+
+    data[,
+      `:=`(
+        min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE) * (1 - CV), 0),
+        max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE) * (1 + CV), 1)
+      ),
+      by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
     ]
-
-  data <-
-    merge(
-      data,
-      elem_CV,
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs"),
-      all.x = TRUE
-    )
-
-  rm(elem_CV)
-
-  data[,
-    `:=`(
-      min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE) * (1 - CV), 0),
-      max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE) * (1 + CV), 1)
-    ),
-    by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
-  ]
+  }
   
   data[is.infinite(min_util_share) | is.nan(min_util_share), min_util_share := NA_real_]
   
