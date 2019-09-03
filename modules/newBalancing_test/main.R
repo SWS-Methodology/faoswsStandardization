@@ -1376,7 +1376,7 @@ if (nrow(new_feed) > 0) {
 
 
   new_feed_to_remove <-
-    unique(new_data_avg[imbalance / supply < -0.5, .(geographicAreaM49, measuredItemSuaFbs)])
+    unique(new_data_avg[imbalance / supply < -0.3, .(geographicAreaM49, measuredItemSuaFbs)])
 
   new_feed_to_remove[, measuredElementSuaFbs := "feed"]
 
