@@ -47,6 +47,17 @@ coeffs_stocks_mod <- function(x) {
 }
 
 
+# Fill NAs by LOCF/FOCB/interpolation if more than two
+# non-missing observations are available, otherwhise just
+# replicate the only non-missing observation
+na.fill_ <- function(x) {
+  if(sum(!is.na(x)) > 1) {
+    zoo::na.fill(x, "extend")
+  } else {
+    rep(x[!is.na(x)], length(x))
+  }
+}
+
 
 
 `%!in%` <- Negate(`%in%`)
@@ -1262,6 +1273,133 @@ data <- convertSugarCodes(data)
 #]
 
 
+
+
+########## Remove feed if new element and negative imbalance is huge
+
+# Feed requires country-specific reference files, which are being updated.
+# Until these get reviewed, the feed module will generate feed items in
+# some countries, where it is not required/needed/appropriate. Below, we
+# remove the NEW feed item if the NEGATIVE imbalance obtained by including
+# it is more than 50% of supply (e.g., -72%).
+
+new_feed <-
+  data[
+    measuredElementSuaFbs == "feed",
+    .(
+      pre = sum(!is.na(Value[timePointYears <= 2013])),
+      post = sum(!is.na(Value[timePointYears >= 2014]))
+    ),
+    by = c("geographicAreaM49", "measuredItemSuaFbs")
+  ][
+    pre == 0 & post > 0
+  ][,
+    c("pre", "post") := NULL
+  ]
+
+if (nrow(new_feed) > 0) {
+
+  prev_data_avg <-
+    data[
+      new_feed, on = c("geographicAreaM49", "measuredItemSuaFbs")
+    ][
+      timePointYears >= 2010 & timePointYears <= 2013
+    ][
+      order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears)
+    ][,
+      Value := na.fill_(Value),
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+    ][,
+      .(Value = sum(Value) / sum(!is.na(Value)), timePointYears = 0),
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+    ]
+
+  calculateImbalance(prev_data_avg, supply_subtract = c("exports", "stock_change"))
+
+  prev_processed_avg <-
+    prev_data_avg[
+      supply > 0 &
+        utilizations > 0 &
+        measuredElementSuaFbs == "foodmanufacturing" &
+        !is.na(Value),
+      .(geographicAreaM49, measuredItemSuaFbs, proc_ratio = Value / supply)
+    ]
+
+
+  new_data_avg <-
+    data[
+      new_feed, on = c("geographicAreaM49", "measuredItemSuaFbs")
+    ][
+      measuredElementSuaFbs != "foodmanufacturing" & timePointYears >= 2014
+    ][
+      order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears)
+    ][,
+      Value := na.fill_(Value),
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+    ][,
+      .(Value = sum(Value) / sum(!is.na(Value)), timePointYears = 1),
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+    ]
+
+  calculateImbalance(
+    new_data_avg,
+    keep_utilizations = FALSE,
+    supply_subtract = c("exports", "stock_change")
+  )
+
+  new_data_supply <-
+    unique(new_data_avg[, .(geographicAreaM49, measuredItemSuaFbs, timePointYears, supply)])
+
+  new_data_proc <-
+    merge(
+      new_data_supply,
+      prev_processed_avg,
+      by = c("geographicAreaM49", "measuredItemSuaFbs")
+    )
+
+  new_data_proc <-
+    new_data_proc[
+      supply > 0,
+      .(geographicAreaM49, measuredItemSuaFbs,
+        measuredElementSuaFbs = "foodmanufacturing",
+        Value = supply * proc_ratio, timePointYears = 1)
+    ]
+
+  new_data_avg[, c("supply", "imbalance") := NULL]
+
+  new_data_avg <-
+    rbind(
+      new_data_avg,
+      new_data_proc
+    )
+
+  calculateImbalance(new_data_avg, supply_subtract = c("exports", "stock_change"))
+
+
+  new_feed_to_remove <-
+    unique(new_data_avg[imbalance / supply < -0.5, .(geographicAreaM49, measuredItemSuaFbs)])
+
+  new_feed_to_remove[, measuredElementSuaFbs := "feed"]
+
+  data <-
+    data[
+      !new_feed_to_remove,
+      on = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+    ]
+
+  if (!CheckDebug()) {
+    send_mail(
+      from = "do-not-reply@fao.org",
+      to = swsContext.userEmail,
+      subject = "Some feed items have been removed",
+      body = paste("The following NEW feed items have been removed:", paste(new_feed_to_remove$measuredItemSuaFbs, collapse = ","))
+    )
+  }
+
+}
+
+
+########## / Remove feed if new element and negative imbalance is huge
 
 
 treeRestricted <- tree[, .(measuredItemParentCPC, measuredItemChildCPC, processingLevel)]
