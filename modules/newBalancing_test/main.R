@@ -861,7 +861,6 @@ print("NEWBAL: end functions")
 # 643 = Russia
 # 710 = south africa
 
-COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
 
 print("NEWBAL: parameters")
 
@@ -875,6 +874,8 @@ if (CheckDebug()) {
   GetTestEnvironment(baseUrl = SETTINGS[["server"]], token = SETTINGS[["token"]])
   R_SWS_SHARE_PATH = "//hqlprsws1.hq.un.fao.org/sws_r_share"
 }
+
+COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
 
 USER <- regmatches(
   swsContext.username,
