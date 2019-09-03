@@ -2570,27 +2570,31 @@ computed_shares_send[, `:=`(Child = paste0("'", Child), Parent = paste0("'", Par
 
 negative_availability <- rbindlist(negative_availability)
 
-# FIXME: stocks may be generated twice for parents in multiple level,
-# (though, the resulting figures are the same). Fix in the prod deriv loop.
-negative_availability <- unique(negative_availability)
+if (nrow(negative_availability) > 0) {
 
-negative_availability <-
-  dcast(
-    negative_availability,
-    country + year + measuredItemFbsSua ~ element,
-    value.var = "Value"
-  )
+  # FIXME: stocks may be generated twice for parents in multiple level,
+  # (though, the resulting figures are the same). Fix in the prod deriv loop.
+  negative_availability <- unique(negative_availability)
 
-negative_availability[,
-  availability :=
-    ifelse(is.na(production), 0, production) +
-    ifelse(is.na(imports), 0, imports) -
-    ifelse(is.na(exports), 0, exports)
-]
+  negative_availability <-
+    dcast(
+      negative_availability,
+      country + year + measuredItemFbsSua ~ element,
+      value.var = "Value"
+    )
 
-negative_availability <- nameData("suafbs", "sua_unbalanced", negative_availability)
+  negative_availability[,
+    availability :=
+      ifelse(is.na(production), 0, production) +
+      ifelse(is.na(imports), 0, imports) -
+      ifelse(is.na(exports), 0, exports)
+  ]
 
-negative_availability[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+  negative_availability <- nameData("suafbs", "sua_unbalanced", negative_availability)
+
+  negative_availability[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+
+}
 
 ## XXX fix these cases (check why these conditions happen)
 # (COMMENTED AS THEY SHOULD HAVE BEEN ALREADY FIXED)
@@ -3097,6 +3101,14 @@ if (THRESHOLD_METHOD == 'nolimits') {
       `:=`(
         min_util_share = max(min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE) * (1 - CV), 0),
         max_util_share = min(max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE) * (1 + CV), 1)
+      ),
+      by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
+    ]
+  } else {
+    data[,
+      `:=`(
+        min_util_share = min(util_share[timePointYears %in% 2000:2013], na.rm = TRUE),
+        max_util_share = max(util_share[timePointYears %in% 2000:2013], na.rm = TRUE)
       ),
       by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
     ]
