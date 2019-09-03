@@ -1376,7 +1376,11 @@ if (nrow(new_feed) > 0) {
 
 
   new_feed_to_remove <-
-    unique(new_data_avg[imbalance / supply < -0.3, .(geographicAreaM49, measuredItemSuaFbs)])
+    unique(new_data_avg[imbalance / supply <= -0.3, .(geographicAreaM49, measuredItemSuaFbs)])
+
+  new_feed_dubious <-
+    unique(new_data_avg[imbalance / supply > -0.3 & imbalance / supply <= -0.05,
+           .(geographicAreaM49, measuredItemSuaFbs, x = imbalance / supply)][order(x)][, x := NULL])
 
   new_feed_to_remove[, measuredElementSuaFbs := "feed"]
 
@@ -1391,7 +1395,11 @@ if (nrow(new_feed) > 0) {
       from = "do-not-reply@fao.org",
       to = swsContext.userEmail,
       subject = "Some feed items have been removed",
-      body = paste("The following NEW feed items have been removed:", paste(new_feed_to_remove$measuredItemSuaFbs, collapse = ","))
+      body = paste0(
+              "The following NEW feed items have been removed: ",
+              paste(new_feed_to_remove$measuredItemSuaFbs, collapse = ", "),
+              ". The following COULD be removed, but you will need to decide (sorted in order of severity): ",
+              paste(new_feed_dubious$measuredItemSuaFbs, collapse = ", "))
     )
   }
 
@@ -3059,7 +3067,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
 
   data[util_share > 1, util_share := 1]
   
-  if (RELAX_THESHOLDS == TRUE) {
+  if (RELAX_THRESHOLDS == TRUE) {
     # "relax" thresholds by applying CV
 
     elem_CV <-
