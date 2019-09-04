@@ -1184,7 +1184,87 @@ data <- GetData(key)
 # data <- readRDS(paste0('c:/Users/mongeau.FAODOMAIN/tmp/new_balancing/data_', COUNTRY, '.rds'))
 
 
+#################### FODDER CROPS ##########################################
 
+# Some of these items may be missing in reference files,
+# thus we carry forward the last observation.
+fodder_crops_items <-
+  tibble::tribble(
+    ~description, ~code,
+    "Maize for forage", "01911",
+    "Alfalfa for forage", "01912",
+    "Sorghum for forage", "01919.01",
+    "Rye grass for forage", "01919.02",
+    "Other grasses for forage", "01919.91",
+    "Clover for forage", "01919.03",
+    "Other oilseeds for forage", "01919.94",
+    "Other legumes for  forage", "01919.92",
+    "Cabbage for fodder", "01919.04",
+    "Mixed grass and legumes for forage", "01919.93",
+    "Turnips for fodder", "01919.05",
+    "Beets for fodder", "01919.06",
+    "Carrots for fodder", "01919.07",
+    "Swedes for fodder", "01919.08",
+    "Other forage products, nes", "01919.96",
+    "Other forage crops, nes", "01919.95",
+    "Hay for forage, from legumes", "01919.10",
+    "Hay for forage, from grasses", "01919.09",
+    "Hay for forage, from other crops nes", "01919.11"
+  )
+
+
+fodder_crops_availab <-
+  data[
+    measuredItemFbsSua %in% fodder_crops_items$code &
+      measuredElementSuaFbs == "5510"
+  ]
+
+if (nrow(fodder_crops_availab) > 0) {
+
+  fodder_crops_complete <-
+    CJ(
+      geographicAreaM49 = unique(fodder_crops_availab$geographicAreaM49),
+      measuredElementSuaFbs = "5510",
+      timePointYears = unique(data$timePointYears),
+      measuredItemFbsSua = unique(fodder_crops_availab$measuredItemFbsSua)
+    )
+
+  fodder_crops_complete <-
+    fodder_crops_complete[order(geographicAreaM49, measuredItemFbsSua, timePointYears)]
+
+  fodder_crops <-
+    merge(
+      fodder_crops_complete,
+      fodder_crops_availab[, .(geographicAreaM49, measuredElementSuaFbs,
+                               measuredItemFbsSua, timePointYears, Value)],
+      by = c("geographicAreaM49", "measuredElementSuaFbs",
+             "measuredItemFbsSua", "timePointYears"),
+      all.x = TRUE
+  )
+
+  fodder_crops[,
+    Value := zoo::na.locf(Value),
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+  fodder_crops_new <-
+    fodder_crops[
+      !fodder_crops_availab,
+      on = c("geographicAreaM49", "measuredElementSuaFbs",
+             "measuredItemFbsSua", "timePointYears")
+    ]
+
+
+  if (nrow(fodder_crops_new) > 0) {
+
+    fodder_crops_new[, `:=`(flagObservationStatus = "E", flagMethod = "t")]
+
+    data <- rbind(data, fodder_crops_new)
+
+  }
+}
+
+#################### / FODDER CROPS ########################################
 
 
 
