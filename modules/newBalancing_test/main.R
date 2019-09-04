@@ -853,7 +853,7 @@ if (CheckDebug()) {
   SetClientFiles(SETTINGS[["certdir"]])
   
   GetTestEnvironment(baseUrl = SETTINGS[["server"]], token = SETTINGS[["token"]])
-  R_SWS_SHARE_PATH = "//hqlprsws1.hq.un.fao.org/sws_r_share"
+  R_SWS_SHARE_PATH <- "//hqlprsws1.hq.un.fao.org/sws_r_share"
 }
 
 COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
@@ -945,6 +945,15 @@ if (FILL_EXTRACTION_RATES == TRUE) {
     tidyr::fill(Value, flagObservationStatus, flagMethod, .direction = "down") %>%
     setDT()
 }
+
+saveRDS(
+  tree[
+    !is.na(Value) & measuredElementSuaFbs == "extractionRate",
+    -grepl("measuredElementSuaFbs", names(tree)),
+    with = FALSE
+  ],
+  file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "tree.rds")
+)
 
 # TODO: add explicit columns names in joins
 tree_to_send <-
@@ -1959,12 +1968,14 @@ if (length(primaryInvolvedDescendents) == 0) {
       # To avoid degenerate cases, we will suppose that in the first year delta stocks are zero
       data_for_stocks[min_year == TRUE, delta := 0]
       
-      # If generated delta is greater than supply, set it to 20% of supply
-      data_for_stocks[delta > 0 & delta > 0.2 * supply, delta := 0.2 * supply]
+      # If generated delta is greater than supply, set it to X% of supply
+      # NOTE "2" was 0.2, meaning 20%; it was decides "no limits"
+      data_for_stocks[delta > 0 & delta > 2 * supply, delta := 2 * supply]
 
       # XXX
       if ("opening_stocks" %!in% names(data_for_stocks)) {
-        data_for_stocks[min_year == TRUE, opening_stocks := 0.2 * supply]
+        # NOTE "2" was 0.2, meaning 20%; it was decides "no limits"
+        data_for_stocks[min_year == TRUE, opening_stocks := 2 * supply]
       }
       
       # Fix stocks
