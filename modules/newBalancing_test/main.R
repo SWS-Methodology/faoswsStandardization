@@ -26,7 +26,12 @@ if (CheckDebug()) {
 }
 
 
-COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
+COUNTRY <- as.character(swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys)
+
+COUNTRY_NAME <-
+  nameData(
+    "suafbs", "sua_unbalanced",
+    data.table(geographicAreaM49 = COUNTRY))$geographicAreaM49_description
 
 dbg_print("parameters")
 
@@ -3948,7 +3953,8 @@ plot_main_des_diff <-
   ggplot(des_diff, aes(x = year, diff, group = item, color = item)) +
   geom_line(size = 1) +
   geom_point(size = 3) +
-  ggtitle("Absolute variation of DES and main variations of items")
+  ggtitle("Absolute variation of DES and main variations of items",
+          subtitle = COUNTRY_NAME)
 
 tmp_file_plot_main_des_diff <-
   tempfile(pattern = paste0("PLOT_MAIN_DES_DIFF_", COUNTRY, "_"), fileext = '.pdf')
@@ -3972,7 +3978,8 @@ plot_main_des_items <-
   ggplot(main_des_items, aes(x = year, Value, group = item, color = item)) +
   geom_line(size = 1) +
   geom_point(size = 3) +
-  ggtitle("Main DES items (> 100 Calories)")
+  ggtitle("Main DES items (> 100 Calories)",
+          subtitle = COUNTRY_NAME)
 
 tmp_file_plot_main_des_items <-
   tempfile(pattern = paste0("PLOT_MAIN_DES_ITEMS_", COUNTRY, "_"), fileext = '.pdf')
@@ -3999,7 +4006,8 @@ plot_des_main_diff_avg <-
   ggplot(des_main_diff_avg, aes(x = measuredItemFbsSua_description, y = value, group = variable, fill = variable)) +
   geom_col(position = "dodge") +
   coord_flip() +
-  ggtitle("Main diff (> 20 Cal) in DES average pre (<= 2013) and post (>= 2014)")
+  ggtitle("Main diff (> 20 Cal) in DES average pre (<= 2013) and post (>= 2014)",
+          subtitle = COUNTRY_NAME)
 
 
 tmp_file_plot_des_main_diff_avg <-
