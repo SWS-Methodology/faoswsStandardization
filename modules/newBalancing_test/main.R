@@ -1458,17 +1458,16 @@ if (nrow(new_feed) > 0) {
       on = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
     ]
 
-  if (!CheckDebug()) {
-    send_mail(
-      from = "do-not-reply@fao.org",
-      to = swsContext.userEmail,
-      subject = "Some feed items have been removed",
-      body = paste0(
-              "The following NEW feed items have been removed: ",
-              paste(new_feed_to_remove$measuredItemSuaFbs, collapse = ", "),
-              ". The following COULD be removed, but you will need to decide (sorted in order of severity): ",
-              paste(new_feed_dubious$measuredItemSuaFbs, collapse = ", "))
-    )
+  if (nrow(new_feed_to_remove) > 0) {
+    msg_new_feed_remove <- paste(new_feed_to_remove$measuredItemSuaFbs, collapse = ", ")
+  } else {
+    msg_new_feed_remove <- "No NEW feed removed"
+  }
+
+  if (nrow(new_feed_dubious) > 0) {
+    msg_new_feed_dubious <- paste(new_feed_dubious$measuredItemSuaFbs, collapse = ", ")
+  } else {
+    msg_new_feed_dubious <- "No other NEW items should be removed"
   }
 
 }
@@ -2908,16 +2907,6 @@ if (FIX_OUTLIERS == TRUE) {
       tmp_file_outliers
     )
     
-    if (!CheckDebug()) {
-      send_mail(
-        from = "do-not-reply@fao.org",
-        to = swsContext.userEmail,
-        subject = "Outliers fixed by newBalancing plugin",
-        body = c("There were some outliers (Value), fixed by newBalancing (Value_imputed)",
-                 tmp_file_outliers)
-      )
-    }
-    
     data[
       !is.na(Value_imputed),
       `:=`(
@@ -3884,6 +3873,14 @@ des <-
 
 des[, Value := round(Value, 2)]
 
+f_des <- file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "des.rds")
+
+if (file.exists(f_des)) {
+  file.copy(f_des, sub("des\\.rds", "des_prev.rds", f_des))
+}
+
+saveRDS(des, f_des)
+
 ##### Plot of main DES absolute variations
 
 des_diff <-
@@ -4057,6 +4054,20 @@ if (exists("out")) {
       %s
 
       ###############################################
+      ##############   Removed feed   ###############
+      ###############################################
+
+      The following NEW feed items were removed as including them
+      would have created a huge negative imbalance:
+
+      %s
+
+      The following NEW feed items are dubious, they might be
+      removed, but you will need to do it manually:
+
+      %s
+
+      ###############################################
       ##############       Flags       ##############
       ###############################################
 
@@ -4096,6 +4107,8 @@ if (exists("out")) {
           accounted for at least 50 calories in at least one year
           from 2010-2014, so, basically, the 'main' items
 
+      - OUTLIERS_*.csv = outliers (Value) replaced by routine (Value_imputed)
+
       - STOCKS_*.csv = Suggested stocks
 
       - SHARES_*.csv = Parents/Children shares, availability, etc.
@@ -4127,7 +4140,9 @@ if (exists("out")) {
       BALANCING_METHOD,
       THRESHOLD_METHOD,
       FILL_EXTRACTION_RATES,
-      sub('/work/SWS_R_Share/', '', shareDownUp_file)
+      sub('/work/SWS_R_Share/', '', shareDownUp_file),
+      msg_new_feed_remove,
+      msg_new_feed_dubious
     )
   
   if (!CheckDebug()) {
@@ -4141,6 +4156,7 @@ if (exists("out")) {
                tmp_file_plot_des_main_diff_avg,
                tmp_file_des,
                tmp_file_des_main,
+               tmp_file_outliers,
                tmp_file_stocks,
                tmp_file_name_shares,
                tmp_file_name_imb,
@@ -4161,3 +4177,4 @@ if (exists("out")) {
   print("The newBalancing plugin had a problem when saving data.")
   
 }
+
