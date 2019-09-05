@@ -1183,6 +1183,7 @@ data <- GetData(key)
 # LOAD
 # data <- readRDS(paste0('c:/Users/mongeau.FAODOMAIN/tmp/new_balancing/data_', COUNTRY, '.rds'))
 
+original_opening_stocks <- data[measuredElementSuaFbs == 5113]
 
 #################### FODDER CROPS ##########################################
 
@@ -2617,15 +2618,86 @@ if (STOP_AFTER_DERIVED == TRUE) {
         flagMethod
       )
     ]
-  
+
+  # Save stock data in SUA Unbalanced
+
+  data_stock_to_save <-
+    data[
+      measuredElementSuaFbs == 'stock_change' &
+        timePointYears %in% 2014:2017,
+      list(
+        geographicAreaM49,
+        measuredElementSuaFbs = "5071",
+        measuredItemFbsSua = measuredItemSuaFbs,
+        timePointYears,
+        Value,
+        flagObservationStatus,
+        flagMethod
+      )
+    ]
+
+  data_stock_to_save <- data_stock_to_save[!is.na(Value)]
+
+  new_opening_stocks <-
+    unique(
+      data[
+        timePointYears >= 2014,
+        .(
+          geographicAreaM49,
+          timePointYears,
+          measuredItemFbsSua = measuredItemSuaFbs,
+          measuredElementSuaFbs = "5113",
+          Value_new = opening_stocks
+        )
+      ]
+    )
+
+  opening_stocks_to_save <-
+    merge(
+      original_opening_stocks[timePointYears >= 2014],
+      new_opening_stocks,
+      by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", "timePointYears"),
+      all = TRUE
+    )
+
+  opening_stocks_to_save <-
+    merge(
+      opening_stocks_to_save,
+      flagValidTable,
+      by = c("flagObservationStatus", "flagMethod"),
+      all.x = TRUE
+    )
+
+  opening_stocks_to_save[is.na(Protected) , Protected := FALSE]
+
+  opening_stocks_to_save <-
+    opening_stocks_to_save[
+      Protected != TRUE & (Value_new != Value | is.na(Value))
+    ][,
+      c("Value", "Protected", "Valid") := NULL
+    ]
+
+  setnames(opening_stocks_to_save, "Value_new", "Value")
+
+  opening_stocks_to_save[, `:=`(flagObservationStatus = "E", flagMethod = "u")]
+
+  opening_stocks_to_save <- opening_stocks_to_save[!is.na(Value)]
+
   if (!file.exists(dirname(tmp_file_stocks))) {
     dir.create(dirname(tmp_file_stocks), recursive = TRUE)
   }
 
   write.csv(stocks_suggest_send, tmp_file_stocks)
   
+  data_to_save_unbalanced <- rbind(data_deriv, data_stock_to_save, opening_stocks_to_save)
   
-  out <- SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data_deriv, waitTimeout = 20000)
+  out <-
+    SaveData(
+      domain = "suafbs",
+      dataset = "sua_unbalanced",
+      data = data_to_save_unbalanced,
+      waitTimeout = 20000
+    )
   
   if (exists("out")) {
     
@@ -2730,27 +2802,6 @@ if (nrow(negative_availability) > 0) {
 #computed_shares[processingShare < 0, processingShare := 0]
 #computed_shares[processingShare > 1, processingShare := 1]
 
-
-# Save stock data in SUA Unbalanced
-
-data_stock_to_save <-
-  data[
-    measuredElementSuaFbs == 'stock_change' &
-      timePointYears %in% 2014:2017,
-    list(
-      geographicAreaM49,
-      measuredElementSuaFbs = "5071",
-      measuredItemFbsSua = measuredItemSuaFbs,
-      timePointYears,
-      Value,
-      flagObservationStatus,
-      flagMethod
-    )
-  ]
-
-data_stock_to_save <- data_stock_to_save[!is.na(Value)]
-
-SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data_stock_to_save, waitTimeout = 20000)
 
 
 

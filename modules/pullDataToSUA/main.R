@@ -49,8 +49,7 @@ suaTouristCode = "5164"
 # Convert tourism units to tonnes
 # touristConversionFactor = -1/1000
 touristConversionFactor = 1
-# warning("Stocks is change in stocks, not absolute! This needs to be changed")
-stocksCode = "5071"
+stocksCode = c("5113", "5071") # 5113 = opening, 5071 = variation
 
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
