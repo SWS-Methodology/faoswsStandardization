@@ -6,9 +6,69 @@ library(dplyr)
 library(data.table)
 library(tidyr)
 
+# The only parameter is the string to print
+# COUNTRY is taken from environment (parameter)
+dbg_print <- function(x) {
+  print(paste0("NEWBAL (", COUNTRY, "): ", x))
+}
+
 start_time <- Sys.time()
 
-print("NEWBAL: start")
+if (CheckDebug()) {
+  mydir <- "modules/newBalancing_test"
+  
+  SETTINGS <- faoswsModules::ReadSettings(file.path(mydir, "sws.yml"))
+  
+  SetClientFiles(SETTINGS[["certdir"]])
+  
+  GetTestEnvironment(baseUrl = SETTINGS[["server"]], token = SETTINGS[["token"]])
+  R_SWS_SHARE_PATH <- "//hqlprsws1.hq.un.fao.org/sws_r_share"
+}
+
+dbg_print("parameters")
+
+COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
+
+USER <- regmatches(
+  swsContext.username,
+  regexpr("(?<=/).+$", swsContext.username, perl = TRUE)
+)
+
+STOP_AFTER_DERIVED <- as.logical(swsContext.computationParams$stop_after_derived)
+
+#BALANCING_METHOD <- swsContext.computationParams$balancing_method
+BALANCING_METHOD <- "proportional"
+
+#THRESHOLD_METHOD <- swsContext.computationParams$threshold_method
+THRESHOLD_METHOD <- 'share'
+
+FIX_OUTLIERS <- TRUE
+
+#FILL_EXTRACTION_RATES<-as.logical(swsContext.computationParams$fill_extraction_rates)
+FILL_EXTRACTION_RATES <- TRUE
+
+YEARS <- as.character(2000:2017)
+
+R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
+if (CheckDebug()) {
+  R_SWS_SHARE_PATH = "//hqlprsws1.hq.un.fao.org/sws_r_share"
+}
+
+p <- defaultStandardizationParameters()
+
+p$itemVar <- "measuredItemSuaFbs"
+p$mergeKey[p$mergeKey == "measuredItemCPC"] <- "measuredItemSuaFbs"
+p$elementVar <- "measuredElementSuaFbs"
+p$childVar <- "measuredItemChildCPC"
+p$parentVar <- "measuredItemParentCPC"
+p$createIntermetiateFile <- "TRUE"
+p$protected <- "Protected"
+p$official <- "Official"
+
+shareDownUp_file <-
+  file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_", COUNTRY, ".csv"))
+
+
 
 # Always source files in R/ (useful for local runs).
 # Your WD should be in faoswsStandardization/
@@ -17,7 +77,7 @@ sapply(dir("R", full.names = TRUE), source)
 # Flags set by this plugin. These are temporary: once the testing phase is over,
 # most of these should be changed to I,e, E,e, I,i. See the email sent.
 
-print("NEWBAL: define functions")
+dbg_print("define functions")
 
 ######### FUNCTIONS: at some point, they will be moved out of this file. ####
 
@@ -825,82 +885,16 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
 ############################## / FUNCTIONS ##################################
 
 
-print("NEWBAL: end functions")
+dbg_print("end functions")
 
 
 
 
-
-
-
-#  32 = Argentina
-#  76 = Brazil
-# 124 = Canada
-# 144 = Sri Lanka
-# 324 = Guinea
-# 454 = Malawi
-# 643 = Russia
-# 710 = south africa
-
-
-print("NEWBAL: parameters")
-
-if (CheckDebug()) {
-  mydir <- "modules/newBalancing_test"
-  
-  SETTINGS <- faoswsModules::ReadSettings(file.path(mydir, "sws.yml"))
-  
-  SetClientFiles(SETTINGS[["certdir"]])
-  
-  GetTestEnvironment(baseUrl = SETTINGS[["server"]], token = SETTINGS[["token"]])
-  R_SWS_SHARE_PATH <- "//hqlprsws1.hq.un.fao.org/sws_r_share"
-}
-
-COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
-
-USER <- regmatches(
-  swsContext.username,
-  regexpr("(?<=/).+$", swsContext.username, perl = TRUE)
-)
-
-STOP_AFTER_DERIVED <- as.logical(swsContext.computationParams$stop_after_derived)
-
-#BALANCING_METHOD <- swsContext.computationParams$balancing_method
-BALANCING_METHOD <- "proportional"
-
-#THRESHOLD_METHOD <- swsContext.computationParams$threshold_method
-THRESHOLD_METHOD <- 'share'
-
-FIX_OUTLIERS <- TRUE
-
-#FILL_EXTRACTION_RATES<-as.logical(swsContext.computationParams$fill_extraction_rates)
-FILL_EXTRACTION_RATES <- TRUE
-
-YEARS <- as.character(2000:2017)
-
-R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
-if (CheckDebug()) {
-  R_SWS_SHARE_PATH = "//hqlprsws1.hq.un.fao.org/sws_r_share"
-}
-
-p <- defaultStandardizationParameters()
-
-p$itemVar <- "measuredItemSuaFbs"
-p$mergeKey[p$mergeKey == "measuredItemCPC"] <- "measuredItemSuaFbs"
-p$elementVar <- "measuredElementSuaFbs"
-p$childVar <- "measuredItemChildCPC"
-p$parentVar <- "measuredItemParentCPC"
-p$createIntermetiateFile <- "TRUE"
-p$protected <- "Protected"
-p$official <- "Official"
-
-shareDownUp_file <-
-  file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_", COUNTRY, ".csv"))
 
 
 #####################################  TREE #################################
 
-print("NEWBAL: download tree")
+dbg_print("download tree")
 
 tree <- getCommodityTreeNewMethod(COUNTRY, YEARS)
 
@@ -1061,7 +1055,7 @@ key <-
       )
   )
 
-print("NEWBAL: download population")
+dbg_print("download population")
 
 popSWS <- GetData(key)
 
@@ -1176,7 +1170,7 @@ if (CheckDebug()) {
 
 
 
-print("NEWBAL: download data")
+dbg_print("download data")
 
 
 data <- GetData(key)
@@ -1291,7 +1285,7 @@ data[,
 
 data <- data[measuredElementSuaFbs != "5113"]
 
-print("NEWBAL: elementToCodeNames")
+dbg_print("elementToCodeNames")
 
 data <-
   elementCodesToNames(
@@ -1306,7 +1300,7 @@ data <- data[!is.na(measuredElementSuaFbs)]
 
 setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 
-print("NEWBAL: convert sugar")
+dbg_print("convert sugar")
 
 # XXX
 ##############################################################
@@ -1482,7 +1476,7 @@ treeRestricted <- unique(treeRestricted[order(measuredItemChildCPC)])
 
 primaryInvolved <- faoswsProduction::getPrimary(processedCPC, treeRestricted, p)
 
-print("NEWBAL: primary involved descendents")
+dbg_print("primary involved descendents")
 
 # XXX: check here, 0111 is in results
 primaryInvolvedDescendents <-
@@ -1597,7 +1591,7 @@ data <- data[!(measuredItemSuaFbs %in% non_existing_for_imputation)]
 
 ############################################### Create derived production ###################################
 
-print("NEWBAL: derivation of shareDownUp")
+dbg_print("derivation of shareDownUp")
 
 ############# ShareDownUp ----------------------------------------
 
@@ -1897,14 +1891,14 @@ stocks_suggest <- list()
 
 fixed_proc_shares <- list()
 
-print("NEWBAL: starting derived production loop")
+dbg_print("starting derived production loop")
 
 if (length(primaryInvolvedDescendents) == 0) {
   message("No primary commodity involved in this country")
 } else {
   for (lev in sort(unique(tree$processingLevel))) {
 
-    print(paste("NEWBAL: derived production loop, level", lev))
+    dbg_print("derived production loop, level", lev)
     
     treeCurrentLevel <-
       tree[
@@ -2598,11 +2592,11 @@ if (!file.exists(dirname(shareDownUp_file))) {
 
 write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
 
-print("NEWBAL: end of derived production loop")
+dbg_print("end of derived production loop")
 
 
 if (STOP_AFTER_DERIVED == TRUE) {
-  print("NEWBAL: stop after production of derived")
+  dbg_print("stop after production of derived")
   
   data_deriv <-
     data[
@@ -2818,7 +2812,7 @@ if (nrow(negative_availability) > 0) {
 
 
 
-print("NEWBAL: start outliers")
+dbg_print("start outliers")
 
 ######################## OUTLIERS #################################
 # re-writing of Cristina's outliers plugin with data.table syntax #
@@ -2970,7 +2964,7 @@ if (FIX_OUTLIERS == TRUE) {
   }
 }
 
-print("NEWBAL: end outliers")
+dbg_print("end outliers")
 
 
 ####################### / OUTLIERS #################################
@@ -3177,19 +3171,19 @@ write.csv(new_elements, tmp_file_name_new)
 
 
 
-print("NEWBAL: set thresholds")
+dbg_print("set thresholds")
 
 
 if (THRESHOLD_METHOD == 'nolimits') {
   
-  print("NEWBAL: thresholds, nolimits")
+  dbg_print("thresholds, nolimits")
   
   data[, min_threshold := -Inf]
   data[, max_threshold := Inf]
   
 } else if (THRESHOLD_METHOD == 'level') { ############ DON'T USE
   
-  print("NEWBAL: thresholds, level")
+  dbg_print("thresholds, level")
   
   data[,
     `:=`(
@@ -3201,7 +3195,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
   
 } else if (THRESHOLD_METHOD == 'levelquartile') {
   
-  print("NEWBAL: thresholds, share")
+  dbg_print("thresholds, share")
   
   data[,
     `:=`(
@@ -3213,7 +3207,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
   
 } else if (THRESHOLD_METHOD == 'share') {
   
-  print("NEWBAL: thresholds, share")
+  dbg_print("thresholds, share")
   
   data[,
     supply :=
@@ -3266,7 +3260,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
   
 } else if (THRESHOLD_METHOD == "sharequartile") {
   
-  print("NEWBAL: thresholds, sharequartile")
+  dbg_print("thresholds, sharequartile")
   
   data[,
     supply :=
@@ -3309,7 +3303,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
   
 } else if (THRESHOLD_METHOD == "sharedeviation1") { #  XXXXXXXXXXXXX don't use. DO NOT.
   
-  print("NEWBAL: thresholds, sharedeviation1")
+  dbg_print("thresholds, sharedeviation1")
   
   data[,
     supply :=
@@ -3428,7 +3422,7 @@ data[,
 ## 1 => year = 2014
 i <- 1
 
-print("NEWBAL: starting balancing loop")
+dbg_print("starting balancing loop")
 
 standData <- vector(mode = "list", length = nrow(uniqueLevels))
 
@@ -3538,7 +3532,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
   
 }
 
-print("NEWBAL: end of balancing loop")
+dbg_print("end of balancing loop")
 
 standData <- rbindlist(standData)
 
