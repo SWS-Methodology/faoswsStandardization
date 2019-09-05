@@ -25,9 +25,10 @@ if (CheckDebug()) {
   R_SWS_SHARE_PATH <- "//hqlprsws1.hq.un.fao.org/sws_r_share"
 }
 
-dbg_print("parameters")
 
 COUNTRY <- swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
+
+dbg_print("parameters")
 
 USER <- regmatches(
   swsContext.username,
@@ -1898,7 +1899,7 @@ if (length(primaryInvolvedDescendents) == 0) {
 } else {
   for (lev in sort(unique(tree$processingLevel))) {
 
-    dbg_print("derived production loop, level", lev)
+    dbg_print(paste("derived production loop, level", lev))
     
     treeCurrentLevel <-
       tree[
