@@ -1893,6 +1893,8 @@ computed_shares_send <- list()
 # Keep negative availability
 negative_availability <- list()
 
+stocks_suggest <- list()
+
 fixed_proc_shares <- list()
 
 print("NEWBAL: starting derived production loop")
@@ -2078,6 +2080,9 @@ if (length(primaryInvolvedDescendents) == 0) {
 
       # Here we keep only the ones with historical timeseries.
       # The other stocks can be used by analysts, as suggested variations.
+
+      stocks_suggest[[as.character(lev)]] <-
+        data_for_stocks[!(measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs)]
 
       data_for_stocks <-
         data_for_stocks[measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs]
@@ -2471,6 +2476,55 @@ if (length(primaryInvolvedDescendents) == 0) {
 
 computed_shares <- rbindlist(computed_shares)
 
+stocks_suggest <- unique(rbindlist(stocks_suggest))
+
+stocks_suggest_aux <-
+  data[
+    measuredElementSuaFbs %chin% c("production", "imports", "exports") &
+      measuredItemSuaFbs %chin% stocks_suggest$measuredItemSuaFbs
+  ][,
+    .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears, Value)
+  ]
+
+stocks_suggest_aux <-
+  rbind(
+    stocks_suggest_aux,
+    stocks_suggest_aux[,
+      .(
+        measuredElementSuaFbs = "supply_no_stocks",
+        Value =
+          sum(
+            Value[measuredElementSuaFbs %chin% c("production", "imports")],
+            - Value[measuredElementSuaFbs %chin% c("exports")],
+            na.rm = TRUE
+          )
+      ),
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+    ]
+  )
+
+
+
+
+stocks_suggest_send <-
+  merge(
+    stocks_suggest,
+    dcast(stocks_suggest_aux, geographicAreaM49 + measuredItemSuaFbs + timePointYears ~ measuredElementSuaFbs, value.var = "Value"),
+    by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
+    all = TRUE
+  )
+
+stocks_suggest_send[, supply_with_stocks := supply_no_stocks - ifelse(is.na(delta), 0, delta)]
+
+# FIXME: this dcast on melt indicates that we should
+# have pivoted in a sane way since the beginning.
+stocks_suggest_send <- melt(stocks_suggest_send, id.vars = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"))
+stocks_suggest_send[variable == "delta", variable := "stocks_variation"]
+stocks_suggest_send <- dcast(stocks_suggest_send, geographicAreaM49 + measuredItemSuaFbs + variable ~ timePointYears, value.var = "value")
+
+tmp_file_stocks <- tempfile(pattern = paste0("STOCKS_", COUNTRY, "_"), fileext = '.csv')
+
+
 # Check on consistency of shareDownUp
 shareDownUp_invalid <-
   computed_shares[,
@@ -2565,6 +2619,11 @@ if (STOP_AFTER_DERIVED == TRUE) {
       )
     ]
   
+  if (!file.exists(dirname(tmp_file_stocks))) {
+    dir.create(dirname(tmp_file_stocks), recursive = TRUE)
+  }
+
+  write.csv(stocks_suggest_send, tmp_file_stocks)
   
   
   out <- SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = data_deriv, waitTimeout = 20000)
@@ -2578,7 +2637,8 @@ if (STOP_AFTER_DERIVED == TRUE) {
         from = "do-not-reply@fao.org",
         to = swsContext.userEmail,
         subject = "Production of derived items created",
-        body = paste("The plugin stopped after production of derived items. A file with shareDownUp is available in", sub("/work/SWS_R_Share/", "", shareDownUp_file))
+        body = c(paste("The plugin stopped after production of derived items. Suggested stocks are attached. A file with shareDownUp is available in", sub("/work/SWS_R_Share/", "", shareDownUp_file)), tmp_file_stocks)
+
       )
     }
     
@@ -3623,6 +3683,7 @@ if (!file.exists(dirname(tmp_file_name_imb))) {
   dir.create(dirname(tmp_file_name_imb), recursive = TRUE)
 }
 
+write.csv(stocks_suggest_send,         tmp_file_stocks)
 write.csv(imbalances_to_send,          tmp_file_name_imb)
 write.csv(computed_shares_send,        tmp_file_name_shares)
 write.csv(negative_availability,       tmp_file_name_negative)
@@ -4035,6 +4096,8 @@ if (exists("out")) {
           accounted for at least 50 calories in at least one year
           from 2010-2014, so, basically, the 'main' items
 
+      - STOCKS_*.csv = Suggested stocks
+
       - SHARES_*.csv = Parents/Children shares, availability, etc.
 
       - FILLED_ER_*.csv = filled extraction rates
@@ -4078,6 +4141,7 @@ if (exists("out")) {
                tmp_file_plot_des_main_diff_avg,
                tmp_file_des,
                tmp_file_des_main,
+               tmp_file_stocks,
                tmp_file_name_shares,
                tmp_file_name_imb,
                tmp_file_name_extr,
