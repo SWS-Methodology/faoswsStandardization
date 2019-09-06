@@ -686,7 +686,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data_level[,
         Value_0 := ifelse(is.na(Value), 0, Value)
       ][
-        outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
+        Protected == FALSE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
         change_stocks :=
           # The numbers indicate the case. Assignmnet (value and flags) will be done below
           case_when(
@@ -3829,6 +3829,11 @@ calories_per_capita[, c("food", "calories", "population") := NULL]
 
 standData <- rbind(standData, imbalances, opening_stocks_data, calories_per_capita)
 
+saveRDS(
+  standData,
+  file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "sua_balanced.rds")
+)
+
 #standData[dplyr::near(Value, 0) & Protected == FALSE, Value := NA_real_]
 
 standData <- standData[timePointYears >= 2014][!is.na(Value)]
@@ -4003,7 +4008,9 @@ des_main_diff_avg <- melt(des_main_diff_avg, c("geographicAreaM49", "measuredIte
 des_main_diff_avg <- nameData("suafbs", "sua_unbalanced", des_main_diff_avg, except = "geographicAreaM49")
 
 plot_des_main_diff_avg <-
-  ggplot(des_main_diff_avg, aes(x = measuredItemFbsSua_description, y = value, group = variable, fill = variable)) +
+  ggplot(des_main_diff_avg,
+         aes(x = measuredItemFbsSua_description, y = value,
+             group = rev(variable), fill = variable)) +
   geom_col(position = "dodge") +
   coord_flip() +
   ggtitle("Main diff (> 20 Cal) in DES average pre (<= 2013) and post (>= 2014)",
