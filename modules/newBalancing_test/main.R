@@ -3075,6 +3075,57 @@ data <- data[!(measuredElementSuaFbs == 'stock_change' & stockable == 'FALSE')]
 # Remove residual and tourist (for now)
 data <- data[!(measuredElementSuaFbs %chin% c('residual', 'tourist'))]
 
+
+
+######################### Save UNB for validation #######################
+
+sua_unbalanced <- data[, .(geographicAreaM49, timePointYears,
+                           measuredItemSuaFbs, measuredElementSuaFbs,
+                           Value, flagObservationStatus, flagMethod)]
+
+sua_unbalanced_aux <-
+  sua_unbalanced[,
+    .(
+      supply =
+        sum(Value[measuredElementSuaFbs %chin% c("production", "imports")],
+            - Value[measuredElementSuaFbs %chin% c("exports", "stockChange")],
+            na.rm = TRUE),
+      utilizations =
+        sum(Value[!(measuredElementSuaFbs %chin%
+                    c("production", "imports", "exports", "stockChange"))],
+            na.rm = TRUE)
+    ),
+    by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+  ][,
+    imbalance := supply - utilizations
+  ][
+    supply > 0,
+    imbalance_pct := imbalance / supply * 100
+  ]
+
+sua_unbalanced_aux <-
+  melt(
+    sua_unbalanced_aux,
+    c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs"),
+    variable.name = "measuredElementSuaFbs",
+    value.name = "Value"
+  )
+
+sua_unbalanced_aux[, `:=`(flagObservationStatus = "I", flagMethod = "i")]
+
+sua_unbalanced <- rbind(sua_unbalanced, sua_unbalanced_aux)
+
+
+saveRDS(
+  sua_unbalanced,
+  file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "sua_unbalanced.rds")
+)
+
+######################### Save UNB for validation #######################
+
+
+
+
 data[
   measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
   movsum_value := RcppRoll::roll_sum(shift(Value), 3, fill = 'extend', align = 'right'),
@@ -3613,6 +3664,64 @@ standData[
 ]
 
 
+
+######################### Save BAL for validation #######################
+
+dbg_print("sua_balanced for validation")
+
+sua_balanced <-
+  rbind(
+    data[
+      timePointYears < 2014,
+      .(geographicAreaM49, timePointYears, measuredItemSuaFbs,
+        measuredElementSuaFbs, Value, flagObservationStatus, flagMethod)],
+    standData[,
+      .(geographicAreaM49, timePointYears, measuredItemSuaFbs,
+        measuredElementSuaFbs, Value, flagObservationStatus, flagMethod)]
+  )
+
+sua_balanced_aux <-
+  sua_balanced[,
+    .(
+      supply =
+        sum(Value[measuredElementSuaFbs %chin% c("production", "imports")],
+            - Value[measuredElementSuaFbs %chin% c("exports", "stockChange")],
+            na.rm = TRUE),
+      utilizations =
+        sum(Value[!(measuredElementSuaFbs %chin%
+                    c("production", "imports", "exports", "stockChange"))],
+            na.rm = TRUE)
+    ),
+    by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+  ][,
+    imbalance := supply - utilizations
+  ][
+    supply > 0,
+    imbalance_pct := imbalance / supply * 100
+  ]
+
+sua_balanced_aux <-
+  melt(
+    sua_balanced_aux,
+    c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs"),
+    variable.name = "measuredElementSuaFbs",
+    value.name = "Value"
+  )
+
+sua_balanced_aux[, `:=`(flagObservationStatus = "I", flagMethod = "i")]
+
+sua_balanced <- rbind(sua_balanced, sua_balanced_aux)
+
+saveRDS(
+  sua_balanced,
+  file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "sua_balanced.rds")
+)
+
+
+######################### / Save BAL for validation #######################
+
+
+
 opening_stocks_data <-
   standData[
     !is.na(Value) & measuredElementSuaFbs == 'stockChange',
@@ -3828,11 +3937,6 @@ calories_per_capita[, Protected := FALSE]
 calories_per_capita[, c("food", "calories", "population") := NULL]
 
 standData <- rbind(standData, imbalances, opening_stocks_data, calories_per_capita)
-
-saveRDS(
-  standData,
-  file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "sua_balanced.rds")
-)
 
 #standData[dplyr::near(Value, 0) & Protected == FALSE, Value := NA_real_]
 
