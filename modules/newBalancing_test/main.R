@@ -1824,7 +1824,7 @@ if (file.exists(shareDownUp_file)) {
   # Check on consistency of shareDownUp
   shareDownUp_invalid <-
     shareDownUp_previous[,
-      .(sum_shares = sum(shareDownUp)),
+      .(sum_shares = round(sum(shareDownUp)), 3),
       by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
     ][
       !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
