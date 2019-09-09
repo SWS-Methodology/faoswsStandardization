@@ -584,10 +584,10 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
     data[,
       food_resid :=
         # It's a food item & ...
-        #(measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] |
+        (measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code] |
         # food exists & ...
         # !is.na(Value[measuredElementSuaFbs == 'food']) &
-        Food_Median > 0 & !is.na(Food_Median) &
+        Food_Median > 0 & !is.na(Food_Median)) &
         # ... is the only utilization
         all(is.na(Value[!(measuredElementSuaFbs %in%
                             c('food', 'production', 'imports', 'exports', 'stockChange','foodManufacturing'))])),
