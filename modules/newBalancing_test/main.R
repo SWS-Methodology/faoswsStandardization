@@ -908,7 +908,20 @@ stopifnot(nrow(tree) > 0)
 
 tree <- tree[geographicAreaM49 %chin% COUNTRY]
 
+# Exception: high share conmfirmed by official data
+
+tree_exceptions <- tree[geographicAreaM49 == "392" & measuredItemParentCPC == "0141" & measuredItemChildCPC == "23995.01"]
+
+if (nrow(tree_exceptions) > 0) {
+  tree <- tree[!(geographicAreaM49 == "392" & measuredItemParentCPC == "0141" & measuredItemChildCPC == "23995.01")]
+}
+
 faoswsUtil::validateTree(tree)
+
+if (nrow(tree_exceptions) > 0) {
+  tree <- rbind(tree, tree_exceptions)
+  rm(tree_exceptions)
+}
 
 ## NA ExtractionRates are recorded in the sws dataset as 0
 ## for the standardization, we nee them to be treated as NA
