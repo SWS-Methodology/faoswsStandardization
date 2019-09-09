@@ -2790,19 +2790,29 @@ if (nrow(negative_availability) > 0) {
   # (though, the resulting figures are the same). Fix in the prod deriv loop.
   negative_availability <- unique(negative_availability)
 
+  negative_availability_var <-
+    negative_availability[,
+      .(
+        country,
+        year,
+        measuredItemFbsSua,
+        element = "availability",
+        Value = availability,
+        flagObservationStatus = "I",
+        flagMethod = "i"
+      )
+    ]
+
+  negative_availability[, availability := NULL]
+
+  negative_availability <- rbind(negative_availability, negative_availability_var)
+
   negative_availability <-
     dcast(
       negative_availability,
       country + year + measuredItemFbsSua ~ element,
       value.var = "Value"
     )
-
-  negative_availability[,
-    availability :=
-      ifelse(is.na(production), 0, production) +
-      ifelse(is.na(imports), 0, imports) -
-      ifelse(is.na(exports), 0, exports)
-  ]
 
   negative_availability <- nameData("suafbs", "sua_unbalanced", negative_availability)
 
