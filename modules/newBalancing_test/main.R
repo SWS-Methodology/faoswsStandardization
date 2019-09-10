@@ -113,87 +113,65 @@ na.fill_ <- function(x) {
 # RemainingToProcessedParent() and RemainingProdChildToAssign() will
 # be used in the derivation of shareDownUp
 
-RemainingToProcessedParent <- function(data) {
+RemainingToProcessedParent<-function(data){
+  data[, 
+       parent_already_processed:=ifelse(is.na(parent_qty_processed),parent_qty_processed,
+                                        sum(processed_to_child/extractionRate,na.rm = TRUE)),
+       by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+       ]
   
-  data <-
-    data%>%
-    group_by(geographicAreaM49, measuredItemParentCPC, timePointYears) %>%
-    dplyr::mutate(
-      parent_already_processed =
-        ifelse(
-          is.na(parent_qty_processed),
-          parent_qty_processed,
-          sum(processed_to_child / extractionRate, na.rm = TRUE)
-        )
-    ) %>%
-    dplyr::mutate(remaining_processed_parent = round(parent_qty_processed - parent_already_processed))%>%
-    dplyr::mutate(remaining_processed_parent = ifelse(remaining_processed_parent < 0, 0, remaining_processed_parent)) %>%
-    #in case we have only one child left(new) we assign the remaing parent quantity to process
-    dplyr::mutate(
-      only_child_left =
-        ifelse(
-          sum(is.na(processed_to_child)) == 1 &
-            is.na(processed_to_child) &
-            !is.na(production_of_child) &
-            !is.na(parent_qty_processed) &
-            production_of_child > 0,
-          TRUE,
-          FALSE
-        )
-    ) %>%
-    dplyr::mutate(
-      processed_to_child =
-        ifelse(
-          only_child_left == TRUE,
-          remaining_processed_parent * extractionRate,
-          processed_to_child)
-    ) %>%
-    #After the assignment, we update the remaining quantity to process for parent
-    dplyr::mutate(
-      parent_already_processed =
-        ifelse(
-          is.na(parent_qty_processed),
-          parent_qty_processed,
-          sum(processed_to_child / extractionRate, na.rm = TRUE)
-        )
-    ) %>%
-    dplyr::mutate(remaining_processed_parent = round(parent_qty_processed - parent_already_processed))%>%
-    dplyr::mutate(remaining_processed_parent = ifelse(remaining_processed_parent < 0, 0, remaining_processed_parent)) %>%
-    ungroup() %>%
-    as.data.frame()
+  data[,remaining_processed_parent:=round(parent_qty_processed-parent_already_processed)]
+  
+  data[remaining_processed_parent<0,remaining_processed_parent:=0]
+  data[,
+       only_child_left:=ifelse(sum(is.na(processed_to_child))==1 & 
+                                 is.na(processed_to_child) &
+                                 !is.na(production_of_child) &
+                                 !is.na(parent_qty_processed) & 
+                                 production_of_child>0,TRUE,FALSE),
+       by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+       ]
+  
+  data[only_child_left==TRUE,processed_to_child:=remaining_processed_parent*extractionRate]
+  
+  data[,
+       parent_already_processed:=ifelse(is.na(parent_qty_processed), parent_qty_processed,
+                                        sum(processed_to_child/extractionRate,na.rm = TRUE)),
+       by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+       ]
+  
+  data[,remaining_processed_parent:=round(parent_qty_processed-parent_already_processed)]
+  data[remaining_processed_parent<0,remaining_processed_parent:=0]
   
   return(data)
 }
 
 
-RemainingProdChildToAssign <- function(data) {
+RemainingProdChildToAssign<-function(data){
   
-  data <-
-    data %>%
-    group_by(geographicAreaM49, measuredItemChildCPC, timePointYears) %>%
-    dplyr::mutate(available_processed_child = sum(processed_to_child, na.rm = TRUE)) %>%
-    dplyr::mutate(remaining_to_process_child = round(production_of_child - available_processed_child)) %>%
-    dplyr::mutate(remaining_to_process_child = ifelse(remaining_to_process_child < 0, 0, remaining_to_process_child)) %>%
-    #in case we have one parent left
-    dplyr::mutate(
-      only_parent_left =
-        ifelse(
-          sum(is.na(processed_to_child)) == 1 &
-            is.na(processed_to_child) &
-            !is.na(parent_qty_processed) &
-            parent_qty_processed >= 0,
-          TRUE,
-          FALSE
-        )
-    ) %>%
-    dplyr::mutate(processed_to_child = ifelse(only_parent_left == TRUE, remaining_to_process_child, processed_to_child)) %>%
-    #update the remaining production to assign for children
-    dplyr::mutate(available_processed_child = sum(processed_to_child, na.rm = TRUE)) %>%
-    dplyr::mutate(remaining_to_process_child = round(production_of_child - available_processed_child)) %>%
-    dplyr::mutate(remaining_to_process_child = ifelse(remaining_to_process_child < 0, 0, remaining_to_process_child)) %>%
-    ungroup() %>%
-    as.data.frame()
+  data[,
+       available_processed_child:=sum(processed_to_child,na.rm = TRUE),
+       by=c("geographicAreaM49","measuredItemChildCPC","timePointYears")
+       ]
   
+  data[,remaining_to_process_child:=round(production_of_child-available_processed_child)]
+  data[remaining_to_process_child<0,remaining_to_process_child:=0]
+  
+  data[,
+       only_parent_left:=ifelse(sum(is.na(processed_to_child))==1 & 
+                                  is.na(processed_to_child) &
+                                  !is.na(parent_qty_processed) & 
+                                  parent_qty_processed>=0,TRUE,FALSE)
+       ]
+  
+  data[only_parent_left==TRUE,processed_to_child:=0]
+  
+  data[,available_processed_child:=sum(processed_to_child,na.rm = TRUE),
+       by=c("geographicAreaM49","measuredItemChildCPC","timePointYears")
+       ]
+  
+  data[,remaining_to_process_child:=round(production_of_child-available_processed_child)]
+  data[remaining_to_process_child<0,remaining_to_process_child:=0]
   return(data)
   
 }
@@ -1614,23 +1592,44 @@ dbg_print("derivation of shareDownUp")
 
 ############# ShareDownUp ----------------------------------------
 
-# Using the whole tree not by level
+#this table will be used to assign to zeroweight comodities 
+#the processed quantities of their coproduct
+coproduct_for_sharedownup <- ReadDatatable('zeroweight_coproducts')
+
+stopifnot(nrow(coproduct_for_sharedownup) > 0)
+
+coproduct_for_sharedownup <- coproduct_for_sharedownup[, .(measured_item_child_cpc, branch)]
+
+setnames(coproduct_for_sharedownup, "measured_item_child_cpc", "measuredItemChildCPC")
+
+# Can't do anything if this information if missing, so remove these cases
+coproduct_for_sharedownup <- coproduct_for_sharedownup[!is.na(branch)]
+
+coproduct_for_sharedownup <- coproduct_for_sharedownup [branch != '22242.01 + 22110.04']
+
+coproduct_for_sharedownup <- coproduct_table[!grepl('\\+|or', branch)]
+
+
+#Using the whole tree not by level
 ExtrRate <-
   tree[
-    !is.na(Value) & measuredElementSuaFbs == 'extractionRate',
-    list(
-      measuredItemParentCPC,
-      geographicAreaM49,
-      measuredItemChildCPC,
-      timePointYears,
-      extractionRate = Value,
-      processingLevel
-    )
-  ]
+    !is.na(Value) &
+      measuredElementSuaFbs == 'extractionRate'
+    ][,
+      list(
+        measuredItemParentCPC,
+        geographicAreaM49,
+        measuredItemChildCPC,
+        timePointYears,
+        extractionRate = Value,
+        processingLevel
+      )
+      ]
 
-data_tree <-
-  data[measuredElementSuaFbs %chin%
-       c('production', 'imports', 'exports', 'stock_change','foodmanufacturing')]
+#We include utilizations to identify if proceseed if the only utilization
+data_tree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 
+                                                 'stock_change','foodmanufacturing','loss',
+                                                 'food','industrial','feed','seed')]
 
 setnames(data_tree, "measuredItemSuaFbs", "measuredItemParentCPC")
 
@@ -1639,121 +1638,262 @@ data_tree <-
     data_tree,
     ExtrRate,
     by = c(p$parentVar, p$geoVar, p$yearVar),
-    allow.cartesian = TRUE
+    allow.cartesian = TRUE,
+    all.y = TRUE
   )
 
-data_tree <-
+data_tree<-as.data.table(data_tree)
+
+#the availability for parent that have one child and only processed as utilization will 
+#be entirely assigned to processed for that its unique child even for 2014 onwards
+data_tree[,
+          availability :=
+            sum(
+              Value[get(p$elementVar) %in% c(p$productionCode, p$importCode)],
+              - Value[get(p$elementVar) %in% c(p$exportCode, "stock_change")],
+              na.rm = TRUE
+            ),
+          by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar)
+          ]
+
+#used to chack if a parent has processed as utilization              
+data_tree[, proc_Median:= median(Value[measuredElementSuaFbs=="foodmanufacturing" & timePointYears %in% 2000:2017], na.rm=TRUE),
+          by = c(p$parentVar, p$geoVar)
+          ]
+
+#boolean variable taking TRUE if the parent has only processed as utilization 
+data_tree[,
+          unique_proc :=
+            proc_Median > 0 & !is.na(proc_Median) &
+            # ... is the only utilization
+            all(is.na(Value[!(measuredElementSuaFbs %in%
+                                c('production', 'imports', 'exports', 'stockChange','foodmanufacturing'))])),
+          by = c(p$parentVar, p$geoVar, p$yearVar)
+          ]
+
+data_tree<-
+  unique(
+    data_tree[,list(measuredItemParentCPC,geographicAreaM49,timePointYears,measuredElementSuaFbs,
+                    flagObservationStatus,flagMethod,Value,Official,measuredItemChildCPC,extractionRate,
+                    processingLevel,availability,unique_proc)],
+    
+    by=c("measuredItemParentCPC","geographicAreaM49","timePointYears","measuredElementSuaFbs",
+         "flagObservationStatus","flagMethod","Value","Official","measuredItemChildCPC","extractionRate",
+         "processingLevel")
+  )
+
+
+#dataset to calculate the number of parent of each child and the number of children of each parent
+#including zeroweight commodities
+data_count<-unique(
   data_tree[,
-    .(measuredItemParentCPC, geographicAreaM49, timePointYears,
-      measuredElementSuaFbs,flagObservationStatus,flagMethod,
-      Value,Official,measuredItemChildCPC,extractionRate, processingLevel)
-  ]
+            .(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,timePointYears)], 
+  by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears")
+)
+
+#Caculate the number of parent of each child
+data_count[,number_of_parent:=.N,
+           by=c("geographicAreaM49","measuredItemChildCPC","timePointYears")
+           ]
+
+# #calculate the number of children of each parent
+data_count[,number_of_children:=uniqueN(measuredItemChildCPC),
+           by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+           ]
+
+data_tree<-merge(
+  data_tree,
+  data_count,
+  by = c(p$parentVar,p$childVar, p$geoVar, p$yearVar),
+  allow.cartesian = TRUE,
+  all.x = TRUE
+)
+
+#dataset containing the processed quantity of parents
+food_proc<-unique(
+  data_tree[measuredElementSuaFbs=="foodmanufacturing",
+            list(geographicAreaM49,measuredItemParentCPC,timePointYears,Value)],
+  by=c("geographicAreaM49","measuredItemParentCPC","timePointYears","Value")
+)
+setnames(food_proc,"Value","parent_qty_processed")
+
+data_tree<-merge(
+  data_tree,
+  food_proc,
+  by = c(p$parentVar, p$geoVar, p$yearVar),
+  allow.cartesian = TRUE,
+  all.x = TRUE
+)
+
+data_tree<-
+  unique(
+    data_tree[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
+                    timePointYears,extractionRate,parent_qty_processed,processingLevel,
+                    number_of_parent,number_of_children,availability,unique_proc)],
+    by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
+         "timePointYears","extractionRate","parent_qty_processed","processingLevel",
+         "number_of_parent","number_of_children")
+  )
 
 
-# dataset to calculate the number of parent of each child and the number of children of each parent
+#dataset containing the production of child commodities
+dataprodchild <- data[measuredElementSuaFbs %chin% c('production')]
 
-data_count <-
-  data_tree %>%
-  distinct(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears) %>%
-  dplyr::filter(measuredItemChildCPC %!in% zeroWeight) %>%
-  #Caculate the number of parent of each child
-  group_by(geographicAreaM49, measuredItemChildCPC, timePointYears) %>%
-  dplyr::mutate(number_of_parent = n()) %>%
-  ungroup() %>%
-  #calculate the number of children of each parent
-  group_by(geographicAreaM49, measuredItemParentCPC, timePointYears) %>%
-  dplyr::mutate(number_of_children = n()) %>%
-  ungroup()
+setnames(dataprodchild, "measuredItemSuaFbs", "measuredItemChildCPC")
 
-
-data_tree <-
-  data_tree %>%
-  left_join(
-    data_count,
-    by = c("measuredItemParentCPC", "geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-  ) %>%
-  # Merge with the dataset contain the processed quantities for parent
-  left_join(
-    data_tree %>%
-      dplyr::filter(measuredElementSuaFbs == "foodmanufacturing") %>%
-      distinct(geographicAreaM49, measuredItemParentCPC, timePointYears, Value) %>%
-      dplyr::rename(parent_qty_processed = Value),
-    by = c("measuredItemParentCPC", "geographicAreaM49", "timePointYears")
-  ) %>%
-  distinct(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC,
-           timePointYears, extractionRate, parent_qty_processed,
-           processingLevel, number_of_parent, number_of_children)
+dataprodchild<-
+  unique(
+    dataprodchild[,list(geographicAreaM49,measuredItemChildCPC,
+                        timePointYears,Value,flagObservationStatus, flagMethod)],
+    by=c("geographicAreaM49","measuredItemChildCPC","timePointYears",
+         "Value","flagObservationStatus","flagMethod")
+  )
+setnames(dataprodchild, "Value", "production_of_child")
 
 
-#extract production data for child commodities
+data_tree<-merge(
+  data_tree,
+  dataprodchild,
+  by=c(p$geoVar,p$childVar,p$yearVar)
+)
 
-dataprodchild <-
-  data[
-    measuredElementSuaFbs == 'production',
-    .(geographicAreaM49, measuredItemChildCPC = measuredItemSuaFbs, timePointYears,
-      production_of_child = Value, flagObservationStatus, flagMethod)
-  ]
 
-data_tree <-
-  data_tree %>%
-  left_join(dataprodchild, by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")) %>% 
-  #remove zero weight to avoid double counting
-  dplyr::filter(measuredItemChildCPC %!in% zeroWeight ) %>%
-  #Quantity of parent destined to the production of the given child (only for child with one parent for the moment)
-  #dplyr::mutate(processed_to_child=ifelse(number_of_parent==1,production_of_child/extractionRate,NA_real_)) %>%
-  dplyr::mutate(processed_to_child = ifelse(number_of_parent == 1, production_of_child, NA_real_)) %>%
-  #if a parent has one child, all its processed quantity is destined to the production of that unique child
-  #this help us have the partial processed quanty in case of mutiple parent
-  dplyr::mutate(processed_to_child = ifelse(number_of_children == 1, parent_qty_processed * extractionRate, processed_to_child)) %>%
-  dplyr::mutate(processed_to_child = ifelse(production_of_child == 0, 0, processed_to_child)) %>%
-  as.tbl()
+#ShareDownups for zeroweights are calculated  separately
+#to avoid double counting when agregating processed quantities of parent
 
-# XXX 3?
-for (k in 1:3) {
-  data_tree <- RemainingToProcessedParent(data_tree)
-  data_tree <- RemainingProdChildToAssign(data_tree)
+#dataset containing informations of zeroweight commodities
+data_zeroweight<-data_tree[measuredItemChildCPC %in% zeroWeight,]
+
+#import data for coproduct relation
+zw_coproduct<-copy(coproduct_for_sharedownup)
+
+setnames(zw_coproduct,"measuredItemChildCPC","zeroweight")
+
+setnames(zw_coproduct,"branch","measuredItemChildCPC")
+
+zw_coproduct<-unique(zw_coproduct, by=c("measuredItemChildCPC","zeroweight"))
+
+#We subset the zeroweight coproduct reference table by taking only zeroweights and their coproduct
+#that are childcommodities in the tree of the country
+zw_coproduct<-zw_coproduct[measuredItemChildCPC %in% data_tree[,get("measuredItemChildCPC")]&
+                           zeroweight %in% data_tree[,get("measuredItemChildCPC")],]
+
+
+#Computing information for non zeroweight commodities
+data_tree<-data_tree[measuredItemChildCPC %!in% zeroWeight,]
+
+#Quantity of parent destined to the production of the given child (only for child with one parent for the moment)
+data_tree[,processed_to_child:=ifelse(number_of_parent==1,production_of_child,NA_real_)]
+
+#if a parent has one child, all the production of the child comes from that parent
+data_tree[number_of_children==1,processed_to_child:=parent_qty_processed*extractionRate,processed_to_child]
+
+data_tree[production_of_child==0,processed_to_child:=0]
+
+#assigning the entired availability to processed for parent having only processed as utilization
+data_tree[number_of_children==1 & unique_proc==TRUE,processed_to_child:=availability*extractionRate]
+
+
+#mirror assignment for imputing processed quantity for multple parent children
+#5 loop is sufficient to deal with all the cases
+
+for(k in 1:5){
+  data_tree<-RemainingToProcessedParent(data_tree)
+  data_tree<-RemainingProdChildToAssign(data_tree)
 }
+data_tree<-RemainingToProcessedParent(data_tree)
 
-data_tree <- RemainingToProcessedParent(data_tree)
+#proportional allocation of the remaing production of multiple parent children
+data_tree[,
+          processed_to_child:=
+            ifelse(number_of_parent>1 & is.na(processed_to_child),
+                   (remaining_to_process_child*is.na(processed_to_child)*remaining_processed_parent)/sum((remaining_processed_parent*is.na(processed_to_child)),na.rm = TRUE),
+                   processed_to_child),
+          by=c("geographicAreaM49","measuredItemChildCPC","timePointYears")
+          ]
 
-data_tree <-
-  data_tree %>%
-  group_by(geographicAreaM49,measuredItemChildCPC,timePointYears) %>%
-  dplyr::mutate(
-    processed_to_child =
-      ifelse(
-        number_of_parent > 1 & is.na(processed_to_child),
-        (remaining_to_process_child * is.na(processed_to_child) * remaining_processed_parent) / sum((remaining_processed_parent * is.na(processed_to_child)), na.rm = TRUE),
-        processed_to_child)
-  ) %>%
-  ungroup() %>%
-  group_by(geographicAreaM49, measuredItemParentCPC, timePointYears) %>%
-  dplyr::mutate(parent_already_processed = sum(processed_to_child, na.rm = TRUE)) %>%
-  dplyr::mutate(remaining_processed_parent = round(parent_qty_processed - parent_already_processed)) %>%
-  dplyr::mutate(remaining_processed_parent = ifelse(remaining_processed_parent < 0, 0, remaining_processed_parent)) %>%
-  ungroup() %>%
-  group_by(geographicAreaM49, measuredItemChildCPC, timePointYears) %>%
-  dplyr::mutate(shareDownUp = processed_to_child / sum(processed_to_child, na.rm = TRUE)) %>%
-  # it is necessary to correct some cases
-  dplyr::mutate(shareDownUp = ifelse(is.na(shareDownUp) & number_of_parent == 1, 1, shareDownUp))%>%
-  dplyr::mutate(shareDownUp = ifelse((production_of_child == 0 | is.na(production_of_child)) & timePointYears < 2014, 0, shareDownUp))%>%
-  dplyr::mutate(shareDownUp = ifelse((parent_qty_processed == 0 | is.na(parent_qty_processed)) & timePointYears < 2014, 0, shareDownUp))%>%
-  arrange(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)%>%
-  group_by(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC)%>%
-  dplyr::mutate(ShareDownUp_avg = rollavg(shareDownUp, order = 3))%>%
-  ungroup() %>%
-  group_by(geographicAreaM49, measuredItemChildCPC, timePointYears) %>%
-  dplyr::mutate(ShareDownUp_avg = ShareDownUp_avg / sum(ShareDownUp_avg, na.rm = TRUE)) %>%
-  dplyr::mutate(shareDownUp = ifelse(timePointYears > 2013, ShareDownUp_avg, shareDownUp)) %>%
-  ungroup()
+#Update of remaining production to assing ( should be zero for 2000:2013)
+data_tree[,parent_already_processed:=ifelse(is.na(parent_qty_processed),parent_qty_processed,
+                                            sum(processed_to_child/extractionRate,na.rm = TRUE)),
+          
+          by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+          ]
 
-data_tree <-
-  ExtrRate[, .(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)] %>%
-  left_join(data_tree, c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", "timePointYears")) %>%
-  dplyr::mutate(shareDownUp = ifelse(is.na(shareDownUp), 0, shareDownUp)) %>%
-  distinct(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears, shareDownUp) %>%
-  setDT()
+data_tree[,remaining_processed_parent:=round(parent_qty_processed-parent_already_processed)]
 
+data_tree[remaining_processed_parent<0,remaining_processed_parent:=0]
+
+
+#Impute processed quantity for 2014 onwards using 3 years average
+#(this only to imput shareDownUp)
+data_tree<-data_tree[
+  order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)
+  ][,
+    processed_to_child_avg:=rollavg(processed_to_child, order = 3),
+    by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")
+    ]
+
+setkey(data_tree, NULL)
+
+data_tree[timePointYears>2013 & is.na(processed_to_child),processed_to_child:=processed_to_child_avg]
+
+
+#Back to zeroweight cases(we assign to zeroweights the processed quantity of their coproduct(already calculated))
+
+zw_coproduct<-merge(
+  data_tree,
+  zw_coproduct,
+  by=c("measuredItemChildCPC"),
+  allow.cartesian = TRUE,
+  all.y = TRUE
+)
+
+zw_coproduct[,`:=`(measuredItemChildCPC=zeroweight,
+                  processed_to_child=processed_to_child/extractionRate)]
+
+zw_coproduct<-zw_coproduct[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
+                                 timePointYears,processed_to_child)]
+
+
+data_zeroweight<-merge(
+  data_zeroweight,
+  zw_coproduct,
+  by=c("geographicAreaM49","measuredItemChildCPC","measuredItemParentCPC","timePointYears"),
+  all.x = TRUE
+)
+
+data_zeroweight<-data_zeroweight[,processed_to_child:=processed_to_child*extractionRate]
+
+data_zeroweight<-data_zeroweight[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
+                                       timePointYears,number_of_parent,parent_qty_processed,production_of_child,
+                                       processed_to_child)]
+
+data_tree<-data_tree[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,timePointYears,
+                           number_of_parent,parent_qty_processed,production_of_child,processed_to_child)]
+
+#combining zeroweight and non zero weight commodities
+data_tree<-rbind(data_tree,data_zeroweight)
+
+#calculate ShareDownUp
+data_tree[,
+          shareDownUp:=processed_to_child/sum(processed_to_child,na.rm = T),
+          by=c("geographicAreaM49","measuredItemChildCPC","timePointYears")
+          ]
+
+#some corrections...
+data_tree[is.na(shareDownUp) & number_of_parent==1,shareDownUp:=1]
+data_tree[(production_of_child==0 | is.na(production_of_child)) & timePointYears<2014,shareDownUp:=0]
+data_tree[(parent_qty_processed==0 | is.na(parent_qty_processed)) & timePointYears<2014,shareDownUp:=0]
+
+data_tree<-unique(
+  data_tree[,
+            list(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears, shareDownUp)
+            ],
+  by=c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", "timePointYears", "shareDownUp")
+  
+)
+
+setDT(data_tree)
 
 # / ShareDownUp -------------------------------------------------------
 
