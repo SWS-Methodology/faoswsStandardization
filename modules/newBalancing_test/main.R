@@ -3095,8 +3095,12 @@ data <- data[!(measuredElementSuaFbs == 'stock_change' & stockable == 'FALSE')]
 
 
 
-# Remove residual and tourist (for now)
-data <- data[!(measuredElementSuaFbs %chin% c('residual', 'tourist'))]
+# Remove residual and tourist (for now) [with exceptions]
+if (COUNTRY == "28") {
+  data <- data[!(measuredElementSuaFbs %chin% c('residual'))]
+} else {
+  data <- data[!(measuredElementSuaFbs %chin% c('residual', 'tourist'))]
+}
 
 
 
@@ -3150,37 +3154,30 @@ saveRDS(
 
 
 data[
-  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
+  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed", "tourist"),
   movsum_value := RcppRoll::roll_sum(shift(Value), 3, fill = 'extend', align = 'right'),
   by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
   ]
 
 data[
-  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
+  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed", "tourist"),
   mov_share := movsum_value / sum(movsum_value, na.rm = TRUE),
   by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
 ]
 
 # Impute share if missing
 data[
-  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
+  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed", "tourist"),
   mov_share := rollavg(mov_share),
   by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
 ]
 
 # Set sum of shares = 1
 data[
-  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
+  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed", "tourist"),
   mov_share := mov_share / sum(mov_share, na.rm = TRUE),
   by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
 ]
-
-#data[
-#  measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed"),
-#  movshare_sd := RcppRoll::roll_sd(shift(mov_share), 3, fill = 'extend', align = 'right'),
-#  by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-#]
-
 
 
 
@@ -3883,6 +3880,7 @@ codes <- tibble::tribble(
   "5016", "loss",
   "5510", "production",
   "5525", "seed",
+  "5164", "tourist",
   "5071", "stockChange"
 )
 
@@ -4171,12 +4169,38 @@ des_cast <- des_cast[order(measuredItemFbsSua_description)]
 des_cast[, measuredItemFbsSua_description := sub("^000", "", measuredItemFbsSua_description)]
 
 
-# Main items are considered those for which in at least one
-# year their calories were at least 50.
-des_main <-
-  des_cast[measuredItemFbsSua %chin% c("S2901", des[Value > 50, unique(measuredItemFbsSua)])]
+# Main items, more then 90%
 
-des_main <- des_main[order(-get(names(des_main)[ncol(des_main)]))]
+des_main_90 <-
+  des[
+    measuredItemFbsSua != "S2901" & timePointYears >= 2014,
+    .(tot = sum(Value)),
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ][
+    order(-tot)
+  ][,
+    cumsum := cumsum(tot)
+  ]
+
+des_main_90 <-
+  des_main_90[
+    des[
+      measuredItemFbsSua != "S2901" & timePointYears >= 2014,
+      .(maintot = sum(Value)),
+      by = c("geographicAreaM49")
+    ],
+    on = "geographicAreaM49"
+  ][
+    cumsum < maintot * 0.9
+  ][,
+    c("tot", "cumsum", "maintot") := NULL
+  ]
+
+des_main <-
+  rbind(
+    des_cast[measuredItemFbsSua == "S2901"],
+    des_cast[des_main_90, on = c("geographicAreaM49", "measuredItemFbsSua")]
+  )
 
 des_main <-
   rbind(
@@ -4292,8 +4316,7 @@ if (exists("out")) {
       - DES_*.csv = calculation of DES (total and by items)
 
       - DES_MAIN_ITEMS_*.csv = as DES_*.csv, but only with items that
-          accounted for at least 50 calories in at least one year
-          from 2010-2014, so, basically, the 'main' items
+          accounted for nearly 90%% on average over 2014-2017
 
       - OUTLIERS_*.csv = outliers (Value) replaced by routine (Value_imputed)
 
