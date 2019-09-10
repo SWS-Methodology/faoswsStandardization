@@ -27,8 +27,7 @@ computeFbsAggregate = function(data, fbsTree, standParams){
     stopifnot(standParams$itemVar %in% colnames(fbsTree))
     stopifnot(paste0("fbsID", 1:4) %in% colnames(fbsTree))
     
-    data = merge(data, fbsTree, by = standParams$itemVar)
-    out = list()
+    
     
     fbsTree[measuredItemSuaFbs=="23670.01",fbsID4:=2542]
     fbsTree[measuredItemSuaFbs=="23670.01",fbsID2:=2903]   
@@ -37,7 +36,8 @@ computeFbsAggregate = function(data, fbsTree, standParams){
       fbsTree[measuredItemSuaFbs=="23670.01",fbsID4:=2543]
       fbsTree[measuredItemSuaFbs=="23670.01",fbsID2:=2903]
     }
-    
+    data = merge(data, fbsTree, by = standParams$itemVar)
+    out = list()
     
     out[[1]] = data[, list(Value = sum(Value, na.rm = TRUE)),
                     by = c(standParams$elementVar, standParams$yearVar,
