@@ -3112,22 +3112,6 @@ if (FIX_OUTLIERS == TRUE) {
         all = TRUE
       )
     
-    tmp_file_outliers <-
-      tempfile(pattern = paste0("OUTLIERS_", COUNTRY, "_"), fileext = '.csv')
-    
-    if (!file.exists(dirname(tmp_file_outliers))) {
-      dir.create(dirname(tmp_file_outliers), recursive = TRUE)
-    }
-    
-    write.csv(
-      data[
-        !is.na(Value_imputed),
-        .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs,
-          timePointYears, flagObservationStatus, flagMethod, Value, Value_imputed)
-        ],
-      tmp_file_outliers
-    )
-    
     data[
       !is.na(Value_imputed),
       `:=`(
@@ -4149,6 +4133,59 @@ if (CheckDebug()) {
 
 data_suabal <- GetData(key_all)
 
+######### Combine old and new calories, and get outliers #############
+
+combined_calories <-
+  rbind(
+    data_suabal[measuredElementSuaFbs == "664" & timePointYears <= 2013],
+    calories_per_capita[, names(data_suabal), with = FALSE]
+  )
+
+combined_calories <-
+  combined_calories[order(geographicAreaM49, measuredItemFbsSua, timePointYears)]
+
+combined_calories <-
+  combined_calories[,
+    perc.change := (Value / shift(Value) - 1) * 100,
+    by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
+  ]
+
+combined_calories[, outlier := ""]
+
+combined_calories[
+  (shift(Value) > 5 | Value > 5) & abs(perc.change) > 0.1 & timePointYears >= 2014,
+  outlier := "OUTLIER",
+  by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
+]
+
+combined_calories <-
+  combined_calories[
+    unique(combined_calories[outlier == "OUTLIER", .(geographicAreaM49, measuredItemFbsSua)]),
+    on = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+combined_calories[, Value := round(Value, 2)]
+combined_calories[, perc.change := round(perc.change, 2)]
+
+
+tmp_file_outliers <-
+  tempfile(pattern = paste0("OUTLIERS_", COUNTRY, "_"), fileext = '.csv')
+
+if (!file.exists(dirname(tmp_file_outliers))) {
+  dir.create(dirname(tmp_file_outliers), recursive = TRUE)
+}
+
+setnames(combined_calories, "Value", "Calories")
+
+combined_calories <-
+  nameData("suafbs", "sua_unbalanced", combined_calories, except = "timePointYears")
+
+write.csv(combined_calories, tmp_file_outliers)
+
+
+######### / Combine old and new calories, and get outliers ###########
+
+
 if (nrow(data_suabal[timePointYears >= 2014]) > 0) {
   
   data_suabal_missing <-
@@ -4468,7 +4505,8 @@ if (exists("out")) {
       - DES_MAIN_ITEMS_*.csv = as DES_*.csv, but only with items that
           accounted for nearly 90%% on average over 2014-2017
 
-      - OUTLIERS_*.csv = outliers (Value) replaced by routine (Value_imputed)
+      - OUTLIERS_*.csv = outliers in Calories (defined as those that account
+          for more than 5 Calories with an increase of more than 15%%)
 
       - STOCKS_*.csv = Suggested stocks
 
