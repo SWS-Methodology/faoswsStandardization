@@ -1892,7 +1892,7 @@ data_tree[,
 data_tree[is.na(shareDownUp) & number_of_parent==1,shareDownUp:=1]
 data_tree[(production_of_child==0 | is.na(production_of_child)) & timePointYears<2014,shareDownUp:=0]
 data_tree[(parent_qty_processed==0 | is.na(parent_qty_processed)) & timePointYears<2014,shareDownUp:=0]
-
+data_tree[is.na(shareDownUp),shareDownUp:=0]
 data_tree<-unique(
   data_tree[,
             list(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears, shareDownUp)
