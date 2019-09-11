@@ -3655,63 +3655,66 @@ for (i in seq_len(nrow(uniqueLevels))) {
   if (i > 1) {
     items_stocks_changed <-
       unique(standData[[i-1]][!is.na(change_stocks)]$measuredItemSuaFbs)
+
+    if (length(items_stocks_changed) > 0) {
     
-    xxx <-
-      rbind(
-        # Previous data (balanced)
-        standData[[i-1]][
-          measuredItemSuaFbs %in% items_stocks_changed & measuredElementSuaFbs == 'stockChange',
-          list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value, opening_stocks)
-          ],
-        # New data (unbalanced)
-        data[
-          timePointYears > unique(standData[[i-1]]$timePointYears) &
-            measuredItemSuaFbs %in% items_stocks_changed &
-            measuredElementSuaFbs == 'stockChange',
-          list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value, opening_stocks)
+      xxx <-
+        rbind(
+          # Previous data (balanced)
+          standData[[i-1]][
+            measuredItemSuaFbs %in% items_stocks_changed & measuredElementSuaFbs == 'stockChange',
+            list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value, opening_stocks)
+            ],
+          # New data (unbalanced)
+          data[
+            timePointYears > unique(standData[[i-1]]$timePointYears) &
+              measuredItemSuaFbs %in% items_stocks_changed &
+              measuredElementSuaFbs == 'stockChange',
+            list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value, opening_stocks)
+            ]
+        )
+
+      # Remove these (there is no opening stock in the minimum year
+      xxx <- xxx[!(measuredItemSuaFbs %in% xxx[timePointYears == min(timePointYears) & is.na(opening_stocks)]$measuredItemSuaFbs)]
+
+      xxx1 <-
+        plyr::ddply(
+          xxx,
+          .variables = c('geographicAreaM49', 'measuredItemSuaFbs'),
+          .fun = function(x) fix_stocks(x)
+        )
+
+      setDT(xxx1)
+
+      xxx1 <-
+        xxx1[
+          timePointYears > unique(standData[[i-1]]$timePointYears),
+          list(geographicAreaM49, timePointYears, measuredItemSuaFbs,
+               delta_updated, opening_stocks_updated = opening_stocks)
           ]
-      )
-    
-    # Remove these (there is no opening stock in the minimum year
-    xxx <- xxx[!(measuredItemSuaFbs %in% xxx[timePointYears == min(timePointYears) & is.na(opening_stocks)]$measuredItemSuaFbs)]
-    
-    xxx1 <-
-      plyr::ddply(
-        xxx,
-        .variables = c('geographicAreaM49', 'measuredItemSuaFbs'),
-        .fun = function(x) fix_stocks(x)
-      )
-    
-    setDT(xxx1)
-    
-    xxx1 <-
-      xxx1[
-        timePointYears > unique(standData[[i-1]]$timePointYears),
-        list(geographicAreaM49, timePointYears, measuredItemSuaFbs,
-             delta_updated, opening_stocks_updated = opening_stocks)
+
+      data <-
+        merge(
+          data,
+          xxx1,
+          by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
+          all.x = TRUE
+        )
+
+      data[
+        timePointYears > unique(standData[[i-1]]$timePointYears) &
+          measuredElementSuaFbs == "stockChange" &
+          !is.na(delta_updated),
+        `:=`(
+          Value = delta_updated,
+          opening_stocks = opening_stocks_updated,
+          flagObservationStatus = "T",
+          flagMethod = "c"
+        )
+        ][,
+          c("delta_updated", "opening_stocks_updated") := NULL
         ]
-    
-    data <-
-      merge(
-        data,
-        xxx1,
-        by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
-        all.x = TRUE
-      )
-    
-    data[
-      timePointYears > unique(standData[[i-1]]$timePointYears) &
-        measuredElementSuaFbs == "stockChange" &
-        !is.na(delta_updated),
-      `:=`(
-        Value = delta_updated,
-        opening_stocks = opening_stocks_updated,
-        flagObservationStatus = "T",
-        flagMethod = "c"
-      )
-      ][,
-        c("delta_updated", "opening_stocks_updated") := NULL
-      ]
+    }
   }
   
   filter <- uniqueLevels[i, ]
