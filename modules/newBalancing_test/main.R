@@ -1115,6 +1115,10 @@ flagValidTable <- ReadDatatable("valid_flags")
 
 # XXX: we decided to unprotect E,e (replaced outliers)
 flagValidTable[flagObservationStatus == 'E' & flagMethod == 'e', Protected := FALSE]
+# XXX: we need to unprotect I,c because it was being assigned
+# to imputation of production of derived which is NOT protected.
+# This will need to change in the next exercise.
+flagValidTable[flagObservationStatus == 'I' & flagMethod == 'c', Protected := FALSE]
 
 # utilizationTable=ReadDatatable("utilization_table")
 utilizationTable <-
