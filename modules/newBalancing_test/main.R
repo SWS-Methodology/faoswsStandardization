@@ -1033,6 +1033,7 @@ itemMap <- itemMap[, list(measuredItemSuaFbs = code, type)]
 
 
 
+coproduct_table <- ReadDatatable('zeroweight_coproducts')
 
 
 
@@ -1765,11 +1766,14 @@ data_tree<-merge(
 data_zeroweight<-data_tree[measuredItemChildCPC %in% zeroWeight,]
 
 #import data for coproduct relation
-zw_coproduct<-copy(coproduct_for_sharedownup)
+zw_coproduct <-
+  coproduct_for_sharedownup[,
+    .(zeroweight = measured_item_child_cpc, measuredItemChildCPC = branch)
+  ]
 
-setnames(zw_coproduct,"measuredItemChildCPC","zeroweight")
-
-setnames(zw_coproduct,"branch","measuredItemChildCPC")
+#setnames(zw_coproduct,"measuredItemChildCPC","zeroweight")
+#
+#setnames(zw_coproduct,"branch","measuredItemChildCPC")
 
 zw_coproduct<-unique(zw_coproduct, by=c("measuredItemChildCPC","zeroweight"))
 
@@ -1901,7 +1905,6 @@ setDT(data_tree)
 
 # Tables that will be required by the co-product issue (fix processingShare)
 
-coproduct_table <- ReadDatatable('zeroweight_coproducts')
 
 stopifnot(nrow(coproduct_table) > 0)
 
