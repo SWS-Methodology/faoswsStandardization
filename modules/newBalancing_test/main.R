@@ -894,7 +894,7 @@ if (nrow(tree_exceptions) > 0) {
   tree <- tree[!(geographicAreaM49 == "392" & measuredItemParentCPC == "0141" & measuredItemChildCPC == "23995.01")]
 }
 
-faoswsUtil::validateTree(tree)
+validateTree(tree)
 
 if (nrow(tree_exceptions) > 0) {
   tree <- rbind(tree, tree_exceptions)
