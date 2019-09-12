@@ -4230,45 +4230,50 @@ new_sua_bal <-
     (outlier == TRUE & measuredElementSuaFbs == 5510))
   ]
 
+if (nrow(new_sua_bal) > 0) {
 
-new_sua_bal <-
-  new_sua_bal[,
-    .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs,
-      timePointYears, Historical_value_2010_2013 = Meanold, outlier = "OUTLIER")
+  new_sua_bal <-
+    new_sua_bal[,
+      .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs,
+        timePointYears, Historical_value_2010_2013 = Meanold, outlier = "OUTLIER")
+    ]
+
+  out_elems_items <-
+    rbind(
+      data_suabal[timePointYears <= 2013][
+        unique(new_sua_bal[, .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs)]),
+        on = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")],
+      standData[
+        unique(new_sua_bal[, .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs)]),
+        on = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")]
+    )
+
+  out_elems_items <-
+    merge(
+      out_elems_items,
+      new_sua_bal,
+      by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs", "timePointYears"),
+      all.x = TRUE
+    )
+
+  out_elems_items[is.na(outlier), outlier := ""]
+
+  out_elems_items[,
+    Historical_value_2010_2013 := unique(na.omit(Historical_value_2010_2013)),
+    c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
   ]
 
-out_elems_items <-
-  rbind(
-    data_suabal[timePointYears <= 2013][
-      unique(new_sua_bal[, .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs)]),
-      on = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")],
-    standData[
-      unique(new_sua_bal[, .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs)]),
-      on = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")]
-  )
+  out_elems_items <-
+    out_elems_items[order(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs, timePointYears)]
 
-out_elems_items <-
-  merge(
-    out_elems_items,
-    new_sua_bal,
-    by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs", "timePointYears"),
-    all.x = TRUE
-  )
-
-out_elems_items[is.na(outlier), outlier := ""]
-
-out_elems_items[,
-  Historical_value_2010_2013 := unique(na.omit(Historical_value_2010_2013)),
-  c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
-]
-
-out_elems_items <-
-  out_elems_items[order(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs, timePointYears)]
-
-out_elems_items[,
-  perc.change := (Value / shift(Value) - 1) * 100,
-  by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
-]
+  out_elems_items[,
+    perc.change := (Value / shift(Value) - 1) * 100,
+    by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
+  ]
+} else {
+  out_elems_items <-
+    new_sua_bal[0, .(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears, Value, flagObservationStatus, flagMethod, perc.change = NA_real_, Historical_value_2010_2013 = NA_real_, outlier)]
+}
 
 out_elems_items <- rbind(combined_calories, out_elems_items, fill = TRUE)
 
