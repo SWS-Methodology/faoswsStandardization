@@ -2089,6 +2089,8 @@ if (length(primaryInvolvedDescendents) == 0) {
       data$measuredElementSuaFbs %chin% c('production', 'imports', 'exports')
     
     if (any(condition_for_stocks)) {
+
+      dbg_print("generating stocks")
       
       derived_opening_stocks <-
         data[
@@ -2121,6 +2123,7 @@ if (length(primaryInvolvedDescendents) == 0) {
           supply := NULL
         ]
       
+      dbg_print("subset conditions for stocks")
       
       # generate stocks for parents
       data_for_stocks <-
@@ -2142,6 +2145,8 @@ if (length(primaryInvolvedDescendents) == 0) {
           delta := supply - RcppRoll::roll_mean(supply, 2, fill = 'extend', align = 'right')
         ]
 
+      dbg_print("histmod stocks")
+
       data_histmod_stocks <-
         data[
           measuredItemSuaFbs %chin% treeCurrentLevel$measuredItemParentCPC &
@@ -2149,6 +2154,8 @@ if (length(primaryInvolvedDescendents) == 0) {
         ]
 
       if (nrow(data_histmod_stocks) > 0) {
+
+        dbg_print("data for histmod available")
 
         data_histmod_stocks <-
           data_histmod_stocks[,
@@ -2171,6 +2178,8 @@ if (length(primaryInvolvedDescendents) == 0) {
             trend := seq_len(.N),
             .(geographicAreaM49, measuredItemSuaFbs)
           ]
+
+        dbg_print("coeffs_stocks_mod")
 
         data_histmod_stocks[,
           c("c_int", "c_sup", "c_trend") := coeffs_stocks_mod(.SD),
@@ -2197,6 +2206,8 @@ if (length(primaryInvolvedDescendents) == 0) {
             all = TRUE
           )
 
+        dbg_print("delta_pred overwrites delta")
+
         data_for_stocks[!is.na(delta_pred), delta := delta_pred][, delta_pred := NULL]
       }
       
@@ -2212,12 +2223,16 @@ if (length(primaryInvolvedDescendents) == 0) {
       # NOTE "2" was 0.2, meaning 20%; it was decides "no limits"
       data_for_stocks[delta > 0 & delta > 2 * supply, delta := 2 * supply]
 
+      dbg_print("opening_stocks.x and opening_stocks.y")
+
       # XXX
       if ("opening_stocks" %!in% names(data_for_stocks)) {
         # NOTE "2" was 0.2, meaning 20%; it was decides "no limits"
         data_for_stocks[min_year == TRUE, opening_stocks := 2 * supply]
       }
       
+      dbg_print("fix stocks in derived loop")
+
       # Fix stocks
       data_for_stocks <-
         plyr::ddply(
@@ -2241,6 +2256,8 @@ if (length(primaryInvolvedDescendents) == 0) {
       # Here we keep only the ones with historical timeseries.
       # The other stocks can be used by analysts, as suggested variations.
 
+      dbg_print("stocks suggest")
+
       stocks_suggest[[as.character(lev)]] <-
         data_for_stocks[!(measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs)]
 
@@ -2248,6 +2265,9 @@ if (length(primaryInvolvedDescendents) == 0) {
         data_for_stocks[measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs]
       
       if (nrow(data_for_stocks) > 0) {
+
+        dbg_print("data_for_stocks available")
+
         data <-
           merge(
             data,
@@ -2262,6 +2282,8 @@ if (length(primaryInvolvedDescendents) == 0) {
           data[, c("opening_stocks.x", "opening_stocks.y") := NULL]
         }
         
+        dbg_print("overwriting non-protected stocks")
+
         # Assign if non-protected, only non-fozen data
         data[
           timePointYears >= 2014 &
@@ -2284,6 +2306,8 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     setnames(dataMergeTree, "measuredItemSuaFbs", "measuredItemParentCPC")
     
+    dbg_print("dataMerge + treeCurrentLevel")
+
     dataMergeTree <-
       merge(
         dataMergeTree,
@@ -2291,6 +2315,8 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c(p$parentVar, p$geoVar, p$yearVar),
         allow.cartesian = TRUE
       )
+
+    dbg_print("dataMerge + data_tree")
 
     dataMergeTree <-
       merge(
@@ -2300,6 +2326,8 @@ if (length(primaryInvolvedDescendents) == 0) {
         allow.cartesian = TRUE
       )
     
+    dbg_print("dataMerge availability")
+
     dataMergeTree[,
       availability :=
         sum(
@@ -2311,6 +2339,8 @@ if (length(primaryInvolvedDescendents) == 0) {
       by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar)
     ]
     
+    dbg_print("negative availability")
+
     negative_availability[[as.character(lev)]] <-
       unique(
         dataMergeTree[
@@ -2328,9 +2358,13 @@ if (length(primaryInvolvedDescendents) == 0) {
           ]
       )
     
+    dbg_print("zero out negative availability")
+
     # XXX: Replace negative availability, so we get zero production, instead of negative. This, , however, should be fixed in advance, somehow.
     dataMergeTree[availability < 0, availability := 0]
     
+    dbg_print("availability in child equivalent")
+
     dataMergeTree[,
       availabilitieChildEquivalent := availability * extractionRate #,
       #by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar, "measuredElementSuaFbs")
@@ -2364,6 +2398,8 @@ if (length(primaryInvolvedDescendents) == 0) {
     dataMergeTree[shareDownUp < 0, shareDownUp := 0]
     dataMergeTree[is.nan(shareDownUp), shareDownUp := 0]
 
+    dbg_print("dataMergeTree + shareDownUp_previous")
+
     dataMergeTree <-
       merge(
         dataMergeTree,
@@ -2391,6 +2427,8 @@ if (length(primaryInvolvedDescendents) == 0) {
                measuredItemChildCPC, extractionRate, availability, shareDownUp)
         ]
       )
+
+    dbg_print("dataMergeTree + production")
     
     dataMergeTree <-
       merge(
@@ -2405,12 +2443,16 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     dataMergeTree[timePointYears >= 2014 & Protected == FALSE, Value := NA][, Protected := NULL]
     
+    dbg_print("processingShare")
+
     dataMergeTree[, processingShare := Value / extractionRate * shareDownUp / availability]
     
     # Fix weird processing shares. This should in theory never happen, but it does in some cases.
     dataMergeTree[processingShare < 0, processingShare := 0]
     dataMergeTree[processingShare > 1, processingShare := 1]
     
+    dbg_print("processingShare_avg")
+
     dataMergeTree <-
       dataMergeTree[
         order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)
@@ -2424,16 +2466,23 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     #dataMergeTree[, nonna := sum(!is.na(processingShare)), list(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC)]
     
+    dbg_print("replace processingShare with processingShare_avg")
+
     dataMergeTree[is.na(processingShare), processingShare := processingShare_avg]
     
     dataMergeTree[, processingShare_avg := NULL]
 
 
+    dbg_print("Fix processing shares for co-products")
+
     ############### Fix processing shares for co-products
 
     ################################# Easy cases
 
+
     if (nrow(coproduct_table_easy) > 0) {
+
+      dbg_print("Fix processing shares, easy")
 
       output_easy <-
         dataMergeTree[
@@ -2466,6 +2515,8 @@ if (length(primaryInvolvedDescendents) == 0) {
 
     if (nrow(coproduct_table_plus) > 0) {
 
+      dbg_print("Fix processing shares, plus")
+
       output_plus <-
         dataMergeTree[
           measuredItemChildCPC %in% unique(coproduct_table_plus$measuredItemChildCPC),
@@ -2496,6 +2547,8 @@ if (length(primaryInvolvedDescendents) == 0) {
     ################################# Or cases
 
     if (nrow(coproduct_table_or) > 0) {
+
+      dbg_print("Fix processing shares, or")
 
       output_or <-
         dataMergeTree[
@@ -2552,6 +2605,8 @@ if (length(primaryInvolvedDescendents) == 0) {
 
       fixed_proc_shares[[as.character(lev)]] <- dataMergeTree[!is.na(reference_share)]
 
+      dbg_print("replace processing share with reference share")
+
       dataMergeTree[!is.na(reference_share), processingShare := reference_share]
 
       dataMergeTree[, reference_share := NULL]
@@ -2568,6 +2623,8 @@ if (length(primaryInvolvedDescendents) == 0) {
                processingShare, availability)]
       )
     
+    dbg_print("impute production of derived")
+
     dataMergeTree[, new_imputation := availability * processingShare * extractionRate]
     
     computed_shares[[as.character(lev)]] <-
@@ -2584,6 +2641,8 @@ if (length(primaryInvolvedDescendents) == 0) {
              processingShare, availability_parent = availability)
       ]
     
+    dbg_print("sum unique of new_imputation")
+
     dataMergeTree <-
       dataMergeTree[,
         list(
@@ -2602,6 +2661,8 @@ if (length(primaryInvolvedDescendents) == 0) {
         all.x = TRUE
       )
 
+    dbg_print("z data for shares to send")
+
     z <- data[
         measuredElementSuaFbs %in% c("production", "imports", "exports", "stock_change"),
         list(geographicAreaM49, timePointYears, measuredItemSuaFbs, measuredElementSuaFbs,
@@ -2609,9 +2670,13 @@ if (length(primaryInvolvedDescendents) == 0) {
              Protected)
         ]
 
+    dbg_print("dcast z data")
+
     z <- dcast(z, geographicAreaM49+timePointYears+measuredItemSuaFbs~measuredElementSuaFbs, value.var = c("Value", "Protected"))
     
     # XXX stock_change may change below (and also production, if required)
+
+    dbg_print("z data + computed_shares_send")
 
     computed_shares_send[[as.character(lev)]] <-
       z[computed_shares_send[[as.character(lev)]],
@@ -2619,6 +2684,8 @@ if (length(primaryInvolvedDescendents) == 0) {
                'timePointYears'     = 'timePointYears',
                'measuredItemSuaFbs' = 'measuredItemChildCPC')]
     
+    dbg_print("assign production of derived to non protected/frozen data")
+
     # Assign if non-protected only non-fozen data
     # (XXX: here only measuredItemSuaFbs that are child should be assigned)
     data[
