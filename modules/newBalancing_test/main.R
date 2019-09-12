@@ -4133,7 +4133,7 @@ if (CheckDebug()) {
 
 data_suabal <- GetData(key_all)
 
-######### Combine old and new calories, and get outliers #############
+######### Combine old and new calories and data, and get outliers #############
 
 combined_calories <-
   rbind(
@@ -4146,14 +4146,17 @@ combined_calories <-
 
 combined_calories <-
   combined_calories[,
-    perc.change := (Value / shift(Value) - 1) * 100,
+    `:=`(
+      perc.change = (Value / shift(Value) - 1) * 100,
+      Historical_value_2010_2013 = mean(Value[timePointYears <= 2013], na.rm = TRUE)
+    ),
     by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
   ]
 
 combined_calories[, outlier := ""]
 
 combined_calories[
-  (shift(Value) > 5 | Value > 5) & abs(perc.change) > 0.1 & timePointYears >= 2014,
+  (shift(Value) > 5 | Value > 5) & abs(perc.change) > 10 & timePointYears >= 2014,
   outlier := "OUTLIER",
   by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
 ]
@@ -4164,8 +4167,114 @@ combined_calories <-
     on = c("geographicAreaM49", "measuredItemFbsSua")
   ]
 
-combined_calories[, Value := round(Value, 2)]
-combined_calories[, perc.change := round(perc.change, 2)]
+old_sua_bal <- data_suabal[timePointYears <= 2013]
+
+old_sua_bal <-
+  old_sua_bal[,
+    supply :=
+      sum(
+        Value[measuredElementSuaFbs %chin% c("5510", "5610")],
+        - Value[measuredElementSuaFbs %chin% c("5910", "5071")],
+        na.rm = TRUE
+      ),
+  by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears")
+]
+
+old_sua_bal <-
+  old_sua_bal[
+    measuredElementSuaFbs %in% c("5510", "5023", "5016", "5165", "5520", "5525", "5164", "5141")
+  ]
+
+old_sua_bal <-
+  old_sua_bal[,
+    .(
+      mean_ratio = mean(Value / supply, na.rm = TRUE),
+      Meanold = mean(Value, na.rm = TRUE)
+    ),
+    by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
+  ]
+
+new_sua_bal <-
+  merge(
+    standData,
+    old_sua_bal,
+    by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs"),
+    all.x = TRUE
+  )
+
+new_sua_bal[
+  measuredElementSuaFbs %in% c("5510", "5023", "5016", "5165", "5520", "5525", "5164", "5141"),
+  outlier := outside(Value / Meanold, 0.5, 2)
+]
+
+new_sua_bal[,
+  supply :=
+    sum(
+      Value[measuredElementSuaFbs %chin% c("5510", "5610")],
+      - Value[measuredElementSuaFbs %chin% c("5910", "5071")],
+      na.rm = TRUE
+    ),
+  by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears")
+]
+
+new_sua_bal[, outl_on_supp := abs(Value / supply - mean_ratio) >= 0.1]
+
+new_sua_bal <-
+  new_sua_bal[measuredElementSuaFbs %in% c("5510", "5023", "5016", "5165", "5520", "5525", "5164", "5141")]
+
+new_sua_bal <-
+  new_sua_bal[
+    abs(Meanold - Value) > 10000 &
+    ((measuredElementSuaFbs !=5510 & outlier == TRUE & outl_on_supp == TRUE &
+      Value > 1000 & abs(Meanold - Value) > 10000) |
+    (outlier == TRUE & measuredElementSuaFbs == 5510))
+  ]
+
+
+new_sua_bal <-
+  new_sua_bal[,
+    .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs,
+      timePointYears, Historical_value_2010_2013 = Meanold, outlier = "OUTLIER")
+  ]
+
+out_elems_items <-
+  rbind(
+    data_suabal[timePointYears <= 2013][
+      unique(new_sua_bal[, .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs)]),
+      on = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")],
+    standData[
+      unique(new_sua_bal[, .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs)]),
+      on = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")]
+  )
+
+out_elems_items <-
+  merge(
+    out_elems_items,
+    new_sua_bal,
+    by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs", "timePointYears"),
+    all.x = TRUE
+  )
+
+out_elems_items[is.na(outlier), outlier := ""]
+
+out_elems_items[,
+  Historical_value_2010_2013 := unique(na.omit(Historical_value_2010_2013)),
+  c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
+]
+
+out_elems_items <-
+  out_elems_items[order(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs, timePointYears)]
+
+out_elems_items[,
+  perc.change := (Value / shift(Value) - 1) * 100,
+  by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
+]
+
+out_elems_items <- rbind(combined_calories, out_elems_items, fill = TRUE)
+
+out_elems_items[, Value := round(Value, 2)]
+out_elems_items[, perc.change := round(perc.change, 2)]
+out_elems_items[, Historical_value_2010_2013 := round(Historical_value_2010_2013, 2)]
 
 
 tmp_file_outliers <-
@@ -4175,15 +4284,13 @@ if (!file.exists(dirname(tmp_file_outliers))) {
   dir.create(dirname(tmp_file_outliers), recursive = TRUE)
 }
 
-setnames(combined_calories, "Value", "Calories")
+out_elems_items <-
+  nameData("suafbs", "sua_unbalanced", out_elems_items, except = "timePointYears")
 
-combined_calories <-
-  nameData("suafbs", "sua_unbalanced", combined_calories, except = "timePointYears")
-
-write.csv(combined_calories, tmp_file_outliers)
+write.csv(out_elems_items, tmp_file_outliers)
 
 
-######### / Combine old and new calories, and get outliers ###########
+######### / Combine old and new calories and data, and get outliers ###########
 
 
 if (nrow(data_suabal[timePointYears >= 2014]) > 0) {
