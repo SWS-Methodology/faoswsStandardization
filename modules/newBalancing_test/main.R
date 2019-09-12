@@ -2672,7 +2672,7 @@ if (length(primaryInvolvedDescendents) == 0) {
 
     dbg_print("dcast z data")
 
-    z <- dcast(z, geographicAreaM49+timePointYears+measuredItemSuaFbs~measuredElementSuaFbs, value.var = c("Value", "Protected"))
+    z <- data.table::dcast(z, geographicAreaM49+timePointYears+measuredItemSuaFbs~measuredElementSuaFbs, value.var = c("Value", "Protected"))
     
     # XXX stock_change may change below (and also production, if required)
 
@@ -2736,7 +2736,7 @@ stocks_suggest_aux <-
 stocks_suggest_send <-
   merge(
     stocks_suggest,
-    dcast(stocks_suggest_aux, geographicAreaM49 + measuredItemSuaFbs + timePointYears ~ measuredElementSuaFbs, value.var = "Value"),
+    data.table::dcast(stocks_suggest_aux, geographicAreaM49 + measuredItemSuaFbs + timePointYears ~ measuredElementSuaFbs, value.var = "Value"),
     by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
     all = TRUE
   )
@@ -2747,7 +2747,7 @@ stocks_suggest_send[, supply_with_stocks := supply_no_stocks - ifelse(is.na(delt
 # have pivoted in a sane way since the beginning.
 stocks_suggest_send <- melt(stocks_suggest_send, id.vars = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"))
 stocks_suggest_send[variable == "delta", variable := "stocks_variation"]
-stocks_suggest_send <- dcast(stocks_suggest_send, geographicAreaM49 + measuredItemSuaFbs + variable ~ timePointYears, value.var = "value")
+stocks_suggest_send <- data.table::dcast(stocks_suggest_send, geographicAreaM49 + measuredItemSuaFbs + variable ~ timePointYears, value.var = "value")
 
 tmp_file_stocks <- tempfile(pattern = paste0("STOCKS_", COUNTRY, "_"), fileext = '.csv')
 
@@ -3022,7 +3022,7 @@ if (nrow(negative_availability) > 0) {
   negative_availability <- rbind(negative_availability, negative_availability_var)
 
   negative_availability <-
-    dcast(
+    data.table::dcast(
       negative_availability,
       country + year + measuredItemFbsSua ~ element,
       value.var = "Value"
@@ -3983,7 +3983,7 @@ imbalances_to_send <-
   ]
 
 imbalances_to_send <-
-  dcast(
+  data.table::dcast(
     imbalances_to_send,
     country + measuredItemSuaFbs + year ~ element,
     value.var = c("value", "flag")
@@ -4518,7 +4518,7 @@ ggsave(tmp_file_plot_des_main_diff_avg, plot = plot_des_main_diff_avg)
 
 
 des_cast <-
-  dcast(
+  data.table::dcast(
     des,
     geographicAreaM49 + measuredItemFbsSua ~ timePointYears,
     fun.aggregate = sum,
