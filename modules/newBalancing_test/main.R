@@ -2092,7 +2092,7 @@ if (length(primaryInvolvedDescendents) == 0) {
 
       dbg_print("generating stocks")
       
-      derived_opening_stocks <-
+      plugin_opening_stocks <-
         data[
           condition_for_stocks == TRUE,
           list(timePointYears, measuredElementSuaFbs, Value),
@@ -2140,7 +2140,7 @@ if (length(primaryInvolvedDescendents) == 0) {
           ),
           by = c("measuredItemSuaFbs", "geographicAreaM49", "timePointYears")
         ][
-          order(measuredItemSuaFbs, geographicAreaM49, timePointYears)
+          order(geographicAreaM49, measuredItemSuaFbs, timePointYears)
         ][,
           delta := supply - RcppRoll::roll_mean(supply, 2, fill = 'extend', align = 'right')
         ]
@@ -2193,7 +2193,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         data_for_stocks <-
           merge(
             data_for_stocks,
-            derived_opening_stocks,
+            plugin_opening_stocks,
             by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears'),
             all = TRUE
           )
@@ -2227,8 +2227,8 @@ if (length(primaryInvolvedDescendents) == 0) {
 
       # XXX
       if ("opening_stocks" %!in% names(data_for_stocks)) {
-        # NOTE "2" was 0.2, meaning 20%; it was decides "no limits"
-        data_for_stocks[min_year == TRUE, opening_stocks := 2 * supply]
+        # NOTE "2" was 0.2, meaning 20%; it was decided "no limits"
+        data_for_stocks[min_year == TRUE, opening_stocks := 0.2 * supply]
       }
       
       dbg_print("fix stocks in derived loop")
