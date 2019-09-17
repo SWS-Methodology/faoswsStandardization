@@ -278,9 +278,9 @@ TourGeoKeys = c("28",
                 "670",
                 "780",
                 "548")
-
+tourData = data.table()
+if(selectedGEOCode%in%TourGeoKeys){
 TourGeoKeys = TourGeoKeys[TourGeoKeys==selectedGEOCode]
-
 TourGeoDim = Dimension(name = "geographicAreaM49", TourGeoKeys)
 
 message("Pulling data from Tourist")
@@ -298,7 +298,7 @@ tourData[, `:=`(tourismElement = suaTouristCode,
                 Value = Value * touristConversionFactor)]
 setnames(tourData, c("tourismElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
-
+}
 
 ################################################
 #####       Harvest from Trade Domain      #####
