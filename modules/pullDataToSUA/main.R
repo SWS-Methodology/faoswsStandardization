@@ -450,7 +450,7 @@ setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
 ################################################
 
 message("Merging data files together and saving")
-if((nrow(indData)>0)&(nrow(tourData>0))){
+if((nrow(indData)>0)&(nrow(tourData)>0)){
 Tourism_Industrial = rbind(tourData,indData)
 Tourism_Industrial = as.data.frame(Tourism_Industrial)
 Tourism_Industrial = dplyr::select(Tourism_Industrial,-flagObservationStatus,-flagMethod)
@@ -470,7 +470,7 @@ Industrial$flagObservationStatus = "I"
 Industrial$flagMethod = "e"
 out = rbind(agData, stockData,foodData, lossData, tradeData, tourData,Industrial)
 }
-if((nrow(indData)==0)|(nrow(tourData==0))){
+if((nrow(indData)==0)|(nrow(tourData)==0)){
   tourData = as.data.table(dplyr::select(as.data.frame(tourData,colnames(agData))))
   indData = as.data.table(dplyr::select(as.data.frame(indData,colnames(agData))))
 out = rbind(agData, stockData,foodData, lossData, tradeData, tourData,indData)
