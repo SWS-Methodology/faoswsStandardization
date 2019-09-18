@@ -299,6 +299,22 @@ tourData[, `:=`(tourismElement = suaTouristCode,
 setnames(tourData, c("tourismElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 }
+if(nrow(tourData)>0){
+  tourData = as.data.frame(tourData)
+  tourData = unique(tourData)
+  tourData$timePointYears = as.integer(tourData$timePointYears)
+  tourData = tourData %>%
+    dplyr::group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs) %>%
+    tidyr::complete(timePointYears=min(timePointYears):2017,nesting(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs))%>%
+    dplyr::arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs,timePointYears) %>%
+    tidyr::fill(Value,.direction="down") %>%
+    tidyr::fill(flagObservationStatus,.direction="down") %>%
+    tidyr::fill(flagMethod,.direction="down") %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(geographicAreaM49,measuredItemSuaFbs,timePointYears)
+  tourData$timePointYears = as.character(tourData$timePointYears)
+  tourData = as.data.table(tourData)
+}
 
 ################################################
 #####       Harvest from Trade Domain      #####
@@ -457,9 +473,9 @@ Tourism_Industrial = dplyr::select(Tourism_Industrial,-flagObservationStatus,-fl
 Tourism_Industrial = tidyr::spread(Tourism_Industrial,measuredElementSuaFbs,Value)
 Tourism_Industrial$`5164`[is.na(Tourism_Industrial$`5164`)] = 0
 Tourism_Industrial = Tourism_Industrial %>%
-  rowwise() %>%
-  mutate(`5165` = `5165` - `5164`) %>%
-  ungroup()
+  dplyr::rowwise() %>%
+  dplyr::mutate(`5165` = `5165` - `5164`) %>%
+  dplyr::ungroup()
 Tourism_Industrial$`5165`[Tourism_Industrial$`5165`<0&!is.na(Tourism_Industrial$`5165`)] = 0
 Tourism_Industrial = tidyr::gather(Tourism_Industrial,measuredElementSuaFbs,Value,-c(geographicAreaM49,
                                                                               measuredItemSuaFbs,
