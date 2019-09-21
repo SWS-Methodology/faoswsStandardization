@@ -925,7 +925,7 @@ if (FILL_EXTRACTION_RATES == TRUE) {
     merge(
       data.table(
         geographicAreaM49 = unique(tree$geographicAreaM49),
-        timePointYears = as.character(min(tree$timePointYears):max(tree$timePointYears))
+        timePointYears = sort(unique(tree$timePointYears))
       ),
       unique(tree[, .(geographicAreaM49, measuredElementSuaFbs,
                       measuredItemParentCPC, measuredItemChildCPC)]),
@@ -936,13 +936,32 @@ if (FILL_EXTRACTION_RATES == TRUE) {
 
   tree <- tree[expanded_tree, on = colnames(expanded_tree)]
 
+  # flags for carry forward/backward
+  tree[is.na(Value), c("flagObservationStatus", "flagMethod") := list("E", "t")]
+
   tree <-
-    tree %>%
-    group_by(geographicAreaM49, measuredElementSuaFbs, measuredItemParentCPC, measuredItemChildCPC) %>%
-    arrange(geographicAreaM49, measuredElementSuaFbs, measuredItemParentCPC, measuredItemChildCPC) %>%
-    tidyr::fill(Value, flagObservationStatus, flagMethod, .direction = "up") %>%
-    tidyr::fill(Value, flagObservationStatus, flagMethod, .direction = "down") %>%
-    setDT()
+    tree[!is.na(Value)][
+      tree,
+      on = c("geographicAreaM49", "measuredElementSuaFbs",
+             "measuredItemParentCPC", "measuredItemChildCPC",
+             "timePointYears"),
+      roll = -Inf
+    ]
+
+  tree <-
+    tree[!is.na(Value)][
+      tree,
+      on = c("geographicAreaM49", "measuredElementSuaFbs",
+             "measuredItemParentCPC", "measuredItemChildCPC",
+             "timePointYears"),
+      roll = Inf
+  ]
+
+  # keep orig flags
+  tree[, flagObservationStatus := i.i.flagObservationStatus]
+  tree[, flagMethod := i.i.flagMethod]
+
+  tree[, names(tree)[grep("^i\\.", names(tree))] := NULL]
 }
 
 saveRDS(
