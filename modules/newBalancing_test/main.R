@@ -629,8 +629,6 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           sum(
             Value[measuredElementSuaFbs %chin% c('production', 'imports')],
             - Value[measuredElementSuaFbs %chin% c('exports')],
-            # XXX: should stocks be included?
-            #- Value[measuredElementSuaFbs %chin% c('exports', 'stockChange')],
             na.rm = TRUE
           ),
         # year is quite unnecessary, but let's use it in any case
@@ -660,6 +658,17 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
 
       # NOTE: in the conditions below, 2 was 0.2, indicating that no more than
       # 20% should go to stocks. Now, the condition was relaxed a lot (200%)
+
+      data_level <-
+        merge(
+          data_level,
+          all_opening_stocks[,
+            .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua,
+              timePointYears, opening_stocks = Value)
+          ],
+          by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
+          all.x = TRUE
+        )
       
       data_level[,
         Value_0 := ifelse(is.na(Value), 0, Value)
@@ -669,11 +678,11 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           # The numbers indicate the case. Assignmnet (value and flags) will be done below
           case_when(
             # case 1: we don't want stocks to change sign.
-            sign(Value_0) * sign(Value_0 + imbalance) == -1                                        ~ 1L,
+            sign(Value_0) * sign(Value_0 + imbalance) == -1                                                   ~ 1L,
             # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
-            Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <=opening_stocks  ~ 2L,
+            Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <= opening_stocks            ~ 2L,
             # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
-            Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks  ~ 3L,
+            Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks             ~ 3L,
             # case 4: if value + imbalance send LESS than 200% of supply, send all
             Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 2)  ~ 4L,
             # case 5: if value + imbalance send MORE than 200% of supply, send 200% of supply
@@ -683,13 +692,15 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
 
       data_level[change_stocks == 1L, Value := 0]
       data_level[change_stocks == 2L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 3L, Value := -opening_stocks]
+      data_level[change_stocks == 3L, Value := - opening_stocks]
       data_level[change_stocks == 4L, Value := Value_0 + imbalance]
       data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 2, supply * 2 - opening_stocks, 0)]
 
       data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
       data_level[, Value_0 := NULL]
+
+      data_level[, opening_stocks := NULL]
       
       # Recalculate imbalance
       calculateImbalance(data_level)
@@ -771,10 +782,11 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       }
       
       
-      # At this point the imbalance (in the best case scenario) be zero, the following re-calculation is useful only for debugging
+      # At this point the imbalance (in the best case scenario) should be zero,
+      # the following re-calculation is useful only for debugging
       
-      # Recalculate imbalance
       calculateImbalance(data_level)
+
       # Assign imbalance to food if food "only" (not "residual") item
 
       data_level[
@@ -786,9 +798,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
       ]
       
-      # Recalculate imbalance
       calculateImbalance(data_level)
-      
       
       # Assign the residual imbalance to industrial if the conditions are met
       data_level[
@@ -802,7 +812,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
 
       calculateImbalance(data_level)
       
-      #Assign the residual imbalance to feed if the conditions are met
+      # Assign the residual imbalance to feed if the conditions are met
       data_level[
         Protected == FALSE & feed_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "feed",
         `:=`(
@@ -944,12 +954,11 @@ saveRDS(
   file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "tree.rds")
 )
 
-# TODO: add explicit columns names in joins
 tree_to_send <-
   tree_to_send %>% 
-  dplyr::anti_join(tree[is.na(Value) & measuredElementSuaFbs=="extractionRate"]) %>%
+  dplyr::anti_join(tree[is.na(Value) & measuredElementSuaFbs == "extractionRate"], by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", "measuredItemChildCPC", "timePointYears", "Value", "flagObservationStatus", "flagMethod")) %>%
   dplyr::select(-Value) %>%
-  dplyr::left_join(tree) %>%
+  dplyr::left_join(tree, by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", "measuredItemChildCPC", "timePointYears", "flagObservationStatus", "flagMethod")) %>%
   setDT()
 
 tree_to_send <-
@@ -1171,7 +1180,6 @@ if (CheckDebug()) {
 #       key@dimensions$geographicAreaM49@keys <- COUNTRY
 
 
-
 dbg_print("download data")
 
 
@@ -1179,7 +1187,7 @@ data <- GetData(key)
 # LOAD
 # data <- readRDS(paste0('c:/Users/mongeau.FAODOMAIN/tmp/new_balancing/data_', COUNTRY, '.rds'))
 
-original_opening_stocks <- data[measuredElementSuaFbs == 5113]
+
 
 #################### FODDER CROPS ##########################################
 
@@ -1266,6 +1274,119 @@ if (nrow(fodder_crops_availab) > 0) {
 
 
 
+# TODO: add `where` clause to subset for countries
+opening_stocks_2014 <- ReadDatatable("opening_stocks_2014")
+
+stopifnot(nrow(opening_stocks_2014) > 0)
+
+opening_stocks_2014[opening_stocks < 0, opening_stocks := 0]
+
+opening_stocks_2014 <-
+  opening_stocks_2014[
+    m49_code %in% COUNTRY,
+    .(
+      geographicAreaM49 = m49_code,
+      measuredItemFbsSua = cpc_code,
+      Value_cumulated = opening_stocks
+    )
+  ]
+
+original_opening_stocks <- data[measuredElementSuaFbs == 5113]
+
+original_opening_stocks <-
+  flagValidTable[
+    original_opening_stocks,
+    on = c("flagObservationStatus", "flagMethod")
+  ][,
+    Valid := NULL
+  ]
+
+
+# Remove protected in 2014 from cumulated
+opening_stocks_2014 <-
+  opening_stocks_2014[
+    !original_opening_stocks[timePointYears == "2014" & Protected == TRUE, .(geographicAreaM49, measuredItemFbsSua)],
+    on = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+
+all_opening_stocks <-
+  merge(
+    original_opening_stocks,
+    opening_stocks_2014,
+    by = c("geographicAreaM49", "measuredItemFbsSua"),
+    all = TRUE
+  )
+
+
+all_opening_stocks[
+  !Protected %in% TRUE & is.na(Value) & !is.na(Value_cumulated),
+  `:=`(
+    Value = Value_cumulated,
+    flagObservationStatus = "I",
+    flagMethod = "i",
+    # We protect these, in any case, because they should not
+    # be overwritten, even if not (semi) official or expert
+    Protected = TRUE,
+    measuredElementSuaFbs = "5113",
+    timePointYears = "2014"
+  )
+][,
+  Value_cumulated := NULL
+]
+
+
+# Now, for all remaining stockable items, we create opening
+# stocks in 2014 as 20% of supply in 2013
+
+remaining_opening_stocks <-
+  data[
+    timePointYears == "2013" &
+      measuredItemFbsSua %chin%
+        setdiff(
+          stockable_items,
+          all_opening_stocks$measuredItemFbsSua
+        )
+  ][,
+    .(opening_20 =
+      sum(
+        Value[measuredElementSuaFbs %chin% c("5510", "5610")],
+        - Value[measuredElementSuaFbs == "5910"],
+        na.rm = TRUE
+      ) * 0.2),
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+remaining_opening_stocks[opening_20 < 0, opening_20 := 0]
+
+all_opening_stocks <-
+  merge(
+    all_opening_stocks,
+    remaining_opening_stocks,
+    by = c("geographicAreaM49", "measuredItemFbsSua"),
+    all = TRUE
+  )
+
+
+all_opening_stocks[
+  !Protected %in% TRUE & is.na(Value) & !is.na(opening_20),
+  `:=`(
+    Value = opening_20,
+    flagObservationStatus = "I",
+    flagMethod = "i",
+    # We protect these, in any case, because they should not
+    # be overwritten, even if not (semi) official or expert
+    Protected = TRUE,
+    measuredElementSuaFbs = "5113",
+    timePointYears = "2014"
+  )
+][,
+  opening_20 := NULL
+]
+
+
+
+
 
 
 data <- merge(data, flagValidTable, by = c("flagObservationStatus", "flagMethod"), all.x = TRUE)
@@ -1275,16 +1396,7 @@ data[is.na(Official), Official := FALSE]
 data[is.na(Protected), Protected := FALSE]
 
 
-# FIXME: elementCodesToNames do not set the "opening_stocks" variable name for element 5113
-data[,
-     `:=`(
-       opening_stocks = Value[measuredElementSuaFbs == "5113"],
-       opening_stocks_protected = Protected[measuredElementSuaFbs == "5113"],
-       opening_stocks_official = Official[measuredElementSuaFbs == "5113"]
-     ),
-     by = c("geographicAreaM49", "timePointYears", "measuredItemFbsSua")
-     ]
-
+# We remove "5113" (opening stocks) as will be stored in separate table.
 data <- data[measuredElementSuaFbs != "5113"]
 
 dbg_print("elementToCodeNames")
@@ -1490,18 +1602,11 @@ primaryInvolvedDescendents <-
   )
 
 
-# stocks need to be generated for all (XXX if stockable)
-
-# FIXME: when it exists, we will not have stocks backwards...
-# see, e.g, data[geographicAreaM49 == 124 & measuredItemSuaFbs == '01445' & timePointYears == 2004]
+# stocks need to be generated for those items for
+# which "opening stocks" are available
 
 items_to_generate_stocks <-
-  setdiff(
-    # all ...
-    unique(intersect(c(data$measuredItemSuaFbs, primaryInvolvedDescendents), stockable_items)),
-    # ... except those for which already available
-    unique(data[measuredElementSuaFbs == 'stock_change' & flagObservationStatus == "T" & flagMethod == "p"]$measuredItemSuaFbs)
-  )
+  unique(all_opening_stocks$measuredItemFbsSua)
 
 stock <-
   CJ(
@@ -1545,36 +1650,33 @@ data[is.na(Official), Official := FALSE]
 data[is.na(Protected), Protected := FALSE]
 
 
-# XXX When `x` enters here it should be already ordered by year
-fix_stocks <- function(x) {
-  # The following fix works only in cases like:
-  #   geographicAreaM49 timePointYears measuredItemSuaFbs delta opening_stocks
-  #1:               643           2014           01919.93     0      133800000
-  #2:               643           2015           01919.93    NA             NA
-  #3:               643           2016           01919.93    NA             NA
-  #4:               643           2017           01919.93    NA             NA
-  #
-  # In more general cases, it's not valid
-  x$delta[is.na(x$delta)] <- 0
-  x$opening_stocks[is.na(x$opening_stocks)] <- 0
-  
-  x$delta_updated <- x$delta
-  
-  if (nrow(x) > 1) {
-    for (i in 2:nrow(x)) {
-      
-      x$opening_stocks[i] <- x$opening_stocks[i-1] + x$delta_updated[i-1]
-      
-      if (dplyr::near(x$opening_stocks[i], 0) & x$delta_updated[i] < 0) {
-        x$delta_updated[i] <- 0
-      } else if (x$opening_stocks[i] < 0) {
-        x$opening_stocks[i] <- 0
-        x$delta_updated[i] <- x$opening_stocks[i-1]
+# This function will recalculate opening stocks from the first
+# observation. Always.
+update_opening_stocks <- function(x) {
+  x <- x[order(geographicAreaM49, measuredItemSuaFbs, timePointYears)]
+
+  groups <- unique(x[, .(geographicAreaM49, measuredItemSuaFbs)])
+
+  res <- list()
+
+  for (i in seq_len(nrow(groups))) {
+    z <- x[groups[i], on = c("geographicAreaM49", "measuredItemSuaFbs")]
+    if (nrow(z) > 1) {
+      for (j in seq_len(nrow(z))[-1]) {
+        # negative delta cannot be more than opening
+        if (z$delta[j-1] < 0 & abs(z$delta[j-1]) > z$new_opening[j-1]) {
+          z$delta[j-1] <- - z$new_opening[j-1]
+        }
+        z$new_opening[j] <- z$new_opening[j-1] + z$delta[j-1]
+      }
+      # negative delta cannot be more than opening
+      if (z$delta[j] < 0 & abs(z$delta[j]) > z$new_opening[j]) {
+        z$delta[j] <- - z$new_opening[j]
       }
     }
+    res[[i]] <- z
   }
-  
-  return(x)
+  res <- rbindlist(res)
 }
 
 
@@ -1631,10 +1733,14 @@ ExtrRate <-
       )
       ]
 
-#We include utilizations to identify if proceseed if the only utilization
-data_tree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 
-                                                 'stock_change','foodmanufacturing','loss',
-                                                 'food','industrial','feed','seed')]
+# We include utilizations to identify if proceseed if the only utilization
+data_tree <-
+  data[
+    measuredElementSuaFbs %chin%
+      c('production', 'imports', 'exports',
+        'stock_change', 'foodmanufacturing', 'loss',
+        'food', 'industrial', 'feed', 'seed')
+  ]
 
 setnames(data_tree, "measuredItemSuaFbs", "measuredItemParentCPC")
 
@@ -1647,34 +1753,40 @@ data_tree <-
     all.y = TRUE
   )
 
-data_tree<-as.data.table(data_tree)
+data_tree <- as.data.table(data_tree)
 
-#the availability for parent that have one child and only processed as utilization will 
-#be entirely assigned to processed for that its unique child even for 2014 onwards
+# the availability for parent that have one child and only processed as utilization will 
+# be entirely assigned to processed for that its unique child even for 2014 onwards
 data_tree[,
-          availability :=
-            sum(
-              Value[get(p$elementVar) %in% c(p$productionCode, p$importCode)],
-              - Value[get(p$elementVar) %in% c(p$exportCode, "stock_change")],
-              na.rm = TRUE
-            ),
-          by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar)
-          ]
+  availability :=
+    sum(
+      Value[get(p$elementVar) %in% c(p$productionCode, p$importCode)],
+      - Value[get(p$elementVar) %in% c(p$exportCode, "stock_change")],
+      na.rm = TRUE
+    ),
+  by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar)
+]
 
-#used to chack if a parent has processed as utilization              
-data_tree[, proc_Median:= median(Value[measuredElementSuaFbs=="foodmanufacturing" & timePointYears %in% 2000:2017], na.rm=TRUE),
-          by = c(p$parentVar, p$geoVar)
-          ]
+# used to chack if a parent has processed as utilization
+data_tree[,
+  proc_Median :=
+    median(
+      Value[measuredElementSuaFbs == "foodmanufacturing" & timePointYears %in% 2000:2017],
+      na.rm=TRUE
+    ),
+  by = c(p$parentVar, p$geoVar)
+]
 
 #boolean variable taking TRUE if the parent has only processed as utilization 
 data_tree[,
-          unique_proc :=
-            proc_Median > 0 & !is.na(proc_Median) &
-            # ... is the only utilization
-            all(is.na(Value[!(measuredElementSuaFbs %in%
-                                c('production', 'imports', 'exports', 'stockChange','foodmanufacturing'))])),
-          by = c(p$parentVar, p$geoVar, p$yearVar)
-          ]
+  unique_proc :=
+    proc_Median > 0 &
+      !is.na(proc_Median) &
+      # ... is the only utilization
+      all(is.na(Value[!(measuredElementSuaFbs %in%
+                        c('production', 'imports', 'exports', 'stock_change','foodmanufacturing'))])),
+  by = c(p$parentVar, p$geoVar, p$yearVar)
+]
 
 data_tree<-
   unique(
@@ -1697,16 +1809,18 @@ data_count<-unique(
 )
 
 #Caculate the number of parent of each child
-data_count[,number_of_parent:=.N,
-           by=c("geographicAreaM49","measuredItemChildCPC","timePointYears")
-           ]
+data_count[,
+  number_of_parent := .N,
+  by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")
+]
 
 # #calculate the number of children of each parent
-data_count[,number_of_children:=uniqueN(measuredItemChildCPC),
-           by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
-           ]
+data_count[,
+  number_of_children := uniqueN(measuredItemChildCPC),
+  by=c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+]
 
-data_tree<-merge(
+data_tree <- merge(
   data_tree,
   data_count,
   by = c(p$parentVar,p$childVar, p$geoVar, p$yearVar),
@@ -1715,14 +1829,14 @@ data_tree<-merge(
 )
 
 #dataset containing the processed quantity of parents
-food_proc<-unique(
+food_proc <- unique(
   data_tree[measuredElementSuaFbs=="foodmanufacturing",
             list(geographicAreaM49,measuredItemParentCPC,timePointYears,Value)],
   by=c("geographicAreaM49","measuredItemParentCPC","timePointYears","Value")
 )
 setnames(food_proc,"Value","parent_qty_processed")
 
-data_tree<-merge(
+data_tree <- merge(
   data_tree,
   food_proc,
   by = c(p$parentVar, p$geoVar, p$yearVar),
@@ -1763,13 +1877,13 @@ data_tree<-merge(
 )
 
 
-#ShareDownups for zeroweights are calculated  separately
-#to avoid double counting when agregating processed quantities of parent
+# ShareDownups for zeroweights are calculated  separately
+# to avoid double counting when agregating processed quantities of parent
 
-#dataset containing informations of zeroweight commodities
-data_zeroweight<-data_tree[measuredItemChildCPC %in% zeroWeight,]
+# dataset containing informations of zeroweight commodities
+data_zeroweight <- data_tree[measuredItemChildCPC %in% zeroWeight,]
 
-#import data for coproduct relation
+# import data for coproduct relation
 zw_coproduct <-
   coproduct_for_sharedownup[,
     .(zeroweight = measured_item_child_cpc, measuredItemChildCPC = branch)
@@ -1779,31 +1893,31 @@ zw_coproduct <-
 #
 #setnames(zw_coproduct,"branch","measuredItemChildCPC")
 
-zw_coproduct<-unique(zw_coproduct, by=c("measuredItemChildCPC","zeroweight"))
+zw_coproduct <- unique(zw_coproduct, by=c("measuredItemChildCPC","zeroweight"))
 
-#We subset the zeroweight coproduct reference table by taking only zeroweights and their coproduct
-#that are childcommodities in the tree of the country
-zw_coproduct<-zw_coproduct[measuredItemChildCPC %in% data_tree[,get("measuredItemChildCPC")]&
+# We subset the zeroweight coproduct reference table by taking only zeroweights and their coproduct
+# that are childcommodities in the tree of the country
+zw_coproduct <- zw_coproduct[measuredItemChildCPC %in% data_tree[,get("measuredItemChildCPC")]&
                            zeroweight %in% data_tree[,get("measuredItemChildCPC")],]
 
 
-#Computing information for non zeroweight commodities
-data_tree<-data_tree[measuredItemChildCPC %!in% zeroWeight,]
+# Computing information for non zeroweight commodities
+data_tree <- data_tree[measuredItemChildCPC %!in% zeroWeight,]
 
-#Quantity of parent destined to the production of the given child (only for child with one parent for the moment)
-data_tree[,processed_to_child:=ifelse(number_of_parent==1,production_of_child,NA_real_)]
+# Quantity of parent destined to the production of the given child (only for child with one parent for the moment)
+data_tree[, processed_to_child := ifelse(number_of_parent == 1, production_of_child, NA_real_)]
 
-#if a parent has one child, all the production of the child comes from that parent
-data_tree[number_of_children==1,processed_to_child:=parent_qty_processed*extractionRate,processed_to_child]
+# if a parent has one child, all the production of the child comes from that parent
+data_tree[number_of_children == 1, processed_to_child := parent_qty_processed*extractionRate, processed_to_child]
 
-data_tree[production_of_child==0,processed_to_child:=0]
+data_tree[production_of_child == 0, processed_to_child := 0]
 
-#assigning the entired availability to processed for parent having only processed as utilization
-data_tree[number_of_children==1 & unique_proc==TRUE,processed_to_child:=availability*extractionRate]
+# assigning the entired availability to processed for parent having only processed as utilization
+data_tree[number_of_children == 1 & unique_proc == TRUE, processed_to_child := availability * extractionRate]
 
 
-#mirror assignment for imputing processed quantity for multple parent children
-#5 loop is sufficient to deal with all the cases
+# mirror assignment for imputing processed quantity for multple parent children
+# 5 loop is sufficient to deal with all the cases
 
 for(k in 1:5){
   data_tree<-RemainingToProcessedParent(data_tree)
@@ -1811,39 +1925,45 @@ for(k in 1:5){
 }
 data_tree<-RemainingToProcessedParent(data_tree)
 
-#proportional allocation of the remaing production of multiple parent children
+# proportional allocation of the remaing production of multiple parent children
 data_tree[,
-          processed_to_child:=
-            ifelse(number_of_parent>1 & is.na(processed_to_child),
-                   (remaining_to_process_child*is.na(processed_to_child)*remaining_processed_parent)/sum((remaining_processed_parent*is.na(processed_to_child)),na.rm = TRUE),
-                   processed_to_child),
-          by=c("geographicAreaM49","measuredItemChildCPC","timePointYears")
-          ]
+  processed_to_child:=
+    ifelse(
+      number_of_parent > 1 & is.na(processed_to_child),
+      (remaining_to_process_child * is.na(processed_to_child) * remaining_processed_parent) / sum((remaining_processed_parent * is.na(processed_to_child)), na.rm = TRUE),
+      processed_to_child),
+  by = c("geographicAreaM49","measuredItemChildCPC","timePointYears")
+]
 
-#Update of remaining production to assing ( should be zero for 2000:2013)
-data_tree[,parent_already_processed:=ifelse(is.na(parent_qty_processed),parent_qty_processed,
-                                            sum(processed_to_child/extractionRate,na.rm = TRUE)),
-          
-          by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
-          ]
+# Update of remaining production to assing ( should be zero for 2000:2013)
+data_tree[,
+  parent_already_processed :=
+    ifelse(
+      is.na(parent_qty_processed),
+      parent_qty_processed,
+      sum(processed_to_child/extractionRate,na.rm = TRUE)
+    ),
+  by = c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+]
 
-data_tree[,remaining_processed_parent:=round(parent_qty_processed-parent_already_processed)]
+data_tree[, remaining_processed_parent := round(parent_qty_processed - parent_already_processed)]
 
-data_tree[remaining_processed_parent<0,remaining_processed_parent:=0]
+data_tree[remaining_processed_parent < 0, remaining_processed_parent := 0]
 
 
 #Impute processed quantity for 2014 onwards using 3 years average
 #(this only to imput shareDownUp)
-data_tree<-data_tree[
-  order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)
+data_tree <-
+  data_tree[
+    order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)
   ][,
-    processed_to_child_avg:=rollavg(processed_to_child, order = 3),
+    processed_to_child_avg := rollavg(processed_to_child, order = 3),
     by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")
-    ]
+  ]
 
 setkey(data_tree, NULL)
 
-data_tree[timePointYears>2013 & is.na(processed_to_child),processed_to_child:=processed_to_child_avg]
+data_tree[timePointYears > 2013 & is.na(processed_to_child), processed_to_child := processed_to_child_avg]
 
 
 #Back to zeroweight cases(we assign to zeroweights the processed quantity of their coproduct(already calculated))
@@ -1870,7 +1990,7 @@ data_zeroweight<-merge(
   all.x = TRUE
 )
 
-data_zeroweight<-data_zeroweight[,processed_to_child:=processed_to_child*extractionRate]
+data_zeroweight<-data_zeroweight[, processed_to_child := processed_to_child*extractionRate]
 
 data_zeroweight<-data_zeroweight[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
                                        timePointYears,number_of_parent,parent_qty_processed,production_of_child,
@@ -1880,26 +2000,26 @@ data_tree<-data_tree[,list(geographicAreaM49,measuredItemParentCPC,measuredItemC
                            number_of_parent,parent_qty_processed,production_of_child,processed_to_child)]
 
 #combining zeroweight and non zero weight commodities
-data_tree<-rbind(data_tree,data_zeroweight)
+data_tree <- rbind(data_tree, data_zeroweight)
 
 #calculate ShareDownUp
 data_tree[,
-          shareDownUp:=processed_to_child/sum(processed_to_child,na.rm = T),
-          by=c("geographicAreaM49","measuredItemChildCPC","timePointYears")
-          ]
+  shareDownUp := processed_to_child / sum(processed_to_child, na.rm = TRUE),
+  by = c("geographicAreaM49","measuredItemChildCPC","timePointYears")
+]
 
 #some corrections...
-data_tree[is.na(shareDownUp) & number_of_parent==1,shareDownUp:=1]
-data_tree[(production_of_child==0 | is.na(production_of_child)) & timePointYears<2014,shareDownUp:=0]
-data_tree[(parent_qty_processed==0 | is.na(parent_qty_processed)) & timePointYears<2014,shareDownUp:=0]
-data_tree[is.na(shareDownUp),shareDownUp:=0]
-data_tree<-unique(
-  data_tree[,
-            list(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears, shareDownUp)
-            ],
-  by=c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", "timePointYears", "shareDownUp")
-  
-)
+data_tree[is.na(shareDownUp) & number_of_parent == 1, shareDownUp := 1]
+data_tree[(production_of_child==0 | is.na(production_of_child)) & timePointYears < 2014, shareDownUp:=0]
+data_tree[(parent_qty_processed==0 | is.na(parent_qty_processed)) & timePointYears < 2014, shareDownUp:=0]
+data_tree[is.na(shareDownUp), shareDownUp:=0]
+data_tree <-
+  unique(
+    data_tree[,
+      list(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears, shareDownUp)
+    ],
+    by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", "timePointYears", "shareDownUp")
+  )
 
 setDT(data_tree)
 
@@ -2053,9 +2173,15 @@ computed_shares_send <- list()
 # Keep negative availability
 negative_availability <- list()
 
-stocks_suggest <- list()
-
 fixed_proc_shares <- list()
+
+original_stock_variation <-
+  data[
+    measuredElementSuaFbs == "stock_change" & timePointYears >= 2014 & !is.na(Value),
+    .(
+      geographicAreaM49, measuredItemSuaFbs, timePointYears, Value, flagObservationStatus, flagMethod
+    )
+  ]
 
 dbg_print("starting derived production loop")
 
@@ -2065,7 +2191,7 @@ if (length(primaryInvolvedDescendents) == 0) {
   for (lev in sort(unique(tree$processingLevel))) {
 
     dbg_print(paste("derived production loop, level", lev))
-    
+
     treeCurrentLevel <-
       tree[
         !is.na(Value) &
@@ -2079,78 +2205,22 @@ if (length(primaryInvolvedDescendents) == 0) {
             timePointYears,
             extractionRate = Value
           )
-          ]
-    
+        ]
+
     # Stocks will be generated also for those cases for which we have data
     condition_for_stocks <-
       data$stockable == TRUE &
       data$measuredItemSuaFbs %chin% items_to_generate_stocks &
-      data$measuredItemSuaFbs %chin% treeCurrentLevel$measuredItemParentCPC &
+      #data$measuredItemSuaFbs %chin% treeCurrentLevel$measuredItemParentCPC &
       data$measuredElementSuaFbs %chin% c('production', 'imports', 'exports')
-    
+
     if (any(condition_for_stocks)) {
 
       dbg_print("generating stocks")
-      
-      plugin_opening_stocks <-
-        data[
-          condition_for_stocks == TRUE,
-          list(timePointYears, measuredElementSuaFbs, Value),
-          by = c('geographicAreaM49', 'measuredItemSuaFbs')
-        ][,
-          list(
-            supply =
-              sum(
-                Value[measuredElementSuaFbs %in% c('production', 'imports')],
-                -Value[measuredElementSuaFbs == 'exports'],
-                na.rm = TRUE
-              )
-          ),
-          by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears')
-        ][
-          # XXX check if this is right (these cases shouldn't happen)
-          # In this case opening_stocks will be zero and in the condition of negative delta being less than
-          supply < 0,
-          supply := 0
-        ][
-          order(geographicAreaM49, measuredItemSuaFbs, timePointYears)
-        ][,
-          min_year := timePointYears == min(timePointYears),
-          by = c("geographicAreaM49", "measuredItemSuaFbs")
-        ][
-          min_year == TRUE, opening_stocks := ifelse(!is.na(supply), 0.2 * supply, 0)
-        ][,
-          supply := NULL
-        ]
-      
-      dbg_print("subset conditions for stocks")
-      
-      # generate stocks for parents
-      data_for_stocks <-
-        data[
-          condition_for_stocks == TRUE
-        ][,
-          list(
-            supply =
-              sum(
-                Value[measuredElementSuaFbs %in% c('production', 'imports')],
-                - Value[measuredElementSuaFbs == 'exports'],
-                na.rm = TRUE
-              )
-          ),
-          by = c("measuredItemSuaFbs", "geographicAreaM49", "timePointYears")
-        ][
-          order(geographicAreaM49, measuredItemSuaFbs, timePointYears)
-        ][,
-          delta := supply - RcppRoll::roll_mean(supply, 2, fill = 'extend', align = 'right')
-        ]
-
-      dbg_print("histmod stocks")
 
       data_histmod_stocks <-
         data[
-          measuredItemSuaFbs %chin% treeCurrentLevel$measuredItemParentCPC &
-            measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs
+          measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs
         ]
 
       if (nrow(data_histmod_stocks) > 0) {
@@ -2191,115 +2261,133 @@ if (length(primaryInvolvedDescendents) == 0) {
         ]
 
         data_for_stocks <-
-          merge(
-            data_for_stocks,
-            plugin_opening_stocks,
-            by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears'),
-            all = TRUE
-          )
+          data_histmod_stocks[
+            timePointYears >= 2013 ,
+            .(geographicAreaM49, measuredItemSuaFbs, timePointYears, delta = delta_pred)
+          ]
 
-        data_for_stocks <-
-          merge(
-            data_for_stocks,
-            data_histmod_stocks[, .(geographicAreaM49, measuredItemSuaFbs, timePointYears, delta_pred)],
-            by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
-            all = TRUE
-          )
+        if (nrow(data_for_stocks) > 0) {
 
-        dbg_print("delta_pred overwrites delta")
+          data_for_stocks <-
+            merge(
+              data_for_stocks,
+              all_opening_stocks[, .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua, timePointYears, new_opening = Value)],
+              by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
+              all.x = TRUE
+            )
 
-        data_for_stocks[!is.na(delta_pred), delta := delta_pred][, delta_pred := NULL]
-      }
-      
-      data_for_stocks[,
-        min_year := timePointYears == min(timePointYears),
-        by = c("geographicAreaM49", "measuredItemSuaFbs")
-      ]
-      
-      # To avoid degenerate cases, we will suppose that in the first year delta stocks are zero
-      data_for_stocks[min_year == TRUE, delta := 0]
-      
-      # If generated delta is greater than supply, set it to X% of supply
-      # NOTE "2" was 0.2, meaning 20%; it was decides "no limits"
-      data_for_stocks[delta > 0 & delta > 2 * supply, delta := 2 * supply]
+          data_for_stocks <- data_for_stocks[timePointYears >= 2013]
 
-      dbg_print("opening_stocks.x and opening_stocks.y")
+          # If there are opening stocks for 2013, but not for 2014
+          data_for_stocks[,
+            replace_opening :=
+              ifelse(
+                timePointYears == "2014" &
+                  !is.na(new_opening[timePointYears == "2013"]) &
+                  is.na(new_opening[timePointYears == "2014"]),
+                new_opening[timePointYears == "2013"] + delta[timePointYears == "2013"],
+                NA_real_
+              ),
+            by = c("geographicAreaM49", "measuredItemSuaFbs")
+          ]
 
-      # XXX
-      if ("opening_stocks" %!in% names(data_for_stocks)) {
-        # NOTE "2" was 0.2, meaning 20%; it was decided "no limits"
-        data_for_stocks[min_year == TRUE, opening_stocks := 0.2 * supply]
-      }
-      
-      dbg_print("fix stocks in derived loop")
+          data_for_stocks[
+            is.na(new_opening) & !is.na(replace_opening),
+            new_opening := ifelse(replace_opening >= 0, replace_opening, 0)
+          ]
 
-      # Fix stocks
-      data_for_stocks <-
-        plyr::ddply(
-          data_for_stocks,
-          .variables = c('geographicAreaM49', 'measuredItemSuaFbs'),
-          .fun = function(x) fix_stocks(x)
-        )
-      
-      setDT(data_for_stocks)
-      
-      data_for_stocks <-
-        data_for_stocks[,
-          list(
-            geographicAreaM49,
-            measuredItemSuaFbs,
-            timePointYears,
-            opening_stocks,
-            delta = delta_updated)
-        ]
+          data_for_stocks[, replace_opening := NULL]
 
-      # Here we keep only the ones with historical timeseries.
-      # The other stocks can be used by analysts, as suggested variations.
+          data_for_stocks <- data_for_stocks[timePointYears >= 2014]
 
-      dbg_print("stocks suggest")
+          stockdata <-
+            data[
+              Protected == TRUE &
+                measuredElementSuaFbs == "stock_change" &
+                !is.na(Value) &
+                measuredItemSuaFbs %chin% data_for_stocks$measuredItemSuaFbs,
+              .(
+                geographicAreaM49,
+                measuredItemSuaFbs,
+                timePointYears,
+                stockvar = Value
+              )
+            ]
 
-      stocks_suggest[[as.character(lev)]] <-
-        data_for_stocks[!(measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs)]
+          data_for_stocks <-
+            merge(
+              data_for_stocks,
+              stockdata,
+              by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
+              all.x = TRUE
+            )
 
-      data_for_stocks <-
-        data_for_stocks[measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs]
-      
-      if (nrow(data_for_stocks) > 0) {
+          data_for_stocks[!is.na(stockvar), delta := stockvar][, stockvar := NULL]
 
-        dbg_print("data_for_stocks available")
+          # Stock withdrawal cannot exceed opening stocks in the first year
+          data_for_stocks[
+            timePointYears == "2014" & delta < 0 & abs(delta) > new_opening,
+            delta := - new_opening
+          ]
 
-        data <-
-          merge(
-            data,
-            data_for_stocks,
-            by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
-            all.x = TRUE
-          )
-        
-        # This should always happen, but just in case
-        if ("opening_stocks.x" %in% names(data)) {
-          data[, opening_stocks := ifelse(!is.na(opening_stocks.x), opening_stocks.x, opening_stocks.y)]
-          data[, c("opening_stocks.x", "opening_stocks.y") := NULL]
+          # NOTE: Data here should be ordered by country/item/year (CHECK)
+          data_for_stocks <- update_opening_stocks(data_for_stocks)
+
+          data <-
+            merge(
+              data,
+              data_for_stocks,
+              by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
+              all.x = TRUE
+            )
+
+          #rm(data_for_stocks)
+
+          # Overwrite even protected figures, because, if new delta generated,
+          # it's not compatible with previous stock variations
+          data[
+            measuredElementSuaFbs == "stock_change" &
+              !is.na(delta) &
+              # allow for some small discrepancy
+              (abs(delta) <= 0.999 * abs(Value) | abs(delta) >= 1.001 * abs(Value)),
+            `:=`(
+              Value = delta,
+              flagObservationStatus = "E",
+              flagMethod = "u",
+              Protected = FALSE
+            )
+          ]
+
+          data[, c("delta", "new_opening") := NULL]
+
+          all_opening_stocks <-
+            merge(
+              all_opening_stocks,
+              data_for_stocks[,
+                .(
+                  geographicAreaM49,
+                  measuredItemFbsSua = measuredItemSuaFbs,
+                  timePointYears,
+                  new_opening
+                )
+              ],
+              by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+              all.x = TRUE
+            )
+
+          all_opening_stocks[
+            !is.na(new_opening) & (round(new_opening) != round(Value) | is.na(Value)),
+            `:=`(
+              Value = new_opening,
+              flagObservationStatus = "E",
+              flagMethod = "u",
+              Protected = FALSE
+            )
+          ]
+
+          all_opening_stocks[, new_opening := NULL]
         }
-        
-        dbg_print("overwriting non-protected stocks")
-
-        # Assign if non-protected, only non-fozen data
-        data[
-          timePointYears >= 2014 &
-            Protected == FALSE &
-            measuredElementSuaFbs == 'stock_change' &
-            measuredItemSuaFbs %in% data_for_stocks$measuredItemSuaFbs,
-          `:=`(
-            Value = delta,
-            flagObservationStatus = "E",
-            flagMethod = "u"
-          )
-        ][,
-          delta := NULL
-        ]
       }
-      
     }
     
     dataMergeTree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stock_change')]
@@ -2355,7 +2443,7 @@ if (length(primaryInvolvedDescendents) == 0) {
             flagMethod,
             availability
           )
-          ]
+        ]
       )
     
     dbg_print("zero out negative availability")
@@ -2363,41 +2451,6 @@ if (length(primaryInvolvedDescendents) == 0) {
     # XXX: Replace negative availability, so we get zero production, instead of negative. This, , however, should be fixed in advance, somehow.
     dataMergeTree[availability < 0, availability := 0]
     
-    dbg_print("availability in child equivalent")
-
-    dataMergeTree[,
-      availabilitieChildEquivalent := availability * extractionRate #,
-      #by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar, "measuredElementSuaFbs")
-    ]
-    
-    # XXX I commented out measuredElementSua because it makes sense only if
-    # the number of elements by parent for an item is the same. For instance,
-    # if a parent 1 has 3 elements and parent 2 has 4 elements (the same 3
-    # as parent 1 plus stocks) it will give a different sum of utilizations
-    # for parent 2 and fourth element
-    # 
-    # It was with a [[1]]
-    #dataMergeTree[, sumAvail := sum(sort(unique(availabilitieChildEquivalent), na.last = TRUE)[[1]]), by = c(p$childVar, p$yearVar, p$geoVar)] #, "measuredElementSuaFbs")]
-    # Fixed:
-    #dataMergeTree[, sumAvail := sum(sort(unique(availabilitieChildEquivalent), na.last = TRUE)), by = c(p$childVar, p$yearVar, p$geoVar)] #, "measuredElementSuaFbs")]
-    # Better (set to NA when zero?):
-    #dataMergeTree[,
-    #              sumAvail := sum(unique(na.omit(availabilitieChildEquivalent))),
-    #              by = c(p$childVar, p$yearVar, p$geoVar)  #, "measuredElementSuaFbs"
-    #              ]
-    
-    #dataMergeTree[, shareDownUp := availabilitieChildEquivalent / sumAvail]
-    
-    ## XXX check these cases
-    #dataMergeTree[shareDownUp > 1]
-    #dataMergeTree[shareDownUp < 0]
-    #dataMergeTree[is.nan(shareDownUp)]
-    
-    # XXX for now:
-    dataMergeTree[shareDownUp > 1, shareDownUp := 1]
-    dataMergeTree[shareDownUp < 0, shareDownUp := 0]
-    dataMergeTree[is.nan(shareDownUp), shareDownUp := 0]
-
     dbg_print("dataMergeTree + shareDownUp_previous")
 
     dataMergeTree <-
@@ -2412,11 +2465,6 @@ if (length(primaryInvolvedDescendents) == 0) {
 
     dataMergeTree[, c("shareDownUp_prev", "protect_share") := NULL]
 
-    # 
-    # #correcting ShareDownUp
-    # dataMergeTree[,Nparent:=uniqueN(measuredItemParentCPC),
-    #               by = c('geographicAreaM49', 'timePointYears', 'measuredItemChildCPC')][,`:=`(shareDownUp=ifelse(Nparent==1,1,shareDownUp),
-    #                                                                                            Nparent=NULL)]
     # Key here was implicitly set by a previous order()
     setkey(dataMergeTree, NULL)
     
@@ -2701,56 +2749,8 @@ if (length(primaryInvolvedDescendents) == 0) {
   }
 }
 
+
 computed_shares <- rbindlist(computed_shares)
-
-stocks_suggest <- unique(rbindlist(stocks_suggest))
-
-stocks_suggest_aux <-
-  data[
-    measuredElementSuaFbs %chin% c("production", "imports", "exports") &
-      measuredItemSuaFbs %chin% stocks_suggest$measuredItemSuaFbs
-  ][,
-    .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears, Value)
-  ]
-
-stocks_suggest_aux <-
-  rbind(
-    stocks_suggest_aux,
-    stocks_suggest_aux[,
-      .(
-        measuredElementSuaFbs = "supply_no_stocks",
-        Value =
-          sum(
-            Value[measuredElementSuaFbs %chin% c("production", "imports")],
-            - Value[measuredElementSuaFbs %chin% c("exports")],
-            na.rm = TRUE
-          )
-      ),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
-    ]
-  )
-
-
-
-
-stocks_suggest_send <-
-  merge(
-    stocks_suggest,
-    data.table::dcast(stocks_suggest_aux, geographicAreaM49 + measuredItemSuaFbs + timePointYears ~ measuredElementSuaFbs, value.var = "Value"),
-    by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
-    all = TRUE
-  )
-
-stocks_suggest_send[, supply_with_stocks := supply_no_stocks - ifelse(is.na(delta), 0, delta)]
-
-# FIXME: this dcast on melt indicates that we should
-# have pivoted in a sane way since the beginning.
-stocks_suggest_send <- melt(stocks_suggest_send, id.vars = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"))
-stocks_suggest_send[variable == "delta", variable := "stocks_variation"]
-stocks_suggest_send <- data.table::dcast(stocks_suggest_send, geographicAreaM49 + measuredItemSuaFbs + variable ~ timePointYears, value.var = "value")
-
-tmp_file_stocks <- tempfile(pattern = paste0("STOCKS_", COUNTRY, "_"), fileext = '.csv')
-
 
 # Check on consistency of shareDownUp
 shareDownUp_invalid <-
@@ -2851,7 +2851,8 @@ if (STOP_AFTER_DERIVED == TRUE) {
   data_stock_to_save <-
     data[
       measuredElementSuaFbs == 'stock_change' &
-        timePointYears %in% 2014:2017,
+        timePointYears %in% 2014:2017 &
+        !is.na(Value),
       list(
         geographicAreaM49,
         measuredElementSuaFbs = "5071",
@@ -2863,59 +2864,9 @@ if (STOP_AFTER_DERIVED == TRUE) {
       )
     ]
 
-  data_stock_to_save <- data_stock_to_save[!is.na(Value)]
+  opening_stocks_to_save <- copy(all_opening_stocks)
+  opening_stocks_to_save[, Protected := NULL]
 
-  new_opening_stocks <-
-    unique(
-      data[
-        timePointYears >= 2014,
-        .(
-          geographicAreaM49,
-          timePointYears,
-          measuredItemFbsSua = measuredItemSuaFbs,
-          measuredElementSuaFbs = "5113",
-          Value_new = opening_stocks
-        )
-      ]
-    )
-
-  opening_stocks_to_save <-
-    merge(
-      original_opening_stocks[timePointYears >= 2014],
-      new_opening_stocks,
-      by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", "timePointYears"),
-      all = TRUE
-    )
-
-  opening_stocks_to_save <-
-    merge(
-      opening_stocks_to_save,
-      flagValidTable,
-      by = c("flagObservationStatus", "flagMethod"),
-      all.x = TRUE
-    )
-
-  opening_stocks_to_save[is.na(Protected) , Protected := FALSE]
-
-  opening_stocks_to_save <-
-    opening_stocks_to_save[
-      Protected != TRUE & (Value_new != Value | is.na(Value))
-    ][,
-      c("Value", "Protected", "Valid") := NULL
-    ]
-
-  setnames(opening_stocks_to_save, "Value_new", "Value")
-
-  opening_stocks_to_save[, `:=`(flagObservationStatus = "E", flagMethod = "u")]
-
-  opening_stocks_to_save <- opening_stocks_to_save[!is.na(Value)]
-
-  if (!file.exists(dirname(tmp_file_stocks))) {
-    dir.create(dirname(tmp_file_stocks), recursive = TRUE)
-  }
-
-  write.csv(stocks_suggest_send, tmp_file_stocks)
-  
   data_to_save_unbalanced <- rbind(data_deriv, data_stock_to_save, opening_stocks_to_save)
   
   out <-
@@ -2935,15 +2886,13 @@ if (STOP_AFTER_DERIVED == TRUE) {
         from = "do-not-reply@fao.org",
         to = swsContext.userEmail,
         subject = "Production of derived items created",
-        body = c(paste("The plugin stopped after production of derived items. Suggested stocks are attached. A file with shareDownUp is available in", sub("/work/SWS_R_Share/", "", shareDownUp_file)), tmp_file_stocks)
+        body = paste("The plugin stopped after production of derived items. A file with shareDownUp is available in", sub("/work/SWS_R_Share/", "", shareDownUp_file))
 
       )
     }
     
   } else {
-    
     print("The newBalancing plugin had a problem when saving derived data.")
-    
   }
   
   stop("Plugin stopped after derived, as requested. This is fine.")
@@ -3019,12 +2968,16 @@ if (nrow(negative_availability) > 0) {
 
   negative_availability[, availability := NULL]
 
-  negative_availability <- rbind(negative_availability, negative_availability_var)
+  negative_availability <-
+    rbind(
+      negative_availability,
+      unique(negative_availability_var) #FIXME
+    )
 
   negative_availability <-
     data.table::dcast(
       negative_availability,
-      country + year + measuredItemFbsSua ~ element,
+      country + measuredItemFbsSua + year ~ element,
       value.var = "Value"
     )
 
@@ -3033,25 +2986,6 @@ if (nrow(negative_availability) > 0) {
   negative_availability[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
 }
-
-## XXX fix these cases (check why these conditions happen)
-# (COMMENTED AS THEY SHOULD HAVE BEEN ALREADY FIXED)
-#computed_shares[processingShare < 0, processingShare := 0]
-#computed_shares[processingShare > 1, processingShare := 1]
-
-
-
-
-
-
-# XXX when we arrive here, delta stocks in 2014 for primary commodities with
-# no children (missing processing level) are not computed.
-# See, e.g., South Africa (710), sweet potatoes (01530)
-
-
-
-
-
 
 
 
@@ -3201,36 +3135,6 @@ dbg_print("end outliers")
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 data <- merge(data, itemMap, by = "measuredItemSuaFbs")
 
 #setnames(itemMap, "measuredItemSuaFbs", "measuredItemParentCPC")
@@ -3355,7 +3259,7 @@ data[
   measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed", "tourist"),
   movsum_value := RcppRoll::roll_sum(shift(Value), 3, fill = 'extend', align = 'right'),
   by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-  ]
+]
 
 data[
   measuredElementSuaFbs %chin% c("feed", "food", "industrial", "loss", "seed", "tourist"),
@@ -3702,73 +3606,75 @@ dbg_print("starting balancing loop")
 standData <- vector(mode = "list", length = nrow(uniqueLevels))
 
 for (i in seq_len(nrow(uniqueLevels))) {
-  #for (i in 1:17) {
-  
+
   # For stocks, the first year no need to see back in time. After the first year was done,
   # stocks may have changed, so opening need to be changed in "data".
-  
+
   if (i > 1) {
     items_stocks_changed <-
       unique(standData[[i-1]][!is.na(change_stocks)]$measuredItemSuaFbs)
 
     if (length(items_stocks_changed) > 0) {
     
-      xxx <-
+      stocks_modif <-
         rbind(
           # Previous data (balanced)
           standData[[i-1]][
-            measuredItemSuaFbs %in% items_stocks_changed & measuredElementSuaFbs == 'stockChange',
-            list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value, opening_stocks)
-            ],
+            !is.na(Value) & measuredElementSuaFbs == 'stockChange',
+            list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value)
+          ],
           # New data (unbalanced)
           data[
-            timePointYears > unique(standData[[i-1]]$timePointYears) &
-              measuredItemSuaFbs %in% items_stocks_changed &
+            !is.na(Value) & timePointYears > unique(standData[[i-1]]$timePointYears) &
               measuredElementSuaFbs == 'stockChange',
-            list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value, opening_stocks)
-            ]
-        )
-
-      # Remove these (there is no opening stock in the minimum year
-      xxx <- xxx[!(measuredItemSuaFbs %in% xxx[timePointYears == min(timePointYears) & is.na(opening_stocks)]$measuredItemSuaFbs)]
-
-      xxx1 <-
-        plyr::ddply(
-          xxx,
-          .variables = c('geographicAreaM49', 'measuredItemSuaFbs'),
-          .fun = function(x) fix_stocks(x)
-        )
-
-      setDT(xxx1)
-
-      xxx1 <-
-        xxx1[
-          timePointYears > unique(standData[[i-1]]$timePointYears),
-          list(geographicAreaM49, timePointYears, measuredItemSuaFbs,
-               delta_updated, opening_stocks_updated = opening_stocks)
+            list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value)
           ]
+        )
 
-      data <-
+      data_for_opening <-
         merge(
-          data,
-          xxx1,
-          by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
+          all_opening_stocks[
+            timePointYears >= 2014,
+            .(geographicAreaM49,  measuredItemSuaFbs =  measuredItemFbsSua,
+              timePointYears, new_opening = Value)
+          ],
+          stocks_modif,
+          by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
           all.x = TRUE
         )
 
-      data[
-        timePointYears > unique(standData[[i-1]]$timePointYears) &
-          measuredElementSuaFbs == "stockChange" &
-          !is.na(delta_updated),
-        `:=`(
-          Value = delta_updated,
-          opening_stocks = opening_stocks_updated,
-          flagObservationStatus = "T",
-          flagMethod = "c"
+      data_for_opening[is.na(delta), delta := 0]
+
+      data_for_opening <- data_for_opening[order(geographicAreaM49, measuredItemSuaFbs, timePointYears)]
+
+      data_for_opening <- update_opening_stocks(data_for_opening)
+
+      all_opening_stocks <-
+        merge(
+          all_opening_stocks,
+          data_for_opening[,
+            .(
+              geographicAreaM49,
+              measuredItemFbsSua = measuredItemSuaFbs,
+              timePointYears,
+              new_opening
+            )
+          ],
+          by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+          all.x = TRUE
         )
-        ][,
-          c("delta_updated", "opening_stocks_updated") := NULL
-        ]
+
+      all_opening_stocks[
+        !is.na(new_opening) & (round(new_opening) != round(Value) | is.na(Value)),
+        `:=`(
+          Value = new_opening,
+          flagObservationStatus = "E",
+          flagMethod = "u",
+          Protected = FALSE
+        )
+      ]
+
+      all_opening_stocks[, new_opening := NULL]
     }
   }
   
@@ -3781,33 +3687,26 @@ for (i in seq_len(nrow(uniqueLevels))) {
   
   treeSubset[, c("geographicAreaM49", "timePointYears") := NULL]
   
-    dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
+  dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
 
-  #for (j in 1:10) {
-    #print(i); flush.console()
+  standData[[i]] <-
+    newBalancing(
+      data = dataSubset,
+      tree = treeSubset,
+      #nutrientData = subNutrientData,
+      #batchnumber = batchnumber,
+      utilizationTable = utilizationTableSubset, # XXX: this one needs to be removed
+      Utilization_Table = Utilization_Table,
+      zeroWeight = zeroWeight #,
+      #fbsTree = fbsTree,
+      #cutItems = cutItems
+    )
 
-    #debug(newBalancing)
-    standData[[i]] <-
-      newBalancing(
-        data = dataSubset,
-        tree = treeSubset,
-        #nutrientData = subNutrientData,
-        #batchnumber = batchnumber,
-        utilizationTable = utilizationTableSubset, # XXX: this one needs to be removed
-        Utilization_Table = Utilization_Table,
-        zeroWeight = zeroWeight #,
-        #fbsTree = fbsTree,
-        #cutItems = cutItems
-      )
+  # FIXME: we are now assigning the "Protected" flag to ALL processing as
+  # after the first loop it should have been computed and that value SHOULD
+  # never be touched again.
+  standData[[i]][measuredElementSuaFbs == "foodManufacturing", Protected := TRUE]
 
-    # FIXME: we are now assigning the "Protected" flag to ALL processing as
-    # after the first loop it should have been computed and that value SHOULD
-    # never be touched again.
-    standData[[i]][measuredElementSuaFbs == "foodManufacturing", Protected := TRUE]
-
-    #dataSubset = as.data.table(standData[[i]])
-  #}
-  
 }
 
 dbg_print("end of balancing loop")
@@ -3943,21 +3842,6 @@ saveRDS(
 
 
 
-opening_stocks_data <-
-  standData[
-    !is.na(Value) & measuredElementSuaFbs == 'stockChange',
-    list(
-      geographicAreaM49,
-      measuredElementSuaFbs = "5113",
-      measuredItemFbsSua = measuredItemSuaFbs,
-      timePointYears,
-      Value = opening_stocks,
-      flagObservationStatus,
-      flagMethod,
-      Protected
-    )
-  ]
-
 imbalances <-
   unique(
     standData[,
@@ -4053,7 +3937,6 @@ if (!file.exists(dirname(tmp_file_name_imb))) {
   dir.create(dirname(tmp_file_name_imb), recursive = TRUE)
 }
 
-write.csv(stocks_suggest_send,         tmp_file_stocks)
 write.csv(imbalances_to_send,          tmp_file_name_imb)
 write.csv(computed_shares_send,        tmp_file_name_shares)
 write.csv(negative_availability,       tmp_file_name_negative)
@@ -4158,11 +4041,17 @@ calories_per_capita[, Protected := FALSE]
 
 calories_per_capita[, c("food", "calories", "population") := NULL]
 
-standData <- rbind(standData, imbalances, opening_stocks_data, calories_per_capita)
+standData <-
+  rbind(
+    standData,
+    imbalances,
+    all_opening_stocks,
+    calories_per_capita
+  )
 
 #standData[dplyr::near(Value, 0) & Protected == FALSE, Value := NA_real_]
 
-standData <- standData[timePointYears >= 2014][!is.na(Value)]
+standData <- standData[timePointYears >= 2014 & !is.na(Value)]
 
 standData[, Protected := NULL]
 
@@ -4687,8 +4576,6 @@ if (exists("out")) {
       - OUTLIERS_*.csv = outliers in Calories (defined as those that account
           for more than 5 Calories with an increase of more than 15%%)
 
-      - STOCKS_*.csv = Suggested stocks
-
       - SHARES_*.csv = Parents/Children shares, availability, etc.
 
       - FILLED_ER_*.csv = filled extraction rates
@@ -4735,7 +4622,6 @@ if (exists("out")) {
                tmp_file_des,
                tmp_file_des_main,
                tmp_file_outliers,
-               tmp_file_stocks,
                tmp_file_name_shares,
                tmp_file_name_imb,
                tmp_file_name_extr,
