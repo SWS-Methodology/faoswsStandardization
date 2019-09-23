@@ -3418,20 +3418,26 @@ if (THRESHOLD_METHOD == 'nolimits') {
       ),
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
-  
+
+  # NOTE: here we redefine what "supply" is just for seed.
+
+  data[
+    measuredElementSuaFbs == "seed",
+    supply := Value[measuredElementSuaFbs == "production"],
+    by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+  ]
+
   data[supply < 0, supply := 0]
 
-  # `util_share` is the utilization share, defined over supply: for validated
-  # years (i.e, until 2013), it should sum up to 1, given that utilizations
-  # were balanced. For non-validated years (or better, for non balanced SUAs)
-  # it does not sum to 1. min and max are defined over the validated years,
-  # so using shares that sum to 1.
-  
-  data[!(measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange")), util_share := Value / supply]
+  data[
+    !(measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange")),
+    util_share := Value / supply
+  ]
 
   data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
 
-  data[util_share < 0, util_share := 0] # This really shouldn't happen
+  # This really shouldn't happen
+  data[util_share < 0 & measuredElementSuaFbs != "tourist", util_share := 0]
 
   data[util_share > 1, util_share := 1]
   
