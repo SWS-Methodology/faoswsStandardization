@@ -1294,7 +1294,12 @@ if (nrow(fodder_crops_availab) > 0) {
 
 
 # TODO: add `where` clause to subset for countries
-opening_stocks_2014 <- ReadDatatable("opening_stocks_2014")
+opening_stocks_2014 <-
+  ReadDatatable(
+    "opening_stocks_2014",
+    where = paste0("m49_code IN (",
+                   paste(shQuote(COUNTRY, type = "sh"), collapse = ", "), ")")
+  )
 
 stopifnot(nrow(opening_stocks_2014) > 0)
 
@@ -1306,6 +1311,7 @@ opening_stocks_2014 <-
     .(
       geographicAreaM49 = m49_code,
       measuredItemFbsSua = cpc_code,
+      timePointYears = "2014",
       Value_cumulated = opening_stocks
     )
   ]
@@ -1333,7 +1339,7 @@ all_opening_stocks <-
   merge(
     original_opening_stocks,
     opening_stocks_2014,
-    by = c("geographicAreaM49", "measuredItemFbsSua"),
+    by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
     all = TRUE
   )
 
@@ -1367,12 +1373,15 @@ remaining_opening_stocks <-
           all_opening_stocks$measuredItemFbsSua
         )
   ][,
-    .(opening_20 =
-      sum(
-        Value[measuredElementSuaFbs %chin% c("5510", "5610")],
-        - Value[measuredElementSuaFbs == "5910"],
-        na.rm = TRUE
-      ) * 0.2),
+    .(
+      opening_20 =
+        sum(
+          Value[measuredElementSuaFbs %chin% c("5510", "5610")],
+          - Value[measuredElementSuaFbs == "5910"],
+          na.rm = TRUE
+        ) * 0.2,
+      timePointYears = "2014"
+    ),
     by = c("geographicAreaM49", "measuredItemFbsSua")
   ]
 
@@ -1382,10 +1391,9 @@ all_opening_stocks <-
   merge(
     all_opening_stocks,
     remaining_opening_stocks,
-    by = c("geographicAreaM49", "measuredItemFbsSua"),
+    by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
     all = TRUE
   )
-
 
 all_opening_stocks[
   !Protected %in% TRUE & is.na(Value) & !is.na(opening_20),
@@ -1395,17 +1403,11 @@ all_opening_stocks[
     flagMethod = "i",
     # We protect these, in any case, because they should not
     # be overwritten, even if not (semi) official or expert
-    Protected = TRUE,
-    measuredElementSuaFbs = "5113",
-    timePointYears = "2014"
+    Protected = TRUE
   )
 ][,
   opening_20 := NULL
 ]
-
-
-
-
 
 
 data <- merge(data, flagValidTable, by = c("flagObservationStatus", "flagMethod"), all.x = TRUE)
@@ -2391,7 +2393,7 @@ if (length(primaryInvolvedDescendents) == 0) {
                 )
               ],
               by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
-              all.x = TRUE
+              all = TRUE
             )
 
           all_opening_stocks[
