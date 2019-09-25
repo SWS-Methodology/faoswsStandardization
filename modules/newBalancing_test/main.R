@@ -532,22 +532,36 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
   data[, change_stocks := NA_integer_]
   
   if (nrow(tree) > 0) {
-    level <- findProcessingLevel(tree, from = p$parentVar,
-                                 to = p$childVar, aupusParam = p)
-    
-    # TODO check if there are multiple levels and how to handle that
-    
-    data <- merge(data, level, by = 'measuredItemSuaFbs', all.x = TRUE)
+    #level <- findProcessingLevel(tree, from = p$parentVar,
+    #                             to = p$childVar, aupusParam = p)
+    #
+    ## TODO check if there are multiple levels and how to handle that
+    #
+    #data <- merge(data, level, by = 'measuredItemSuaFbs', all.x = TRUE)
+
+    #lev_issues <- list()
+
+    #for (ii in unique(tree$measuredItemParentCPC)) {
+    #  lev_parent <- unique(data[measuredItemSuaFbs == ii]$processingLevel)
+    #  if (length(lev_parent) > 0) {
+    #    children <- unique(data[measuredItemSuaFbs %in% unique(tree[measuredItemParentCPC == ii]$measuredItemChildCPC), .(geographicAreaM49, measuredItemChildCPC = measuredItemSuaFbs, processingLevel)])
+    #    children[, measuredItemParentCPC := ii]
+    #    setcolorder(children, c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", "processingLevel"))
+    #    if (nrow(children[processingLevel == lev_parent]) > 0) {
+    #      lev_issues[[length(lev_issues) + 1]] <- children[processingLevel == lev_parent]
+    #    }
+    #  }
+    #}
     
     # TODO: balance also these: data[is.na(processingLevel)]
     # XXX: correct?
-    data[is.na(processingLevel), processingLevel := 0]
+    #data[is.na(processingLevel), processingLevel := 0]
     
     # XXX: na.rm = TRUE?
-    data[,
-      min_processingLevel := min(processingLevel),
-      by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-    ]
+    #data[,
+    #  min_processingLevel := min(processingLevel),
+    #  by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+    #]
     
     
     # XXX define "food residual" those items for which the only utilization
@@ -591,40 +605,18 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
     # Commodities with missing processing level => they are not in the tree.
     # This should be investigated, they will be balanced separately.
     
-    for (lev in rev(unique(level$processingLevel))) {
+    #for (lev in rev(unique(level$processingLevel))) {
       
-      # Food processing that come from lower levels (i.e., with higher numbers)
-      
-      if (exists('food_proc_table')) {
-        data <-
-          merge(
-            data,
-            food_proc_table,
-            by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
-            all.x = TRUE
-          )
-        
-        data[
-          measuredElementSuaFbs == "foodManufacturing" &
-            Protected == FALSE & !is.na(food_proc),
-          `:=`(
-            Value = ifelse(is.na(Value), 0, Value) + food_proc,
-            flagObservationStatus = "E",
-            flagMethod = "i"
-          )
-        ][,
-          food_proc := NULL
-        ]
-        
-        rm(food_proc_table)
-      }
-      
-      data_level <- data[processingLevel == lev]
-      
+      #data <- data[processingLevel == lev]
+
+      #if (nrow(data[measuredItemSuaFbs == "22110.02"]) > 0) {
+      #  browser()
+      #}
+
       # This is used only to check whether production needs to be generated,
       # hence no stocks are considered.
       
-      data_level[,
+      data[,
         supply :=
           sum(
             Value[measuredElementSuaFbs %chin% c('production', 'imports')],
@@ -638,7 +630,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       
       # When production needs to be created
       
-      data_level[
+      data[
         Protected == FALSE &
           # Only primary
           measuredItemSuaFbs %chin% Utilization_Table[primary_item == "X"]$cpc_code &
@@ -652,16 +644,16 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
       ]
       
-      calculateImbalance(data_level)
+      calculateImbalance(data)
 
       # Try to assign the maximum of imbalance to stocks
 
       # NOTE: in the conditions below, 2 was 0.2, indicating that no more than
       # 20% should go to stocks. Now, the condition was relaxed a lot (200%)
 
-      data_level <-
+      data <-
         merge(
-          data_level,
+          data,
           all_opening_stocks[,
             .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua,
               timePointYears, opening_stocks = Value)
@@ -670,7 +662,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           all.x = TRUE
         )
       
-      data_level[,
+      data[,
         Value_0 := ifelse(is.na(Value), 0, Value)
       ][
         Protected == FALSE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
@@ -690,23 +682,23 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           )
       ]
 
-      data_level[change_stocks == 1L, Value := 0]
-      data_level[change_stocks == 2L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 3L, Value := - opening_stocks]
-      data_level[change_stocks == 4L, Value := Value_0 + imbalance]
-      data_level[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 2, supply * 2 - opening_stocks, 0)]
+      data[change_stocks == 1L, Value := 0]
+      data[change_stocks == 2L, Value := Value_0 + imbalance]
+      data[change_stocks == 3L, Value := - opening_stocks]
+      data[change_stocks == 4L, Value := Value_0 + imbalance]
+      data[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 2, supply * 2 - opening_stocks, 0)]
 
-      data_level[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
+      data[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
-      data_level[, Value_0 := NULL]
+      data[, Value_0 := NULL]
 
-      data_level[, opening_stocks := NULL]
+      data[, opening_stocks := NULL]
       
       # Recalculate imbalance
-      calculateImbalance(data_level)
+      calculateImbalance(data)
 
       # Assign imbalance to food if food "only" (not "residual") item
-      data_level[
+      data[
         Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
         `:=`(
           Value = ifelse(is.na(Value) & imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
@@ -718,15 +710,15 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       for (j in 1:10) {
 
         # Recalculate imbalance
-        calculateImbalance(data_level)
+        calculateImbalance(data)
         
-        ###    data_level[,
+        ###    data[,
         ###      mov_share_rebased := mov_share / sum(mov_share[Protected == FALSE], na.rm = TRUE),
         ###      by = list(geographicAreaM49, timePointYears, measuredItemSuaFbs)
         ###    ]
         
         ###    # Assign remaining imbalance proportionally, using rebased moving shares.
-        ###    data_level[
+        ###    data[
         ###      Protected == FALSE & food_resid == FALSE & outside(imbalance, -100, 100) & !(measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stockChange')),
         ###      `:=`(
         ###        Value = Value + mov_share_rebased * imbalance,
@@ -736,10 +728,10 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         ###    ]
         
         
-        if (nrow(data_level[outside(imbalance, -1, 1)]) > 0) {
+        if (nrow(data[outside(imbalance, -1, 1)]) > 0) {
           
-          data_level_no_imbalance <- data_level[data.table::between(imbalance, -1, 1)]
-          data_level_with_imbalance <- data_level[outside(imbalance, -1, 1)]
+          data_level_no_imbalance <- data[data.table::between(imbalance, -1, 1)]
+          data_level_with_imbalance <- data[outside(imbalance, -1, 1)]
           
           levels_to_optimize <- unique(data_level_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
           
@@ -776,20 +768,19 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           
           data_level_with_imbalance[, adjusted_value := NULL]
           
-          data_level <- rbind(data_level_with_imbalance, data_level_no_imbalance)
+          data <- rbind(data_level_with_imbalance, data_level_no_imbalance)
           
         }
       }
       
-      
       # At this point the imbalance (in the best case scenario) should be zero,
       # the following re-calculation is useful only for debugging
       
-      calculateImbalance(data_level)
+      calculateImbalance(data)
 
       # Assign imbalance to food if food "only" (not "residual") item
 
-      data_level[
+      data[
         Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
         `:=`(
           Value = ifelse(is.na(Value) & imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
@@ -798,10 +789,10 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
       ]
       
-      calculateImbalance(data_level)
+      calculateImbalance(data)
       
       # Assign the residual imbalance to industrial if the conditions are met
-      data_level[
+      data[
         Protected == FALSE & industrial_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "industrial",
         `:=`(
           Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
@@ -810,10 +801,10 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
       ]
 
-      calculateImbalance(data_level)
+      calculateImbalance(data)
       
       # Assign the residual imbalance to feed if the conditions are met
-      data_level[
+      data[
         Protected == FALSE & feed_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "feed",
         `:=`(
           Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
@@ -822,55 +813,22 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
       ]
      
-      calculateImbalance(data_level)
+      calculateImbalance(data)
       
       
-      # Now, let's calculate food processing
-      # TODO: change name of `x_to_food`
-      x_to_food <-
-        data_level[
-          measuredElementSuaFbs == 'production',
-          list(geographicAreaM49, timePointYears, measuredItemSuaFbs, Value)
-          ][
-            computed_shares,
-            on = c('geographicAreaM49' = 'geographicAreaM49',
-                   'timePointYears' = 'timePointYears',
-                   'measuredItemSuaFbs' = 'measuredItemChildCPC'),
-            nomatch = 0
-          ]
+      data[, c("supply", "utilizations", "imbalance", "mov_share_rebased") := NULL]
       
-      food_proc_table <-
-        tree[
-          measuredElementSuaFbs == 'extractionRate',
-          list(measuredItemParentCPC, measuredItemSuaFbs = measuredItemChildCPC, extractionRate = Value)
-        ][
-          x_to_food,
-          on = c('measuredItemParentCPC', 'measuredItemSuaFbs')
-        ][,
-          zero_weight := measuredItemSuaFbs %in% zeroWeight
-        ][,
-          food_proc_i := Value / extractionRate * shareDownUp * !zero_weight
-        ][,
-          list(food_proc = sum(food_proc_i)),
-          by = list(geographicAreaM49, timePointYears, measuredItemSuaFbs = measuredItemParentCPC)
-        ]
+      #data <- rbind(data[processingLevel != lev], data)
       
-      # XXX ??? (Reported by Irina, Angola 0111 (it was assigned as zero in level 1, but it should have been in level 0))
-      food_proc_table <- food_proc_table[food_proc > 0]
-      
-      
-      data_level[, c("supply", "utilizations", "imbalance", "mov_share_rebased") := NULL]
-      
-      data <- rbind(data[processingLevel != lev], data_level)
-      
-    }
+    #}
     
-    data[, c("processingLevel", "min_processingLevel") := NULL]
+    #data[, c("processingLevel", "min_processingLevel") := NULL]
   } else {
     primaryEl <- c()
   }
   
-  return(data)
+  return(list(balanced = data))
+  #return(list(balanced = data, issues = lev_issues))
 }
 
 
@@ -896,8 +854,10 @@ stopifnot(nrow(tree) > 0)
 
 tree <- tree[geographicAreaM49 %chin% COUNTRY]
 
-# Exception: high share conmfirmed by official data
 
+# The `tree_exceptions` will npo be checked by validateTree()
+
+# Exception: high share conmfirmed by official data
 tree_exceptions <- tree[geographicAreaM49 == "392" & measuredItemParentCPC == "0141" & measuredItemChildCPC == "23995.01"]
 
 if (nrow(tree_exceptions) > 0) {
@@ -916,6 +876,19 @@ if (nrow(tree_exceptions) > 0) {
 ## therefore here we are re-changing it
 
 tree[Value == 0, Value := NA]
+
+#proc_level_exceptions <- ReadDatatable("processing_level_exceptions")
+#
+#if (nrow(proc_level_exceptions) > 0) {
+#  setnames(proc_level_exceptions, c("m49_code", "parent", "child"),
+#           c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC"))
+#
+#  tree <-
+#    tree[!proc_level_exceptions[is.na(level)],
+#         on = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")]
+#
+#  proc_level_exceptions <- proc_level_exceptions[!is.na(level)]
+#}
 
 tree_to_send <- tree[is.na(Value) & measuredElementSuaFbs=="extractionRate"]
 
@@ -1036,12 +1009,18 @@ for (i in seq_len(nrow(uniqueLevels))) {
 
 tree <- rbindlist(treeLevels)
 
+#if (nrow(proc_level_exceptions) > 0) {
+#  tree <- merge(tree, proc_level_exceptions, by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC"), all.x = TRUE)
+#  tree[!is.na(level), processingLevel := level]
+#  tree[, level := NULL]
+#}
+
 # XXX there are no different process levels, but check it
 tree[,
-     processingLevel := max(processingLevel, na.rm = TRUE),
-     by = c("geographicAreaM49", "timePointYears",
-            "measuredElementSuaFbs", "measuredItemChildCPC")
-     ]
+  processingLevel := max(processingLevel, na.rm = TRUE),
+  by = c("geographicAreaM49", "timePointYears",
+         "measuredElementSuaFbs", "measuredItemChildCPC")
+]
 
 
 
@@ -1294,7 +1273,12 @@ if (nrow(fodder_crops_availab) > 0) {
 
 
 # TODO: add `where` clause to subset for countries
-opening_stocks_2014 <- ReadDatatable("opening_stocks_2014")
+opening_stocks_2014 <-
+  ReadDatatable(
+    "opening_stocks_2014",
+    where = paste0("m49_code IN (",
+                   paste(shQuote(COUNTRY, type = "sh"), collapse = ", "), ")")
+  )
 
 stopifnot(nrow(opening_stocks_2014) > 0)
 
@@ -1306,6 +1290,7 @@ opening_stocks_2014 <-
     .(
       geographicAreaM49 = m49_code,
       measuredItemFbsSua = cpc_code,
+      timePointYears = "2014",
       Value_cumulated = opening_stocks
     )
   ]
@@ -1333,7 +1318,7 @@ all_opening_stocks <-
   merge(
     original_opening_stocks,
     opening_stocks_2014,
-    by = c("geographicAreaM49", "measuredItemFbsSua"),
+    by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
     all = TRUE
   )
 
@@ -1367,12 +1352,15 @@ remaining_opening_stocks <-
           all_opening_stocks$measuredItemFbsSua
         )
   ][,
-    .(opening_20 =
-      sum(
-        Value[measuredElementSuaFbs %chin% c("5510", "5610")],
-        - Value[measuredElementSuaFbs == "5910"],
-        na.rm = TRUE
-      ) * 0.2),
+    .(
+      opening_20 =
+        sum(
+          Value[measuredElementSuaFbs %chin% c("5510", "5610")],
+          - Value[measuredElementSuaFbs == "5910"],
+          na.rm = TRUE
+        ) * 0.2,
+      timePointYears = "2014"
+    ),
     by = c("geographicAreaM49", "measuredItemFbsSua")
   ]
 
@@ -1382,10 +1370,9 @@ all_opening_stocks <-
   merge(
     all_opening_stocks,
     remaining_opening_stocks,
-    by = c("geographicAreaM49", "measuredItemFbsSua"),
+    by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
     all = TRUE
   )
-
 
 all_opening_stocks[
   !Protected %in% TRUE & is.na(Value) & !is.na(opening_20),
@@ -1395,17 +1382,11 @@ all_opening_stocks[
     flagMethod = "i",
     # We protect these, in any case, because they should not
     # be overwritten, even if not (semi) official or expert
-    Protected = TRUE,
-    measuredElementSuaFbs = "5113",
-    timePointYears = "2014"
+    Protected = TRUE
   )
 ][,
   opening_20 := NULL
 ]
-
-
-
-
 
 
 data <- merge(data, flagValidTable, by = c("flagObservationStatus", "flagMethod"), all.x = TRUE)
@@ -2436,7 +2417,7 @@ if (length(primaryInvolvedDescendents) == 0) {
                 )
               ],
               by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
-              all.x = TRUE
+              all = TRUE
             )
 
           all_opening_stocks[
@@ -3197,6 +3178,10 @@ dbg_print("end outliers")
 
 
 
+# Protect all loss data, to keep it consistent with SDG indicator,
+# whatever the flag is.
+data[measuredElementSuaFbs == "loss", Protected := TRUE]
+
 
 
 data <- merge(data, itemMap, by = "measuredItemSuaFbs")
@@ -3461,20 +3446,26 @@ if (THRESHOLD_METHOD == 'nolimits') {
       ),
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
-  
+
+  # NOTE: here we redefine what "supply" is just for seed.
+
+  data[
+    measuredElementSuaFbs == "seed",
+    supply := Value[measuredElementSuaFbs == "production"],
+    by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+  ]
+
   data[supply < 0, supply := 0]
 
-  # `util_share` is the utilization share, defined over supply: for validated
-  # years (i.e, until 2013), it should sum up to 1, given that utilizations
-  # were balanced. For non-validated years (or better, for non balanced SUAs)
-  # it does not sum to 1. min and max are defined over the validated years,
-  # so using shares that sum to 1.
-  
-  data[!(measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange")), util_share := Value / supply]
+  data[
+    !(measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange")),
+    util_share := Value / supply
+  ]
 
   data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
 
-  data[util_share < 0, util_share := 0] # This really shouldn't happen
+  # This really shouldn't happen
+  data[util_share < 0 & measuredElementSuaFbs != "tourist", util_share := 0]
 
   data[util_share > 1, util_share := 1]
   
@@ -3662,12 +3653,69 @@ data[,
 ]
 
 
+
+# Calculate processed
+
+# Now, let's calculate food processing
+data_for_proc <-
+  data[
+    measuredElementSuaFbs == 'production',
+    list(geographicAreaM49, timePointYears, measuredItemSuaFbs, Value)
+    ][
+      computed_shares,
+      on = c('geographicAreaM49' = 'geographicAreaM49',
+             'timePointYears' = 'timePointYears',
+             'measuredItemSuaFbs' = 'measuredItemChildCPC'),
+      nomatch = 0
+    ]
+
+food_proc_table <-
+  tree[
+    measuredElementSuaFbs == 'extractionRate',
+    list(measuredItemParentCPC, measuredItemSuaFbs = measuredItemChildCPC, extractionRate = Value, timePointYears)
+  ][
+    data_for_proc,
+    on = c('measuredItemParentCPC', 'measuredItemSuaFbs', 'timePointYears')
+  ][,
+    zero_weight := measuredItemSuaFbs %in% zeroWeight
+  ][,
+    food_proc_i := Value / extractionRate * shareDownUp * !zero_weight
+  ][,
+    list(food_proc = sum(food_proc_i)),
+    by = list(geographicAreaM49, timePointYears, measuredItemSuaFbs = measuredItemParentCPC)
+  ]
+
+food_proc_table <- food_proc_table[food_proc > 0 & timePointYears >= 2014]
+      
+data <-
+  merge(
+    data,
+    food_proc_table,
+    by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
+    all.x = TRUE
+  )
+
+data[
+  measuredElementSuaFbs == "foodManufacturing" &
+    Protected == FALSE & !is.na(food_proc),
+  `:=`(
+    Value = food_proc,
+    flagObservationStatus = "E",
+    flagMethod = "i"
+  )
+][,
+  food_proc := NULL
+]
+
+
 ## 1 => year = 2014
 i <- 1
 
 dbg_print("starting balancing loop")
 
 standData <- vector(mode = "list", length = nrow(uniqueLevels))
+
+#issues <- list()
 
 for (i in seq_len(nrow(uniqueLevels))) {
 
@@ -3753,7 +3801,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
   
   dataSubset <- data[filter, on = c("geographicAreaM49", "timePointYears")]
 
-  standData[[i]] <-
+  newBal_result <- 
     newBalancing(
       data = dataSubset,
       tree = treeSubset,
@@ -3766,12 +3814,38 @@ for (i in seq_len(nrow(uniqueLevels))) {
       #cutItems = cutItems
     )
 
+  standData[[i]] <- newBal_result[["balanced"]]
+
+  #issues[[length(issues) + 1]] <- newBal_result[["issues"]]
+
   # FIXME: we are now assigning the "Protected" flag to ALL processing as
   # after the first loop it should have been computed and that value SHOULD
   # never be touched again.
   standData[[i]][measuredElementSuaFbs == "foodManufacturing", Protected := TRUE]
 
 }
+
+## The list is repeated, so it's sufficient to take the first element
+#issues <- rbindlist(issues[[1]])
+
+#if (nrow(issues) > 0) {
+#    write.csv(
+#      issues,
+#      file.path(R_SWS_SHARE_PATH, USER, paste0("processing_level_issues_", COUNTRY, ".csv"))
+#    )
+#
+#    if (!CheckDebug()) {
+#      send_mail(
+#        from = "do-not-reply@fao.org",
+#        to = swsContext.userEmail,
+#        subject = "Issues with processing level",
+#        body = c("Some parents and children are processed at the same level. See attached file. You may also want to see the Tree section in http://hqlprsws1.hq.un.fao.org:3838/FBSvalidation/",
+#                file.path(R_SWS_SHARE_PATH, USER, paste0("processing_level_issues_", COUNTRY, ".csv")))
+#      )
+#    }
+#
+#    unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("processing_level_issues_", COUNTRY, ".csv")))
+#}
 
 dbg_print("end of balancing loop")
 
