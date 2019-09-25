@@ -1726,14 +1726,43 @@ stopifnot(nrow(coproduct_for_sharedownup) > 0)
 
 coproduct_for_sharedownup <- coproduct_for_sharedownup[, .(measured_item_child_cpc, branch)]
 
-setnames(coproduct_for_sharedownup, "measured_item_child_cpc", "measuredItemChildCPC")
+#setnames(coproduct_for_sharedownup, "measured_item_child_cpc", "measuredItemChildCPC")
 
 # Can't do anything if this information if missing, so remove these cases
 coproduct_for_sharedownup <- coproduct_for_sharedownup[!is.na(branch)]
 
-coproduct_for_sharedownup <- coproduct_for_sharedownup [branch != '22242.01 + 22110.04']
+coproduct_for_sharedownup_easy <- coproduct_for_sharedownup [branch != '22242.01 + 22110.04']
 
-coproduct_for_sharedownup <- coproduct_table[!grepl('\\+|or', branch)]
+ coproduct_for_sharedownup_easy <- coproduct_for_sharedownup[!grepl('\\+|or', branch)]
+
+coproduct_for_sharedownup_plus <- coproduct_for_sharedownup[grepl('\\+', branch)]
+
+coproduct_for_sharedownup_plus <-
+  rbind(
+    tidyr::separate(coproduct_for_sharedownup_plus, branch, into = c('main1', 'main2'), remove = FALSE, sep = ' *\\+ *')[, .(measured_item_child_cpc, branch= main1)],
+    tidyr::separate(coproduct_for_sharedownup_plus, branch, into = c('main1', 'main2'), remove = FALSE, sep = ' *\\+ *')[, .(measured_item_child_cpc,branch = main2)]
+  )
+
+coproduct_table_plus <- unique(coproduct_table_plus)
+
+
+coproduct_for_sharedownup_or <- coproduct_for_sharedownup[grepl('or', branch)]
+
+coproduct_for_sharedownup_or <-
+  rbind(
+    #coproduct_table_or,
+    tidyr::separate(coproduct_for_sharedownup_or, branch, into = c('main1', 'main2'), remove = FALSE, sep = ' *or *')[, .(measured_item_child_cpc, branch= main1)],
+    tidyr::separate(coproduct_for_sharedownup_or, branch, into = c('main1', 'main2'), remove = FALSE, sep = ' *or *')[, .(measured_item_child_cpc,branch = main2)]
+  )
+
+coproduct_for_sharedownup_or <- unique(coproduct_for_sharedownup_or)
+
+coproduct_for_sharedownup<-
+  rbind(
+    coproduct_for_sharedownup_easy,
+    coproduct_for_sharedownup_plus,
+    coproduct_for_sharedownup_or
+  )
 
 
 #Using the whole tree not by level
@@ -1760,6 +1789,13 @@ data_tree <-
         'stock_change', 'foodmanufacturing', 'loss',
         'food', 'industrial', 'feed', 'seed')
   ]
+
+
+#subset the tree accordingly to parents and child present in the SUA data
+
+ExtrRate <- ExtrRate[measuredItemChildCPC %in% data_tree[,get("measuredItemSuaFbs")]&
+                       measuredItemParentCPC %in% data_tree[,get("measuredItemSuaFbs")],]
+
 
 setnames(data_tree, "measuredItemSuaFbs", "measuredItemParentCPC")
 
@@ -1834,7 +1870,8 @@ data_count[,
 ]
 
 # #calculate the number of children of each parent
-data_count[,
+#we exclude zeroweight to avoid doublecounting of children (processing)
+data_count[measuredItemChildCPC %!in% zeroWeight,
   number_of_children := uniqueN(measuredItemChildCPC),
   by=c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
 ]
@@ -1854,6 +1891,9 @@ food_proc <- unique(
   by=c("geographicAreaM49","measuredItemParentCPC","timePointYears","Value")
 )
 setnames(food_proc,"Value","parent_qty_processed")
+
+#avoid recaculation of shareDownUp from 2014 onwards
+food_proc[timePointYears>2013,parent_qty_processed:=NA_real_]
 
 data_tree <- merge(
   data_tree,
@@ -1887,6 +1927,10 @@ dataprodchild<-
          "Value","flagObservationStatus","flagMethod")
   )
 setnames(dataprodchild, "Value", "production_of_child")
+
+
+#to avoid resestimation based on estimated data (processed and production of child) from 2014 onwards
+dataprodchild[timePointYears>2013,production_of_child:=NA_real_]
 
 
 data_tree<-merge(
@@ -2029,7 +2073,8 @@ data_tree[,
 
 #some corrections...
 data_tree[is.na(shareDownUp) & number_of_parent == 1, shareDownUp := 1]
-data_tree[(production_of_child==0 | is.na(production_of_child)) & timePointYears < 2014, shareDownUp:=0]
+data_tree[(production_of_child==0 | is.na(production_of_child)) & measuredItemChildCPC %!in% zeroWeight &
+            timePointYears < 2014, shareDownUp:=0]
 data_tree[(parent_qty_processed==0 | is.na(parent_qty_processed)) & timePointYears < 2014, shareDownUp:=0]
 data_tree[is.na(shareDownUp), shareDownUp:=0]
 data_tree <-
