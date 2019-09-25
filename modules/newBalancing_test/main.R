@@ -3709,13 +3709,13 @@ for (i in seq_len(nrow(uniqueLevels))) {
         rbind(
           # Previous data (balanced)
           standData[[i-1]][
-            !is.na(Value) & measuredElementSuaFbs == 'stockChange',
+            !is.na(Value) & measuredElementSuaFbs == 'stockChange' & measuredItemSuaFbs %in% items_stocks_changed,
             list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value)
           ],
           # New data (unbalanced)
           data[
             !is.na(Value) & timePointYears > unique(standData[[i-1]]$timePointYears) &
-              measuredElementSuaFbs == 'stockChange',
+              measuredElementSuaFbs == 'stockChange' & measuredItemSuaFbs %in% items_stocks_changed,
             list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value)
           ]
         )
@@ -3723,7 +3723,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
       data_for_opening <-
         merge(
           all_opening_stocks[
-            timePointYears >= 2014,
+            timePointYears >= 2014 & measuredItemFbsSua %in% items_stocks_changed,
             .(geographicAreaM49,  measuredItemSuaFbs =  measuredItemFbsSua,
               timePointYears, new_opening = Value)
           ],
