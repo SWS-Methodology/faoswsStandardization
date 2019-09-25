@@ -1724,7 +1724,7 @@ coproduct_for_sharedownup_plus <-
     tidyr::separate(coproduct_for_sharedownup_plus, branch, into = c('main1', 'main2'), remove = FALSE, sep = ' *\\+ *')[, .(measured_item_child_cpc,branch = main2)]
   )
 
-coproduct_table_plus <- unique(coproduct_table_plus)
+coproduct_for_sharedownup_plus <- unique(coproduct_for_sharedownup_plus)
 
 
 coproduct_for_sharedownup_or <- coproduct_for_sharedownup[grepl('or', branch)]
@@ -2800,7 +2800,7 @@ computed_shares <- rbindlist(computed_shares)
 # Check on consistency of shareDownUp
 shareDownUp_invalid <-
   computed_shares[,
-    .(sum_shares = sum(shareDownUp)),
+    .(sum_shares = round(sum(shareDownUp)), 3),
     by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
   ][
     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
