@@ -3624,28 +3624,50 @@ data_for_proc <-
       nomatch = 0
     ]
 
-food_proc_table <-
+setnames(data_for_proc, "measuredItemSuaFbs", "measuredItemChildCPC")
+
+food_proc_table_i <-
   tree[
     measuredElementSuaFbs == 'extractionRate',
-    list(measuredItemParentCPC, measuredItemSuaFbs = measuredItemChildCPC, extractionRate = Value, timePointYears)
+    list(measuredItemParentCPC, measuredItemChildCPC, extractionRate = Value, timePointYears)
   ][
     data_for_proc,
-    on = c('measuredItemParentCPC', 'measuredItemSuaFbs', 'timePointYears')
+    on = c('measuredItemParentCPC', 'measuredItemChildCPC', 'timePointYears')
   ][,
-    zero_weight := measuredItemSuaFbs %in% zeroWeight
+    zero_weight := measuredItemChildCPC %in% zeroWeight
   ][,
     food_proc_i := Value / extractionRate * shareDownUp * !zero_weight
-  ][,
+  ][
+    food_proc_i > 0
+  ]
+
+# Incorporate the processed info into the shares file:
+computed_shares_send <-
+  merge(
+    computed_shares_send,
+    food_proc_table_i[,
+      .(
+        Country = geographicAreaM49,
+        Parent = paste0("'", measuredItemParentCPC),
+        Child = paste0("'", measuredItemChildCPC),
+        year = timePointYears,
+        processed = food_proc_i
+      )
+    ],
+    by = c("Country", "Parent", "Child", "year"),
+    all.x = TRUE
+  )
+
+food_proc_table <-
+  food_proc_table_i[,
     list(food_proc = sum(food_proc_i)),
     by = list(geographicAreaM49, timePointYears, measuredItemSuaFbs = measuredItemParentCPC)
   ]
 
-food_proc_table <- food_proc_table[food_proc > 0 & timePointYears >= 2014]
-      
 data <-
   merge(
     data,
-    food_proc_table,
+    food_proc_table[timePointYears >= 2014],
     by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
     all.x = TRUE
   )
