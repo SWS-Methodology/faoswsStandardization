@@ -4876,14 +4876,137 @@ des_main[
   measuredItemFbsSua_description := "PERCENTAGE OF MAIN OVER TOTAL"
 ]
 
-des_cast[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 des_main[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
-tmp_file_des      <- tempfile(pattern = paste0("DES_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_des_main <- tempfile(pattern = paste0("DES_MAIN_ITEMS_", COUNTRY, "_"), fileext = '.csv')
+
+########## create XLSX for main DES items
+
+des_main_90_and_tot <-
+  rbind(
+    data.table(
+      geographicAreaM49 = unique(des_main_90$geographicAreaM49),
+      measuredItemFbsSua = "S2901"
+    ),
+    des_main_90
+  )
+
+des_level_diff <-
+  des[
+    order(geographicAreaM49, measuredItemFbsSua, timePointYears)
+  ][,
+    .(
+      Value = Value - shift(Value),
+      timePointYears = timePointYears
+    ),
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+des_level_diff_cast <-
+  data.table::dcast(
+    des_level_diff,
+    geographicAreaM49 + measuredItemFbsSua ~ timePointYears,
+    fun.aggregate = sum,
+    value.var = "Value"
+  )
+
+
+des_perc_diff <-
+  des[
+    order(geographicAreaM49, measuredItemFbsSua, timePointYears)
+  ][,
+    .(
+      Value = Value / shift(Value) - 1,
+      timePointYears = timePointYears
+    ),
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+des_perc_diff[is.infinite(Value) | is.nan(Value), Value := NA_real_]
+
+des_perc_diff_cast <-
+  data.table::dcast(
+    des_perc_diff,
+    geographicAreaM49 + measuredItemFbsSua ~ timePointYears,
+    fun.aggregate = sum,
+    value.var = "Value"
+  )
+
+des_level_diff_cast <-
+  merge(
+    des_level_diff_cast,
+    des_cast[, .(geographicAreaM49, geographicAreaM49_description, measuredItemFbsSua, measuredItemFbsSua_description)],
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  )
+
+setcolorder(des_level_diff_cast, names(des_cast))
+
+des_perc_diff_cast <-
+  merge(
+    des_perc_diff_cast,
+    des_cast[, .(geographicAreaM49, geographicAreaM49_description,
+                 measuredItemFbsSua, measuredItemFbsSua_description)],
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  )
+
+setcolorder(des_perc_diff_cast, names(des_cast))
+
+des_level_diff_cast <-
+  des_level_diff_cast[des_main_90_and_tot,
+                      on = c("geographicAreaM49", "measuredItemFbsSua")]
+
+des_perc_diff_cast <-
+  des_perc_diff_cast[des_main_90_and_tot,
+                     on = c("geographicAreaM49", "measuredItemFbsSua")]
+
+
+wb <- createWorkbook()
+
+addWorksheet(wb, "DES_MAIN")
+addWorksheet(wb, "DES_MAIN_diff")
+addWorksheet(wb, "DES_MAIN_diff_perc")
+
+writeData(wb, "DES_MAIN", des_main)
+writeData(wb, "DES_MAIN_diff", des_level_diff_cast)
+writeData(wb, "DES_MAIN_diff_perc", des_perc_diff_cast)
+
+style_cal_gt_10 <- createStyle(fgFill = "lightyellow")
+style_cal_gt_20 <- createStyle(fgFill = "yellow")
+style_cal_gt_50 <- createStyle(fgFill = "orange")
+style_cal_gt_100 <- createStyle(fgFill = "red")
+style_percent <- createStyle(numFmt = "PERCENTAGE")
+
+
+for (i in which(names(des_level_diff_cast) %in% 2011:2017)) {
+  addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 10], style = style_cal_gt_10, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 20], style = style_cal_gt_20, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 50], style = style_cal_gt_50, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 100], style = style_cal_gt_100, gridExpand = TRUE)
+
+  addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 10], style = style_cal_gt_10, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 20], style = style_cal_gt_20, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 50], style = style_cal_gt_50, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 100], style = style_cal_gt_100, gridExpand = TRUE)
+}
+
+addStyle(wb, sheet = "DES_MAIN_diff_perc", style_percent, rows = 1:nrow(des_level_diff_cast) + 1, cols = which(names(des_level_diff_cast) %in% 2011:2017), gridExpand = TRUE, stack = TRUE)
+
+setColWidths(wb, "DES_MAIN", 4, 40)
+setColWidths(wb, "DES_MAIN_diff", 4, 40)
+setColWidths(wb, "DES_MAIN_diff_perc", 4, 40)
+
+tmp_file_des_main <- tempfile(pattern = paste0("DES_MAIN_ITEMS_", COUNTRY, "_"), fileext = '.xlsx')
+
+saveWorkbook(wb, tmp_file_des_main, overwrite = TRUE)
+
+
+########## / create XLSX for main DES items
+
+
+tmp_file_des <- tempfile(pattern = paste0("DES_", COUNTRY, "_"), fileext = '.csv')
+
+des_cast[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
 write.csv(des_cast, tmp_file_des)
-write.csv(des_main, tmp_file_des_main)
 
 ########## / DES calculation
 
