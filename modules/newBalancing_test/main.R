@@ -2331,13 +2331,13 @@ if(nrow(shareDownUp_previous)>0){
   data_tree_final[protect_share==TRUE, shareDownUp:=shareDownUp_prev]
   
   
-  #Automatic update of shareDOwnUp (to discuss with Salar)
-  data_tree_final[,shareDownUp:=ifelse(protect_share==FALSE & sum(protect_share==TRUE)>0,
-                                       shareDownUp/sum(shareDownUp[protect_share==FALSE],na.rm = TRUE)*(1-shareDownUp[protect_share==TRUE]),
-                                       shareDownUp
-  ),
-  by=c(p$geoVar,p$yearVar,p$childVar)
-  ]
+  ##Automatic update of shareDOwnUp (to discuss with Salar)
+  #data_tree_final[,shareDownUp1:=ifelse(protect_share==FALSE & sum(protect_share==TRUE)>0,
+  #                                     shareDownUp/sum(shareDownUp[protect_share==FALSE],na.rm = TRUE)*(1-shareDownUp[protect_share==TRUE]),
+  #                                     shareDownUp
+  #),
+  #by=c(p$geoVar,p$yearVar,p$childVar)
+  #]
   data_tree_final[,shareDownUp_prev:=NULL]
   data_tree_final_save<-copy(data_tree_final)
   data_tree_final[,protect_share:=NULL]
