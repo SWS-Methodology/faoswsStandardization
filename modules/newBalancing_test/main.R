@@ -686,7 +686,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data[change_stocks == 2L, Value := Value_0 + imbalance]
       data[change_stocks == 3L, Value := - opening_stocks]
       data[change_stocks == 4L, Value := Value_0 + imbalance]
-      data[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 2, supply * 2 - opening_stocks, 0)]
+      data[change_stocks == 5L, Value := max(supply * 2 - opening_stocks, 0)]
 
       data[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
@@ -1014,6 +1014,30 @@ tree <- rbindlist(treeLevels)
 #  tree[!is.na(level), processingLevel := level]
 #  tree[, level := NULL]
 #}
+
+
+## These may create issues, let's check
+#tree_issues <- tree[measuredElementSuaFbs == "extractionRate" & timePointYears >= 2014 & measuredItemChildCPC %chin% tree[measuredElementSuaFbs == "extractionRate", .(ndiff = length(unique(processingLevel))), .(timePointYears, measuredItemChildCPC)][ndiff > 1][, unique(measuredItemChildCPC)]][order(measuredItemChildCPC, measuredItemParentCPC, timePointYears)]
+#
+#tree_issues[, measuredElementSuaFbs := NULL]
+#
+#write.csv(
+#  tree_issues,
+#  file.path(R_SWS_SHARE_PATH, USER, paste0("TREE_ISSUES_", COUNTRY, ".csv"))
+#)
+#
+#if (!CheckDebug()) {
+#  send_mail(
+#    from = "do-not-reply@fao.org",
+#    to = swsContext.userEmail,
+#    subject = "Children that appear in different levels",
+#    body = c("The items (as children) in the attached file appear in different procesisng levels (e.g., 1, 2).",
+#            file.path(R_SWS_SHARE_PATH, USER, paste0("TREE_ISSUES_", COUNTRY, ".csv")))
+#  )
+#}
+#
+#unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("TREE_ISSUES_", COUNTRY, ".csv")))
+
 
 # XXX there are no different process levels, but check it
 tree[,
@@ -1387,6 +1411,148 @@ all_opening_stocks[
 ][,
   opening_20 := NULL
 ]
+
+complete_all_opening <-
+  CJ(
+    geographicAreaM49 = unique(all_opening_stocks$geographicAreaM49),
+    timePointYears = unique(all_opening_stocks$timePointYears),
+    measuredItemFbsSua = unique(all_opening_stocks$measuredItemFbsSua)
+  )
+
+
+all_opening_stocks <-
+  merge(
+    complete_all_opening,
+    all_opening_stocks,
+    by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+    all = TRUE
+  )
+
+all_opening_stocks[, orig_val := Value]
+
+all_opening_stocks <-
+  all_opening_stocks[!is.na(Value)][
+    all_opening_stocks,
+    on = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+    roll = Inf]
+
+all_opening_stocks[
+  is.na(orig_val) & !is.na(Value),
+  `:=`(
+    Protected = FALSE,
+    flagObservationStatus = "E",
+    flagMethod = "t"
+  )
+]
+
+all_opening_stocks[, measuredElementSuaFbs := "5113"]
+
+all_opening_stocks[, orig_val := NULL]
+
+all_opening_stocks[, names(all_opening_stocks)[grep("^i\\.", names(all_opening_stocks))] := NULL]
+
+# Generate stocks variations for items for which opening
+# exists for ALL years and variations don't exist
+
+opening_avail_all_years <-
+  all_opening_stocks[
+    !is.na(Value) & timePointYears >= 2014,
+    .SD[.N == (2017 - 2014 + 1)],
+    measuredItemFbsSua
+  ]
+
+delta_avail_for_open_all_years <-
+  data[
+    measuredElementSuaFbs == "5071" &
+      timePointYears >= 2014 &
+      measuredItemFbsSua %in% opening_avail_all_years$measuredItemFbsSua,
+    .SD[.N == (2017 - 2014 + 1)],
+    measuredItemFbsSua
+  ]
+
+to_generate_by_ident <-
+  setdiff(
+    opening_avail_all_years$measuredItemFbsSua,
+    delta_avail_for_open_all_years$measuredItemFbsSua
+  )
+
+if (length(to_generate_by_ident) > 0) {
+
+  opening_avail_all_years <-
+    opening_avail_all_years[measuredItemFbsSua %in% to_generate_by_ident]
+
+  opening_avail_all_years[, Protected := NULL]
+
+  next_opening_key <-
+    DatasetKey(
+      domain = "Stock",
+      dataset = "stocksdata",
+      dimensions =
+        list(
+          geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
+          measuredElementSuaFbs = Dimension(name = "measuredElement", keys = "5113"),
+          measuredItemFbsSua = Dimension(name = "measuredItemCPC", keys = unique(opening_avail_all_years$measuredItemFbsSua)),
+          timePointYears = Dimension(name = "timePointYears", keys = as.character(as.numeric(max(opening_avail_all_years$timePointYears)) + 1))
+        )
+    )
+
+  next_opening <- GetData(next_opening_key)
+
+  setnames(
+    next_opening,
+    c("measuredItemCPC", "measuredElement"),
+    c("measuredItemFbsSua", "measuredElementSuaFbs")
+  )
+
+  opening_avail_all_years <-
+    rbind(opening_avail_all_years, next_opening)
+
+  opening_avail_all_years <-
+    opening_avail_all_years[
+      order(geographicAreaM49, measuredItemFbsSua, timePointYears)
+    ]
+
+  opening_avail_all_years[,
+    delta := shift(Value, type = "lead") - Value,
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+  opening_avail_all_years[,
+    delta :=
+      ifelse(
+        timePointYears == max(timePointYears) & is.na(delta),
+        0,
+        delta
+      ),
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+  delta_identity <-
+    opening_avail_all_years[
+      timePointYears %in% data$timePointYears,
+      .(
+        geographicAreaM49,
+        measuredItemFbsSua,
+        timePointYears,
+        measuredElementSuaFbs = "5071",
+        Value = delta,
+        flagObservationStatus = "I",
+        flagMethod = "i"
+        )
+    ]
+
+  data <- rbind(data, delta_identity)
+
+  data <-
+    data[order(geographicAreaM49, measuredItemFbsSua,
+               timePointYears, measuredElementSuaFbs)]
+
+}
+
+# / Generate stocks variations for items for which opening
+# / exists for ALL years and variations don't exist
+
+
 
 
 data <- merge(data, flagValidTable, by = c("flagObservationStatus", "flagMethod"), all.x = TRUE)
@@ -3686,23 +3852,6 @@ food_proc_table_i <-
     food_proc_i > 0
   ]
 
-# Incorporate the processed info into the shares file:
-computed_shares_send <-
-  merge(
-    computed_shares_send,
-    food_proc_table_i[,
-      .(
-        Country = geographicAreaM49,
-        Parent = paste0("'", measuredItemParentCPC),
-        Child = paste0("'", measuredItemChildCPC),
-        year = timePointYears,
-        processed = food_proc_i
-      )
-    ],
-    by = c("Country", "Parent", "Child", "year"),
-    all.x = TRUE
-  )
-
 food_proc_table <-
   food_proc_table_i[,
     list(food_proc = sum(food_proc_i)),
@@ -3730,6 +3879,43 @@ data[
 ]
 
 
+
+# Incorporate the processed info into the shares file:
+
+computed_shares_send <-
+  merge(
+    computed_shares_send,
+    food_proc_table_i[,
+      .(
+        Country = geographicAreaM49,
+        Parent = paste0("'", measuredItemParentCPC),
+        Child = paste0("'", measuredItemChildCPC),
+        year = timePointYears,
+        processed = food_proc_i
+      )
+    ],
+    by = c("Country", "Parent", "Child", "year"),
+    all.x = TRUE
+  )
+
+# Incorporate the processed info into the shares file:
+computed_shares_send <-
+  merge(
+    computed_shares_send,
+    food_proc_table_i[,
+      .(
+        Country = geographicAreaM49,
+        Parent = paste0("'", measuredItemParentCPC),
+        Child = paste0("'", measuredItemChildCPC),
+        year = timePointYears,
+        processed = food_proc_i
+      )
+    ],
+    by = c("Country", "Parent", "Child", "year"),
+    all.x = TRUE
+  )
+
+
 ## 1 => year = 2014
 i <- 1
 
@@ -3753,7 +3939,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
       stocks_modif <-
         rbind(
           # Previous data (balanced)
-          standData[[i-1]][
+          rbindlist(standData)[
             !is.na(Value) & measuredElementSuaFbs == 'stockChange' & measuredItemSuaFbs %in% items_stocks_changed,
             list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value)
           ],
@@ -3882,6 +4068,9 @@ standData[
 
 # If the imbalance is relatively small (less than 5% in absoulte value)
 # a new allocation is done, this time with no limits.
+# Here we need to protect seed, because of its lik to production.
+
+standData[measuredElementSuaFbs == "seed", Protected := TRUE]
 
 if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
 
