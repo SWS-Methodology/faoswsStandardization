@@ -3411,14 +3411,12 @@ data <- data[!(measuredElementSuaFbs == 'stock_change' & stockable == 'FALSE')]
 #setDT(data)
 
 
+data <- data[measuredElementSuaFbs != 'residual']
 
-# Remove residual and tourist (for now) [with exceptions]
-if (COUNTRY == "28") {
-  data <- data[!(measuredElementSuaFbs %chin% c('residual'))]
-} else {
-  data <- data[!(measuredElementSuaFbs %chin% c('residual', 'tourist'))]
-}
 
+# Tourism consumption will be in the data only for selected countries
+# and needs to be protected
+data[measuredElementSuaFbs == "tourist", Protected := TRUE]
 
 
 ######################### Save UNB for validation #######################
@@ -3630,7 +3628,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
 
   data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
 
-  # This really shouldn't happen
+  # share < 0 shouldn't happen. Also, tourist can be negative.
   data[util_share < 0 & measuredElementSuaFbs != "tourist", util_share := 0]
 
   data[util_share > 1, util_share := 1]
@@ -4124,6 +4122,23 @@ if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
   standData <- rbind(standData_with_imbalance, standData_no_imbalance)
 
 }
+
+# Remove tourist for industrial as in the pase the two
+# elements could have been mixed
+
+standData[,
+  Value :=
+    ifelse(
+      measuredElementSuaFbs == "industrial" &
+        !is.na(Value[measuredElementSuaFbs == "industrial"]) &
+        !is.na(Value[measuredElementSuaFbs == "tourist"]),
+      Value[measuredElementSuaFbs == "industrial"] -
+        Value[measuredElementSuaFbs == "tourist"],
+      Value
+    ),
+  by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+]
+
 
 calculateImbalance(standData)
 
