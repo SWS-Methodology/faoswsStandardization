@@ -3098,7 +3098,7 @@ if (!file.exists(dirname(shareDownUp_file))) {
 }
 
 write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
->>>>>>> 2b5827bf57da78b71a98bb28b6cf117d1f5b86cf
+
 
 dbg_print("end of derived production loop")
 
