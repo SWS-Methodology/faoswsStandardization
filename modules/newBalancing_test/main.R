@@ -2227,12 +2227,168 @@ data_tree[is.na(shareDownUp), shareDownUp:=0]
 data_tree <-
   unique(
     data_tree[,
-      list(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears, shareDownUp)
+      list(geographicAreaM49,timePointYears, measuredItemParentCPC, measuredItemChildCPC, shareDownUp)
     ],
     by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", "timePointYears", "shareDownUp")
   )
 
 setDT(data_tree)
+
+# / Tables that will be required by the co-product issue (fix processingShare)
+
+if (file.exists(shareDownUp_file)) {
+  
+  SHAREDOWNUP_LOADED <- TRUE
+  
+  shareDownUp_previous <- fread(shareDownUp_file, colClasses = c(rep("character", 4), "numeric", "logical"))
+  
+  # Check on consistency of shareDownUp
+  shareDownUp_invalid <-
+    shareDownUp_previous[,
+                         .(sum_shares = round(sum(shareDownUp)), 3),
+                         by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+                         ][
+                           !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+                           ]
+  
+  if (nrow(shareDownUp_invalid) > 0) {
+    
+    shareDownUp_invalid <-
+      shareDownUp_previous[
+        shareDownUp_invalid,
+        on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+        ]
+    
+    write.csv(
+      shareDownUp_invalid,
+      file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+    )
+    
+    if (!CheckDebug()) {
+      send_mail(
+        from = "do-not-reply@fao.org",
+        to = swsContext.userEmail,
+        subject = "Some shareDownUp are invalid",
+        body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
+                 file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+      )
+    }
+    
+    unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+    
+    stop("Some shares are invalid. Check your email.")
+  }
+  
+  shareDownUp_previous[,
+                       `:=`(
+                         measuredItemParentCPC = sub("'", "", measuredItemParentCPC),
+                         measuredItemChildCPC = sub("'", "", measuredItemChildCPC)
+                       )
+                       ]
+  
+setnames(shareDownUp_previous, "shareDownUp", "shareDownUp_prev")
+  
+  
+} else {
+  
+  SHAREDOWNUP_LOADED <- FALSE
+  
+  shareDownUp_previous <-
+    data.table(
+      geographicAreaM49 = character(),
+      timePointYears = character(),
+      measuredItemParentCPC = character(),
+      measuredItemChildCPC = character(),
+      shareDownUp_prev = numeric(),
+      protect_share = logical()
+    )
+}
+
+#final sharedowmUp
+
+if(nrow(shareDownUp_previous)>0){
+  data_tree_final<-merge(
+    data_tree,
+    shareDownUp_previous,
+    by=c(p$geoVar,p$yearVar,p$parentVar,p$childVar),
+    all.x = TRUE
+  )
+  data_tree_final[protect_share==TRUE, shareDownUp:=shareDownUp_prev]
+  
+  
+  #Automatic update of shareDOwnUp (to discuss with Salar)
+  data_tree_final[,shareDownUp:=ifelse(protect_share==FALSE & sum(protect_share==TRUE)>0,
+                                       shareDownUp/sum(shareDownUp[protect_share==FALSE],na.rm = TRUE)*(1-shareDownUp[protect_share==TRUE]),
+                                       shareDownUp
+  ),
+  by=c(p$geoVar,p$yearVar,p$childVar)
+  ]
+  data_tree_final[,shareDownUp_prev:=NULL]
+  data_tree_final_save<-copy(data_tree_final)
+  data_tree_final[,protect_share:=NULL]
+}else{
+  data_tree_final<-data_tree
+  data_tree_final_save<-copy(data_tree_final)
+  data_tree_final_save[,protect_share:=FALSE]
+}
+
+# Check on consistency of shareDownUp
+shareDownUp_invalid <-
+  data_tree_final[,
+                  .(sum_shares = sum(shareDownUp)),
+                  by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+                  ][
+                    !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+                    ]
+
+if (nrow(shareDownUp_invalid) > 0) {
+  
+  shareDownUp_invalid <-
+    data_tree_final[
+      shareDownUp_invalid,
+      on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+      ]
+  
+  write.csv(
+    shareDownUp_invalid,
+    file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+  )
+  
+  if (!CheckDebug()) {
+    send_mail(
+      from = "do-not-reply@fao.org",
+      to = swsContext.userEmail,
+      subject = "Some shareDownUp are invalid",
+      body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
+               file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+    )
+  }
+  
+  unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+  
+  stop("Some shares are invalid. Check your email.")
+}
+
+# / Check on consistency of shareDownUp
+
+shareDownUp_save <-
+  data_tree_final_save[,
+                  .(geographicAreaM49, timePointYears, measuredItemParentCPC,
+                    measuredItemChildCPC, shareDownUp,protect_share)]
+
+
+shareDownUp_save[,
+                 `:=`(
+                   measuredItemParentCPC = paste0("'", measuredItemParentCPC),
+                   measuredItemChildCPC = paste0("'", measuredItemChildCPC)
+                 )
+                 ]
+
+if (!file.exists(dirname(shareDownUp_file))) {
+  dir.create(dirname(tmp_file_outliers), recursive = TRUE)
+}
+
+write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
 
 # / ShareDownUp -------------------------------------------------------
 
@@ -2290,76 +2446,76 @@ coproduct_table_or <-
 
 coproduct_table_or <- unique(coproduct_table_or)
 
-# / Tables that will be required by the co-product issue (fix processingShare)
-
-
-if (file.exists(shareDownUp_file)) {
-
-  SHAREDOWNUP_LOADED <- TRUE
-
-  shareDownUp_previous <- fread(shareDownUp_file, colClasses = c(rep("character", 4), "numeric", "logical"))
-
-  # Check on consistency of shareDownUp
-  shareDownUp_invalid <-
-    shareDownUp_previous[,
-      .(sum_shares = round(sum(shareDownUp)), 3),
-      by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-    ][
-      !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-    ]
-
-  if (nrow(shareDownUp_invalid) > 0) {
-
-    shareDownUp_invalid <-
-      shareDownUp_previous[
-        shareDownUp_invalid,
-        on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-      ]
-
-    write.csv(
-      shareDownUp_invalid,
-      file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
-    )
-
-    if (!CheckDebug()) {
-      send_mail(
-        from = "do-not-reply@fao.org",
-        to = swsContext.userEmail,
-        subject = "Some shareDownUp are invalid",
-        body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-                file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-      )
-    }
-
-    unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-
-    stop("Some shares are invalid. Check your email.")
-  }
-
-  shareDownUp_previous[,
-    `:=`(
-      measuredItemParentCPC = sub("'", "", measuredItemParentCPC),
-      measuredItemChildCPC = sub("'", "", measuredItemChildCPC)
-    )
-  ]
-
-  setnames(shareDownUp_previous, "shareDownUp", "shareDownUp_prev")
-
-
-} else {
-
-  SHAREDOWNUP_LOADED <- FALSE
-
-  shareDownUp_previous <-
-    data.table(
-      geographicAreaM49 = character(),
-      timePointYears = character(),
-      measuredItemParentCPC = character(),
-      measuredItemChildCPC = character(),
-      shareDownUp_prev = numeric(),
-      protect_share = logical()
-    )
-}
+# # / Tables that will be required by the co-product issue (fix processingShare)
+# 
+# 
+# if (file.exists(shareDownUp_file)) {
+# 
+#   SHAREDOWNUP_LOADED <- TRUE
+# 
+#   shareDownUp_previous <- fread(shareDownUp_file, colClasses = c(rep("character", 4), "numeric", "logical"))
+# 
+#   # Check on consistency of shareDownUp
+#   shareDownUp_invalid <-
+#     shareDownUp_previous[,
+#       .(sum_shares = round(sum(shareDownUp)), 3),
+#       by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+#     ][
+#       !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+#     ]
+# 
+#   if (nrow(shareDownUp_invalid) > 0) {
+# 
+#     shareDownUp_invalid <-
+#       shareDownUp_previous[
+#         shareDownUp_invalid,
+#         on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+#       ]
+# 
+#     write.csv(
+#       shareDownUp_invalid,
+#       file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+#     )
+# 
+#     if (!CheckDebug()) {
+#       send_mail(
+#         from = "do-not-reply@fao.org",
+#         to = swsContext.userEmail,
+#         subject = "Some shareDownUp are invalid",
+#         body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
+#                 file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+#       )
+#     }
+# 
+#     unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+# 
+#     stop("Some shares are invalid. Check your email.")
+#   }
+# 
+#   shareDownUp_previous[,
+#     `:=`(
+#       measuredItemParentCPC = sub("'", "", measuredItemParentCPC),
+#       measuredItemChildCPC = sub("'", "", measuredItemChildCPC)
+#     )
+#   ]
+# 
+#   setnames(shareDownUp_previous, "shareDownUp", "shareDownUp_prev")
+# 
+# 
+# } else {
+# 
+#   SHAREDOWNUP_LOADED <- FALSE
+# 
+#   shareDownUp_previous <-
+#     data.table(
+#       geographicAreaM49 = character(),
+#       timePointYears = character(),
+#       measuredItemParentCPC = character(),
+#       measuredItemChildCPC = character(),
+#       shareDownUp_prev = numeric(),
+#       protect_share = logical()
+#     )
+# }
 
 # stockable items for which a historical series of at least
 # 5 non-missing/non-null data points exist
@@ -2615,12 +2771,12 @@ if (length(primaryInvolvedDescendents) == 0) {
         allow.cartesian = TRUE
       )
 
-    dbg_print("dataMerge + data_tree")
+    dbg_print("dataMerge + data_tree_final")
 
     dataMergeTree <-
       merge(
         dataMergeTree,
-        data_tree,
+        data_tree_final,
         by = c(p$parentVar, p$childVar, p$geoVar, p$yearVar),
         allow.cartesian = TRUE
       )
@@ -2664,17 +2820,17 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     dbg_print("dataMergeTree + shareDownUp_previous")
 
-    dataMergeTree <-
-      merge(
-        dataMergeTree,
-        shareDownUp_previous,
-        by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
-        all.x = TRUE
-      )
-
-    dataMergeTree[protect_share == TRUE, shareDownUp := shareDownUp_prev]
-
-    dataMergeTree[, c("shareDownUp_prev", "protect_share") := NULL]
+    # dataMergeTree <-
+    #   merge(
+    #     dataMergeTree,
+    #     shareDownUp_previous,
+    #     by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
+    #     all.x = TRUE
+    #   )
+    # 
+    # dataMergeTree[protect_share == TRUE, shareDownUp := shareDownUp_prev]
+    # 
+    # dataMergeTree[, c("shareDownUp_prev", "protect_share") := NULL]
 
     # Key here was implicitly set by a previous order()
     setkey(dataMergeTree, NULL)
@@ -2963,6 +3119,79 @@ if (length(primaryInvolvedDescendents) == 0) {
 
 computed_shares <- rbindlist(computed_shares)
 
+# # Check on consistency of shareDownUp
+# shareDownUp_invalid <-
+#   computed_shares[,
+#     .(sum_shares = sum(shareDownUp)),
+#     by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+#   ][
+#     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+#   ]
+# 
+# if (nrow(shareDownUp_invalid) > 0) {
+# 
+#   shareDownUp_invalid <-
+#     computed_shares[
+#       shareDownUp_invalid,
+#       on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+#     ]
+# 
+#   write.csv(
+#     shareDownUp_invalid,
+#     file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+#   )
+# 
+#   if (!CheckDebug()) {
+#     send_mail(
+#       from = "do-not-reply@fao.org",
+#       to = swsContext.userEmail,
+#       subject = "Some shareDownUp are invalid",
+#       body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
+#               file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+#     )
+#   }
+# 
+#   unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+# 
+#   stop("Some shares are invalid. Check your email.")
+# }
+# # / Check on consistency of shareDownUp
+# 
+# shareDownUp_save <-
+#   computed_shares[,
+#     .(geographicAreaM49, timePointYears, measuredItemParentCPC,
+#       measuredItemChildCPC, shareDownUp)]
+# 
+# if (nrow(shareDownUp_previous) == 0) {
+#   shareDownUp_save[, protect_share := FALSE]
+# } else {
+#   shareDownUp_save <-
+#     merge(
+#       computed_shares[, -"processingShare", with = FALSE],
+#       shareDownUp_previous[
+#         protect_share == TRUE,
+#         .(geographicAreaM49, timePointYears, measuredItemParentCPC, measuredItemChildCPC, protect_share)
+#       ],
+#       by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
+#       all = TRUE
+#     )
+# 
+#   shareDownUp_save[is.na(protect_share), protect_share := FALSE]
+# }
+# 
+# shareDownUp_save[,
+#   `:=`(
+#     measuredItemParentCPC = paste0("'", measuredItemParentCPC),
+#     measuredItemChildCPC = paste0("'", measuredItemChildCPC)
+#   )
+# ]
+# 
+# if (!file.exists(dirname(shareDownUp_file))) {
+#   dir.create(dirname(tmp_file_outliers), recursive = TRUE)
+# }
+# 
+# write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
+=======
 # Check on consistency of shareDownUp
 shareDownUp_invalid <-
   computed_shares[,
@@ -3035,6 +3264,7 @@ if (!file.exists(dirname(shareDownUp_file))) {
 }
 
 write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
+
 
 dbg_print("end of derived production loop")
 
