@@ -1403,7 +1403,7 @@ all_opening_stocks[
   `:=`(
     Value = opening_20,
     flagObservationStatus = "I",
-    flagMethod = "i",
+    flagMethod = "-",
     # We protect these, in any case, because they should not
     # be overwritten, even if not (semi) official or expert
     Protected = TRUE
@@ -5143,7 +5143,8 @@ if (exists("out")) {
       E,u: Stocks variation generated
       I,c: Derived production generated
       I,e: Module imputation
-      I,i: Residual item (identity)
+      I,i: Residual item (identity), or opening stocks as cumulated
+      I,-: Opening stocks in initial year as 20% supply in previous year
       M,q: Cases for which flags were not set (should never happen)
       T,c: Opening stocks updated
       T,i: Calories per capita created
