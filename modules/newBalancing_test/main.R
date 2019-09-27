@@ -5,6 +5,7 @@ library(faoswsStandardization)
 library(dplyr)
 library(data.table)
 library(tidyr)
+library(openxlsx)
 
 # The only parameter is the string to print
 # COUNTRY is taken from environment (parameter)
@@ -56,9 +57,23 @@ FILL_EXTRACTION_RATES <- TRUE
 YEARS <- as.character(2000:2017)
 
 R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
+
 if (CheckDebug()) {
   R_SWS_SHARE_PATH = "//hqlprsws1.hq.un.fao.org/sws_r_share"
 }
+
+tmp_file_name_imb         <- tempfile(pattern = paste0("IMBALANCE_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_name_shares      <- tempfile(pattern = paste0("SHARES_", COUNTRY, "_"), fileext = '.xlsx')
+tmp_file_name_negative    <- tempfile(pattern = paste0("NEGATIVE_AVAILAB_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_name_non_exist   <- tempfile(pattern = paste0("NONEXISTENT_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_name_fix_shares  <- tempfile(pattern = paste0("FIXED_PROC_SHARES_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_name_NegNetTrade <- tempfile(pattern = paste0("NEG_NET_TRADE_", COUNTRY, "_"), fileext = '.csv')
+
+
+if (!file.exists(dirname(tmp_file_name_imb))) {
+  dir.create(dirname(tmp_file_name_imb), recursive = TRUE)
+}
+
 
 p <- defaultStandardizationParameters()
 
@@ -2245,11 +2260,11 @@ if (file.exists(shareDownUp_file)) {
   # Check on consistency of shareDownUp
   shareDownUp_invalid <-
     shareDownUp_previous[,
-                         .(sum_shares = round(sum(shareDownUp)), 3),
-                         by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-                         ][
-                           !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-                           ]
+      .(sum_shares = round(sum(shareDownUp)), 2),
+      by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+      ][
+        !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+      ]
   
   if (nrow(shareDownUp_invalid) > 0) {
     
@@ -2335,11 +2350,11 @@ if(nrow(shareDownUp_previous)>0){
 # Check on consistency of shareDownUp
 shareDownUp_invalid <-
   data_tree_final[,
-                  .(sum_shares = sum(shareDownUp)),
-                  by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-                  ][
-                    !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-                    ]
+    .(sum_shares = round(sum(shareDownUp)), 2),
+    by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+    ][
+      !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+    ]
 
 if (nrow(shareDownUp_invalid) > 0) {
   
@@ -2447,75 +2462,7 @@ coproduct_table_or <-
 coproduct_table_or <- unique(coproduct_table_or)
 
 # # / Tables that will be required by the co-product issue (fix processingShare)
-# 
-# 
-# if (file.exists(shareDownUp_file)) {
-# 
-#   SHAREDOWNUP_LOADED <- TRUE
-# 
-#   shareDownUp_previous <- fread(shareDownUp_file, colClasses = c(rep("character", 4), "numeric", "logical"))
-# 
-#   # Check on consistency of shareDownUp
-#   shareDownUp_invalid <-
-#     shareDownUp_previous[,
-#       .(sum_shares = round(sum(shareDownUp)), 3),
-#       by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-#     ][
-#       !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-#     ]
-# 
-#   if (nrow(shareDownUp_invalid) > 0) {
-# 
-#     shareDownUp_invalid <-
-#       shareDownUp_previous[
-#         shareDownUp_invalid,
-#         on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-#       ]
-# 
-#     write.csv(
-#       shareDownUp_invalid,
-#       file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
-#     )
-# 
-#     if (!CheckDebug()) {
-#       send_mail(
-#         from = "do-not-reply@fao.org",
-#         to = swsContext.userEmail,
-#         subject = "Some shareDownUp are invalid",
-#         body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-#                 file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-#       )
-#     }
-# 
-#     unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-# 
-#     stop("Some shares are invalid. Check your email.")
-#   }
-# 
-#   shareDownUp_previous[,
-#     `:=`(
-#       measuredItemParentCPC = sub("'", "", measuredItemParentCPC),
-#       measuredItemChildCPC = sub("'", "", measuredItemChildCPC)
-#     )
-#   ]
-# 
-#   setnames(shareDownUp_previous, "shareDownUp", "shareDownUp_prev")
-# 
-# 
-# } else {
-# 
-#   SHAREDOWNUP_LOADED <- FALSE
-# 
-#   shareDownUp_previous <-
-#     data.table(
-#       geographicAreaM49 = character(),
-#       timePointYears = character(),
-#       measuredItemParentCPC = character(),
-#       measuredItemChildCPC = character(),
-#       shareDownUp_prev = numeric(),
-#       protect_share = logical()
-#     )
-# }
+
 
 # stockable items for which a historical series of at least
 # 5 non-missing/non-null data points exist
@@ -3118,152 +3065,6 @@ if (length(primaryInvolvedDescendents) == 0) {
 
 
 computed_shares <- rbindlist(computed_shares)
-
-# # Check on consistency of shareDownUp
-# shareDownUp_invalid <-
-#   computed_shares[,
-#     .(sum_shares = sum(shareDownUp)),
-#     by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-#   ][
-#     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-#   ]
-# 
-# if (nrow(shareDownUp_invalid) > 0) {
-# 
-#   shareDownUp_invalid <-
-#     computed_shares[
-#       shareDownUp_invalid,
-#       on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-#     ]
-# 
-#   write.csv(
-#     shareDownUp_invalid,
-#     file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
-#   )
-# 
-#   if (!CheckDebug()) {
-#     send_mail(
-#       from = "do-not-reply@fao.org",
-#       to = swsContext.userEmail,
-#       subject = "Some shareDownUp are invalid",
-#       body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-#               file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-#     )
-#   }
-# 
-#   unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-# 
-#   stop("Some shares are invalid. Check your email.")
-# }
-# # / Check on consistency of shareDownUp
-# 
-# shareDownUp_save <-
-#   computed_shares[,
-#     .(geographicAreaM49, timePointYears, measuredItemParentCPC,
-#       measuredItemChildCPC, shareDownUp)]
-# 
-# if (nrow(shareDownUp_previous) == 0) {
-#   shareDownUp_save[, protect_share := FALSE]
-# } else {
-#   shareDownUp_save <-
-#     merge(
-#       computed_shares[, -"processingShare", with = FALSE],
-#       shareDownUp_previous[
-#         protect_share == TRUE,
-#         .(geographicAreaM49, timePointYears, measuredItemParentCPC, measuredItemChildCPC, protect_share)
-#       ],
-#       by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
-#       all = TRUE
-#     )
-# 
-#   shareDownUp_save[is.na(protect_share), protect_share := FALSE]
-# }
-# 
-# shareDownUp_save[,
-#   `:=`(
-#     measuredItemParentCPC = paste0("'", measuredItemParentCPC),
-#     measuredItemChildCPC = paste0("'", measuredItemChildCPC)
-#   )
-# ]
-# 
-# if (!file.exists(dirname(shareDownUp_file))) {
-#   dir.create(dirname(tmp_file_outliers), recursive = TRUE)
-# }
-# 
-# write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
-=======
-# Check on consistency of shareDownUp
-shareDownUp_invalid <-
-  computed_shares[,
-    .(sum_shares = round(sum(shareDownUp)), 3),
-    by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-  ][
-    !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-  ]
-
-if (nrow(shareDownUp_invalid) > 0) {
-
-  shareDownUp_invalid <-
-    computed_shares[
-      shareDownUp_invalid,
-      on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-    ]
-
-  write.csv(
-    shareDownUp_invalid,
-    file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
-  )
-
-  if (!CheckDebug()) {
-    send_mail(
-      from = "do-not-reply@fao.org",
-      to = swsContext.userEmail,
-      subject = "Some shareDownUp are invalid",
-      body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-              file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-    )
-  }
-
-  unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-
-  stop("Some shares are invalid. Check your email.")
-}
-# / Check on consistency of shareDownUp
-
-shareDownUp_save <-
-  computed_shares[,
-    .(geographicAreaM49, timePointYears, measuredItemParentCPC,
-      measuredItemChildCPC, shareDownUp)]
-
-if (nrow(shareDownUp_previous) == 0) {
-  shareDownUp_save[, protect_share := FALSE]
-} else {
-  shareDownUp_save <-
-    merge(
-      computed_shares[, -"processingShare", with = FALSE],
-      shareDownUp_previous[
-        protect_share == TRUE,
-        .(geographicAreaM49, timePointYears, measuredItemParentCPC, measuredItemChildCPC, protect_share)
-      ],
-      by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
-      all = TRUE
-    )
-
-  shareDownUp_save[is.na(protect_share), protect_share := FALSE]
-}
-
-shareDownUp_save[,
-  `:=`(
-    measuredItemParentCPC = paste0("'", measuredItemParentCPC),
-    measuredItemChildCPC = paste0("'", measuredItemChildCPC)
-  )
-]
-
-if (!file.exists(dirname(shareDownUp_file))) {
-  dir.create(dirname(tmp_file_outliers), recursive = TRUE)
-}
-
-write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
 
 
 dbg_print("end of derived production loop")
@@ -4126,22 +3927,42 @@ computed_shares_send <-
     all.x = TRUE
   )
 
-# Incorporate the processed info into the shares file:
-computed_shares_send <-
-  merge(
-    computed_shares_send,
-    food_proc_table_i[,
-      .(
-        Country = geographicAreaM49,
-        Parent = paste0("'", measuredItemParentCPC),
-        Child = paste0("'", measuredItemChildCPC),
-        year = timePointYears,
-        processed = food_proc_i
-      )
-    ],
-    by = c("Country", "Parent", "Child", "year"),
-    all.x = TRUE
-  )
+
+z_comp_shares <- copy(computed_shares_send)
+
+
+z_comp_shares[, Protected_exports := NULL]
+z_comp_shares[, Protected_imports := NULL]
+z_comp_shares[, Protected_production := NULL]
+z_comp_shares[, Protected_stock_change := NULL]
+
+# FIXME: fix above
+z_comp_shares[, Parent := sub("'", "", Parent)]
+z_comp_shares[, Child := sub("'", "", Child)]
+
+setcolorder(z_comp_shares, c("Country", "Country_name", "Parent", "Parent_name", "Child", "Child_name", "year", "production", "imports", "exports", "stock_change", "extractionRate", "shareDownUp", "processingShare", "availability_parent", "zero_weigth", "processed"))
+
+
+wb <- createWorkbook()
+addWorksheet(wb, "SHARES")
+style_protected <- createStyle(fgFill = "pink")
+style_text <- createStyle(numFmt = "TEXT")
+style_comma <- createStyle(numFmt = "COMMA")
+writeData(wb, "SHARES", z_comp_shares)
+
+for (i in c("exports", "imports", "production", "stock_change")) {
+  a_col <- grep(paste0("^", i, "$"), names(z_comp_shares))
+  a_rows <- which(computed_shares_send[[paste0("Protected_", i)]] == TRUE) + 1
+
+  addStyle(wb, sheet = "SHARES", style_protected, rows = a_rows, cols = a_col)
+}
+
+addStyle(wb, sheet = "SHARES", style_text, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(Parent|Child)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
+addStyle(wb, sheet = "SHARES", style_comma, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(production|imports|exports|stock_change|availability_parent|processed)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
+
+addFilter(wb, "SHARES", row = 1, cols = 1:ncol(z_comp_shares))
+
+saveWorkbook(wb, tmp_file_name_shares, overwrite = TRUE)
 
 
 ## 1 => year = 2014
@@ -4520,19 +4341,8 @@ non_existing_for_imputation <-
 
 non_existing_for_imputation[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
-tmp_file_name_imb       <- tempfile(pattern = paste0("IMBALANCE_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_shares    <- tempfile(pattern = paste0("SHARES_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_negative  <- tempfile(pattern = paste0("NEGATIVE_AVAILAB_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_non_exist <- tempfile(pattern = paste0("NONEXISTENT_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_fix_shares  <- tempfile(pattern = paste0("FIXED_PROC_SHARES_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_NegNetTrade <- tempfile(pattern = paste0("NEG_NET_TRADE_", COUNTRY, "_"), fileext = '.csv')
-
-if (!file.exists(dirname(tmp_file_name_imb))) {
-  dir.create(dirname(tmp_file_name_imb), recursive = TRUE)
-}
-
 write.csv(imbalances_to_send,          tmp_file_name_imb)
-write.csv(computed_shares_send,        tmp_file_name_shares)
+#write.csv(computed_shares_send,        tmp_file_name_shares)
 write.csv(negative_availability,       tmp_file_name_negative)
 write.csv(non_existing_for_imputation, tmp_file_name_non_exist)
 write.csv(fixed_proc_shares,           tmp_file_name_fix_shares)
@@ -5144,7 +4954,7 @@ if (exists("out")) {
       I,c: Derived production generated
       I,e: Module imputation
       I,i: Residual item (identity), or opening stocks as cumulated
-      I,-: Opening stocks in initial year as 20% supply in previous year
+      I,-: Opening stocks in initial year as 20%% supply in previous year
       M,q: Cases for which flags were not set (should never happen)
       T,c: Opening stocks updated
       T,i: Calories per capita created
@@ -5171,7 +4981,7 @@ if (exists("out")) {
       - OUTLIERS_*.csv = outliers in Calories (defined as those that account
           for more than 5 Calories with an increase of more than 15%%)
 
-      - SHARES_*.csv = Parents/Children shares, availability, etc.
+      - SHARES_*.xlsx = Parents/Children shares, availability, etc.
 
       - FILLED_ER_*.csv = filled extraction rates
 
