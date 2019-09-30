@@ -5098,7 +5098,7 @@ if (exists("out")) {
 
       - DES_*.csv = calculation of DES (total and by items)
 
-      - DES_MAIN_ITEMS_*.csv = as DES_*.csv, but only with items that
+      - DES_MAIN_ITEMS_*.xlsx = as DES_*.csv, but only with items that
           accounted for nearly 90%% on average over 2014-2017
 
       - OUTLIERS_*.csv = outliers in Calories (defined as those that account
