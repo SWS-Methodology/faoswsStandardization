@@ -1367,7 +1367,7 @@ all_opening_stocks[
   `:=`(
     Value = Value_cumulated,
     flagObservationStatus = "I",
-    flagMethod = "i",
+    flagMethod = "-",
     # We protect these, in any case, because they should not
     # be overwritten, even if not (semi) official or expert
     Protected = TRUE,
@@ -1418,7 +1418,7 @@ all_opening_stocks[
   `:=`(
     Value = opening_20,
     flagObservationStatus = "I",
-    flagMethod = "-",
+    flagMethod = "i",
     # We protect these, in any case, because they should not
     # be overwritten, even if not (semi) official or expert
     Protected = TRUE
@@ -5004,7 +5004,7 @@ saveWorkbook(wb, tmp_file_des_main, overwrite = TRUE)
 
 tmp_file_des <- tempfile(pattern = paste0("DES_", COUNTRY, "_"), fileext = '.csv')
 
-des_cast[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+#des_cast[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
 write.csv(des_cast, tmp_file_des)
 
@@ -5076,8 +5076,8 @@ if (exists("out")) {
       E,u: Stocks variation generated
       I,c: Derived production generated
       I,e: Module imputation
-      I,i: Residual item (identity), or opening stocks as cumulated
-      I,-: Opening stocks in initial year as 20%% supply in previous year
+      I,i: Residual item (identity); stocks as 20%% of supply in 2013
+      I,-: Opening stocks as cumulated stocks variations 1961-2013
       M,q: Cases for which flags were not set (should never happen)
       T,c: Opening stocks updated
       T,i: Calories per capita created
