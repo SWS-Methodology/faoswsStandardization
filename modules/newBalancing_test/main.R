@@ -656,15 +656,16 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       
       data[,
                 Value :=
-                  ifelse(Value[measuredElementSuaFbs == "industrial"] -
-                           Value[measuredElementSuaFbs == "tourist"]<0,0,
-                    ifelse(measuredElementSuaFbs == "industrial" &
+                  ifelse(
+                    measuredElementSuaFbs == "industrial" &
                       !is.na(Value[measuredElementSuaFbs == "industrial"]) &
                       !is.na(Value[measuredElementSuaFbs == "tourist"]),
-                    Value[measuredElementSuaFbs == "industrial"] -
-                      Value[measuredElementSuaFbs == "tourist"],
-                    Value
-                  )),
+                    ifelse(Value[measuredElementSuaFbs == "industrial"] -
+                             Value[measuredElementSuaFbs == "tourist"]<0,0,
+                           Value[measuredElementSuaFbs == "industrial"] -
+                             Value[measuredElementSuaFbs == "tourist"],
+                    Value)
+                  ),
                 by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
                 ]
       
