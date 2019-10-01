@@ -89,6 +89,8 @@ p$official <- "Official"
 shareDownUp_file <-
   file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_", COUNTRY, ".csv"))
 
+TourismNoIndustrial = read.csv(paste0(R_SWS_SHARE_PATH, "/wanner/","TourismNoIndustrial.csv"))
+
 
 
 # Always source files in R/ (useful for local runs).
@@ -652,8 +654,22 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
       ]
       
+      data[,
+                Value :=
+                  ifelse(Value[measuredElementSuaFbs == "industrial"] -
+                           Value[measuredElementSuaFbs == "tourist"]<0,0,
+                    ifelse(measuredElementSuaFbs == "industrial" &
+                      !is.na(Value[measuredElementSuaFbs == "industrial"]) &
+                      !is.na(Value[measuredElementSuaFbs == "tourist"]),
+                    Value[measuredElementSuaFbs == "industrial"] -
+                      Value[measuredElementSuaFbs == "tourist"],
+                    Value
+                  )),
+                by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+                ]
+      
       calculateImbalance(data)
-
+      
       # Try to assign the maximum of imbalance to stocks
 
       # NOTE: in the conditions below, 2 was 0.2, indicating that no more than
@@ -4041,25 +4057,10 @@ if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
   standData <- rbind(standData_with_imbalance, standData_no_imbalance)
 
 }
+calculateImbalance(standData)
 
 # Remove tourist for industrial as in the pase the two
 # elements could have been mixed
-
-standData[,
-  Value :=
-    ifelse(
-      measuredElementSuaFbs == "industrial" &
-        !is.na(Value[measuredElementSuaFbs == "industrial"]) &
-        !is.na(Value[measuredElementSuaFbs == "tourist"]),
-      Value[measuredElementSuaFbs == "industrial"] -
-        Value[measuredElementSuaFbs == "tourist"],
-      Value
-    ),
-  by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
-]
-
-
-calculateImbalance(standData)
 
 standData[
   supply > 0,
