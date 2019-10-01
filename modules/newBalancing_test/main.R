@@ -1383,9 +1383,10 @@ all_opening_stocks[
     # be overwritten, even if not (semi) official or expert
     Protected = TRUE,
     measuredElementSuaFbs = "5113",
-    timePointYears = "2014",
-    Value_cumulated = NULL
+    timePointYears = "2014"
   )
+][,
+  Value_cumulated := NULL
 ]
 
 
