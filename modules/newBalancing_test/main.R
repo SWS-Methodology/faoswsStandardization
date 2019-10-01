@@ -102,13 +102,6 @@ dbg_print("define functions")
 
 ######### FUNCTIONS: at some point, they will be moved out of this file. ####
 
-coeffs_stocks_mod <- function(x) {
-  tmp <- lm(data = x[timePointYears <= 2013], supply_inc ~ supply_exc + trend)
-
-  as.list(tmp$coefficients)
-}
-
-
 # Fill NAs by LOCF/FOCB/interpolation if more than two
 # non-missing observations are available, otherwhise just
 # replicate the only non-missing observation
@@ -1311,7 +1304,6 @@ if (nrow(fodder_crops_availab) > 0) {
 
 
 
-# TODO: add `where` clause to subset for countries
 opening_stocks_2014 <-
   ReadDatatable(
     "opening_stocks_2014",
@@ -1320,6 +1312,18 @@ opening_stocks_2014 <-
   )
 
 stopifnot(nrow(opening_stocks_2014) > 0)
+
+non_null_prev_deltas <-
+  unique(
+    data[
+      measuredElementSuaFbs == "5071" & timePointYears %in% 2009:2013
+    ][,
+      .SD[sum(!dplyr::near(Value, 0)) > 0],
+      by = c("geographicAreaM49", "measuredItemFbsSua")
+    ][,
+      .(geographicAreaM49, measuredItemFbsSua)
+    ]
+  )
 
 opening_stocks_2014[opening_stocks < 0, opening_stocks := 0]
 
@@ -1334,7 +1338,14 @@ opening_stocks_2014 <-
     )
   ]
 
-original_opening_stocks <- data[measuredElementSuaFbs == 5113]
+# Keep only those for which recent variations are available
+opening_stocks_2014 <-
+  opening_stocks_2014[
+    non_null_prev_deltas,
+    on = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+original_opening_stocks <- data[measuredElementSuaFbs == "5113"]
 
 original_opening_stocks <-
   flagValidTable[
@@ -1372,10 +1383,9 @@ all_opening_stocks[
     # be overwritten, even if not (semi) official or expert
     Protected = TRUE,
     measuredElementSuaFbs = "5113",
-    timePointYears = "2014"
+    timePointYears = "2014",
+    Value_cumulated = NULL
   )
-][,
-  Value_cumulated := NULL
 ]
 
 
@@ -2537,189 +2547,6 @@ if (length(primaryInvolvedDescendents) == 0) {
           )
         ]
 
-    # Stocks will be generated also for those cases for which we have data
-    condition_for_stocks <-
-      data$stockable == TRUE &
-      data$measuredItemSuaFbs %chin% items_to_generate_stocks &
-      #data$measuredItemSuaFbs %chin% treeCurrentLevel$measuredItemParentCPC &
-      data$measuredElementSuaFbs %chin% c('production', 'imports', 'exports')
-
-    if (any(condition_for_stocks)) {
-
-      dbg_print("generating stocks")
-
-      data_histmod_stocks <-
-        data[
-          measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs
-        ]
-
-      if (nrow(data_histmod_stocks) > 0) {
-
-        dbg_print("data for histmod available")
-
-        data_histmod_stocks <-
-          data_histmod_stocks[,
-            .(
-              supply_inc =
-                sum(
-                  Value[measuredElementSuaFbs %chin% c("production", "imports")],
-                  - Value[measuredElementSuaFbs %chin% c("exports", "stock_change")],
-                  na.rm = TRUE
-                ),
-              supply_exc =
-                sum(
-                  Value[measuredElementSuaFbs %chin% c("production", "imports")],
-                  - Value[measuredElementSuaFbs == "exports"],
-                  na.rm = TRUE
-                )
-            ),
-            keyby = .(geographicAreaM49, measuredItemSuaFbs, timePointYears)
-          ][,
-            trend := seq_len(.N),
-            .(geographicAreaM49, measuredItemSuaFbs)
-          ]
-
-        dbg_print("coeffs_stocks_mod")
-
-        data_histmod_stocks[,
-          c("c_int", "c_sup", "c_trend") := coeffs_stocks_mod(.SD),
-          by = c("geographicAreaM49", "measuredItemSuaFbs")
-        ][,
-          supply_inc_pred := c_int + c_sup * supply_exc + c_trend * trend
-        ][,
-          delta_pred := supply_exc - supply_inc_pred
-        ]
-
-        data_for_stocks <-
-          data_histmod_stocks[
-            timePointYears >= 2013 ,
-            .(geographicAreaM49, measuredItemSuaFbs, timePointYears, delta = delta_pred)
-          ]
-
-        if (nrow(data_for_stocks) > 0) {
-
-          data_for_stocks <-
-            merge(
-              data_for_stocks,
-              all_opening_stocks[, .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua, timePointYears, new_opening = Value)],
-              by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
-              all.x = TRUE
-            )
-
-          data_for_stocks <- data_for_stocks[timePointYears >= 2013]
-
-          # If there are opening stocks for 2013, but not for 2014
-          data_for_stocks[,
-            replace_opening :=
-              ifelse(
-                timePointYears == "2014" &
-                  !is.na(new_opening[timePointYears == "2013"]) &
-                  is.na(new_opening[timePointYears == "2014"]),
-                new_opening[timePointYears == "2013"] + delta[timePointYears == "2013"],
-                NA_real_
-              ),
-            by = c("geographicAreaM49", "measuredItemSuaFbs")
-          ]
-
-          data_for_stocks[
-            is.na(new_opening) & !is.na(replace_opening),
-            new_opening := ifelse(replace_opening >= 0, replace_opening, 0)
-          ]
-
-          data_for_stocks[, replace_opening := NULL]
-
-          data_for_stocks <- data_for_stocks[timePointYears >= 2014]
-
-          stockdata <-
-            data[
-              Protected == TRUE &
-                measuredElementSuaFbs == "stock_change" &
-                !is.na(Value) &
-                measuredItemSuaFbs %chin% data_for_stocks$measuredItemSuaFbs,
-              .(
-                geographicAreaM49,
-                measuredItemSuaFbs,
-                timePointYears,
-                stockvar = Value
-              )
-            ]
-
-          data_for_stocks <-
-            merge(
-              data_for_stocks,
-              stockdata,
-              by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
-              all.x = TRUE
-            )
-
-          data_for_stocks[!is.na(stockvar), delta := stockvar][, stockvar := NULL]
-
-          # Stock withdrawal cannot exceed opening stocks in the first year
-          data_for_stocks[
-            timePointYears == "2014" & delta < 0 & abs(delta) > new_opening,
-            delta := - new_opening
-          ]
-
-          # NOTE: Data here should be ordered by country/item/year (CHECK)
-          data_for_stocks <- update_opening_stocks(data_for_stocks)
-
-          data <-
-            merge(
-              data,
-              data_for_stocks,
-              by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
-              all.x = TRUE
-            )
-
-          #rm(data_for_stocks)
-
-          # Overwrite even protected figures, because, if new delta generated,
-          # it's not compatible with previous stock variations
-          data[
-            measuredElementSuaFbs == "stock_change" &
-              !is.na(delta) &
-              # allow for some small discrepancy
-              (is.na(Value) | (abs(delta) <= 0.999 * abs(Value) | abs(delta) >= 1.001 * abs(Value))),
-            `:=`(
-              Value = delta,
-              flagObservationStatus = "E",
-              flagMethod = "u",
-              Protected = FALSE
-            )
-          ]
-
-          data[, c("delta", "new_opening") := NULL]
-
-          all_opening_stocks <-
-            merge(
-              all_opening_stocks,
-              data_for_stocks[,
-                .(
-                  geographicAreaM49,
-                  measuredItemFbsSua = measuredItemSuaFbs,
-                  timePointYears,
-                  new_opening
-                )
-              ],
-              by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
-              all = TRUE
-            )
-
-          all_opening_stocks[
-            !is.na(new_opening) & (round(new_opening) != round(Value) | is.na(Value)),
-            `:=`(
-              Value = new_opening,
-              flagObservationStatus = "E",
-              flagMethod = "u",
-              Protected = FALSE
-            )
-          ]
-
-          all_opening_stocks[, new_opening := NULL]
-        }
-      }
-    }
-    
     dataMergeTree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stock_change')]
     
     setnames(dataMergeTree, "measuredItemSuaFbs", "measuredItemParentCPC")
