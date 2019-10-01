@@ -3539,6 +3539,16 @@ if (THRESHOLD_METHOD == 'nolimits') {
       max_threshold = supply * max_util_share
     )
   ]
+
+  # For food, allow just +/- 10% deviation from imputation
+
+  data[
+    measuredElementSuaFbs == "food",
+    `:=`(
+      min_threshold = 0.90 * Value,
+      max_threshold = 1.10 * Value
+    )
+  ]
   
   data[, supply := NULL]
   
