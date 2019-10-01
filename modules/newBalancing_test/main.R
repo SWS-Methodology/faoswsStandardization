@@ -1491,6 +1491,8 @@ to_generate_by_ident <-
     delta_avail_for_open_all_years$measuredItemFbsSua
   )
 
+data_rm_ident <- data[measuredElementSuaFbs == "5071" & measuredItemFbsSua %in% to_generate_by_ident]
+
 if (length(to_generate_by_ident) > 0) {
 
   opening_avail_all_years <-
@@ -1542,19 +1544,33 @@ if (length(to_generate_by_ident) > 0) {
     by = c("geographicAreaM49", "measuredItemFbsSua")
   ]
 
+  opening_avail_all_years <-
+    merge(
+      opening_avail_all_years,
+      flagValidTable,
+      by = c("flagObservationStatus", "flagMethod")
+    )
+
+  opening_avail_all_years[shift(Protected, type = "lead") == TRUE & Protected == TRUE, `:=`(delta_flag_obs = "T", delta_flag_method = "p")]
+  opening_avail_all_years[!(shift(Protected, type = "lead") == TRUE & Protected == TRUE), `:=`(delta_flag_obs = "I", delta_flag_method = "i")]
+
   delta_identity <-
     opening_avail_all_years[
-      timePointYears %in% data$timePointYears,
+      timePointYears %in% 2014:2017,
       .(
         geographicAreaM49,
         measuredItemFbsSua,
         timePointYears,
         measuredElementSuaFbs = "5071",
         Value = delta,
-        flagObservationStatus = "I",
-        flagMethod = "i"
+        flagObservationStatus = delta_flag_obs,
+        flagMethod = delta_flag_method
         )
     ]
+
+  delta_identity <-
+    delta_identity[!data_rm_ident,
+                   on = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears")]
 
   data <- rbind(data, delta_identity)
 
@@ -2663,7 +2679,7 @@ if (length(primaryInvolvedDescendents) == 0) {
             measuredElementSuaFbs == "stock_change" &
               !is.na(delta) &
               # allow for some small discrepancy
-              (abs(delta) <= 0.999 * abs(Value) | abs(delta) >= 1.001 * abs(Value)),
+              (is.na(Value) | (abs(delta) <= 0.999 * abs(Value) | abs(delta) >= 1.001 * abs(Value))),
             `:=`(
               Value = delta,
               flagObservationStatus = "E",
@@ -3032,6 +3048,9 @@ if (length(primaryInvolvedDescendents) == 0) {
              Protected)
         ]
 
+    # XXX stocks create duplicates
+    z <- unique(z)
+
     dbg_print("dcast z data")
 
     z <- data.table::dcast(z, geographicAreaM49+timePointYears+measuredItemSuaFbs~measuredElementSuaFbs, value.var = c("Value", "Protected"))
@@ -3040,11 +3059,16 @@ if (length(primaryInvolvedDescendents) == 0) {
 
     dbg_print("z data + computed_shares_send")
 
-    computed_shares_send[[as.character(lev)]] <-
+    tmp <-
       z[computed_shares_send[[as.character(lev)]],
         on = c('geographicAreaM49'  = 'geographicAreaM49',
                'timePointYears'     = 'timePointYears',
                'measuredItemSuaFbs' = 'measuredItemChildCPC')]
+
+    # XXX stocks create duplicates
+    tmp <- unique(tmp)
+
+    computed_shares_send[[as.character(lev)]] <- tmp
     
     dbg_print("assign production of derived to non protected/frozen data")
 
@@ -3164,6 +3188,10 @@ if (nrow(fixed_proc_shares) > 0) {
 }
 
 computed_shares_send <- rbindlist(computed_shares_send, fill = TRUE)
+
+
+# XXX
+computed_shares_send <- unique(computed_shares_send)
 
 colnames(computed_shares_send) <- sub("Value_", "", colnames(computed_shares_send))
 
@@ -3930,7 +3958,6 @@ computed_shares_send <-
 
 z_comp_shares <- copy(computed_shares_send)
 
-
 z_comp_shares[, Protected_exports := NULL]
 z_comp_shares[, Protected_imports := NULL]
 z_comp_shares[, Protected_production := NULL]
@@ -3939,6 +3966,7 @@ z_comp_shares[, Protected_stock_change := NULL]
 # FIXME: fix above
 z_comp_shares[, Parent := sub("'", "", Parent)]
 z_comp_shares[, Child := sub("'", "", Child)]
+
 
 setcolorder(z_comp_shares, c("Country", "Country_name", "Parent", "Parent_name", "Child", "Child_name", "year", "production", "imports", "exports", "stock_change", "extractionRate", "shareDownUp", "processingShare", "availability_parent", "zero_weigth", "processed"))
 
@@ -4081,6 +4109,8 @@ for (i in seq_len(nrow(uniqueLevels))) {
   standData[[i]][measuredElementSuaFbs == "foodManufacturing", Protected := TRUE]
 
 }
+
+all_opening_stocks[, measuredElementSuaFbs := "5113"]
 
 ## The list is repeated, so it's sufficient to take the first element
 #issues <- rbindlist(issues[[1]])
