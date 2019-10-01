@@ -102,6 +102,37 @@ dbg_print("define functions")
 
 ######### FUNCTIONS: at some point, they will be moved out of this file. ####
 
+# This function will recalculate opening stocks from the first
+# observation. Always.
+update_opening_stocks <- function(x) {
+  x <- x[order(geographicAreaM49, measuredItemSuaFbs, timePointYears)]
+
+  groups <- unique(x[, .(geographicAreaM49, measuredItemSuaFbs)])
+
+  res <- list()
+
+  for (i in seq_len(nrow(groups))) {
+    z <- x[groups[i], on = c("geographicAreaM49", "measuredItemSuaFbs")]
+    if (nrow(z) > 1) {
+      for (j in seq_len(nrow(z))[-1]) {
+        # negative delta cannot be more than opening
+        if (z$delta[j-1] < 0 & abs(z$delta[j-1]) > z$new_opening[j-1]) {
+          z$delta[j-1] <- - z$new_opening[j-1]
+        }
+        z$new_opening[j] <- z$new_opening[j-1] + z$delta[j-1]
+      }
+      # negative delta cannot be more than opening
+      if (z$delta[j] < 0 & abs(z$delta[j]) > z$new_opening[j]) {
+        z$delta[j] <- - z$new_opening[j]
+      }
+    }
+    res[[i]] <- z
+  }
+  rbindlist(res)
+}
+
+
+
 # Fill NAs by LOCF/FOCB/interpolation if more than two
 # non-missing observations are available, otherwhise just
 # replicate the only non-missing observation
@@ -1441,7 +1472,7 @@ all_opening_stocks[
 complete_all_opening <-
   CJ(
     geographicAreaM49 = unique(all_opening_stocks$geographicAreaM49),
-    timePointYears = unique(all_opening_stocks$timePointYears),
+    timePointYears = as.character(min(all_opening_stocks$timePointYears):2017),
     measuredItemFbsSua = unique(all_opening_stocks$measuredItemFbsSua)
   )
 
@@ -1476,6 +1507,61 @@ all_opening_stocks[, measuredElementSuaFbs := "5113"]
 all_opening_stocks[, orig_val := NULL]
 
 all_opening_stocks[, names(all_opening_stocks)[grep("^i\\.", names(all_opening_stocks))] := NULL]
+
+all_opening_stocks <- all_opening_stocks[!is.na(timePointYears)]
+
+# Recalculate opening stocks
+
+data_for_opening <-
+  merge(
+    all_opening_stocks[,
+      .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua,
+        timePointYears, new_opening = Value)
+    ],
+    data[
+      measuredElementSuaFbs == '5071' &
+        timePointYears %in% 2014:2017 &
+        !is.na(Value),
+      .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua, timePointYears, delta = Value)],
+    by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
+    all.x = TRUE
+  )
+
+data_for_opening[is.na(delta), delta := 0]
+
+data_for_opening <- data_for_opening[timePointYears >= 2014]
+
+data_for_opening <- update_opening_stocks(data_for_opening)
+
+all_opening_stocks <-
+  merge(
+    all_opening_stocks,
+    data_for_opening[,
+      .(
+        geographicAreaM49,
+        measuredItemFbsSua = measuredItemSuaFbs,
+        timePointYears,
+        new_opening
+      )
+    ],
+    by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+    all.x = TRUE
+  )
+
+all_opening_stocks[
+  !is.na(new_opening) & (round(new_opening) != round(Value) | is.na(Value)),
+  `:=`(
+    Value = new_opening,
+    flagObservationStatus = "E",
+    flagMethod = "u",
+    Protected = FALSE
+  )
+]
+
+all_opening_stocks[, new_opening := NULL]
+
+# / Recalculate opening stocks
+
 
 # Generate stocks variations for items for which opening
 # exists for ALL years and variations don't exist
@@ -1857,35 +1943,6 @@ data <-
 data[is.na(Official), Official := FALSE]
 data[is.na(Protected), Protected := FALSE]
 
-
-# This function will recalculate opening stocks from the first
-# observation. Always.
-update_opening_stocks <- function(x) {
-  x <- x[order(geographicAreaM49, measuredItemSuaFbs, timePointYears)]
-
-  groups <- unique(x[, .(geographicAreaM49, measuredItemSuaFbs)])
-
-  res <- list()
-
-  for (i in seq_len(nrow(groups))) {
-    z <- x[groups[i], on = c("geographicAreaM49", "measuredItemSuaFbs")]
-    if (nrow(z) > 1) {
-      for (j in seq_len(nrow(z))[-1]) {
-        # negative delta cannot be more than opening
-        if (z$delta[j-1] < 0 & abs(z$delta[j-1]) > z$new_opening[j-1]) {
-          z$delta[j-1] <- - z$new_opening[j-1]
-        }
-        z$new_opening[j] <- z$new_opening[j-1] + z$delta[j-1]
-      }
-      # negative delta cannot be more than opening
-      if (z$delta[j] < 0 & abs(z$delta[j]) > z$new_opening[j]) {
-        z$delta[j] <- - z$new_opening[j]
-      }
-    }
-    res[[i]] <- z
-  }
-  res <- rbindlist(res)
-}
 
 
 data[, stockable := measuredItemSuaFbs %chin% stockable_items]
