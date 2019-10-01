@@ -487,8 +487,6 @@ Industrial$flagMethod = "e"
 out = rbind(agData, stockData,foodData, lossData, tradeData, tourData,Industrial)
 }
 if((nrow(indData)==0)|(nrow(tourData)==0)){
-  tourData = as.data.table(dplyr::select(as.data.frame(tourData,colnames(agData))))
-  indData = as.data.table(dplyr::select(as.data.frame(indData,colnames(agData))))
 out = rbind(agData, stockData,foodData, lossData, tradeData, tourData,indData)
 }
 

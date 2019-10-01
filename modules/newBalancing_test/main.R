@@ -5,6 +5,7 @@ library(faoswsStandardization)
 library(dplyr)
 library(data.table)
 library(tidyr)
+library(openxlsx)
 
 # The only parameter is the string to print
 # COUNTRY is taken from environment (parameter)
@@ -56,9 +57,23 @@ FILL_EXTRACTION_RATES <- TRUE
 YEARS <- as.character(2000:2017)
 
 R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
+
 if (CheckDebug()) {
   R_SWS_SHARE_PATH = "//hqlprsws1.hq.un.fao.org/sws_r_share"
 }
+
+tmp_file_name_imb         <- tempfile(pattern = paste0("IMBALANCE_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_name_shares      <- tempfile(pattern = paste0("SHARES_", COUNTRY, "_"), fileext = '.xlsx')
+tmp_file_name_negative    <- tempfile(pattern = paste0("NEGATIVE_AVAILAB_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_name_non_exist   <- tempfile(pattern = paste0("NONEXISTENT_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_name_fix_shares  <- tempfile(pattern = paste0("FIXED_PROC_SHARES_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_name_NegNetTrade <- tempfile(pattern = paste0("NEG_NET_TRADE_", COUNTRY, "_"), fileext = '.csv')
+
+
+if (!file.exists(dirname(tmp_file_name_imb))) {
+  dir.create(dirname(tmp_file_name_imb), recursive = TRUE)
+}
+
 
 p <- defaultStandardizationParameters()
 
@@ -74,6 +89,8 @@ p$official <- "Official"
 shareDownUp_file <-
   file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_", COUNTRY, ".csv"))
 
+TourismNoIndustrial = read.csv(paste0(R_SWS_SHARE_PATH, "/wanner/","TourismNoIndustrial.csv"))
+
 
 
 # Always source files in R/ (useful for local runs).
@@ -86,13 +103,6 @@ sapply(dir("R", full.names = TRUE), source)
 dbg_print("define functions")
 
 ######### FUNCTIONS: at some point, they will be moved out of this file. ####
-
-coeffs_stocks_mod <- function(x) {
-  tmp <- lm(data = x[timePointYears <= 2013], supply_inc ~ supply_exc + trend)
-
-  as.list(tmp$coefficients)
-}
-
 
 # Fill NAs by LOCF/FOCB/interpolation if more than two
 # non-missing observations are available, otherwhise just
@@ -644,8 +654,23 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
       ]
       
+      data[,
+                Value :=
+                  ifelse(
+                    measuredElementSuaFbs == "industrial" &
+                      !is.na(Value[measuredElementSuaFbs == "industrial"]) &
+                      !is.na(Value[measuredElementSuaFbs == "tourist"]),
+                    ifelse(Value[measuredElementSuaFbs == "industrial"] -
+                             Value[measuredElementSuaFbs == "tourist"]<0,0,
+                           Value[measuredElementSuaFbs == "industrial"] -
+                             Value[measuredElementSuaFbs == "tourist"],
+                    Value)
+                  ),
+                by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+                ]
+      
       calculateImbalance(data)
-
+      
       # Try to assign the maximum of imbalance to stocks
 
       # NOTE: in the conditions below, 2 was 0.2, indicating that no more than
@@ -686,7 +711,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data[change_stocks == 2L, Value := Value_0 + imbalance]
       data[change_stocks == 3L, Value := - opening_stocks]
       data[change_stocks == 4L, Value := Value_0 + imbalance]
-      data[change_stocks == 5L, Value := ifelse(opening_stocks < supply * 2, supply * 2 - opening_stocks, 0)]
+      data[change_stocks == 5L, Value := max(supply * 2 - opening_stocks, 0)]
 
       data[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
@@ -1015,6 +1040,30 @@ tree <- rbindlist(treeLevels)
 #  tree[, level := NULL]
 #}
 
+
+## These may create issues, let's check
+#tree_issues <- tree[measuredElementSuaFbs == "extractionRate" & timePointYears >= 2014 & measuredItemChildCPC %chin% tree[measuredElementSuaFbs == "extractionRate", .(ndiff = length(unique(processingLevel))), .(timePointYears, measuredItemChildCPC)][ndiff > 1][, unique(measuredItemChildCPC)]][order(measuredItemChildCPC, measuredItemParentCPC, timePointYears)]
+#
+#tree_issues[, measuredElementSuaFbs := NULL]
+#
+#write.csv(
+#  tree_issues,
+#  file.path(R_SWS_SHARE_PATH, USER, paste0("TREE_ISSUES_", COUNTRY, ".csv"))
+#)
+#
+#if (!CheckDebug()) {
+#  send_mail(
+#    from = "do-not-reply@fao.org",
+#    to = swsContext.userEmail,
+#    subject = "Children that appear in different levels",
+#    body = c("The items (as children) in the attached file appear in different procesisng levels (e.g., 1, 2).",
+#            file.path(R_SWS_SHARE_PATH, USER, paste0("TREE_ISSUES_", COUNTRY, ".csv")))
+#  )
+#}
+#
+#unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("TREE_ISSUES_", COUNTRY, ".csv")))
+
+
 # XXX there are no different process levels, but check it
 tree[,
   processingLevel := max(processingLevel, na.rm = TRUE),
@@ -1272,7 +1321,6 @@ if (nrow(fodder_crops_availab) > 0) {
 
 
 
-# TODO: add `where` clause to subset for countries
 opening_stocks_2014 <-
   ReadDatatable(
     "opening_stocks_2014",
@@ -1281,6 +1329,18 @@ opening_stocks_2014 <-
   )
 
 stopifnot(nrow(opening_stocks_2014) > 0)
+
+non_null_prev_deltas <-
+  unique(
+    data[
+      measuredElementSuaFbs == "5071" & timePointYears %in% 2009:2013
+    ][,
+      .SD[sum(!dplyr::near(Value, 0)) > 0],
+      by = c("geographicAreaM49", "measuredItemFbsSua")
+    ][,
+      .(geographicAreaM49, measuredItemFbsSua)
+    ]
+  )
 
 opening_stocks_2014[opening_stocks < 0, opening_stocks := 0]
 
@@ -1295,7 +1355,14 @@ opening_stocks_2014 <-
     )
   ]
 
-original_opening_stocks <- data[measuredElementSuaFbs == 5113]
+# Keep only those for which recent variations are available
+opening_stocks_2014 <-
+  opening_stocks_2014[
+    non_null_prev_deltas,
+    on = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+original_opening_stocks <- data[measuredElementSuaFbs == "5113"]
 
 original_opening_stocks <-
   flagValidTable[
@@ -1328,7 +1395,7 @@ all_opening_stocks[
   `:=`(
     Value = Value_cumulated,
     flagObservationStatus = "I",
-    flagMethod = "i",
+    flagMethod = "-",
     # We protect these, in any case, because they should not
     # be overwritten, even if not (semi) official or expert
     Protected = TRUE,
@@ -1387,6 +1454,164 @@ all_opening_stocks[
 ][,
   opening_20 := NULL
 ]
+
+complete_all_opening <-
+  CJ(
+    geographicAreaM49 = unique(all_opening_stocks$geographicAreaM49),
+    timePointYears = unique(all_opening_stocks$timePointYears),
+    measuredItemFbsSua = unique(all_opening_stocks$measuredItemFbsSua)
+  )
+
+
+all_opening_stocks <-
+  merge(
+    complete_all_opening,
+    all_opening_stocks,
+    by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+    all = TRUE
+  )
+
+all_opening_stocks[, orig_val := Value]
+
+all_opening_stocks <-
+  all_opening_stocks[!is.na(Value)][
+    all_opening_stocks,
+    on = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+    roll = Inf]
+
+all_opening_stocks[
+  is.na(orig_val) & !is.na(Value),
+  `:=`(
+    Protected = FALSE,
+    flagObservationStatus = "E",
+    flagMethod = "t"
+  )
+]
+
+all_opening_stocks[, measuredElementSuaFbs := "5113"]
+
+all_opening_stocks[, orig_val := NULL]
+
+all_opening_stocks[, names(all_opening_stocks)[grep("^i\\.", names(all_opening_stocks))] := NULL]
+
+# Generate stocks variations for items for which opening
+# exists for ALL years and variations don't exist
+
+opening_avail_all_years <-
+  all_opening_stocks[
+    !is.na(Value) & timePointYears >= 2014,
+    .SD[.N == (2017 - 2014 + 1)],
+    measuredItemFbsSua
+  ]
+
+delta_avail_for_open_all_years <-
+  data[
+    measuredElementSuaFbs == "5071" &
+      timePointYears >= 2014 &
+      measuredItemFbsSua %in% opening_avail_all_years$measuredItemFbsSua,
+    .SD[.N == (2017 - 2014 + 1)],
+    measuredItemFbsSua
+  ]
+
+to_generate_by_ident <-
+  setdiff(
+    opening_avail_all_years$measuredItemFbsSua,
+    delta_avail_for_open_all_years$measuredItemFbsSua
+  )
+
+data_rm_ident <- data[measuredElementSuaFbs == "5071" & measuredItemFbsSua %in% to_generate_by_ident]
+
+if (length(to_generate_by_ident) > 0) {
+
+  opening_avail_all_years <-
+    opening_avail_all_years[measuredItemFbsSua %in% to_generate_by_ident]
+
+  opening_avail_all_years[, Protected := NULL]
+
+  next_opening_key <-
+    DatasetKey(
+      domain = "Stock",
+      dataset = "stocksdata",
+      dimensions =
+        list(
+          geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
+          measuredElementSuaFbs = Dimension(name = "measuredElement", keys = "5113"),
+          measuredItemFbsSua = Dimension(name = "measuredItemCPC", keys = unique(opening_avail_all_years$measuredItemFbsSua)),
+          timePointYears = Dimension(name = "timePointYears", keys = as.character(as.numeric(max(opening_avail_all_years$timePointYears)) + 1))
+        )
+    )
+
+  next_opening <- GetData(next_opening_key)
+
+  setnames(
+    next_opening,
+    c("measuredItemCPC", "measuredElement"),
+    c("measuredItemFbsSua", "measuredElementSuaFbs")
+  )
+
+  opening_avail_all_years <-
+    rbind(opening_avail_all_years, next_opening)
+
+  opening_avail_all_years <-
+    opening_avail_all_years[
+      order(geographicAreaM49, measuredItemFbsSua, timePointYears)
+    ]
+
+  opening_avail_all_years[,
+    delta := shift(Value, type = "lead") - Value,
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+  opening_avail_all_years[,
+    delta :=
+      ifelse(
+        timePointYears == max(timePointYears) & is.na(delta),
+        0,
+        delta
+      ),
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+  opening_avail_all_years <-
+    merge(
+      opening_avail_all_years,
+      flagValidTable,
+      by = c("flagObservationStatus", "flagMethod")
+    )
+
+  opening_avail_all_years[shift(Protected, type = "lead") == TRUE & Protected == TRUE, `:=`(delta_flag_obs = "T", delta_flag_method = "p")]
+  opening_avail_all_years[!(shift(Protected, type = "lead") == TRUE & Protected == TRUE), `:=`(delta_flag_obs = "I", delta_flag_method = "i")]
+
+  delta_identity <-
+    opening_avail_all_years[
+      timePointYears %in% 2014:2017,
+      .(
+        geographicAreaM49,
+        measuredItemFbsSua,
+        timePointYears,
+        measuredElementSuaFbs = "5071",
+        Value = delta,
+        flagObservationStatus = delta_flag_obs,
+        flagMethod = delta_flag_method
+        )
+    ]
+
+  delta_identity <-
+    delta_identity[!data_rm_ident,
+                   on = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears")]
+
+  data <- rbind(data, delta_identity)
+
+  data <-
+    data[order(geographicAreaM49, measuredItemFbsSua,
+               timePointYears, measuredElementSuaFbs)]
+
+}
+
+# / Generate stocks variations for items for which opening
+# / exists for ALL years and variations don't exist
+
+
 
 
 data <- merge(data, flagValidTable, by = c("flagObservationStatus", "flagMethod"), all.x = TRUE)
@@ -2079,11 +2304,11 @@ if (file.exists(shareDownUp_file)) {
   # Check on consistency of shareDownUp
   shareDownUp_invalid <-
     shareDownUp_previous[,
-                         .(sum_shares = round(sum(shareDownUp)), 3),
-                         by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-                         ][
-                           !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-                           ]
+      .(sum_shares = round(sum(shareDownUp)), 2),
+      by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+      ][
+        !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+      ]
   
   if (nrow(shareDownUp_invalid) > 0) {
     
@@ -2150,13 +2375,13 @@ if(nrow(shareDownUp_previous)>0){
   data_tree_final[protect_share==TRUE, shareDownUp:=shareDownUp_prev]
   
   
-  #Automatic update of shareDOwnUp (to discuss with Salar)
-  data_tree_final[,shareDownUp:=ifelse(protect_share==FALSE & sum(protect_share==TRUE)>0,
-                                       shareDownUp/sum(shareDownUp[protect_share==FALSE],na.rm = TRUE)*(1-shareDownUp[protect_share==TRUE]),
-                                       shareDownUp
-  ),
-  by=c(p$geoVar,p$yearVar,p$childVar)
-  ]
+  ##Automatic update of shareDOwnUp (to discuss with Salar)
+  #data_tree_final[,shareDownUp1:=ifelse(protect_share==FALSE & sum(protect_share==TRUE)>0,
+  #                                     shareDownUp/sum(shareDownUp[protect_share==FALSE],na.rm = TRUE)*(1-shareDownUp[protect_share==TRUE]),
+  #                                     shareDownUp
+  #),
+  #by=c(p$geoVar,p$yearVar,p$childVar)
+  #]
   data_tree_final[,shareDownUp_prev:=NULL]
   data_tree_final_save<-copy(data_tree_final)
   data_tree_final[,protect_share:=NULL]
@@ -2169,11 +2394,11 @@ if(nrow(shareDownUp_previous)>0){
 # Check on consistency of shareDownUp
 shareDownUp_invalid <-
   data_tree_final[,
-                  .(sum_shares = sum(shareDownUp)),
-                  by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-                  ][
-                    !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-                    ]
+    .(sum_shares = round(sum(shareDownUp)), 2),
+    by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+    ][
+      !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+    ]
 
 if (nrow(shareDownUp_invalid) > 0) {
   
@@ -2281,75 +2506,7 @@ coproduct_table_or <-
 coproduct_table_or <- unique(coproduct_table_or)
 
 # # / Tables that will be required by the co-product issue (fix processingShare)
-# 
-# 
-# if (file.exists(shareDownUp_file)) {
-# 
-#   SHAREDOWNUP_LOADED <- TRUE
-# 
-#   shareDownUp_previous <- fread(shareDownUp_file, colClasses = c(rep("character", 4), "numeric", "logical"))
-# 
-#   # Check on consistency of shareDownUp
-#   shareDownUp_invalid <-
-#     shareDownUp_previous[,
-#       .(sum_shares = round(sum(shareDownUp)), 3),
-#       by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-#     ][
-#       !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-#     ]
-# 
-#   if (nrow(shareDownUp_invalid) > 0) {
-# 
-#     shareDownUp_invalid <-
-#       shareDownUp_previous[
-#         shareDownUp_invalid,
-#         on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-#       ]
-# 
-#     write.csv(
-#       shareDownUp_invalid,
-#       file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
-#     )
-# 
-#     if (!CheckDebug()) {
-#       send_mail(
-#         from = "do-not-reply@fao.org",
-#         to = swsContext.userEmail,
-#         subject = "Some shareDownUp are invalid",
-#         body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-#                 file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-#       )
-#     }
-# 
-#     unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-# 
-#     stop("Some shares are invalid. Check your email.")
-#   }
-# 
-#   shareDownUp_previous[,
-#     `:=`(
-#       measuredItemParentCPC = sub("'", "", measuredItemParentCPC),
-#       measuredItemChildCPC = sub("'", "", measuredItemChildCPC)
-#     )
-#   ]
-# 
-#   setnames(shareDownUp_previous, "shareDownUp", "shareDownUp_prev")
-# 
-# 
-# } else {
-# 
-#   SHAREDOWNUP_LOADED <- FALSE
-# 
-#   shareDownUp_previous <-
-#     data.table(
-#       geographicAreaM49 = character(),
-#       timePointYears = character(),
-#       measuredItemParentCPC = character(),
-#       measuredItemChildCPC = character(),
-#       shareDownUp_prev = numeric(),
-#       protect_share = logical()
-#     )
-# }
+
 
 # stockable items for which a historical series of at least
 # 5 non-missing/non-null data points exist
@@ -2408,189 +2565,6 @@ if (length(primaryInvolvedDescendents) == 0) {
           )
         ]
 
-    # Stocks will be generated also for those cases for which we have data
-    condition_for_stocks <-
-      data$stockable == TRUE &
-      data$measuredItemSuaFbs %chin% items_to_generate_stocks &
-      #data$measuredItemSuaFbs %chin% treeCurrentLevel$measuredItemParentCPC &
-      data$measuredElementSuaFbs %chin% c('production', 'imports', 'exports')
-
-    if (any(condition_for_stocks)) {
-
-      dbg_print("generating stocks")
-
-      data_histmod_stocks <-
-        data[
-          measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs
-        ]
-
-      if (nrow(data_histmod_stocks) > 0) {
-
-        dbg_print("data for histmod available")
-
-        data_histmod_stocks <-
-          data_histmod_stocks[,
-            .(
-              supply_inc =
-                sum(
-                  Value[measuredElementSuaFbs %chin% c("production", "imports")],
-                  - Value[measuredElementSuaFbs %chin% c("exports", "stock_change")],
-                  na.rm = TRUE
-                ),
-              supply_exc =
-                sum(
-                  Value[measuredElementSuaFbs %chin% c("production", "imports")],
-                  - Value[measuredElementSuaFbs == "exports"],
-                  na.rm = TRUE
-                )
-            ),
-            keyby = .(geographicAreaM49, measuredItemSuaFbs, timePointYears)
-          ][,
-            trend := seq_len(.N),
-            .(geographicAreaM49, measuredItemSuaFbs)
-          ]
-
-        dbg_print("coeffs_stocks_mod")
-
-        data_histmod_stocks[,
-          c("c_int", "c_sup", "c_trend") := coeffs_stocks_mod(.SD),
-          by = c("geographicAreaM49", "measuredItemSuaFbs")
-        ][,
-          supply_inc_pred := c_int + c_sup * supply_exc + c_trend * trend
-        ][,
-          delta_pred := supply_exc - supply_inc_pred
-        ]
-
-        data_for_stocks <-
-          data_histmod_stocks[
-            timePointYears >= 2013 ,
-            .(geographicAreaM49, measuredItemSuaFbs, timePointYears, delta = delta_pred)
-          ]
-
-        if (nrow(data_for_stocks) > 0) {
-
-          data_for_stocks <-
-            merge(
-              data_for_stocks,
-              all_opening_stocks[, .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua, timePointYears, new_opening = Value)],
-              by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
-              all.x = TRUE
-            )
-
-          data_for_stocks <- data_for_stocks[timePointYears >= 2013]
-
-          # If there are opening stocks for 2013, but not for 2014
-          data_for_stocks[,
-            replace_opening :=
-              ifelse(
-                timePointYears == "2014" &
-                  !is.na(new_opening[timePointYears == "2013"]) &
-                  is.na(new_opening[timePointYears == "2014"]),
-                new_opening[timePointYears == "2013"] + delta[timePointYears == "2013"],
-                NA_real_
-              ),
-            by = c("geographicAreaM49", "measuredItemSuaFbs")
-          ]
-
-          data_for_stocks[
-            is.na(new_opening) & !is.na(replace_opening),
-            new_opening := ifelse(replace_opening >= 0, replace_opening, 0)
-          ]
-
-          data_for_stocks[, replace_opening := NULL]
-
-          data_for_stocks <- data_for_stocks[timePointYears >= 2014]
-
-          stockdata <-
-            data[
-              Protected == TRUE &
-                measuredElementSuaFbs == "stock_change" &
-                !is.na(Value) &
-                measuredItemSuaFbs %chin% data_for_stocks$measuredItemSuaFbs,
-              .(
-                geographicAreaM49,
-                measuredItemSuaFbs,
-                timePointYears,
-                stockvar = Value
-              )
-            ]
-
-          data_for_stocks <-
-            merge(
-              data_for_stocks,
-              stockdata,
-              by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
-              all.x = TRUE
-            )
-
-          data_for_stocks[!is.na(stockvar), delta := stockvar][, stockvar := NULL]
-
-          # Stock withdrawal cannot exceed opening stocks in the first year
-          data_for_stocks[
-            timePointYears == "2014" & delta < 0 & abs(delta) > new_opening,
-            delta := - new_opening
-          ]
-
-          # NOTE: Data here should be ordered by country/item/year (CHECK)
-          data_for_stocks <- update_opening_stocks(data_for_stocks)
-
-          data <-
-            merge(
-              data,
-              data_for_stocks,
-              by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
-              all.x = TRUE
-            )
-
-          #rm(data_for_stocks)
-
-          # Overwrite even protected figures, because, if new delta generated,
-          # it's not compatible with previous stock variations
-          data[
-            measuredElementSuaFbs == "stock_change" &
-              !is.na(delta) &
-              # allow for some small discrepancy
-              (abs(delta) <= 0.999 * abs(Value) | abs(delta) >= 1.001 * abs(Value)),
-            `:=`(
-              Value = delta,
-              flagObservationStatus = "E",
-              flagMethod = "u",
-              Protected = FALSE
-            )
-          ]
-
-          data[, c("delta", "new_opening") := NULL]
-
-          all_opening_stocks <-
-            merge(
-              all_opening_stocks,
-              data_for_stocks[,
-                .(
-                  geographicAreaM49,
-                  measuredItemFbsSua = measuredItemSuaFbs,
-                  timePointYears,
-                  new_opening
-                )
-              ],
-              by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
-              all = TRUE
-            )
-
-          all_opening_stocks[
-            !is.na(new_opening) & (round(new_opening) != round(Value) | is.na(Value)),
-            `:=`(
-              Value = new_opening,
-              flagObservationStatus = "E",
-              flagMethod = "u",
-              Protected = FALSE
-            )
-          ]
-
-          all_opening_stocks[, new_opening := NULL]
-        }
-      }
-    }
-    
     dataMergeTree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stock_change')]
     
     setnames(dataMergeTree, "measuredItemSuaFbs", "measuredItemParentCPC")
@@ -2919,6 +2893,9 @@ if (length(primaryInvolvedDescendents) == 0) {
              Protected)
         ]
 
+    # XXX stocks create duplicates
+    z <- unique(z)
+
     dbg_print("dcast z data")
 
     z <- data.table::dcast(z, geographicAreaM49+timePointYears+measuredItemSuaFbs~measuredElementSuaFbs, value.var = c("Value", "Protected"))
@@ -2927,11 +2904,16 @@ if (length(primaryInvolvedDescendents) == 0) {
 
     dbg_print("z data + computed_shares_send")
 
-    computed_shares_send[[as.character(lev)]] <-
+    tmp <-
       z[computed_shares_send[[as.character(lev)]],
         on = c('geographicAreaM49'  = 'geographicAreaM49',
                'timePointYears'     = 'timePointYears',
                'measuredItemSuaFbs' = 'measuredItemChildCPC')]
+
+    # XXX stocks create duplicates
+    tmp <- unique(tmp)
+
+    computed_shares_send[[as.character(lev)]] <- tmp
     
     dbg_print("assign production of derived to non protected/frozen data")
 
@@ -2952,152 +2934,6 @@ if (length(primaryInvolvedDescendents) == 0) {
 
 
 computed_shares <- rbindlist(computed_shares)
-
-# # Check on consistency of shareDownUp
-# shareDownUp_invalid <-
-#   computed_shares[,
-#     .(sum_shares = sum(shareDownUp)),
-#     by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-#   ][
-#     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-#   ]
-# 
-# if (nrow(shareDownUp_invalid) > 0) {
-# 
-#   shareDownUp_invalid <-
-#     computed_shares[
-#       shareDownUp_invalid,
-#       on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-#     ]
-# 
-#   write.csv(
-#     shareDownUp_invalid,
-#     file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
-#   )
-# 
-#   if (!CheckDebug()) {
-#     send_mail(
-#       from = "do-not-reply@fao.org",
-#       to = swsContext.userEmail,
-#       subject = "Some shareDownUp are invalid",
-#       body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-#               file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-#     )
-#   }
-# 
-#   unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-# 
-#   stop("Some shares are invalid. Check your email.")
-# }
-# # / Check on consistency of shareDownUp
-# 
-# shareDownUp_save <-
-#   computed_shares[,
-#     .(geographicAreaM49, timePointYears, measuredItemParentCPC,
-#       measuredItemChildCPC, shareDownUp)]
-# 
-# if (nrow(shareDownUp_previous) == 0) {
-#   shareDownUp_save[, protect_share := FALSE]
-# } else {
-#   shareDownUp_save <-
-#     merge(
-#       computed_shares[, -"processingShare", with = FALSE],
-#       shareDownUp_previous[
-#         protect_share == TRUE,
-#         .(geographicAreaM49, timePointYears, measuredItemParentCPC, measuredItemChildCPC, protect_share)
-#       ],
-#       by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
-#       all = TRUE
-#     )
-# 
-#   shareDownUp_save[is.na(protect_share), protect_share := FALSE]
-# }
-# 
-# shareDownUp_save[,
-#   `:=`(
-#     measuredItemParentCPC = paste0("'", measuredItemParentCPC),
-#     measuredItemChildCPC = paste0("'", measuredItemChildCPC)
-#   )
-# ]
-# 
-# if (!file.exists(dirname(shareDownUp_file))) {
-#   dir.create(dirname(tmp_file_outliers), recursive = TRUE)
-# }
-# 
-# write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
-=======
-# Check on consistency of shareDownUp
-shareDownUp_invalid <-
-  computed_shares[,
-    .(sum_shares = round(sum(shareDownUp)), 3),
-    by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-  ][
-    !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-  ]
-
-if (nrow(shareDownUp_invalid) > 0) {
-
-  shareDownUp_invalid <-
-    computed_shares[
-      shareDownUp_invalid,
-      on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-    ]
-
-  write.csv(
-    shareDownUp_invalid,
-    file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
-  )
-
-  if (!CheckDebug()) {
-    send_mail(
-      from = "do-not-reply@fao.org",
-      to = swsContext.userEmail,
-      subject = "Some shareDownUp are invalid",
-      body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-              file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-    )
-  }
-
-  unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-
-  stop("Some shares are invalid. Check your email.")
-}
-# / Check on consistency of shareDownUp
-
-shareDownUp_save <-
-  computed_shares[,
-    .(geographicAreaM49, timePointYears, measuredItemParentCPC,
-      measuredItemChildCPC, shareDownUp)]
-
-if (nrow(shareDownUp_previous) == 0) {
-  shareDownUp_save[, protect_share := FALSE]
-} else {
-  shareDownUp_save <-
-    merge(
-      computed_shares[, -"processingShare", with = FALSE],
-      shareDownUp_previous[
-        protect_share == TRUE,
-        .(geographicAreaM49, timePointYears, measuredItemParentCPC, measuredItemChildCPC, protect_share)
-      ],
-      by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
-      all = TRUE
-    )
-
-  shareDownUp_save[is.na(protect_share), protect_share := FALSE]
-}
-
-shareDownUp_save[,
-  `:=`(
-    measuredItemParentCPC = paste0("'", measuredItemParentCPC),
-    measuredItemChildCPC = paste0("'", measuredItemChildCPC)
-  )
-]
-
-if (!file.exists(dirname(shareDownUp_file))) {
-  dir.create(dirname(tmp_file_outliers), recursive = TRUE)
-}
-
-write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
 
 
 dbg_print("end of derived production loop")
@@ -3197,6 +3033,10 @@ if (nrow(fixed_proc_shares) > 0) {
 }
 
 computed_shares_send <- rbindlist(computed_shares_send, fill = TRUE)
+
+
+# XXX
+computed_shares_send <- unique(computed_shares_send)
 
 colnames(computed_shares_send) <- sub("Value_", "", colnames(computed_shares_send))
 
@@ -3475,14 +3315,12 @@ data <- data[!(measuredElementSuaFbs == 'stock_change' & stockable == 'FALSE')]
 #setDT(data)
 
 
+data <- data[measuredElementSuaFbs != 'residual']
 
-# Remove residual and tourist (for now) [with exceptions]
-if (COUNTRY == "28") {
-  data <- data[!(measuredElementSuaFbs %chin% c('residual'))]
-} else {
-  data <- data[!(measuredElementSuaFbs %chin% c('residual', 'tourist'))]
-}
 
+# Tourism consumption will be in the data only for selected countries
+# and needs to be protected
+data[measuredElementSuaFbs == "tourist", Protected := TRUE]
 
 
 ######################### Save UNB for validation #######################
@@ -3694,7 +3532,7 @@ if (THRESHOLD_METHOD == 'nolimits') {
 
   data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
 
-  # This really shouldn't happen
+  # share < 0 shouldn't happen. Also, tourist can be negative.
   data[util_share < 0 & measuredElementSuaFbs != "tourist", util_share := 0]
 
   data[util_share > 1, util_share := 1]
@@ -3717,6 +3555,16 @@ if (THRESHOLD_METHOD == 'nolimits') {
     `:=`(
       min_threshold = supply * min_util_share,
       max_threshold = supply * max_util_share
+    )
+  ]
+
+  # For food, allow just +/- 10% deviation from imputation
+
+  data[
+    measuredElementSuaFbs == "food",
+    `:=`(
+      min_threshold = 0.90 * Value,
+      max_threshold = 1.10 * Value
     )
   ]
   
@@ -3916,23 +3764,6 @@ food_proc_table_i <-
     food_proc_i > 0
   ]
 
-# Incorporate the processed info into the shares file:
-computed_shares_send <-
-  merge(
-    computed_shares_send,
-    food_proc_table_i[,
-      .(
-        Country = geographicAreaM49,
-        Parent = paste0("'", measuredItemParentCPC),
-        Child = paste0("'", measuredItemChildCPC),
-        year = timePointYears,
-        processed = food_proc_i
-      )
-    ],
-    by = c("Country", "Parent", "Child", "year"),
-    all.x = TRUE
-  )
-
 food_proc_table <-
   food_proc_table_i[,
     list(food_proc = sum(food_proc_i)),
@@ -3960,6 +3791,63 @@ data[
 ]
 
 
+
+# Incorporate the processed info into the shares file:
+
+computed_shares_send <-
+  merge(
+    computed_shares_send,
+    food_proc_table_i[,
+      .(
+        Country = geographicAreaM49,
+        Parent = paste0("'", measuredItemParentCPC),
+        Child = paste0("'", measuredItemChildCPC),
+        year = timePointYears,
+        processed = food_proc_i
+      )
+    ],
+    by = c("Country", "Parent", "Child", "year"),
+    all.x = TRUE
+  )
+
+
+z_comp_shares <- copy(computed_shares_send)
+
+z_comp_shares[, Protected_exports := NULL]
+z_comp_shares[, Protected_imports := NULL]
+z_comp_shares[, Protected_production := NULL]
+z_comp_shares[, Protected_stock_change := NULL]
+
+# FIXME: fix above
+z_comp_shares[, Parent := sub("'", "", Parent)]
+z_comp_shares[, Child := sub("'", "", Child)]
+
+
+setcolorder(z_comp_shares, c("Country", "Country_name", "Parent", "Parent_name", "Child", "Child_name", "year", "production", "imports", "exports", "stock_change", "extractionRate", "shareDownUp", "processingShare", "availability_parent", "zero_weigth", "processed"))
+
+
+wb <- createWorkbook()
+addWorksheet(wb, "SHARES")
+style_protected <- createStyle(fgFill = "pink")
+style_text <- createStyle(numFmt = "TEXT")
+style_comma <- createStyle(numFmt = "COMMA")
+writeData(wb, "SHARES", z_comp_shares)
+
+for (i in c("exports", "imports", "production", "stock_change")) {
+  a_col <- grep(paste0("^", i, "$"), names(z_comp_shares))
+  a_rows <- which(computed_shares_send[[paste0("Protected_", i)]] == TRUE) + 1
+
+  addStyle(wb, sheet = "SHARES", style_protected, rows = a_rows, cols = a_col)
+}
+
+addStyle(wb, sheet = "SHARES", style_text, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(Parent|Child)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
+addStyle(wb, sheet = "SHARES", style_comma, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(production|imports|exports|stock_change|availability_parent|processed)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
+
+addFilter(wb, "SHARES", row = 1, cols = 1:ncol(z_comp_shares))
+
+saveWorkbook(wb, tmp_file_name_shares, overwrite = TRUE)
+
+
 ## 1 => year = 2014
 i <- 1
 
@@ -3983,7 +3871,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
       stocks_modif <-
         rbind(
           # Previous data (balanced)
-          standData[[i-1]][
+          rbindlist(standData)[
             !is.na(Value) & measuredElementSuaFbs == 'stockChange' & measuredItemSuaFbs %in% items_stocks_changed,
             list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value)
           ],
@@ -4077,6 +3965,8 @@ for (i in seq_len(nrow(uniqueLevels))) {
 
 }
 
+all_opening_stocks[, measuredElementSuaFbs := "5113"]
+
 ## The list is repeated, so it's sufficient to take the first element
 #issues <- rbindlist(issues[[1]])
 
@@ -4112,6 +4002,9 @@ standData[
 
 # If the imbalance is relatively small (less than 5% in absoulte value)
 # a new allocation is done, this time with no limits.
+# Here we need to protect seed, because of its lik to production.
+
+standData[measuredElementSuaFbs == "seed", Protected := TRUE]
 
 if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
 
@@ -4165,8 +4058,10 @@ if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
   standData <- rbind(standData_with_imbalance, standData_no_imbalance)
 
 }
-
 calculateImbalance(standData)
+
+# Remove tourist for industrial as in the pase the two
+# elements could have been mixed
 
 standData[
   supply > 0,
@@ -4316,19 +4211,8 @@ non_existing_for_imputation <-
 
 non_existing_for_imputation[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
-tmp_file_name_imb       <- tempfile(pattern = paste0("IMBALANCE_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_shares    <- tempfile(pattern = paste0("SHARES_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_negative  <- tempfile(pattern = paste0("NEGATIVE_AVAILAB_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_non_exist <- tempfile(pattern = paste0("NONEXISTENT_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_fix_shares  <- tempfile(pattern = paste0("FIXED_PROC_SHARES_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_NegNetTrade <- tempfile(pattern = paste0("NEG_NET_TRADE_", COUNTRY, "_"), fileext = '.csv')
-
-if (!file.exists(dirname(tmp_file_name_imb))) {
-  dir.create(dirname(tmp_file_name_imb), recursive = TRUE)
-}
-
 write.csv(imbalances_to_send,          tmp_file_name_imb)
-write.csv(computed_shares_send,        tmp_file_name_shares)
+#write.csv(computed_shares_send,        tmp_file_name_shares)
 write.csv(negative_availability,       tmp_file_name_negative)
 write.csv(non_existing_for_imputation, tmp_file_name_non_exist)
 write.csv(fixed_proc_shares,           tmp_file_name_fix_shares)
@@ -4862,14 +4746,137 @@ des_main[
   measuredItemFbsSua_description := "PERCENTAGE OF MAIN OVER TOTAL"
 ]
 
-des_cast[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 des_main[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
-tmp_file_des      <- tempfile(pattern = paste0("DES_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_des_main <- tempfile(pattern = paste0("DES_MAIN_ITEMS_", COUNTRY, "_"), fileext = '.csv')
+
+########## create XLSX for main DES items
+
+des_main_90_and_tot <-
+  rbind(
+    data.table(
+      geographicAreaM49 = unique(des_main_90$geographicAreaM49),
+      measuredItemFbsSua = "S2901"
+    ),
+    des_main_90
+  )
+
+des_level_diff <-
+  des[
+    order(geographicAreaM49, measuredItemFbsSua, timePointYears)
+  ][,
+    .(
+      Value = Value - shift(Value),
+      timePointYears = timePointYears
+    ),
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+des_level_diff_cast <-
+  data.table::dcast(
+    des_level_diff,
+    geographicAreaM49 + measuredItemFbsSua ~ timePointYears,
+    fun.aggregate = sum,
+    value.var = "Value"
+  )
+
+
+des_perc_diff <-
+  des[
+    order(geographicAreaM49, measuredItemFbsSua, timePointYears)
+  ][,
+    .(
+      Value = Value / shift(Value) - 1,
+      timePointYears = timePointYears
+    ),
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+des_perc_diff[is.infinite(Value) | is.nan(Value), Value := NA_real_]
+
+des_perc_diff_cast <-
+  data.table::dcast(
+    des_perc_diff,
+    geographicAreaM49 + measuredItemFbsSua ~ timePointYears,
+    fun.aggregate = sum,
+    value.var = "Value"
+  )
+
+des_level_diff_cast <-
+  merge(
+    des_level_diff_cast,
+    des_cast[, .(geographicAreaM49, geographicAreaM49_description, measuredItemFbsSua, measuredItemFbsSua_description)],
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  )
+
+setcolorder(des_level_diff_cast, names(des_cast))
+
+des_perc_diff_cast <-
+  merge(
+    des_perc_diff_cast,
+    des_cast[, .(geographicAreaM49, geographicAreaM49_description,
+                 measuredItemFbsSua, measuredItemFbsSua_description)],
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  )
+
+setcolorder(des_perc_diff_cast, names(des_cast))
+
+des_level_diff_cast <-
+  des_level_diff_cast[des_main_90_and_tot,
+                      on = c("geographicAreaM49", "measuredItemFbsSua")]
+
+des_perc_diff_cast <-
+  des_perc_diff_cast[des_main_90_and_tot,
+                     on = c("geographicAreaM49", "measuredItemFbsSua")]
+
+
+wb <- createWorkbook()
+
+addWorksheet(wb, "DES_MAIN")
+addWorksheet(wb, "DES_MAIN_diff")
+addWorksheet(wb, "DES_MAIN_diff_perc")
+
+writeData(wb, "DES_MAIN", des_main)
+writeData(wb, "DES_MAIN_diff", des_level_diff_cast)
+writeData(wb, "DES_MAIN_diff_perc", des_perc_diff_cast)
+
+style_cal_gt_10 <- createStyle(fgFill = "lightyellow")
+style_cal_gt_20 <- createStyle(fgFill = "yellow")
+style_cal_gt_50 <- createStyle(fgFill = "orange")
+style_cal_gt_100 <- createStyle(fgFill = "red")
+style_percent <- createStyle(numFmt = "PERCENTAGE")
+
+
+for (i in which(names(des_level_diff_cast) %in% 2011:2017)) {
+  addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 10], style = style_cal_gt_10, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 20], style = style_cal_gt_20, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 50], style = style_cal_gt_50, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 100], style = style_cal_gt_100, gridExpand = TRUE)
+
+  addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 10], style = style_cal_gt_10, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 20], style = style_cal_gt_20, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 50], style = style_cal_gt_50, gridExpand = TRUE)
+  addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 100], style = style_cal_gt_100, gridExpand = TRUE)
+}
+
+addStyle(wb, sheet = "DES_MAIN_diff_perc", style_percent, rows = 1:nrow(des_level_diff_cast) + 1, cols = which(names(des_level_diff_cast) %in% 2011:2017), gridExpand = TRUE, stack = TRUE)
+
+setColWidths(wb, "DES_MAIN", 4, 40)
+setColWidths(wb, "DES_MAIN_diff", 4, 40)
+setColWidths(wb, "DES_MAIN_diff_perc", 4, 40)
+
+tmp_file_des_main <- tempfile(pattern = paste0("DES_MAIN_ITEMS_", COUNTRY, "_"), fileext = '.xlsx')
+
+saveWorkbook(wb, tmp_file_des_main, overwrite = TRUE)
+
+
+########## / create XLSX for main DES items
+
+
+tmp_file_des <- tempfile(pattern = paste0("DES_", COUNTRY, "_"), fileext = '.csv')
+
+#des_cast[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
 write.csv(des_cast, tmp_file_des)
-write.csv(des_main, tmp_file_des_main)
 
 ########## / DES calculation
 
@@ -4939,7 +4946,8 @@ if (exists("out")) {
       E,u: Stocks variation generated
       I,c: Derived production generated
       I,e: Module imputation
-      I,i: Residual item (identity)
+      I,i: Residual item (identity); stocks as 20%% of supply in 2013
+      I,-: Opening stocks as cumulated stocks variations 1961-2013
       M,q: Cases for which flags were not set (should never happen)
       T,c: Opening stocks updated
       T,i: Calories per capita created
@@ -4960,13 +4968,13 @@ if (exists("out")) {
 
       - DES_*.csv = calculation of DES (total and by items)
 
-      - DES_MAIN_ITEMS_*.csv = as DES_*.csv, but only with items that
+      - DES_MAIN_ITEMS_*.xlsx = as DES_*.csv, but only with items that
           accounted for nearly 90%% on average over 2014-2017
 
       - OUTLIERS_*.csv = outliers in Calories (defined as those that account
           for more than 5 Calories with an increase of more than 15%%)
 
-      - SHARES_*.csv = Parents/Children shares, availability, etc.
+      - SHARES_*.xlsx = Parents/Children shares, availability, etc.
 
       - FILLED_ER_*.csv = filled extraction rates
 
