@@ -116,9 +116,24 @@ tree=getCommodityTreeNewMethod(areaKeys,as.character(2000:2017))
 
 message((proc.time() - ptm)[3])
 
-tree[measuredElementSuaFbs=="extractionRate" & Value>10,Value:=Value/10]
+# Exception: high share conmfirmed by official data
+
+tree_exceptions <- tree[geographicAreaM49 == "392" & measuredItemParentCPC == "0141" & measuredItemChildCPC == "23995.01"]
+
+if (nrow(tree_exceptions) > 0) {
+  tree <- tree[!(geographicAreaM49 == "392" & measuredItemParentCPC == "0141" & measuredItemChildCPC == "23995.01")]
+}
 
 validateTree(tree)
+
+if (nrow(tree_exceptions) > 0) {
+  tree <- rbind(tree, tree_exceptions)
+  rm(tree_exceptions)
+}
+
+#tree[measuredElementSuaFbs=="extractionRate" & Value>10,Value:=Value/10]
+
+#validateTree(tree)
 
 # NA ExtractionRates are recorded in the sws dataset as 0
 # for the standardization, we nee them to be treated as NA
@@ -127,28 +142,56 @@ validateTree(tree)
 tree[Value==0,Value:=NA]
 
 #fILL EXTRACTION RATE---------------------
-expanded_tree <-
-  merge(
-    data.table(
-      geographicAreaM49 = unique(tree$geographicAreaM49),
-      timePointYears = as.character(min(tree$timePointYears):max(tree$timePointYears))
-    ),
-    unique(tree[, .(geographicAreaM49, measuredElementSuaFbs,
-                    measuredItemParentCPC, measuredItemChildCPC)]),
-    by = "geographicAreaM49",
-    all = TRUE,
-    allow.cartesian = TRUE
-  )
+  expanded_tree <-
+    merge(
+      data.table(
+        geographicAreaM49 = unique(tree$geographicAreaM49),
+        timePointYears = sort(unique(tree$timePointYears))
+      ),
+      unique(tree[, .(geographicAreaM49, measuredElementSuaFbs,
+                      measuredItemParentCPC, measuredItemChildCPC)]),
+      by = "geographicAreaM49",
+      all = TRUE,
+      allow.cartesian = TRUE
+    )
+  
+  tree <- tree[expanded_tree, on = colnames(expanded_tree)]
+  
+  # flags for carry forward/backward
+  tree[is.na(Value), c("flagObservationStatus", "flagMethod") := list("E", "t")]
+  
+  tree <-
+    tree[!is.na(Value)][
+      tree,
+      on = c("geographicAreaM49", "measuredElementSuaFbs",
+             "measuredItemParentCPC", "measuredItemChildCPC",
+             "timePointYears"),
+      roll = -Inf
+      ]
+  
+  tree <-
+    tree[!is.na(Value)][
+      tree,
+      on = c("geographicAreaM49", "measuredElementSuaFbs",
+             "measuredItemParentCPC", "measuredItemChildCPC",
+             "timePointYears"),
+      roll = Inf
+      ]
+  
+  # keep orig flags
+  tree[, flagObservationStatus := i.i.flagObservationStatus]
+  tree[, flagMethod := i.i.flagMethod]
+  
+  tree[, names(tree)[grep("^i\\.", names(tree))] := NULL]
 
-tree <- tree[expanded_tree, on = colnames(expanded_tree)]
-
-tree <-
-  tree %>%
-  group_by(geographicAreaM49, measuredElementSuaFbs, measuredItemParentCPC, measuredItemChildCPC) %>%
-  arrange(geographicAreaM49, measuredElementSuaFbs, measuredItemParentCPC, measuredItemChildCPC) %>%
-  tidyr::fill(Value, flagObservationStatus, flagMethod, .direction = "up") %>%
-  tidyr::fill(Value, flagObservationStatus, flagMethod, .direction = "down") %>%
-  setDT()
+# saveRDS(
+#   tree[
+#     !is.na(Value) & measuredElementSuaFbs == "extractionRate",
+#     -grepl("measuredElementSuaFbs", names(tree)),
+#     with = FALSE
+#     ],
+#   file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "tree.rds")
+# )
 #END FILL EXTRACTION RATE-------------
 
 
@@ -724,7 +767,6 @@ params$calories = "calories"
 ##############################################################
 ######## CLEAN ALL SESSION TO BE USED IN THE PROCESS #########
 ##############################################################
-
 ## CLEAN fbs_standardized
 message("wipe fbs_standardized session")
 
@@ -750,7 +792,6 @@ fbs_balancedData[, Value := NA_real_]
 fbs_balancedData[, CONFIG$flags := NA_character_]
 
 SaveData(CONFIG$domain, CONFIG$dataset , data = fbs_balancedData, waitTimeout = Inf)
-
 
 ##############################################################
 #################### SET KEYS FOR DATA #######################
@@ -783,23 +824,23 @@ itemKeys = GetCodeList(domain = "suafbs", dataset = "sua_balanced", "measuredIte
 
 itemKeys = itemKeys[, code]
 
-key0 = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = list(
+key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = list(
   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
   timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2017))))
 
-key = DatasetKey(domain = "suafbs", dataset = "sua_balanced", dimensions = list(
-  geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
-  measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
-  measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-  timePointYears = Dimension(name = "timePointYears", keys = yearVals)))
-
-keyDes = DatasetKey(domain = "suafbs", dataset = "sua_balanced", dimensions = list(
-  geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
-  measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = desKeys),
-  measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-  timePointYears = Dimension(name = "timePointYears", keys = yearVals)))
+# key = DatasetKey(domain = "suafbs", dataset = "sua_balanced", dimensions = list(
+#   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+#   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
+#   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
+#   timePointYears = Dimension(name = "timePointYears", keys = yearVals)))
+# 
+# keyDes = DatasetKey(domain = "suafbs", dataset = "sua_balanced", dimensions = list(
+#   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+#   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = desKeys),
+#   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
+#   timePointYears = Dimension(name = "timePointYears", keys = yearVals)))
 
 
 ##############################################################
@@ -807,17 +848,31 @@ keyDes = DatasetKey(domain = "suafbs", dataset = "sua_balanced", dimensions = li
 ##############################################################
 
 message("Reading SUA data...")
+#get sua bal Data
+CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
+SuabalData=GetData(sessionKey_suabal)
+SuabalData=SuabalData[timePointYears%in%yearVals]
 
-data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-                           elementCol = "measuredElementSuaFbs")
+setnames(SuabalData,"measuredItemFbsSua",params$itemVar)
 
-dataSuaUn = elementCodesToNames(data = GetData(key0), itemCol = "measuredItemFbsSua",
+#Sua balanced quantities
+data=SuabalData[get(params$elementVar) %in% elemKeys,]
+data=elementCodesToNames(data,standParams = params)
+
+data[measuredElementSuaFbs=="foodmanufacturing",measuredElementSuaFbs:="foodManufacturing"]
+data[measuredElementSuaFbs=="stock_change",measuredElementSuaFbs:="stockChange"]
+#data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
+message("delete null elements")
+data=data[!is.na(measuredElementSuaFbs)]
+
+#Sua balanced DES
+dataDes<-SuabalData[get(params$elementVar) %in% desKeys]
+dataDes[get(params$elementVar)=="664",params$elementVar:=params$calories]
+
+message("load SUA unbal data...")
+
+dataSuaUn = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
                                 elementCol = "measuredElementSuaFbs")
-dataDes = elementCodesToNames(data = GetData(keyDes), itemCol = "measuredItemFbsSua",
-                                elementCol = "measuredElementSuaFbs")
-
-dataDes[is.na(measuredElementSuaFbs),measuredElementSuaFbs:="calories"]
-setnames(dataDes,"measuredItemFbsSua",params$itemVar)
 
 
 zeroWeight=ReadDatatable("zero_weight")[,item_code]
@@ -1134,18 +1189,6 @@ setDT(data_tree)
 
 #########SHARE DOWNUP   ----------------------------------------------
 
-
-#Utilization_Table = ReadDatatable("utilization_table_2018")
-
-data[measuredElementSuaFbs=="foodmanufacturing",measuredElementSuaFbs:="foodManufacturing"]
-setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-data[measuredElementSuaFbs=="stock_change",measuredElementSuaFbs:="stockChange"]
-data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
-
-message("delete null elements")
-
-data=data[!is.na(measuredElementSuaFbs)]
-
 ##############################################################
 ######### SUGAR RAW CODES TO BE CONVERTED IN 2351F ###########
 ##############################################################
@@ -1232,7 +1275,10 @@ itemKeys = GetCodeList("agriculture", "aupus_ratio", "measuredItemCPC")[, code]
 #################################################################
 message("Download Utilization Table from SWS...")
 
-# utilizationTable=ReadDatatable("utilization_table")
+#utilizationTable=ReadDatatable("utilization_table")
+Utilization_Table <- ReadDatatable("utilization_table_2018")
+
+DerivedItem <- Utilization_Table[derived == 'X', get("cpc_code")]
 # utilizationTable=ReadDatatable("utilization_table_percent")
 # 
 # utilizationTable=data.table(utilizationTable)
@@ -1278,6 +1324,8 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 standData0 = vector(mode = "list", length = nrow(uniqueLevels))
+NonStanditemChild = vector(mode = "list", length = nrow(uniqueLevels))
+
 
 #########STANDARDIZATION AND AGGREGATION-----------------------------------
 message("Beginning actual standardization process...")
@@ -1290,8 +1338,21 @@ for (i in seq_len(nrow(uniqueLevels))) {
   treeSubset = tree[filter, , on = c("geographicAreaM49", "timePointYears")]
   treeSubset[, c("geographicAreaM49", "timePointYears") := NULL]
   nonStandChildren<-NonStandardizedChidren(fbsTree = fbsTree,tree = treeSubset,standParams = p)
-  #utilizationTableSubset = utilizationTable[get(params$geoVar)==as.character(uniqueLevels[i,1,with=FALSE])]
   #************************************
+  #child items that are not standardized
+  
+  parentNod<-setdiff(treeSubset[,get(p$parentVar)],treeSubset[,get(p$childVar)])
+  parentNod<-c(parentNod,nonStandChildren)
+  
+  NonStandItems<-dataSubset[get(p$itemVar) %!in% parentNod & 
+                         get(p$itemVar) %in% DerivedItem &
+                         get(p$itemVar) %!in% treeSubset[,get(p$childVar)] &
+                           get(p$itemVar) %in% fbsTree[,get(p$itemVar)] & 
+                           abs(Value)>1]
+  
+  NonStandItems<-unique(NonStandItems[,get(p$itemVar)])
+  
+  NonStanditemChild[[i]]=as.data.table(cbind(NonStandItems,timePointYears=dataSubset$timePointYears[1]))
   
   message("Download cut Items from SWS...")
   cutItems=ReadDatatable("cut_items2")[,cpc_code]
@@ -1442,7 +1503,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
   )
   
   outDes = dataTest[, list(
-    Value = sum( Value /get(standParams$extractVar)*get(standParams$shareVar), na.rm = TRUE)),
+    Value = sum( Value*get(standParams$shareVar), na.rm = TRUE)),
     by = c(standParams$yearVar, standParams$geoVar,
            "measuredElementSuaFbs", standParams$parentVar)]
   
@@ -1468,10 +1529,13 @@ for (i in seq_len(nrow(uniqueLevels))) {
 }
 
 
-fbs_standardized<-rbindlist(standData0)
-fbs_standardized[,`:=`(flagObservationStatus="I",
-                       flagMethod="s")]
-setnames(fbs_standardized,"measuredItemSuaFbs","measuredItemFbsSua")
+##############ITEMS THAT ARE NOT STANDARDIZED##################################################
+NonStanditemChild<-rbindlist(NonStanditemChild)
+NonStanditemChild<-unique(NonStanditemChild[,list(measuredItemSuaFbs=NonStandItems)], by=c(p$itemVar))
+tmp_file_nonStandItemps<- tempfile(pattern = paste0("NON_STANDARDIZED_ITEMS_", COUNTRY_NAME,
+                                                      "_"), fileext = '.csv')
+write.csv(NonStanditemChild, tmp_file_nonStandItemps)
+############################################################################################
 
 # XXX fix this
 codes <- tibble::tribble(
@@ -1491,17 +1555,26 @@ codes <- tibble::tribble(
 )
 
 setDT(codes)
-setDT(fbs_standardized)
 
+#####sSAVING FBS STANDARDIZED#########################################----------------------------
+fbs_standardized<-rbindlist(standData0)
+fbs_standardized[,`:=`(flagObservationStatus="I",
+                       flagMethod="s")]
+setnames(fbs_standardized,"measuredItemSuaFbs","measuredItemFbsSua")
+setDT(fbs_standardized)
 fbs_standardized <- fbs_standardized[codes, on = c('measuredElementSuaFbs' = 'name')]
 fbs_standardized[,measuredElementSuaFbs:=code]
-fbs_standardized[,`:=`(code=NULL,
-                       Protected=NULL,
-                       Official=NULL)]
+fbs_standardized[,code:=NULL]
 fbs_standardized[is.na(Value),flagObservationStatus:=NA]
 fbs_standardized[is.na(Value),flagMethod:=NA]
 
+
+message("saving FBS standardized...")
 SaveData(domain = "suafbs", dataset = "fbs_standardized", data = fbs_standardized, waitTimeout = 20000)
+
+#end fns standardized-------------------------------------------------------------
+
+########SAVING FBS BALANCED#################################################-------------------
 
 fbs_balanced<-rbindlist(standData)
 fbs_balanced[,`:=`(flagObservationStatus="I",
@@ -1509,36 +1582,102 @@ fbs_balanced[,`:=`(flagObservationStatus="I",
 setnames(fbs_balanced,"measuredItemSuaFbs","measuredItemFbsSua")
 
 #calculate imbalance for fbs and put it the residual and othe ruses
+
 fbs_residual<-copy(fbs_balanced)
-calculateImbalance(fbs_residual,keep_supply = FALSE,keep_utilizations = FALSE)
+calculateImbalance(fbs_residual,keep_supply = TRUE,keep_utilizations = FALSE)
 
-fbs_residual[,`:=`(Value=imbalance,
-                   measuredElementSuaFbs="residual",
-                   imbalance=NULL)]
-fbs_residual<-unique(fbs_residual, by=colnames(fbs_residual))
+fbs_residual<-
+  fbs_residual[,list(geographicAreaM49,timePointYears,
+                                        measuredItemFbsSua,supply,imbalance)]
+fbs_residual<-unique(fbs_residual,by=c(colnames(fbs_residual)))
+fbs_residual[,imbalance_percentage:=round(imbalance/supply*100,2)]
 
-fbs_balanced<-rbind(fbs_balanced,fbs_residual)
+# fbs_residual[,`:=`(Value=imbalance,
+#                    measuredElementSuaFbs="residual",
+#                    imbalance=NULL)]
+# fbs_residual<-unique(fbs_residual, by=colnames(fbs_residual))
+# 
+# fbs_balanced<-rbind(fbs_balanced,fbs_residual)
+
 
 fbs_balanced <- fbs_balanced[codes, on = c('measuredElementSuaFbs' = 'name')]
 fbs_balanced[,measuredElementSuaFbs:=code]
-fbs_balanced[,`:=`(code=NULL,
-                   Protected=NULL,
-                   Official=NULL)]
+fbs_balanced[,code:=NULL]
 fbs_balanced[is.na(Value),flagObservationStatus:=NA]
 fbs_balanced[is.na(Value),flagMethod:=NA]
 
-
+message("saving FBS balanced...")
 SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = fbs_balanced, waitTimeout = 20000)
+#end fbs balanced---------------------------------------
 
-
-fbs_residual_to_send<-fbs_balanced[measuredElementSuaFbs=="5166"]
+### File containing imbalances greater that 1 MT----------------------
+fbs_residual_to_send<-fbs_residual[abs(imbalance_percentage)>1]
 fbs_residual_to_send<-nameData("suafbs", "fbs_balanced_", fbs_residual_to_send)
-
 tmp_file_residual<- tempfile(pattern = paste0("FBS_IMBALANCES_", COUNTRY_NAME, "_"), fileext = '.csv')
-
 write.csv(fbs_residual_to_send, tmp_file_residual)
+### End File containing imbalances greater that 1 MT----------------------
 
+#File containing aggregated DES from FBS-----------------------
+fbs_des_to_send<-fbs_balanced[measuredElementSuaFbs=="664"]
+fbs_des_to_send<-nameData("suafbs", "fbs_balanced_", fbs_des_to_send)
+fbs_des_to_send <-
+  dcast(
+    fbs_des_to_send,
+    geographicAreaM49_description + measuredElementSuaFbs_description+measuredItemFbsSua_description ~ timePointYears,
+    fun.aggregate = sum,
+    value.var = "Value"
+  )
 
+tmp_file_des<- tempfile(pattern = paste0("FBS_DES_", COUNTRY_NAME, "_"), fileext = '.csv')
+write.csv(fbs_des_to_send, tmp_file_des)
+#End File containing aggregated DES from FBS-----------------------
+
+#DES comparison: SUA and FBS-----------------
+DEssua<-dataDes[,measuredElementSuaFbs:="664"]
+DEssua<-DEssua[,
+       list(Value=sum(Value,na.rm = TRUE)),
+       by=c("geographicAreaM49","measuredElementSuaFbs","timePointYears")
+       ]
+
+DEssua<-nameData("suafbs", "sua_balanced", DEssua)
+DEssua[,measuredItemFbsSua_description:="DES from SUA_bal"]
+
+DEssua <-
+  dcast(
+    DEssua,
+    geographicAreaM49_description + measuredElementSuaFbs_description+measuredItemFbsSua_description ~ timePointYears,
+    fun.aggregate = sum,
+    value.var = "Value"
+  )
+message("saving filesss")
+
+setDT(fbs_des_to_send)
+DesFBS<-fbs_des_to_send[measuredItemFbsSua_description=="GRAND TOTAL - DEMAND"]
+DesFBS[,measuredItemFbsSua_description:="DES from FBS"]
+ComparativeDES<-rbind(DEssua,DesFBS)
+tmp_file_desSuaFbs<- tempfile(pattern = paste0("DES_SUA_vs_FBS_", COUNTRY_NAME, "_"), fileext = '.csv')
+write.csv(ComparativeDES, tmp_file_desSuaFbs)
+#End DES comparison: SUA and FBS-----------------
+
+#Items with DES and without FBS group----------------------
+DESItems_noFBSGroup<-dataDes[measuredItemSuaFbs %!in% fbsTree[,get(p$itemVar)] & Value>0,]
+DESItems_noFBSGroup[,measuredElementSuaFbs:="664"]
+DESItems_noFBSGroup<-nameData("suafbs", "sua_balanced", DESItems_noFBSGroup)
+
+if(nrow(DESItems_noFBSGroup)>0){
+  
+  DESItems_noFBSGroup <-
+    dcast(
+      DESItems_noFBSGroup,
+      geographicAreaM49_description + measuredElementSuaFbs_description+measuredItemSuaFbs ~ timePointYears,
+      fun.aggregate = sum,
+      value.var = "Value"
+    )
+}
+
+tmp_file_noFbsGroup<- tempfile(pattern = paste0("ITEMS_NO_FBSGROUP_", COUNTRY_NAME, "_"), fileext = '.csv')
+write.csv(DESItems_noFBSGroup, tmp_file_noFbsGroup)
+#End Items with DES and without FBS group----------------------
 
 
 
@@ -1548,7 +1687,12 @@ if (!CheckDebug()) {
     to = swsContext.userEmail,
     subject = "Results from newBalancing plugin",
     body = c("The FBS plugi have been run successfully!",
-             tmp_file_des
+             tmp_file_des,
+             tmp_file_residual,
+             tmp_file_noFbsGroup,
+             tmp_file_desSuaFbs,
+             tmp_file_nonStandItemps
     )
   )
 }
+
