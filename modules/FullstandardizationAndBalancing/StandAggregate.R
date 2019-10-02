@@ -1504,8 +1504,12 @@ for (i in seq_len(nrow(uniqueLevels))) {
            c(standParams$parentVar, standParams$extractVar, standParams$shareVar) :=
              list(get(standParams$childVar), 1, 1)]
   
-  dataTest[standard_child1==FALSE,measuredItemParentCPC:=measuredItemChildCPC]
-  dataTest[standard_child1==FALSE,share:=1]
+  dataTest[,missedDES:=mean(Value,na.rm = TRUE)>0 & sum(share,na.rm = TRUE)==0,
+           by = c(standParams$yearVar, standParams$geoVar, standParams$childVar)
+           ]
+
+  dataTest[standard_child1==FALSE | missedDES==TRUE,measuredItemParentCPC:=measuredItemChildCPC]
+  dataTest[standard_child1==FALSE | missedDES==TRUE,share:=1]
   
   dataTest[,weight:=1]
   dataTest[,standParams$extractVar:=1]
