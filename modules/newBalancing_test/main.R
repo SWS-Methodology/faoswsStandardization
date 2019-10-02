@@ -746,7 +746,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data[change_stocks == 2L, Value := Value_0 + imbalance]
       data[change_stocks == 3L, Value := - opening_stocks]
       data[change_stocks == 4L, Value := Value_0 + imbalance]
-      data[change_stocks == 5L, Value := max(supply * 2 - opening_stocks, 0), by = c("geographicAreaM49", "measuredItemFbsSua")]
+      data[change_stocks == 5L, Value := max(supply * 2 - opening_stocks, 0), by = c("geographicAreaM49", "measuredItemSuaFbs")]
 
       data[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
