@@ -89,9 +89,9 @@ outlierMail = swsContext.computationParams$checks
 
 ##  Get data configuration and session
 sessionKey_fbsBal = swsContext.datasets[[1]]
-sessionKey_suaUnb = swsContext.datasets[[2]]
-sessionKey_suabal = swsContext.datasets[[3]]
-sessionKey_fbsStand = swsContext.datasets[[4]]
+#sessionKey_suaUnb = swsContext.datasets[[2]]
+sessionKey_suabal = swsContext.datasets[[2]]
+sessionKey_fbsStand = swsContext.datasets[[3]]
 
 
 sessionCountries =
@@ -112,6 +112,7 @@ areaKeys = selectedGEOCode
 
 ptm <- proc.time()
 #tree=getCommodityTreeNewMethod(areaKeys,yearVals)
+message("Downloading tree...")
 tree=getCommodityTreeNewMethod(areaKeys,as.character(2000:2017))
 
 message((proc.time() - ptm)[3])
@@ -145,9 +146,10 @@ tree[Value==0,Value:=NA]
   expanded_tree <-
     merge(
       data.table(
+        expand.grid(
         geographicAreaM49 = unique(tree$geographicAreaM49),
         timePointYears = sort(unique(tree$timePointYears))
-      ),
+      )),
       unique(tree[, .(geographicAreaM49, measuredElementSuaFbs,
                       measuredItemParentCPC, measuredItemChildCPC)]),
       by = "geographicAreaM49",
@@ -446,6 +448,10 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
     stop("Extraction rates larger than 100 indicate they are probably ",
          "expressed in different units than on [0,1].  This will cause ",
          "huge problems when multiplying, and should be fixed.")
+  #cyclic parent-child relation bring infinit loop
+  
+  edges<-edges[!(get(parentName)=="21529.03" & get(childName)=="21523")]
+
   ## Test for loops
   findProcessingLevel(edgeData = edges, from = parentName,
                       to = childName)
@@ -565,7 +571,7 @@ NonStandardizedChidren<-function(fbsTree,tree,standParams){
   #FBS tree than the parent)
   treeFBSmerge[,standard_child:=ifelse(fbsID4_parent==fbsID4_child,TRUE,FALSE)]
   
-  
+  #tree[is.na(standard_child),standard_child:=FALSE]
   treeFBSmerge<-unique(
     treeFBSmerge[,list(measuredItemChildCPC,standard_child)],
     by=c("measuredItemChildCPC","standard_child")
@@ -579,7 +585,7 @@ NonStandardizedChidren<-function(fbsTree,tree,standParams){
             by=c("measuredItemChildCPC")] 
   
   #keep only child commodities that should not be standardized 
-  treeFBSmerge<-treeFBSmerge[som==0]
+  treeFBSmerge<-treeFBSmerge[som==0 & !is.na(standard_child)]
   treeFBSmerge[,som:=NULL]
   
   output<-treeFBSmerge[,get(p$childVar)]
@@ -880,7 +886,7 @@ zeroWeight=ReadDatatable("zero_weight")[,item_code]
 
 message("Calculating shareDownUps...")
 
-#########SHARE DOWNUP   ----------------------------------------------
+#########SHAREDOWNUP   ----------------------------------------------
 
 #this table will be used to assign to zeroweight comodities 
 #the processed quantities of their coproduct
@@ -1042,7 +1048,8 @@ setnames(dataprodchild, "Value", "production_of_child")
 data_tree<-merge(
   data_tree,
   dataprodchild,
-  by=c(params$geoVar,params$childVar,params$yearVar)
+  by=c(params$geoVar,params$childVar,params$yearVar),
+  all.x = TRUE
 )
 
 #ShareDownups for zeroweights are calculated  separately
@@ -1294,9 +1301,9 @@ message("Download zero Weight from SWS...")
 zeroWeight=ReadDatatable("zero_weight")[,item_code]
 # zeroWeight=data.table(zeroWeight)
 
-message("Download cutItems from SWS...")
+#message("Download cutItems from SWS...")
 
-cutItems=ReadDatatable("cut_items2")[,cpc_code]
+#cutItems=ReadDatatable("cut_items2")[,cpc_code]
 # cutItems=data.table(cutItems)
 
 message("Download fbsTree from SWS...")
@@ -1332,6 +1339,9 @@ message("Beginning actual standardization process...")
 
 for (i in seq_len(nrow(uniqueLevels))) {
  #i=1
+  
+  message(paste("Standardizing ",uniqueLevels$geographicAreaM49[i]," for the year ",uniqueLevels$timePointYears[i]))
+  
   filter = uniqueLevels[i, ]
   dataSubset = data[filter, , on = c("geographicAreaM49", "timePointYears")]
   dataDesSubset = dataDes[filter, , on = c("geographicAreaM49", "timePointYears")]
@@ -1352,10 +1362,12 @@ for (i in seq_len(nrow(uniqueLevels))) {
   
   NonStandItems<-unique(NonStandItems[,get(p$itemVar)])
   
-  NonStanditemChild[[i]]=as.data.table(cbind(NonStandItems,timePointYears=dataSubset$timePointYears[1]))
+  NonStanditemChild[[i]]=as.data.table(cbind(geographicAreaM49=dataSubset$geographicAreaM49[1],
+                                             measuredItemSuaFbs=NonStandItems,
+                                             timePointYears=dataSubset$timePointYears[1]))
   
-  message("Download cut Items from SWS...")
-  cutItems=ReadDatatable("cut_items2")[,cpc_code]
+  #message("Download cut Items from SWS...")
+  #cutItems=ReadDatatable("cut_items2")[,cpc_code]
   treeSubset[,weight:=1]
   treeSubset[measuredItemChildCPC %in% zeroWeight , weight:=0]
   #**************************************
@@ -1364,7 +1376,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
   standParams<-p
   sugarHack<-FALSE
   specificTree<-FALSE
-  cut<-cutItems
+  #cut<-cutItems
   #additiveElements<-nutrientElements
   keyCols = standParams$mergeKey[standParams$mergeKey != standParams$itemVar]
   if(!specificTree){
@@ -1531,9 +1543,16 @@ for (i in seq_len(nrow(uniqueLevels))) {
 
 ##############ITEMS THAT ARE NOT STANDARDIZED##################################################
 NonStanditemChild<-rbindlist(NonStanditemChild)
-NonStanditemChild<-unique(NonStanditemChild[,list(measuredItemSuaFbs=NonStandItems)], by=c(p$itemVar))
-tmp_file_nonStandItemps<- tempfile(pattern = paste0("NON_STANDARDIZED_ITEMS_", COUNTRY_NAME,
+NonStanditemChild<-unique(NonStanditemChild[,list(geographicAreaM49,measuredItemSuaFbs)], by=c(p$geoVar,p$itemVar))
+setnames(NonStanditemChild,"measuredItemSuaFbs","measuredItemFbsSua")
+NonStanditemChild<-nameData("suafbs", "sua_balanced", NonStanditemChild)
+
+if(length(selectedGEOCode)==1){
+  tmp_file_nonStandItemps<- tempfile(pattern = paste0("NON_STANDARDIZED_ITEMS_", COUNTRY_NAME,
                                                       "_"), fileext = '.csv')
+}else{
+  tmp_file_nonStandItemps<- tempfile(pattern = paste0("NON_STANDARDIZED_ITEMS_",
+                                                      "_"), fileext = '.csv')}
 write.csv(NonStanditemChild, tmp_file_nonStandItemps)
 ############################################################################################
 
@@ -1613,7 +1632,12 @@ SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = fbs_balanced, wait
 ### File containing imbalances greater that 1 MT----------------------
 fbs_residual_to_send<-fbs_residual[abs(imbalance_percentage)>1]
 fbs_residual_to_send<-nameData("suafbs", "fbs_balanced_", fbs_residual_to_send)
-tmp_file_residual<- tempfile(pattern = paste0("FBS_IMBALANCES_", COUNTRY_NAME, "_"), fileext = '.csv')
+
+if(length(selectedGEOCode)==1){
+  tmp_file_residual<- tempfile(pattern = paste0("FBS_IMBALANCES_", COUNTRY_NAME, "_"), fileext = '.csv')
+}else{
+  tmp_file_residual<- tempfile(pattern = paste0("FBS_IMBALANCES_"), fileext = '.csv')
+}
 write.csv(fbs_residual_to_send, tmp_file_residual)
 ### End File containing imbalances greater that 1 MT----------------------
 
@@ -1627,8 +1651,11 @@ fbs_des_to_send <-
     fun.aggregate = sum,
     value.var = "Value"
   )
-
-tmp_file_des<- tempfile(pattern = paste0("FBS_DES_", COUNTRY_NAME, "_"), fileext = '.csv')
+if(length(selectedGEOCode)==1){
+  tmp_file_des<- tempfile(pattern = paste0("FBS_DES_", COUNTRY_NAME, "_"), fileext = '.csv')
+}else{
+  tmp_file_des<- tempfile(pattern = paste0("FBS_DES_"), fileext = '.csv')
+}
 write.csv(fbs_des_to_send, tmp_file_des)
 #End File containing aggregated DES from FBS-----------------------
 
@@ -1649,13 +1676,16 @@ DEssua <-
     fun.aggregate = sum,
     value.var = "Value"
   )
-message("saving filesss")
 
 setDT(fbs_des_to_send)
 DesFBS<-fbs_des_to_send[measuredItemFbsSua_description=="GRAND TOTAL - DEMAND"]
 DesFBS[,measuredItemFbsSua_description:="DES from FBS"]
 ComparativeDES<-rbind(DEssua,DesFBS)
-tmp_file_desSuaFbs<- tempfile(pattern = paste0("DES_SUA_vs_FBS_", COUNTRY_NAME, "_"), fileext = '.csv')
+if(length(selectedGEOCode)==1){
+  tmp_file_desSuaFbs<- tempfile(pattern = paste0("DES_SUA_vs_FBS_", COUNTRY_NAME, "_"), fileext = '.csv')
+}else{
+  tmp_file_desSuaFbs<- tempfile(pattern = paste0("DES_SUA_vs_FBS_"), fileext = '.csv')
+}
 write.csv(ComparativeDES, tmp_file_desSuaFbs)
 #End DES comparison: SUA and FBS-----------------
 
@@ -1675,10 +1705,14 @@ if(nrow(DESItems_noFBSGroup)>0){
     )
 }
 
-tmp_file_noFbsGroup<- tempfile(pattern = paste0("ITEMS_NO_FBSGROUP_", COUNTRY_NAME, "_"), fileext = '.csv')
+if(length(selectedGEOCode)==1){
+  tmp_file_noFbsGroup<- tempfile(pattern = paste0("ITEMS_NO_FBSGROUP_", COUNTRY_NAME, "_"), fileext = '.csv')
+}else{
+  tmp_file_noFbsGroup<- tempfile(pattern = paste0("ITEMS_NO_FBSGROUP_"), fileext = '.csv')
+}
+
 write.csv(DESItems_noFBSGroup, tmp_file_noFbsGroup)
 #End Items with DES and without FBS group----------------------
-
 
 
 if (!CheckDebug()) {
