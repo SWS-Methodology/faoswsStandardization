@@ -4109,10 +4109,10 @@ if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
     # The following two instructions basically imply to assign the
     # (small) imbalance with no limits
 
-    x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange") &
+    x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange", "food") &
       Protected == FALSE & !is.na(min_threshold), min_threshold := 0]
 
-    x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange") &
+    x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange", "food") &
       Protected == FALSE & !is.na(max_threshold), max_threshold := Inf]
 
     if (BALANCING_METHOD == "proportional") {
