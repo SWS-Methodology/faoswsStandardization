@@ -746,7 +746,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data[change_stocks == 2L, Value := Value_0 + imbalance]
       data[change_stocks == 3L, Value := - opening_stocks]
       data[change_stocks == 4L, Value := Value_0 + imbalance]
-      data[change_stocks == 5L, Value := max(supply * 2 - opening_stocks, 0), by = c("geographicAreaM49", "measuredItemFbsSua")]
+      data[change_stocks == 5L, Value := max(supply * 2 - opening_stocks, 0), by = c("geographicAreaM49", "measuredItemSuaFbs")]
 
       data[change_stocks %in% 1L:5L, `:=`(flagObservationStatus = "E", flagMethod = "s")]
         
@@ -4109,10 +4109,10 @@ if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
     # The following two instructions basically imply to assign the
     # (small) imbalance with no limits
 
-    x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange") &
+    x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange", "food") &
       Protected == FALSE & !is.na(min_threshold), min_threshold := 0]
 
-    x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange") &
+    x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange", "food") &
       Protected == FALSE & !is.na(max_threshold), max_threshold := Inf]
 
     if (BALANCING_METHOD == "proportional") {
