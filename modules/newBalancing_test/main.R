@@ -654,6 +654,8 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
       ]
       
+      
+      if(COUNTRY %in% as.character(unique(TourismNoIndustrial$TourismNoIndustrial))){
       data[,
                 Value :=
                   ifelse(
@@ -663,11 +665,13 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
                     ifelse(Value[measuredElementSuaFbs == "industrial"] -
                              Value[measuredElementSuaFbs == "tourist"]<0,0,
                            Value[measuredElementSuaFbs == "industrial"] -
-                             Value[measuredElementSuaFbs == "tourist"],
-                    Value)
+                             Value[measuredElementSuaFbs == "tourist"]),
+                    Value
                   ),
                 by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
                 ]
+      }
+      
       
       calculateImbalance(data)
       
@@ -825,6 +829,26 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           flagMethod = "b"
         )
       ]
+      
+      if(COUNTRY %in% as.character(unique(TourismNoIndustrial$TourismNoIndustrial))){
+
+        data[,Value:=
+               ifelse(measuredElementSuaFbs == "tourist" &
+                              !is.na(Value[measuredElementSuaFbs == "industrial"]),
+             ifelse(is.na(Value[measuredElementSuaFbs == "tourist"]),
+                           Value[measuredElementSuaFbs == "industrial"],
+                           Value[measuredElementSuaFbs == "tourist"]+
+                           Value[measuredElementSuaFbs == "industrial"]),Value
+             ),
+             by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+             ]
+
+        data[,Value:=ifelse(measuredElementSuaFbs == "industrial" &
+                              !is.na(Value[measuredElementSuaFbs == "industrial"]) &
+                              !is.na(Value[measuredElementSuaFbs == "tourist"]),
+             NA_real_,Value),
+             by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")]
+      }
 
       calculateImbalance(data)
       
