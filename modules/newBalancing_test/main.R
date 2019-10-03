@@ -3603,9 +3603,8 @@ if (THRESHOLD_METHOD == 'nolimits') {
 
   # NOTE: here we redefine what "supply" is just for seed.
 
-  data[
-    measuredElementSuaFbs == "seed",
-    supply := Value[measuredElementSuaFbs == "production"],
+  data[,
+    supply := ifelse(measuredElementSuaFbs == "seed", Value[measuredElementSuaFbs == "production"], supply),
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
 
