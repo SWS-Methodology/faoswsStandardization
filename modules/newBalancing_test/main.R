@@ -623,7 +623,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         Food_Median > 0 & !is.na(Food_Median)) &
         # ... is the only utilization
         all(is.na(Value[!(measuredElementSuaFbs %in%
-                            c('food', 'production', 'imports', 'exports', 'stockChange','foodManufacturing'))])),
+                            c('loss', 'food', 'production', 'imports', 'exports', 'stockChange','foodManufacturing'))])),
       by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
     ]
     
