@@ -3816,6 +3816,7 @@ data[,
 ]
 
 
+dbg_print("processed calculation")
 
 # Calculate processed
 
@@ -3875,7 +3876,7 @@ data[
   food_proc := NULL
 ]
 
-
+dbg_print("processed into shares file")
 
 # Incorporate the processed info into the shares file:
 
@@ -3910,6 +3911,7 @@ z_comp_shares[, Child := sub("'", "", Child)]
 
 setcolorder(z_comp_shares, c("Country", "Country_name", "Parent", "Parent_name", "Child", "Child_name", "year", "production", "imports", "exports", "stock_change", "extractionRate", "shareDownUp", "processingShare", "availability_parent", "zero_weigth", "processed"))
 
+dbg_print("SHARES workbook, create")
 
 wb <- createWorkbook()
 addWorksheet(wb, "SHARES")
@@ -3929,6 +3931,8 @@ addStyle(wb, sheet = "SHARES", style_text, rows = 1:nrow(z_comp_shares) + 1, col
 addStyle(wb, sheet = "SHARES", style_comma, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(production|imports|exports|stock_change|availability_parent|processed)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
 
 addFilter(wb, "SHARES", row = 1, cols = 1:ncol(z_comp_shares))
+
+dbg_print(paste("SHARES workbook, save", getwd()))
 
 saveWorkbook(wb, tmp_file_name_shares, overwrite = TRUE)
 
