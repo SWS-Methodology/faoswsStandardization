@@ -134,7 +134,6 @@ update_opening_stocks <- function(x) {
 }
 
 
-
 # Fill NAs by LOCF/FOCB/interpolation if more than two
 # non-missing observations are available, otherwhise just
 # replicate the only non-missing observation
@@ -216,9 +215,6 @@ RemainingProdChildToAssign<-function(data){
   return(data)
   
 }
-
-
-
 
 
 # The fmax function is used when fixing the processingShare of coproducts.
@@ -522,6 +518,7 @@ balance_proportional <- function(data) {
       data,
       x[, list(measuredElementSuaFbs, measuredItemSuaFbs, adjusted_value)],
       by = c("measuredElementSuaFbs", "measuredItemSuaFbs"),
+      allow.cartesian = TRUE, #TO REMOVE
       all.x = TRUE
     )
 
@@ -2259,6 +2256,9 @@ zw_coproduct <- zw_coproduct[measuredItemChildCPC %in% data_tree[,get("measuredI
 # Computing information for non zeroweight commodities
 data_tree <- data_tree[measuredItemChildCPC %!in% zeroWeight,]
 
+#this dataset will be used when creating processing share and shareUpdown
+dataComplete<-copy(data_tree)
+
 # Quantity of parent destined to the production of the given child (only for child with one parent for the moment)
 data_tree[, processed_to_child := ifelse(number_of_parent == 1, production_of_child, NA_real_)]
 
@@ -2323,7 +2323,7 @@ data_tree[timePointYears > 2013 & is.na(processed_to_child), processed_to_child 
 
 #Back to zeroweight cases(we assign to zeroweights the processed quantity of their coproduct(already calculated))
 
-zw_coproduct<-merge(
+zw_coproduct_bis<-merge(
   data_tree,
   zw_coproduct,
   by=c("measuredItemChildCPC"),
@@ -2331,16 +2331,16 @@ zw_coproduct<-merge(
   all.y = TRUE
 )
 
-zw_coproduct[,`:=`(measuredItemChildCPC=zeroweight,
+zw_coproduct_bis[,`:=`(measuredItemChildCPC=zeroweight,
                   processed_to_child=processed_to_child/extractionRate)]
 
-zw_coproduct<-zw_coproduct[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
+zw_coproduct_bis<-zw_coproduct_bis[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
                                  timePointYears,processed_to_child)]
 
 
 data_zeroweight<-merge(
   data_zeroweight,
-  zw_coproduct,
+  zw_coproduct_bis,
   by=c("geographicAreaM49","measuredItemChildCPC","measuredItemParentCPC","timePointYears"),
   all.x = TRUE
 )
@@ -2378,6 +2378,238 @@ data_tree <-
   )
 
 setDT(data_tree)
+
+
+########################GENERARING ProcessedShare for parent----------------------------------------
+######################## ANd ShareUpDown for children ##############################################
+####################################################################################################
+
+#Processing share and ShareUpDown
+dataProcessingShare<-unique(
+  dataComplete[,list(geographicAreaM49,timePointYears,availability,measuredItemParentCPC,parent_qty_processed)],
+  by=c("geographicAreaM49","timePointYears","measuredItemParentCPC","parent_qty_processed")
+)
+
+dataProcessingShare[,Pshare:=parent_qty_processed/availability,
+                    by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+                    ]
+
+dataProcessingShare[Pshare>1,Pshare:=1]
+dataProcessingShare[Pshare<0,Pshare:=0]
+dataProcessingShare[is.nan(Pshare),Pshare:=NA_real_]
+
+dataProcessingShare<-dataProcessingShare[
+  order(geographicAreaM49, measuredItemParentCPC, timePointYears)
+  ][,
+    Pshare_avr:=rollavg(Pshare, order = 3),
+    by = c("geographicAreaM49", "measuredItemParentCPC")
+    ]
+setkey(dataProcessingShare, NULL)
+
+#we estimate Pshare for 2014 onwards, even if processed are modified manually because a this stage
+#availability of 2014 onwards are known (stocks are not generated yet)
+dataProcessingShare[timePointYears>2013,Pshare:=Pshare_avr]
+dataProcessingShare[,Pshare_avr:=NULL]
+
+data_Pshare<-dataProcessingShare[,
+                                 list(geographicAreaM49,timePointYears,measuredItemParentCPC,
+                                       parent_qty_processed,Pshare)
+                                 ]
+
+
+#calculating shareUpdown for each child
+data_ShareUpDoawn<-
+  #unique(
+  dataComplete[,
+               list(geographicAreaM49,timePointYears,measuredItemParentCPC,
+                    availability,parent_qty_processed,measuredItemChildCPC,extractionRate,
+                    production_of_child,number_of_children)
+               ]
+  
+#)
+  
+data_ShareUpDoawn<-unique(
+  data_ShareUpDoawn,by=c(colnames(data_ShareUpDoawn))
+)
+
+
+data_ShareUpDoawn<-merge(
+  data_ShareUpDoawn,
+  data_tree,
+  by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears"),
+  all = TRUE
+)
+
+data_ShareUpDoawn<-data_ShareUpDoawn[measuredItemChildCPC %!in% zeroWeight]
+data_ShareUpDoawn[,shareUpDown:=NA_real_]
+
+data_ShareUpDoawn[!is.na(parent_qty_processed),shareUpDown:=(production_of_child/extractionRate)*shareDownUp/
+                                        sum(production_of_child/extractionRate*shareDownUp,na.rm = TRUE),
+                  by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+                  ]
+data_ShareUpDoawn[is.nan(shareUpDown),shareUpDown:=NA_real_]
+data_ShareUpDoawn<-data_ShareUpDoawn[
+  order(geographicAreaM49, measuredItemParentCPC,measuredItemChildCPC, timePointYears)
+  ][,
+    shareUpDown_avg:=rollavg(shareUpDown, order = 3),
+    by = c("geographicAreaM49", "measuredItemParentCPC","measuredItemChildCPC")
+    ]
+
+setkey(data_ShareUpDoawn, NULL)
+
+data_ShareUpDoawn[timePointYears>2013,shareUpDown:=shareUpDown_avg]
+
+data_ShareUpDoawn[,shareUpDown_avg:=NULL]
+
+data_ShareUpDoawn[timePointYears>2013,
+                  shareUpDown:=shareUpDown/sum(shareUpDown,na.rm = TRUE),
+                  by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+                  ]
+
+# data_ShareUpDoawn[,Number_childPro:=sum(Protected==TRUE & shareUpDown>0,na.rm = TRUE) ,
+#                   by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+#                   ]
+# data_ShareUpDoawn[,Number_child:=sum(shareUpDown>0,na.rm = TRUE) ,
+#                   by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+#                   ]
+
+data_ShareUpDoawn_final<-data_ShareUpDoawn[,
+                                           list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
+                                                 timePointYears,shareUpDown)
+                                           ]
+
+shareUpDown_zeroweight<-merge(
+  data_ShareUpDoawn_final,
+  zw_coproduct ,
+  by=c("measuredItemChildCPC"),
+  allow.cartesian = TRUE,
+  all.y = TRUE
+)
+
+shareUpDown_zeroweight[,measuredItemChildCPC:=zeroweight]
+shareUpDown_zeroweight[,zeroweight:=NULL]
+
+shareUpDown_zeroweight<-shareUpDown_zeroweight[,list(geographicAreaM49,measuredItemParentCPC,
+                                                     measuredItemChildCPC,timePointYears,shareUpDown)]
+
+data_ShareUpDoawn_final<-rbind(data_ShareUpDoawn_final,shareUpDown_zeroweight)
+
+#some correction
+data_ShareUpDoawn_final[is.na(shareUpDown),shareUpDown:=NA_real_]
+data_ShareUpDoawn_final[!is.na(shareUpDown),flagObservationStatus:="I"]
+data_ShareUpDoawn_final[!is.na(shareUpDown),flagMethod:="c"]
+
+
+#sAVE DATA TO SWS
+
+shareUpDown_to_save<-copy(data_ShareUpDoawn_final)
+shareUpDown_to_save[,measuredElementSuaFbs:="5431"]
+setnames(shareUpDown_to_save,c("measuredItemParentCPC", "measuredItemChildCPC"),
+         c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree"))
+setnames(shareUpDown_to_save,"shareUpDown","Value")
+# shareUpDown_to_save[!is.na(Value),flagObservationStatus:="I"]
+# shareUpDown_to_save[!is.na(Value),flagMethod:="c"]
+
+#shareUpDown_to_save<-shareUpDown_to_save[!is.na(Value)]
+
+sessionKey_shareUpDown = swsContext.datasets[[3]]
+
+CONFIG <- GetDatasetConfig(sessionKey_shareUpDown@domain, sessionKey_shareUpDown@dataset)
+
+data_shareUpDown_sws=GetData(sessionKey_shareUpDown)
+#data_shareUpDown_sws=data_shareUpDown_sws[timePointYears%in%yearVals]
+
+# shareUpDown_to_save[, Value := NA_real_]
+# shareUpDown_to_save[, CONFIG$flags := NA_character_]
+
+#SaveData(CONFIG$domain, CONFIG$dataset , data = shareUpDown_to_save, waitTimeout = Inf)
+
+#saving ShareUpDown For the first time #all flage are (i,c) like production of derived
+if (nrow(data_shareUpDown_sws)==0) {
+  faosws::SaveData(
+    domain = "suafbs",
+    dataset = "up_down_share",
+    data = shareUpDown_to_save,
+    waitTimeout = 20000
+  )
+}else{
+ 
+  setnames(data_shareUpDown_sws,c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree"),
+           c("measuredItemParentCPC", "measuredItemChildCPC"))
+  setnames(data_shareUpDown_sws,"Value","shareUpDown")
+  
+  data_ShareUpDoawn_to_use<-copy(data_shareUpDown_sws)
+  data_ShareUpDoawn_to_use<-data_ShareUpDoawn_to_use[,colnames(data_ShareUpDoawn_final),with=FALSE]
+  
+  
+  # complete_shareUpDown <-
+  #   CJ(
+  #     measuredItemParentCPC    = unique(data_ShareUpDoawn_final$measuredItemParentCPC),
+  #     measuredItemChildCPC    = unique(data_ShareUpDoawn_final$measuredItemChildCPC),
+  #     geographicAreaM49     = unique(data_ShareUpDoawn_final$geographicAreaM49),
+  #     timePointYears        = unique(data_ShareUpDoawn_final$timePointYears)
+  #   )
+  
+  # rbind with anti_join
+  data_ShareUpDoawn_final <-
+    rbind(
+      data_ShareUpDoawn_to_use,
+      data_ShareUpDoawn_final[!data_ShareUpDoawn_to_use,
+                              on = c('geographicAreaM49', 'measuredItemParentCPC',
+                                       'measuredItemChildCPC', 'timePointYears')],
+      fill = TRUE
+    )
+  
+}
+
+
+#consistency check: we should not all protected TRUE with combinaition
+# at least a (E,f) for shareUpdown
+
+data_ShareUpDoawn_final_invalid <-
+  merge(
+    data_ShareUpDoawn_final,
+    flagValidTable,
+    by = c("flagObservationStatus", "flagMethod")
+  )
+
+
+data_ShareUpDoawn_final_invalid<-data_ShareUpDoawn_final_invalid[,
+                        All_protected_WithEf:=sum(Protected==TRUE,na.rm = TRUE)==.N & 
+                          sum(flagObservationStatus=="E" & flagMethod=="f",na.rm = TRUE)>0,
+                        by=c(p$geoVar,p$yearVar,p$parentVar)
+                        ][All_protected_WithEf==TRUE,]
+
+if (nrow(data_ShareUpDoawn_final_invalid) > 0) {
+  
+  # shareDownUp_invalid <-
+  #   shareDownUp_previous[
+  #     shareDownUp_invalid,
+  #     on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
+  #     ]
+  # 
+  write.csv(
+    data_ShareUpDoawn_final_invalid,
+    file.path(paste0("ShareUpDown_toCorrect_", COUNTRY, ".csv"))
+  )
+  
+  if (!CheckDebug()) {
+    send_mail(
+      from = "do-not-reply@fao.org",
+      to = swsContext.userEmail,
+      subject = "Some shareUpDown can creates conflicts",
+      body = c(paste("We cannot have all shareUpDown protected with (E,f) inside. See attachment and fix them in"),
+               file.path(paste0("ShareUpDown_toCorrect_", COUNTRY, ".csv")))
+    )
+  }
+  
+  stop("Some shareUpDown can create conflict. Check your email.")
+}
+
+
+#/processingShare---------------------
+
+
 
 # / Tables that will be required by the co-product issue (fix processingShare)
 
@@ -2617,6 +2849,9 @@ computed_shares_send <- list()
 # Keep negative availability
 negative_availability <- list()
 
+#keep shareuPdOWN
+updated_shareUpDOwn<-list()
+
 fixed_proc_shares <- list()
 
 original_stock_variation <-
@@ -2632,8 +2867,13 @@ dbg_print("starting derived production loop")
 if (length(primaryInvolvedDescendents) == 0) {
   message("No primary commodity involved in this country")
 } else {
+  
+  #USED TO AVOID DUPLICATES
+  data[,Processed_estimed:=FALSE]
+  
   for (lev in sort(unique(tree$processingLevel))) {
-
+#testing purpose
+ # lev=0
     dbg_print(paste("derived production loop, level", lev))
 
     treeCurrentLevel <-
@@ -2650,6 +2890,23 @@ if (length(primaryInvolvedDescendents) == 0) {
             extractionRate = Value
           )
         ]
+    
+    #tree containing children of all parent of current level
+tree_parent_Level<-
+  tree[
+    !is.na(Value) &
+      measuredElementSuaFbs == 'extractionRate' &
+      measuredItemParentCPC %in% treeCurrentLevel[,get(p$parentVar)]
+    ][,
+      list(
+        measuredItemParentCPC,
+        geographicAreaM49,
+        measuredItemChildCPC,
+        timePointYears,
+        extractionRate = Value,
+        processingLevel
+      )
+      ]
 
     dataMergeTree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stock_change')]
     
@@ -2660,7 +2917,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     dataMergeTree <-
       merge(
         dataMergeTree,
-        treeCurrentLevel,
+        tree_parent_Level,
         by = c(p$parentVar, p$geoVar, p$yearVar),
         allow.cartesian = TRUE
       )
@@ -2714,6 +2971,406 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     dbg_print("dataMergeTree + shareDownUp_previous")
 
+    
+    ##########Caculating and updating processed of parent--------------------------
+    #amsata
+    datamergeNew<-copy(dataMergeTree)
+    
+    datamergeNew<-datamergeNew[,list(geographicAreaM49,measuredItemParentCPC,availability,
+                                     measuredItemChildCPC,timePointYears,extractionRate,processingLevel,
+                                     shareDownUp)]
+    
+    datamergeNew<-unique(
+      datamergeNew,by=c(colnames(datamergeNew))
+    )
+    
+    datamergeNew <-
+      merge(
+        datamergeNew,
+        data[
+          measuredElementSuaFbs == 'production',
+          list(geographicAreaM49, timePointYears,
+               measuredItemChildCPC = measuredItemSuaFbs, production=Value, Protected)
+          ],
+        by = c('geographicAreaM49', 'timePointYears', 'measuredItemChildCPC')
+      )
+    
+    datamergeNew_zw<-datamergeNew[measuredItemChildCPC %in% zeroWeight]
+    
+    datamergeNew<-datamergeNew[measuredItemChildCPC %!in% zeroWeight]
+    
+    datamergeNew<-merge(
+      datamergeNew,
+      data_Pshare,
+      by = c(p$parentVar, p$geoVar, p$yearVar),
+      allow.cartesian = TRUE,
+      all.x = TRUE
+    ) 
+    
+    
+    datamergeNew<-merge(
+      datamergeNew,
+      data_ShareUpDoawn_final,
+      by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar),
+      allow.cartesian = TRUE
+    ) 
+    
+    
+    datamergeNew<-datamergeNew[,list(geographicAreaM49,measuredItemParentCPC,availability,Pshare,
+                                     measuredItemChildCPC,timePointYears,extractionRate,processingLevel,
+                                     shareDownUp,shareUpDown,production,Protected,
+                                     flagObservationStatus,flagMethod)]
+
+    datamergeNew<-unique(
+      datamergeNew,by=c(colnames(datamergeNew))
+    )
+    
+    # datamergeNew[,zeroweight:=measuredItemChildCPC %in% zeroWeight]
+    
+    
+    # datamergeNew <-
+    #   merge(
+    #     datamergeNew,
+    #     data[
+    #       measuredElementSuaFbs == 'production',
+    #       list(geographicAreaM49, timePointYears,
+    #            measuredItemChildCPC = measuredItemSuaFbs, Value, Protected)
+    #       ],
+    #     by = c('geographicAreaM49', 'timePointYears', 'measuredItemChildCPC')
+    #   )
+    
+    #including processed of parent
+    datamergeNew <-
+      merge(
+        datamergeNew,
+        data[
+          measuredElementSuaFbs == 'foodmanufacturing',
+          list(geographicAreaM49, timePointYears,
+               measuredItemParentCPC = measuredItemSuaFbs, processedBis=Value, processedProt=Protected)
+          ],
+        by = c('geographicAreaM49', 'timePointYears', 'measuredItemParentCPC'),
+        all.x = TRUE
+      )
+    
+    # datamergeNew[timePointYears >= 2014 & Protected == FALSE, Value := NA][, Protected := NULL]
+    datamergeNew[timePointYears >= 2014 & Protected == FALSE, production := NA]
+    datamergeNew[timePointYears >= 2014 & processedProt == FALSE, processedBis := NA]
+    
+    #Calculate the number of child with protected production for each parent
+    datamergeNew[,Number_childPro:=sum(Protected==TRUE & 
+                                         shareUpDown>0,na.rm = TRUE) ,
+                 by=c(p$parentVar, p$geoVar, p$yearVar)
+                 ]
+    
+    datamergeNew[,Number_childPro1:=sum(flagObservationStatus=="E" & 
+                                          flagMethod=="f",na.rm = TRUE) ,
+                 by=c(p$parentVar, p$geoVar, p$yearVar)
+                 ]
+    datamergeNew[,Number_childPro:=Number_childPro+Number_childPro1]
+    datamergeNew[,Number_childPro1:=NULL]
+    
+    
+    
+    #calculate the number of child of each parent where processed used to be send
+    datamergeNew[,Number_child:=sum(shareUpDown>0,na.rm = TRUE) ,
+                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+                 ]
+    #setnames(datamergeNew,"Value","production")
+    
+    #we estimate processed quantity for parent
+    #based on the historique trend of processed percentage
+    datamergeNew[,Processed:=Pshare*availability] 
+    
+    #However, we may have cases where some production of child commodities are official
+    
+    #case1: some child production are official but not all
+    #in this case we update the shareUpDown of the child commodities for which the production is official
+    #if the sum of their ShareUpdown is greater than 1, we update processed using the official production of those
+    #children and then we update the shareUpDown of different child commodities
+    datamergeNew[,shareUpDown_NEW:=NA_real_]
+    datamergeNew[,Processed_new:=NA_real_]
+    
+    datamergeNew[flagObservationStatus=="E" & flagMethod=="f",
+                 `:=`(Protected=TRUE,shareUpDown_NEW=shareUpDown)]
+    
+    datamergeNew[Number_childPro>0 & Number_childPro<Number_child,
+                 `:=`(shareUpDown_NEW=ifelse(Protected==TRUE & is.na(shareUpDown_NEW),
+                                             production/extractionRate*shareDownUp/Processed,shareUpDown_NEW),
+                      flagObservationStatus=ifelse(Protected==TRUE,
+                                                   ifelse(flagObservationStatus=="E",flagObservationStatus,"T"),
+                                                   flagObservationStatus),
+                      flagMethod=ifelse(Protected==TRUE,ifelse(flagMethod=="f",flagMethod,"-"),flagMethod)),
+                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+                 ]
+  
+    
+    # datamergeNew[flagObservationStatus=="E" & flagMethod=="f",
+    #              shareUpDown_NEW:= shareUpDown
+    #              ]
+    
+    datamergeNew[,sum_shareUD_high:=sum(shareUpDown_NEW,na.rm = TRUE)>1,
+                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+                 ]
+    
+    datamergeNew[sum_shareUD_high==TRUE,
+                 Processed_new:=sum(production/extractionRate*shareDownUp,na.rm = TRUE),
+                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+                 ]
+
+    datamergeNew[sum_shareUD_high==TRUE & is.na(shareUpDown_NEW),
+                 shareUpDown_NEW:=0,
+                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+                 ]
+
+    datamergeNew[sum_shareUD_high==TRUE,
+                 shareUpDown_NEW:=shareUpDown_NEW/sum(shareUpDown_NEW,na.rm = TRUE),
+                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+                 ]
+    datamergeNew[,sum_shareUD_high:=NULL]
+    
+    
+    datamergeNew[Number_childPro>0 & Number_childPro<Number_child ,
+                 shareUpDown_NEW:=ifelse(Protected==FALSE,shareUpDown/sum(shareUpDown[Protected==FALSE],na.rm = TRUE)*
+                                           (1-sum(shareUpDown_NEW[Protected==TRUE],na.rm = TRUE)),shareUpDown_NEW
+                                         ),
+                 by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+                 ]
+    
+    #cASE2: ALL THE PRODUCTION OF THE CHILD COMMODITIES ARE OFFICIAL
+    #process is updated using the official production of those child commodidites
+    #shareUpDown of the child commodities are updated
+    datamergeNew[Number_childPro>0 & Number_childPro==Number_child,
+                 Processed_new:=sum(production/extractionRate*shareDownUp,na.rm = TRUE) ,
+                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+                 ]
+    
+    datamergeNew[Number_childPro>0 & Number_childPro==Number_child,
+                 `:=`(shareUpDown_NEW=(production/extractionRate)*
+                   shareDownUp/sum(production/extractionRate*shareDownUp,na.rm = TRUE),
+                   flagObservationStatus="T",
+                   flagMethod="-"),
+                 by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")]
+    datamergeNew[!is.na(shareUpDown_NEW),shareUpDown:=shareUpDown_NEW]
+    
+    #Update the processed quantities
+    
+    dataForProc<-datamergeNew[,list(geographicAreaM49,timePointYears,measuredItemParentCPC, 
+                                    availability,processedBis,
+                                    Processed_new)]
+    dataForProc<-unique(dataForProc,by=c(colnames(dataForProc)))
+    
+    
+    dataForProc[timePointYears>2013 & !is.na(Processed_new),
+                 processedBis:=Processed_new]
+    
+    dataForProc[,Pshare:=processedBis/availability,
+                        by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+                        ]
+    
+    dataForProc[Pshare>1,Pshare:=1]
+    dataForProc[Pshare<0,Pshare:=0]
+    dataForProc[is.nan(Pshare),Pshare:=NA_real_]
+    
+    dataForProc<-dataForProc[
+      order(geographicAreaM49, measuredItemParentCPC, timePointYears)
+      ][,
+        Pshare_avr:=rollavg(Pshare, order = 3),
+        by = c("geographicAreaM49", "measuredItemParentCPC")
+        ]
+    setkey(dataForProc, NULL)
+    dataForProc[timePointYears>2013 & is.na(Pshare),Pshare:=Pshare_avr]
+    dataForProc[,Pshare_avr:=NULL]
+    dataForProc[,Processed:=Pshare*availability] 
+    # datamergeNew[!is.na(shareUpDown_NEW),shareUpDown:=shareUpDown_NEW]
+    dataForProc[!is.na(Processed_new),Processed:=Processed_new]
+    #dataForProc[,`:=`(Processed_new=NULL,shareUpDown_NEW=NULL)]
+    
+    datamergeNew<-datamergeNew[,list(geographicAreaM49,timePointYears,measuredItemParentCPC,
+                                     measuredItemChildCPC,extractionRate,processingLevel,shareDownUp,
+                                     shareUpDown,production,Protected,flagObservationStatus,flagMethod)]
+    
+   datamergeNew<-merge(
+     dataForProc,
+     datamergeNew,
+     by=c(p$geoVar,p$yearVar,p$parentVar),
+     allow.cartesian = TRUE
+   ) 
+    
+    
+    
+    #if the shareUpDown of a zeroweight coproduct is updated, the shareUpDown of
+    #the corresponding zeroweight should also be updated
+    
+    #merge zeroweight with the tree
+    
+    # zw_coproduct_new<-merge(
+    #   
+    # )
+    
+    datamergeNew_zeroweight<-merge(
+      datamergeNew,
+      zw_coproduct ,
+      by=c("measuredItemChildCPC"),
+      allow.cartesian = TRUE
+      #all.y = TRUE
+    )
+    
+    datamergeNew_zeroweight[,measuredItemChildCPC:=zeroweight]
+    datamergeNew_zeroweight[,zeroweight:=NULL]
+    
+    datamergeNew_zeroweight<-datamergeNew_zeroweight[,names(datamergeNew),with=FALSE]
+    
+    datamergeNew_zeroweight<-
+      datamergeNew_zeroweight[,list(geographicAreaM49,timePointYears,measuredItemParentCPC,
+                                    measuredItemChildCPC,Pshare,shareUpDown,Processed,
+                                    flagObservationStatus,flagMethod)]
+    
+    datamergeNew_zeroweight<-merge(
+      datamergeNew_zeroweight,
+      datamergeNew_zw,
+      by=c("geographicAreaM49","timePointYears","measuredItemParentCPC","measuredItemChildCPC")
+    )
+    
+    datamergeNew<-datamergeNew[,colnames(datamergeNew_zeroweight),with=FALSE]
+    
+    
+    datamergeNew_final<-rbind(datamergeNew,datamergeNew_zeroweight)
+    
+    #some correction
+    datamergeNew_final[is.na(shareUpDown),shareUpDown:=NA_real_]
+    
+    
+    updated_shareUpDOwn[[as.character(lev)]] <-
+      datamergeNew_final[processingLevel==lev,
+                      list(geographicAreaM49, timePointYears, measuredItemParentCPC,measuredItemChildCPC,
+                           shareUpDown,flagObservationStatus,flagMethod)
+                      ]
+    #/processed of parent-----------------
+    estimated_processed<-datamergeNew_final[,
+                                            list(geographicAreaM49,timePointYears,measuredItemSuaFbs=measuredItemParentCPC,Processed)
+                                            ]
+     estimated_processed<-unique(estimated_processed,by=c(colnames(estimated_processed)))
+     
+     
+    # 
+    # processed_to_save <-
+    #   merge(
+    #     estimated_processed,
+    #     data[
+    #       measuredElementSuaFbs == 'foodmanufacturing',
+    #       list(geographicAreaM49, timePointYears,measuredElementSuaFbs,
+    #           measuredItemSuaFbs, Value,flagObservationStatus,flagMethod, Protected)
+    #       ],
+    #     by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
+    #     all.x =TRUE
+    #   )
+    # 
+    # processed_to_save[Protected==FALSE |(is.na(Value) & !is.na(Processed)),
+    #                   `:=`(Value=Processed,flagObservationStatus="I",flagMethod="e",
+    #                        measuredElementSuaFbs= 'foodmanufacturing')]
+     #setDT(estimated_processed)
+     
+     complete_food_proc <-
+       CJ(
+         measuredItemSuaFbs    = unique(estimated_processed$measuredItemSuaFbs),
+         measuredElementSuaFbs = 'foodmanufacturing',
+         geographicAreaM49     = unique(estimated_processed$geographicAreaM49),
+         timePointYears        = unique(estimated_processed$timePointYears)
+       )
+     
+     # rbind with anti_join
+     data <-
+       rbind(
+         data,
+         complete_food_proc[!data, on = c('measuredItemSuaFbs', 'measuredElementSuaFbs',
+                             'geographicAreaM49', 'timePointYears')],
+         fill = TRUE
+       )
+     
+    data <-
+      merge(
+        data,
+        estimated_processed[timePointYears >= 2014],
+        by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
+        allow.cartesian = TRUE,
+        all.x = TRUE
+      )
+    
+    data[is.na(Protected),Protected:=FALSE]
+    data[is.na(Official),Official:=FALSE]
+    data[is.na(Processed_estimed),Processed_estimed:=FALSE]
+    
+    data[
+      measuredElementSuaFbs == "foodmanufacturing" &
+        Protected == FALSE & !is.na(Processed) & Processed_estimed==FALSE,
+      `:=`(
+        Value = Processed,
+        flagObservationStatus = "E",
+        flagMethod = "i",
+        Processed_estimed=TRUE
+      )
+      ][,
+        Processed := NULL
+        ]
+    
+    
+    # processed_to_save <-
+    #   processed_to_save[
+    #       timePointYears %in% 2014:2017 &
+    #       !is.na(Value),
+    #     list(
+    #       geographicAreaM49,
+    #       measuredElementSuaFbs = "5023",
+    #       measuredItemFbsSua = measuredItemSuaFbs,
+    #       timePointYears,
+    #       Value,
+    #       flagObservationStatus,
+    #       flagMethod
+    #     )
+    #     ]
+    # 
+    # out <-
+    #   SaveData(
+    #     domain = "suafbs",
+    #     dataset = "sua_unbalanced",
+    #     data = processed_to_save,
+    #     waitTimeout = 20000
+    #   )
+    # 
+    # if (exists("out")) {
+    #   
+    #   print(paste(out$inserted + out$ignored, "derived products written"))
+    # }
+    
+    #######estimating production of derived
+    data_production<-
+        datamergeNew_final[processingLevel==lev,
+                           list(geographicAreaM49,timePointYears,measuredItemParentCPC,availability,
+                                Pshare,measuredItemChildCPC,extractionRate,shareDownUp,shareUpDown,
+                                production,Protected)]
+    
+    data_production<-unique(data_production,by=c(colnames(data_production)))
+    
+    
+    data_production<-merge(
+      data_production,
+        unique(data[measuredElementSuaFbs=="foodmanufacturing" & !is.na(Value),
+                          list(geographicAreaM49,timePointYears,
+                               measuredItemParentCPC=measuredItemSuaFbs,
+                               Processed_parent=Value)]),
+      
+      by=c(p$geoVar,p$yearVar,p$parentVar),
+      #allow.cartesian = TRUE,
+      all.x = TRUE
+    )
+    
+    data_production[,
+                    #new_imputation:=Processed_parent*shareUpDown*extractionRate*shareDownUp
+                    new_imputation:=Processed_parent*shareUpDown*extractionRate #shareDownUp is not part of the formula
+                    
+                    ]
+   #comentt--------------- 
+    
     # dataMergeTree <-
     #   merge(
     #     dataMergeTree,
@@ -2727,233 +3384,239 @@ if (length(primaryInvolvedDescendents) == 0) {
     # dataMergeTree[, c("shareDownUp_prev", "protect_share") := NULL]
 
     # Key here was implicitly set by a previous order()
-    setkey(dataMergeTree, NULL)
-    
-    dataMergeTree <-
-      unique(
-        dataMergeTree[,
-          list(geographicAreaM49, timePointYears, measuredItemParentCPC,
-               measuredItemChildCPC, extractionRate, availability, shareDownUp)
-        ]
-      )
+    # setkey(dataMergeTree, NULL)
+    # 
+    # dataMergeTree <-
+    #   unique(
+    #     dataMergeTree[,
+    #       list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+    #            measuredItemChildCPC, extractionRate, availability, shareDownUp)
+    #     ]
+    #   )
 
-    dbg_print("dataMergeTree + production")
-    
-    dataMergeTree <-
-      merge(
-        dataMergeTree,
-        data[
-          measuredElementSuaFbs == 'production',
-          list(geographicAreaM49, timePointYears,
-               measuredItemChildCPC = measuredItemSuaFbs, Value, Protected)
-          ],
-        by = c('geographicAreaM49', 'timePointYears', 'measuredItemChildCPC')
-      )
-    
-    dataMergeTree[timePointYears >= 2014 & Protected == FALSE, Value := NA][, Protected := NULL]
-    
-    dbg_print("processingShare")
+    # dbg_print("dataMergeTree + production")
+    # 
+    # dataMergeTree <-
+    #   merge(
+    #     dataMergeTree,
+    #     data[
+    #       measuredElementSuaFbs == 'production',
+    #       list(geographicAreaM49, timePointYears,
+    #            measuredItemChildCPC = measuredItemSuaFbs, Value, Protected)
+    #       ],
+    #     by = c('geographicAreaM49', 'timePointYears', 'measuredItemChildCPC')
+    #   )
+    # 
+    # dataMergeTree[timePointYears >= 2014 & Protected == FALSE, Value := NA][, Protected := NULL]
+    # 
+    # dbg_print("processingShare")
+    # 
+    # dataMergeTree[, processingShare := Value / extractionRate * shareDownUp / availability]
+    # 
+    # # Fix weird processing shares. This should in theory never happen, but it does in some cases.
+    # dataMergeTree[processingShare < 0, processingShare := 0]
+    # dataMergeTree[processingShare > 1, processingShare := 1]
+    # 
+    # dbg_print("processingShare_avg")
 
-    dataMergeTree[, processingShare := Value / extractionRate * shareDownUp / availability]
-    
-    # Fix weird processing shares. This should in theory never happen, but it does in some cases.
-    dataMergeTree[processingShare < 0, processingShare := 0]
-    dataMergeTree[processingShare > 1, processingShare := 1]
-    
-    dbg_print("processingShare_avg")
-
-    dataMergeTree <-
-      dataMergeTree[
-        order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)
-      ][,
-        processingShare_avg := rollavg(processingShare, order = 3),
-        by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")
-      ]
-    
-    # Key here was implicitly set by a previous order()
-    setkey(dataMergeTree, NULL)
-    
-    #dataMergeTree[, nonna := sum(!is.na(processingShare)), list(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC)]
-    
-    dbg_print("replace processingShare with processingShare_avg")
-
-    dataMergeTree[is.na(processingShare), processingShare := processingShare_avg]
-    
-    dataMergeTree[, processingShare_avg := NULL]
-
-
-    dbg_print("Fix processing shares for co-products")
+    # dataMergeTree <-
+    #   dataMergeTree[
+    #     order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)
+    #   ][,
+    #     processingShare_avg := rollavg(processingShare, order = 3),
+    #     by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")
+    #   ]
+    # 
+    # # Key here was implicitly set by a previous order()
+    # setkey(dataMergeTree, NULL)
+    # 
+    # #dataMergeTree[, nonna := sum(!is.na(processingShare)), list(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC)]
+    # 
+    # dbg_print("replace processingShare with processingShare_avg")
+    # 
+    # dataMergeTree[is.na(processingShare), processingShare := processingShare_avg]
+    # 
+    # dataMergeTree[, processingShare_avg := NULL]
+    # 
+    # 
+    # dbg_print("Fix processing shares for co-products")
 
     ############### Fix processing shares for co-products
 
     ################################# Easy cases
 
-
-    if (nrow(coproduct_table_easy) > 0) {
-
-      dbg_print("Fix processing shares, easy")
-
-      output_easy <-
-        dataMergeTree[
-          measuredItemChildCPC %in% unique(coproduct_table_easy$measuredItemChildCPC),
-          .(geographicAreaM49, timePointYears, measuredItemChildCPC, measuredItemParentCPC, processingShare)
-        ]
-
-      if (nrow(output_easy) > 0) {
-        output_easy <-
-          merge(output_easy, coproduct_table_easy, by = 'measuredItemChildCPC', all.x = TRUE)
-
-        output_easy[,
-          reference_share := fmax(measuredItemChildCPC, branch, processingShare, FALSE),
-          by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
-        ]
-
-        output_easy[,
-          # Ask whether rounding by 2 is fine
-          reimpute := (round(processingShare, 2) != round(reference_share, 2)) | is.na(processingShare),
-          by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
-        ]
-      }
-    }
-
-    ################################# / Easy cases
-
-
-    ################################# Plus cases
-
-
-    if (nrow(coproduct_table_plus) > 0) {
-
-      dbg_print("Fix processing shares, plus")
-
-      output_plus <-
-        dataMergeTree[
-          measuredItemChildCPC %in% unique(coproduct_table_plus$measuredItemChildCPC),
-          .(geographicAreaM49, timePointYears, measuredItemChildCPC, measuredItemParentCPC, processingShare)
-        ]
-
-
-      if (nrow(output_plus) > 0) {
-        output_plus <-
-          merge(output_plus, coproduct_table_plus, by = 'measuredItemChildCPC', all.x = TRUE)
-
-         output_plus[,
-          reference_share := fmax(measuredItemChildCPC, branch, processingShare, TRUE),
-          by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
-        ]
-
-         output_plus[,
-          # Ask whether rounding by 2 is fine
-          reimpute := (round(processingShare, 2) != round(reference_share, 2)) | is.na(processingShare),
-          by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
-        ]
-      }
-    }
-
-    ################################# / Plus cases
-
-
-    ################################# Or cases
-
-    if (nrow(coproduct_table_or) > 0) {
-
-      dbg_print("Fix processing shares, or")
-
-      output_or <-
-        dataMergeTree[
-          measuredItemChildCPC %in% unique(coproduct_table_or$measuredItemChildCPC),
-          .(geographicAreaM49, timePointYears, measuredItemChildCPC, measuredItemParentCPC, processingShare)
-        ]
-
-
-      if (nrow(output_or) > 0) {
-        output_or <-
-          merge(output_or, coproduct_table_or, by = 'measuredItemChildCPC', all.x = TRUE)
-
-        output_or[,
-          reference_share := fmax(measuredItemChildCPC, branch, processingShare, TRUE),
-          by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
-        ]
-
-        output_or[,
-          # Ask whether rounding by 2 is fine
-          reimpute := (round(processingShare, 2) != round(reference_share, 2)) | is.na(processingShare),
-          by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
-        ]
-      }
-    }
-
-    ################################# / Or cases
-
-
-    output_to_check <-
-      rbindlist(
-        list(
-          if (exists("output_easy")) output_easy else NULL,
-          if (exists("output_plus")) output_plus else NULL,
-          if (exists("output_or"))   output_or   else NULL
-        ),
-        fill = TRUE
-      )
-
-    if (nrow(output_to_check) > 0) {
-
-      output_to_check <-
-        output_to_check[
-          reimpute == TRUE,
-          .(geographicAreaM49, timePointYears, measuredItemParentCPC, measuredItemChildCPC, reference_share)
-        ]
-
-      dataMergeTree <-
-        merge(
-          dataMergeTree,
-          output_to_check,
-          by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
-          all.x = TRUE
-        )
-
-      fixed_proc_shares[[as.character(lev)]] <- dataMergeTree[!is.na(reference_share)]
-
-      dbg_print("replace processing share with reference share")
-
-      dataMergeTree[!is.na(reference_share), processingShare := reference_share]
-
-      dataMergeTree[, reference_share := NULL]
-    }
-
+# 
+#     if (nrow(coproduct_table_easy) > 0) {
+# 
+#       dbg_print("Fix processing shares, easy")
+# 
+#       output_easy <-
+#         dataMergeTree[
+#           measuredItemChildCPC %in% unique(coproduct_table_easy$measuredItemChildCPC),
+#           .(geographicAreaM49, timePointYears, measuredItemChildCPC, measuredItemParentCPC, processingShare)
+#         ]
+# 
+#       if (nrow(output_easy) > 0) {
+#         output_easy <-
+#           merge(output_easy, coproduct_table_easy, by = 'measuredItemChildCPC', all.x = TRUE)
+# 
+#         output_easy[,
+#           reference_share := fmax(measuredItemChildCPC, branch, processingShare, FALSE),
+#           by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
+#         ]
+# 
+#         output_easy[,
+#           # Ask whether rounding by 2 is fine
+#           reimpute := (round(processingShare, 2) != round(reference_share, 2)) | is.na(processingShare),
+#           by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
+#         ]
+#       }
+#     }
+# 
+#     ################################# / Easy cases
+# 
+# 
+#     ################################# Plus cases
+# 
+# 
+#     if (nrow(coproduct_table_plus) > 0) {
+# 
+#       dbg_print("Fix processing shares, plus")
+# 
+#       output_plus <-
+#         dataMergeTree[
+#           measuredItemChildCPC %in% unique(coproduct_table_plus$measuredItemChildCPC),
+#           .(geographicAreaM49, timePointYears, measuredItemChildCPC, measuredItemParentCPC, processingShare)
+#         ]
+# 
+# 
+#       if (nrow(output_plus) > 0) {
+#         output_plus <-
+#           merge(output_plus, coproduct_table_plus, by = 'measuredItemChildCPC', all.x = TRUE)
+# 
+#          output_plus[,
+#           reference_share := fmax(measuredItemChildCPC, branch, processingShare, TRUE),
+#           by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
+#         ]
+# 
+#          output_plus[,
+#           # Ask whether rounding by 2 is fine
+#           reimpute := (round(processingShare, 2) != round(reference_share, 2)) | is.na(processingShare),
+#           by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
+#         ]
+#       }
+#     }
+# 
+#     ################################# / Plus cases
+# 
+# 
+#     ################################# Or cases
+# 
+#     if (nrow(coproduct_table_or) > 0) {
+# 
+#       dbg_print("Fix processing shares, or")
+# 
+#       output_or <-
+#         dataMergeTree[
+#           measuredItemChildCPC %in% unique(coproduct_table_or$measuredItemChildCPC),
+#           .(geographicAreaM49, timePointYears, measuredItemChildCPC, measuredItemParentCPC, processingShare)
+#         ]
+# 
+# 
+#       if (nrow(output_or) > 0) {
+#         output_or <-
+#           merge(output_or, coproduct_table_or, by = 'measuredItemChildCPC', all.x = TRUE)
+# 
+#         output_or[,
+#           reference_share := fmax(measuredItemChildCPC, branch, processingShare, TRUE),
+#           by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
+#         ]
+# 
+#         output_or[,
+#           # Ask whether rounding by 2 is fine
+#           reimpute := (round(processingShare, 2) != round(reference_share, 2)) | is.na(processingShare),
+#           by = c("geographicAreaM49", "timePointYears", "branch", "measuredItemParentCPC")
+#         ]
+#       }
+#     }
+# 
+#     ################################# / Or cases
+# 
+# 
+#     output_to_check <-
+#       rbindlist(
+#         list(
+#           if (exists("output_easy")) output_easy else NULL,
+#           if (exists("output_plus")) output_plus else NULL,
+#           if (exists("output_or"))   output_or   else NULL
+#         ),
+#         fill = TRUE
+#       )
+# 
+#     if (nrow(output_to_check) > 0) {
+# 
+#       output_to_check <-
+#         output_to_check[
+#           reimpute == TRUE,
+#           .(geographicAreaM49, timePointYears, measuredItemParentCPC, measuredItemChildCPC, reference_share)
+#         ]
+# 
+#       dataMergeTree <-
+#         merge(
+#           dataMergeTree,
+#           output_to_check,
+#           by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC"),
+#           all.x = TRUE
+#         )
+# 
+#       fixed_proc_shares[[as.character(lev)]] <- dataMergeTree[!is.na(reference_share)]
+# 
+#       dbg_print("replace processing share with reference share")
+# 
+#       dataMergeTree[!is.na(reference_share), processingShare := reference_share]
+# 
+#       dataMergeTree[, reference_share := NULL]
+#     }
+# 
 
     ############### / Fix processing shares for co-products
     
-    dataMergeTree <-
-      unique(
-        dataMergeTree[,
-          list(geographicAreaM49, timePointYears, measuredItemParentCPC,
-               measuredItemChildCPC, Value, extractionRate, shareDownUp,
-               processingShare, availability)]
-      )
     
-    dbg_print("impute production of derived")
-
-    dataMergeTree[, new_imputation := availability * processingShare * extractionRate]
+    # I am here--------------
     
+    data_production <-
+      #unique(
+        data_production[,
+          list(geographicAreaM49, timePointYears, measuredItemParentCPC,availability,Pshare,
+               measuredItemChildCPC, production,new_imputation, extractionRate, shareDownUp,
+               shareUpDown, Processed_parent)]
+      #)
+    
+   data_production<-unique(data_production,by=c(colnames(data_production))) 
+    
+    
+    # dbg_print("impute production of derived")
+    # 
+    # dataMergeTree[, new_imputation := availability * processingShare * extractionRate]
+    # 
     computed_shares[[as.character(lev)]] <-
-      dataMergeTree[,
-        list(geographicAreaM49, timePointYears, measuredItemParentCPC,
-             measuredItemChildCPC, shareDownUp, processingShare)
+      data_production[,
+        list(geographicAreaM49, timePointYears, measuredItemParentCPC,availability,Pshare,
+             measuredItemChildCPC,extractionRate, shareDownUp, shareUpDown,Processed_parent)
       ]
     
     # XXX: change this name
     computed_shares_send[[as.character(lev)]] <-
-      dataMergeTree[,
-        list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+      data_production[,
+        list(geographicAreaM49, timePointYears, measuredItemParentCPC,availability,Pshare,
              measuredItemChildCPC, extractionRate, shareDownUp,
-             processingShare, availability_parent = availability)
+             shareUpDown, Processed_parent)
       ]
     
     dbg_print("sum unique of new_imputation")
 
-    dataMergeTree <-
-      dataMergeTree[,
+    data_production <-
+      data_production[,
         list(
           measuredElementSuaFbs = 'production',
           # NOTE: the sum(unique()) is just a temporary HACK: check how to do it properly
@@ -2962,10 +3625,28 @@ if (length(primaryInvolvedDescendents) == 0) {
         list(geographicAreaM49, timePointYears, measuredItemSuaFbs = measuredItemChildCPC)
       ]
     
+    
+    data_production_complete <-
+      CJ(
+        measuredItemSuaFbs    = unique(data_production$measuredItemSuaFbs),
+        measuredElementSuaFbs = 'production',
+        geographicAreaM49     = unique(data_production$geographicAreaM49),
+        timePointYears        = unique(data_production$timePointYears)
+      )
+    
+    # rbind with anti_join
+    data <-
+      rbind(
+        data,
+        data_production_complete[!data, on = c('measuredItemSuaFbs', 'measuredElementSuaFbs',
+                                         'geographicAreaM49', 'timePointYears')],
+        fill = TRUE
+      )
+    
     data <-
       merge(
         data,
-        dataMergeTree,
+        data_production,
         by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs', 'measuredElementSuaFbs'),
         all.x = TRUE
       )
@@ -3015,11 +3696,25 @@ if (length(primaryInvolvedDescendents) == 0) {
         flagObservationStatus = "I", flagMethod = "c")]
     
     data[, imputed_deriv_value := NULL]
-  }
-}
-
-
+   }
+ }
+#stop("testing...")
 computed_shares <- rbindlist(computed_shares)
+updated_shareUpDOwn<-rbindlist(updated_shareUpDOwn)
+
+
+shareUpDown_to_save<-copy(updated_shareUpDOwn)
+shareUpDown_to_save[,measuredElementSuaFbs:="5431"]
+setnames(shareUpDown_to_save,c("measuredItemParentCPC", "measuredItemChildCPC"),
+         c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree"))
+setnames(shareUpDown_to_save,"shareUpDown","Value")
+
+faosws::SaveData(
+  domain = "suafbs",
+  dataset = "up_down_share",
+  data = shareUpDown_to_save,
+  waitTimeout = 20000
+)
 
 
 dbg_print("end of derived production loop")
@@ -3042,6 +3737,22 @@ if (STOP_AFTER_DERIVED == TRUE) {
         flagMethod
       )
     ]
+  
+  #save processed data
+  data_processed <-
+    data[
+      measuredElementSuaFbs == 'foodmanufacturing' &
+        timePointYears %in% 2014:2017,
+      list(
+        geographicAreaM49,
+        measuredElementSuaFbs = "5023",
+        measuredItemFbsSua = measuredItemSuaFbs,
+        timePointYears,
+        Value,
+        flagObservationStatus,
+        flagMethod
+      )
+      ]
 
   # Save stock data in SUA Unbalanced
 
@@ -3064,7 +3775,7 @@ if (STOP_AFTER_DERIVED == TRUE) {
   opening_stocks_to_save <- copy(all_opening_stocks)
   opening_stocks_to_save[, Protected := NULL]
 
-  data_to_save_unbalanced <- rbind(data_deriv, data_stock_to_save, opening_stocks_to_save)
+  data_to_save_unbalanced <- rbind(data_deriv, data_processed,data_stock_to_save, opening_stocks_to_save)
   
   out <-
     SaveData(
@@ -3095,28 +3806,28 @@ if (STOP_AFTER_DERIVED == TRUE) {
   stop("Plugin stopped after derived, as requested. This is fine.")
 }
 
-fixed_proc_shares <- rbindlist(fixed_proc_shares, idcol = "level")
-
-if (nrow(fixed_proc_shares) > 0) {
-
-  setnames(fixed_proc_shares, c("processingShare", "reference_share"), c("orig_proc_share", "new_proc_share"))
-
-  fixed_proc_shares <-
-    fixed_proc_shares[order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)]
-
-  fixed_proc_shares[,
-    `:=`(
-      measuredItemParentCPC = paste0("'", measuredItemParentCPC),
-      measuredItemChildCPC = paste0("'", measuredItemChildCPC)
-    )
-  ]
-
-  # XXX: removing value here as it is not the last computed value,
-  # but we probably keep both (old and new)
-  fixed_proc_shares[, Value := NULL]
-} else {
-  fixed_proc_shares <- data.table(info = "No processing shares need to be fixed.")
-}
+# fixed_proc_shares <- rbindlist(fixed_proc_shares, idcol = "level")
+# 
+# if (nrow(fixed_proc_shares) > 0) {
+# 
+#   setnames(fixed_proc_shares, c("processingShare", "reference_share"), c("orig_proc_share", "new_proc_share"))
+# 
+#   fixed_proc_shares <-
+#     fixed_proc_shares[order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)]
+# 
+#   fixed_proc_shares[,
+#     `:=`(
+#       measuredItemParentCPC = paste0("'", measuredItemParentCPC),
+#       measuredItemChildCPC = paste0("'", measuredItemChildCPC)
+#     )
+#   ]
+# 
+#   # XXX: removing value here as it is not the last computed value,
+#   # but we probably keep both (old and new)
+#   fixed_proc_shares[, Value := NULL]
+# } else {
+#   fixed_proc_shares <- data.table(info = "No processing shares need to be fixed.")
+# }
 
 computed_shares_send <- rbindlist(computed_shares_send, fill = TRUE)
 
@@ -3820,80 +4531,80 @@ data[,
 # Calculate processed
 
 # Now, let's calculate food processing
-data_for_proc <-
-  data[
-    measuredElementSuaFbs == 'production',
-    list(geographicAreaM49, timePointYears, measuredItemSuaFbs, Value)
-    ][
-      computed_shares,
-      on = c('geographicAreaM49' = 'geographicAreaM49',
-             'timePointYears' = 'timePointYears',
-             'measuredItemSuaFbs' = 'measuredItemChildCPC'),
-      nomatch = 0
-    ]
-
-setnames(data_for_proc, "measuredItemSuaFbs", "measuredItemChildCPC")
-
-food_proc_table_i <-
-  tree[
-    measuredElementSuaFbs == 'extractionRate',
-    list(measuredItemParentCPC, measuredItemChildCPC, extractionRate = Value, timePointYears)
-  ][
-    data_for_proc,
-    on = c('measuredItemParentCPC', 'measuredItemChildCPC', 'timePointYears')
-  ][,
-    zero_weight := measuredItemChildCPC %in% zeroWeight
-  ][,
-    food_proc_i := Value / extractionRate * shareDownUp * !zero_weight
-  ][
-    food_proc_i > 0
-  ]
-
-food_proc_table <-
-  food_proc_table_i[,
-    list(food_proc = sum(food_proc_i)),
-    by = list(geographicAreaM49, timePointYears, measuredItemSuaFbs = measuredItemParentCPC)
-  ]
-
-data <-
-  merge(
-    data,
-    food_proc_table[timePointYears >= 2014],
-    by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
-    all.x = TRUE
-  )
-
-data[
-  measuredElementSuaFbs == "foodManufacturing" &
-    Protected == FALSE & !is.na(food_proc),
-  `:=`(
-    Value = food_proc,
-    flagObservationStatus = "E",
-    flagMethod = "i"
-  )
-][,
-  food_proc := NULL
-]
+# data_for_proc <-
+#   data[
+#     measuredElementSuaFbs == 'production',
+#     list(geographicAreaM49, timePointYears, measuredItemSuaFbs, Value)
+#     ][
+#       computed_shares,
+#       on = c('geographicAreaM49' = 'geographicAreaM49',
+#              'timePointYears' = 'timePointYears',
+#              'measuredItemSuaFbs' = 'measuredItemChildCPC'),
+#       nomatch = 0
+#     ]
+# 
+# setnames(data_for_proc, "measuredItemSuaFbs", "measuredItemChildCPC")
+# 
+# food_proc_table_i <-
+#   tree[
+#     measuredElementSuaFbs == 'extractionRate',
+#     list(measuredItemParentCPC, measuredItemChildCPC, extractionRate = Value, timePointYears)
+#   ][
+#     data_for_proc,
+#     on = c('measuredItemParentCPC', 'measuredItemChildCPC', 'timePointYears')
+#   ][,
+#     zero_weight := measuredItemChildCPC %in% zeroWeight
+#   ][,
+#     food_proc_i := Value / extractionRate * shareDownUp * !zero_weight
+#   ][
+#     food_proc_i > 0
+#   ]
+# 
+# food_proc_table <-
+#   food_proc_table_i[,
+#     list(food_proc = sum(food_proc_i)),
+#     by = list(geographicAreaM49, timePointYears, measuredItemSuaFbs = measuredItemParentCPC)
+#   ]
+# 
+# data <-
+#   merge(
+#     data,
+#     food_proc_table[timePointYears >= 2014],
+#     by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
+#     all.x = TRUE
+#   )
+# 
+# data[
+#   measuredElementSuaFbs == "foodManufacturing" &
+#     Protected == FALSE & !is.na(food_proc),
+#   `:=`(
+#     Value = food_proc,
+#     flagObservationStatus = "E",
+#     flagMethod = "i"
+#   )
+# ][,
+#   food_proc := NULL
+# ]
 
 
 
 # Incorporate the processed info into the shares file:
-
-computed_shares_send <-
-  merge(
-    computed_shares_send,
-    food_proc_table_i[,
-      .(
-        Country = geographicAreaM49,
-        Parent = paste0("'", measuredItemParentCPC),
-        Child = paste0("'", measuredItemChildCPC),
-        year = timePointYears,
-        processed = food_proc_i
-      )
-    ],
-    by = c("Country", "Parent", "Child", "year"),
-    all.x = TRUE
-  )
+# 
+# computed_shares_send <-
+#   merge(
+#     computed_shares_send,
+#     food_proc_table_i[,
+#       .(
+#         Country = geographicAreaM49,
+#         Parent = paste0("'", measuredItemParentCPC),
+#         Child = paste0("'", measuredItemChildCPC),
+#         year = timePointYears,
+#         processed = food_proc_i
+#       )
+#     ],
+#     by = c("Country", "Parent", "Child", "year"),
+#     all.x = TRUE
+#   )
 
 
 z_comp_shares <- copy(computed_shares_send)
@@ -3908,7 +4619,7 @@ z_comp_shares[, Parent := sub("'", "", Parent)]
 z_comp_shares[, Child := sub("'", "", Child)]
 
 
-setcolorder(z_comp_shares, c("Country", "Country_name", "Parent", "Parent_name", "Child", "Child_name", "year", "production", "imports", "exports", "stock_change", "extractionRate", "shareDownUp", "processingShare", "availability_parent", "zero_weigth", "processed"))
+setcolorder(z_comp_shares, c("Country", "Country_name", "Parent", "Parent_name", "Child", "Child_name", "year", "production", "imports", "exports", "stock_change", "extractionRate", "shareDownUp", "shareUpDown", "availability","Pshare", "zero_weigth", "Processed_parent"))
 
 
 wb <- createWorkbook()
