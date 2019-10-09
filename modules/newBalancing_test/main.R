@@ -5569,9 +5569,6 @@ des_main[
   measuredItemFbsSua_description := "PERCENTAGE OF MAIN OVER TOTAL"
 ]
 
-des_main[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
-
-
 ########## create XLSX for main DES items
 
 des_main_90_and_tot <-
@@ -5662,12 +5659,18 @@ writeData(wb, "DES_MAIN", des_main)
 writeData(wb, "DES_MAIN_diff", des_level_diff_cast)
 writeData(wb, "DES_MAIN_diff_perc", des_perc_diff_cast)
 
-style_cal_gt_10 <- createStyle(fgFill = "lightyellow")
-style_cal_gt_20 <- createStyle(fgFill = "yellow")
-style_cal_gt_50 <- createStyle(fgFill = "orange")
+style_cal_0      <- createStyle(fgFill = "black", fontColour = "white", textDecoration = "bold")
+style_cal_gt_10  <- createStyle(fgFill = "lightyellow")
+style_cal_gt_20  <- createStyle(fgFill = "yellow")
+style_cal_gt_50  <- createStyle(fgFill = "orange")
 style_cal_gt_100 <- createStyle(fgFill = "red")
-style_percent <- createStyle(numFmt = "PERCENTAGE")
+style_percent    <- createStyle(numFmt = "PERCENTAGE")
+style_mean_diff  <- createStyle(borderColour = "blue", borderStyle = "double", border = "TopBottomLeftRight")
 
+# All zeros in 2014-2017, that were not zeros in 2010-2013
+zeros <-
+  des_main[, .SD, .SDcols = as.character(2014:2017)] == 0 &
+  des_main[, rowMeans(.SD), .SDcols = as.character(2010:2013)] > 0
 
 for (i in which(names(des_level_diff_cast) %in% 2011:2017)) {
   addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 10], style = style_cal_gt_10, gridExpand = TRUE)
@@ -5675,11 +5678,28 @@ for (i in which(names(des_level_diff_cast) %in% 2011:2017)) {
   addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 50], style = style_cal_gt_50, gridExpand = TRUE)
   addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 100], style = style_cal_gt_100, gridExpand = TRUE)
 
+  if (names(des_level_diff_cast)[i] %in% 2014:2017) {
+    j <- names(des_level_diff_cast)[i]
+    rows_with_zero <- zeros[, j]
+    if (any(rows_with_zero == TRUE)) {
+      addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(zeros))[zeros[, j]], style = style_cal_0, gridExpand = TRUE)
+    }
+  }
+
   addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 10], style = style_cal_gt_10, gridExpand = TRUE)
   addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 20], style = style_cal_gt_20, gridExpand = TRUE)
   addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 50], style = style_cal_gt_50, gridExpand = TRUE)
   addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 100], style = style_cal_gt_100, gridExpand = TRUE)
 }
+
+high_variation_mean <-
+  abs(des_main[, rowMeans(.SD), .SDcols = as.character(2010:2013)] / des_main[, rowMeans(.SD), .SDcols = as.character(2014:2017)] - 1) > 0.30
+
+if (any(high_variation_mean == TRUE)) {
+  high_variation_mean <- 1 + (1:nrow(des_main))[high_variation_mean]
+  addStyle(wb, sheet = "DES_MAIN", style_mean_diff, rows = high_variation_mean, cols = which(names(des_level_diff_cast) %in% 2014:2017), gridExpand = TRUE, stack = TRUE)
+}
+
 
 addStyle(wb, sheet = "DES_MAIN_diff_perc", style_percent, rows = 1:nrow(des_level_diff_cast) + 1, cols = which(names(des_level_diff_cast) %in% 2011:2017), gridExpand = TRUE, stack = TRUE)
 
@@ -5789,10 +5809,10 @@ if (exists("out")) {
       - PLOT_DES_MAIN_DIFF_AVG_*.pdf = Plot of main variations (> 20 Calories)
           in the AVERAGE DES pre (year <= 2013) and post (year >= 2014)
 
-      - DES_*.csv = calculation of DES (total and by items)
-
       - DES_MAIN_ITEMS_*.xlsx = as DES_*.csv, but only with items that
           accounted for nearly 90%% on average over 2014-2017
+
+      - DES_*.csv = calculation of DES (total and by items)
 
       - OUTLIERS_*.csv = outliers in Calories (defined as those that account
           for more than 5 Calories with an increase of more than 15%%)
@@ -5840,8 +5860,8 @@ if (exists("out")) {
                tmp_file_plot_main_des_items,
                tmp_file_plot_main_des_diff,
                tmp_file_plot_des_main_diff_avg,
-               tmp_file_des,
                tmp_file_des_main,
+               tmp_file_des,
                tmp_file_outliers,
                tmp_file_name_shares,
                tmp_file_name_imb,
