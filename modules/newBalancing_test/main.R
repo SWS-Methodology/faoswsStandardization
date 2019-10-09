@@ -1738,12 +1738,35 @@ data <- data[measuredElementSuaFbs != "5113"]
 
 dbg_print("elementToCodeNames")
 
-data <-
-  elementCodesToNames(
-    data,
-    itemCol = "measuredItemFbsSua",
-    elementCol = "measuredElementSuaFbs"
-  )
+# XXX FIXME: the elementCodesToNames below is
+# not working proberply, see issue #38
+codes <- tibble::tribble(
+  ~measuredElementSuaFbs,  ~name,
+  "5910", "exports",
+  "5520", "feed",
+  "5141", "food",
+  "5023", "foodmanufacturing",
+  "5610", "imports",
+  "5165", "industrial",
+  "5016", "loss",
+  "5510", "production",
+  "5525", "seed",
+  "5164", "tourist",
+  "5071", "stock_change"
+)
+
+data <- merge(data, codes, by = "measuredElementSuaFbs", all.x = TRUE)
+
+data[, measuredElementSuaFbs := name]
+
+data[, name := NULL]
+
+#data <-
+#  elementCodesToNames(
+#    data,
+#    itemCol = "measuredItemFbsSua",
+#    elementCol = "measuredElementSuaFbs"
+#  )
 
 
 # XXX: there are some NAs here, but probably there shouldn't
@@ -5026,7 +5049,7 @@ saveRDS(
 
 
 
-# XXX fix this
+# FIXME: see also the one done for elementToCodeNames
 codes <- tibble::tribble(
   ~code,  ~name,
   "5910", "exports",
