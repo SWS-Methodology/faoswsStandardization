@@ -104,6 +104,12 @@ dbg_print("define functions")
 
 ######### FUNCTIONS: at some point, they will be moved out of this file. ####
 
+coeffs_stocks_mod <- function(x) {
+  tmp <- lm(data = x[timePointYears <= 2013], supply_inc ~ supply_exc + trend)
+
+  as.list(tmp$coefficients)
+}
+
 # This function will recalculate opening stocks from the first
 # observation. Always.
 update_opening_stocks <- function(x) {
@@ -2903,8 +2909,7 @@ if (length(primaryInvolvedDescendents) == 0) {
       tree[
         !is.na(Value) &
           processingLevel == lev &
-          measuredElementSuaFbs == 'extractionRate'
-      ][,
+          measuredElementSuaFbs == 'extractionRate',
         list(
           measuredItemParentCPC,
           geographicAreaM49,
@@ -2916,20 +2921,206 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     #tree containing children of all parent of current level
     tree_parent_Level<-
-    tree[
-      !is.na(Value) &
-        measuredElementSuaFbs == 'extractionRate' &
-        measuredItemParentCPC %in% treeCurrentLevel[,get(p$parentVar)]
-    ][,
-      list(
-        measuredItemParentCPC,
-        geographicAreaM49,
-        measuredItemChildCPC,
-        timePointYears,
-        extractionRate = Value,
-        processingLevel
-      )
-    ]
+      tree[
+        !is.na(Value) &
+          measuredElementSuaFbs == 'extractionRate' &
+          measuredItemParentCPC %in% treeCurrentLevel[, get(p$parentVar)],
+        list(
+          measuredItemParentCPC,
+          geographicAreaM49,
+          measuredItemChildCPC,
+          timePointYears,
+          extractionRate = Value,
+          processingLevel
+        )
+      ]
+
+    ############# Create stocks, if missing ####################
+    # Stocks will be generated also for those cases for which we have data
+    condition_for_stocks <-
+      data$stockable == TRUE &
+      data$measuredItemSuaFbs %chin% items_to_generate_stocks &
+      #data$measuredItemSuaFbs %chin% treeCurrentLevel$measuredItemParentCPC &
+      data$measuredElementSuaFbs %chin% c('production', 'imports', 'exports')
+
+    if (any(condition_for_stocks)) {
+      dbg_print("generating stocks")
+
+      data_histmod_stocks <-
+        data[
+          measuredItemSuaFbs %chin% historical_avail_stocks$measuredItemSuaFbs
+        ]
+
+      if (nrow(data_histmod_stocks) > 0) {
+        dbg_print("data for histmod available")
+
+        data_histmod_stocks <-
+          data_histmod_stocks[,
+            .(
+              supply_inc =
+                sum(
+                  Value[measuredElementSuaFbs %chin% c("production", "imports")],
+                  - Value[measuredElementSuaFbs %chin% c("exports", "stock_change")],
+                  na.rm = TRUE
+                ),
+              supply_exc =
+                sum(
+                  Value[measuredElementSuaFbs %chin% c("production", "imports")],
+                  - Value[measuredElementSuaFbs == "exports"],
+                  na.rm = TRUE
+                )
+            ),
+            keyby = .(geographicAreaM49, measuredItemSuaFbs, timePointYears)
+          ][,
+            trend := seq_len(.N),
+            .(geographicAreaM49, measuredItemSuaFbs)
+          ]
+
+        dbg_print("coeffs_stocks_mod")
+
+        data_histmod_stocks[,
+          c("c_int", "c_sup", "c_trend") := coeffs_stocks_mod(.SD),
+          by = c("geographicAreaM49", "measuredItemSuaFbs")
+        ][,
+          supply_inc_pred := c_int + c_sup * supply_exc + c_trend * trend,
+        ][,
+          `:=`(
+            min_new_supply_inc = min(supply_inc[supply_inc > 0 & timePointYears >= 2009 & timePointYears <= 2013], na.rm = TRUE),
+            avg_new_supply_inc = mean(supply_inc[supply_inc > 0 & timePointYears >= 2009 & timePointYears <= 2013], na.rm = TRUE)
+          ),
+          by = c("geographicAreaM49", "measuredItemSuaFbs")
+        ][
+          supply_inc_pred <= 0 & timePointYears >= 2014,
+          supply_inc_pred := min_new_supply_inc
+        ][,
+          delta_pred := supply_exc - supply_inc_pred
+        ]
+
+        data_histmod_stocks[
+          supply_inc > 100,
+          abs_stock_perc := abs(supply_exc - supply_inc) / supply_inc
+        ]
+
+        data_histmod_stocks[,
+          abs_delta_pred_perc := abs(delta_pred) / avg_new_supply_inc
+        ]
+
+        # Max without the actual maximum, to avoid extremes
+        data_histmod_stocks[,
+          #upper_abs_stock_perc := max(abs_stock_perc[-(which(abs_stock_perc == max(abs_stock_perc, na.rm = TRUE)))], na.rm = TRUE),
+          upper_abs_stock_perc := max(abs_stock_perc[timePointYears <= 2013], na.rm = TRUE),
+          by = c("geographicAreaM49", "measuredItemSuaFbs")
+        ]
+
+        data_histmod_stocks[
+          abs_delta_pred_perc > upper_abs_stock_perc & timePointYears >= 2014,
+          delta_pred := upper_abs_stock_perc * avg_new_supply_inc * sign(delta_pred)
+        ]
+
+        data_for_stocks <-
+          data_histmod_stocks[
+            timePointYears >= 2014 ,
+            .(geographicAreaM49, measuredItemSuaFbs, timePointYears, delta = delta_pred)
+          ]
+
+        if (nrow(data_for_stocks) > 0) {
+          # HERE
+          data_for_stocks <-
+            merge(
+              data_for_stocks,
+              all_opening_stocks[, .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua, timePointYears, new_opening = Value)],
+              by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
+              all.x = TRUE
+            )
+
+          stockdata <-
+            data[
+              Protected == TRUE &
+                measuredElementSuaFbs == "stock_change" &
+                !is.na(Value) &
+                measuredItemSuaFbs %chin% data_for_stocks$measuredItemSuaFbs,
+              .(
+                geographicAreaM49,
+                measuredItemSuaFbs,
+                timePointYears,
+                stockvar = Value
+              )
+            ]
+
+          data_for_stocks <-
+            merge(
+              data_for_stocks,
+              stockdata,
+              by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
+              all.x = TRUE
+            )
+
+          data_for_stocks[!is.na(stockvar), delta := stockvar]
+          
+          data_for_stocks[, stockvar := NULL]
+
+          # Stock withdrawal cannot exceed opening stocks in the first year
+          data_for_stocks[
+            timePointYears == "2014" & delta < 0 & abs(delta) > new_opening,
+            delta := - new_opening
+          ]
+
+          # NOTE: Data here should be ordered by country/item/year (CHECK)
+          data_for_stocks <- update_opening_stocks(data_for_stocks)
+
+          data <-
+            merge(
+              data,
+              data_for_stocks,
+              by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
+              all.x = TRUE
+            )
+
+          data[
+            measuredElementSuaFbs == "stock_change" &
+              Protected == FALSE &
+              !is.na(delta),
+            `:=`(
+              Value = delta,
+              flagObservationStatus = "E",
+              flagMethod = "u",
+              Protected = FALSE
+            )
+          ]
+
+          data[, c("delta", "new_opening") := NULL]
+
+          all_opening_stocks <-
+            merge(
+              all_opening_stocks,
+              data_for_stocks[,
+                .(
+                  geographicAreaM49,
+                  measuredItemFbsSua = measuredItemSuaFbs,
+                  timePointYears,
+                  new_opening
+                )
+              ],
+              by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+              all = TRUE
+            )
+
+          all_opening_stocks[
+            !is.na(new_opening) & (round(new_opening) != round(Value) | is.na(Value)),
+            `:=`(
+              Value = new_opening,
+              flagObservationStatus = "E",
+              flagMethod = "u",
+              Protected = FALSE
+            )
+          ]
+
+          all_opening_stocks[, new_opening := NULL]
+        }
+      }
+    }
+
+    ############# / Create stocks, if missing ##################
 
     dataMergeTree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stock_change')]
     
@@ -3819,6 +4010,8 @@ setnames(
   c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree", "Value")
 )
 
+shareUpDown_to_save <- shareUpDown_to_save[!is.na(Value)]
+
 faosws::SaveData(
   domain = "suafbs",
   dataset = "up_down_share",
@@ -3830,77 +4023,82 @@ faosws::SaveData(
 dbg_print("end of derived production loop")
 
 
+
+data_deriv <-
+  data[
+    measuredElementSuaFbs == 'production' &
+      timePointYears %in% 2014:2017,
+    list(
+      geographicAreaM49,
+      measuredElementSuaFbs = "5510",
+      measuredItemFbsSua = measuredItemSuaFbs,
+      timePointYears,
+      Value,
+      flagObservationStatus,
+      flagMethod
+    )
+  ]
+
+#save processed data
+data_processed <-
+  data[
+    measuredElementSuaFbs == 'foodmanufacturing' &
+      timePointYears %in% 2014:2017,
+    list(
+      geographicAreaM49,
+      measuredElementSuaFbs = "5023",
+      measuredItemFbsSua = measuredItemSuaFbs,
+      timePointYears,
+      Value,
+      flagObservationStatus,
+      flagMethod
+    )
+  ]
+
+# Save stock data in SUA Unbalanced
+
+data_stock_to_save <-
+  data[
+    measuredElementSuaFbs == 'stock_change' &
+      timePointYears %in% 2014:2017 &
+      !is.na(Value),
+    list(
+      geographicAreaM49,
+      measuredElementSuaFbs = "5071",
+      measuredItemFbsSua = measuredItemSuaFbs,
+      timePointYears,
+      Value,
+      flagObservationStatus,
+      flagMethod
+    )
+  ]
+
+opening_stocks_to_save <- copy(all_opening_stocks)
+opening_stocks_to_save[, Protected := NULL]
+
+data_to_save_unbalanced <-
+  rbind(
+    data_deriv,
+    data_processed,
+    data_stock_to_save,
+    opening_stocks_to_save
+  )
+
+data_to_save_unbalanced <- data_to_save_unbalanced[!is.na(Value)]
+
+saveRDS(data_to_save_unbalanced, paste0("/tmp/out_", COUNTRY, ".rds"))
+
+out <-
+  SaveData(
+    domain = "suafbs",
+    dataset = "sua_unbalanced",
+    data = data_to_save_unbalanced,
+    waitTimeout = 20000
+  )
+
 if (STOP_AFTER_DERIVED == TRUE) {
   dbg_print("stop after production of derived")
-  
-  data_deriv <-
-    data[
-      measuredElementSuaFbs == 'production' &
-        timePointYears %in% 2014:2017,
-      list(
-        geographicAreaM49,
-        measuredElementSuaFbs = "5510",
-        measuredItemFbsSua = measuredItemSuaFbs,
-        timePointYears,
-        Value,
-        flagObservationStatus,
-        flagMethod
-      )
-    ]
-  
-  #save processed data
-  data_processed <-
-    data[
-      measuredElementSuaFbs == 'foodmanufacturing' &
-        timePointYears %in% 2014:2017,
-      list(
-        geographicAreaM49,
-        measuredElementSuaFbs = "5023",
-        measuredItemFbsSua = measuredItemSuaFbs,
-        timePointYears,
-        Value,
-        flagObservationStatus,
-        flagMethod
-      )
-    ]
 
-  # Save stock data in SUA Unbalanced
-
-  data_stock_to_save <-
-    data[
-      measuredElementSuaFbs == 'stock_change' &
-        timePointYears %in% 2014:2017 &
-        !is.na(Value),
-      list(
-        geographicAreaM49,
-        measuredElementSuaFbs = "5071",
-        measuredItemFbsSua = measuredItemSuaFbs,
-        timePointYears,
-        Value,
-        flagObservationStatus,
-        flagMethod
-      )
-    ]
-
-  opening_stocks_to_save <- copy(all_opening_stocks)
-  opening_stocks_to_save[, Protected := NULL]
-
-  data_to_save_unbalanced <-
-    rbind(
-      data_deriv,
-      data_processed,
-      data_stock_to_save,
-      opening_stocks_to_save
-    )
-  
-  out <-
-    SaveData(
-      domain = "suafbs",
-      dataset = "sua_unbalanced",
-      data = data_to_save_unbalanced,
-      waitTimeout = 20000
-    )
-  
   if (exists("out")) {
     
     print(paste(out$inserted + out$ignored, "derived products written"))
@@ -3918,7 +4116,7 @@ if (STOP_AFTER_DERIVED == TRUE) {
   } else {
     print("The newBalancing plugin had a problem when saving derived data.")
   }
-  
+
   stop("Plugin stopped after derived, as requested. This is fine.")
 }
 
