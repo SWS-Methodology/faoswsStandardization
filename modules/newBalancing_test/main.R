@@ -4065,6 +4065,89 @@ dbg_print("end outliers")
 
 ####################### / OUTLIERS #################################
 
+fbsTree <- ReadDatatable("fbs_tree")
+
+######################## rm new loss in dairy/meat #################
+
+dairy_meat_items <- fbsTree[id3 %in% c("2948", "2943"), item_sua_fbs]
+
+# TODO: Some of the code below is repeated. It should be rewritten so
+# that there is a single computation of new elements.
+
+data_complete_loss <-
+  data.table(
+    geographicAreaM49 = unique(data$geographicAreaM49),
+    timePointYears = sort(unique(data$timePointYears)))[
+      unique(data[measuredElementSuaFbs == "loss",
+             .(geographicAreaM49, measuredItemSuaFbs)]),
+      on = "geographicAreaM49",
+      allow.cartesian = TRUE
+    ]
+
+
+data_complete_loss <-
+  merge(
+    data_complete_loss,
+    data[
+      measuredElementSuaFbs == "loss" & Value > 0,
+      .(geographicAreaM49, measuredItemSuaFbs, timePointYears, Value)
+    ],
+    by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears"),
+    all.x = TRUE
+  )
+
+data_complete_loss[, y := 1]
+
+
+data_complete_loss <-
+  data_complete_loss[,
+    .(
+      t_pre   = sum(y[timePointYears <= 2013]),
+      t_post  = sum(y[timePointYears >= 2014]),
+      na_pre  = sum(is.na(Value[timePointYears <= 2013])),
+      na_post = sum(is.na(Value[timePointYears >= 2014]))
+    ),
+    by = c("geographicAreaM49", "measuredItemSuaFbs")
+  ]
+
+
+new_elements_loss <-
+  data_complete_loss[
+    na_pre == t_pre & na_post < t_post
+  ][,
+    .(geographicAreaM49, measuredItemSuaFbs)
+  ][
+    order(geographicAreaM49, measuredItemSuaFbs)
+  ]
+
+
+new_elements_loss_dairy_meat <-
+  new_elements_loss[measuredItemSuaFbs %in% dairy_meat_items]
+
+new_elements_loss_dairy_meat[, new_loss_dm := TRUE]
+
+data <-
+  merge(
+    data,
+    new_elements_loss_dairy_meat,
+    by = c("geographicAreaM49", "measuredItemSuaFbs"),
+    all.x = TRUE
+  )
+
+data[
+  new_loss_dm == TRUE & timePointYears >= 2014 & measuredElementSuaFbs == "loss",
+  `:=`(
+    Value = NA_real_,
+    flagObservationStatus = NA_character_,
+    flagMethod = NA_character_
+  )
+]
+
+data[, new_loss_dm := NULL]
+
+
+######################## / rm new loss in dairy/meat #################
+
 
 
 
@@ -4087,10 +4170,6 @@ data <- merge(data, itemMap, by = "measuredItemSuaFbs")
 # XXX ???
 #cutItems <- ReadDatatable("cut_items2")[, cpc_code]
 
-## XXX ???
-#fbsTree <- ReadDatatable("fbs_tree")
-## XXX: why this order?
-#fbsTree <- fbsTree[, list(fbsID4 = id4, measuredItemSuaFbs = item_sua_fbs, fbsID1 = id1, fbsID2 = id1, fbsID3 = id3)]
 
 
 
@@ -4223,9 +4302,6 @@ data[
 data[is.na(Official), Official := FALSE]
 data[is.na(Protected), Protected := FALSE]
 
-
-# XXX Only from 2004 onwards
-uniqueLevels <- uniqueLevels[timePointYears >= 2014][order(timePointYears)]
 
 
 # Filter elements that appear for the first time
@@ -4675,6 +4751,9 @@ saveWorkbook(wb, tmp_file_name_shares, overwrite = TRUE)
 i <- 1
 
 dbg_print("starting balancing loop")
+
+# XXX Only from 2004 onwards
+uniqueLevels <- uniqueLevels[timePointYears >= 2014][order(timePointYears)]
 
 standData <- vector(mode = "list", length = nrow(uniqueLevels))
 
