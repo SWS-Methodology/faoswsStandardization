@@ -2892,11 +2892,11 @@ if (length(primaryInvolvedDescendents) == 0) {
 } else {
   
   #USED TO AVOID DUPLICATES
-  data[,Processed_estimed:=FALSE]
+  data[, Processed_estimed := FALSE]
   
   for (lev in sort(unique(tree$processingLevel))) {
-#testing purpose
- # lev=0
+    #testing purpose
+    # lev=0
     dbg_print(paste("derived production loop, level", lev))
 
     treeCurrentLevel <-
@@ -2904,22 +2904,22 @@ if (length(primaryInvolvedDescendents) == 0) {
         !is.na(Value) &
           processingLevel == lev &
           measuredElementSuaFbs == 'extractionRate'
-        ][,
-          list(
-            measuredItemParentCPC,
-            geographicAreaM49,
-            measuredItemChildCPC,
-            timePointYears,
-            extractionRate = Value
-          )
-        ]
+      ][,
+        list(
+          measuredItemParentCPC,
+          geographicAreaM49,
+          measuredItemChildCPC,
+          timePointYears,
+          extractionRate = Value
+        )
+      ]
     
     #tree containing children of all parent of current level
-tree_parent_Level<-
-  tree[
-    !is.na(Value) &
-      measuredElementSuaFbs == 'extractionRate' &
-      measuredItemParentCPC %in% treeCurrentLevel[,get(p$parentVar)]
+    tree_parent_Level<-
+    tree[
+      !is.na(Value) &
+        measuredElementSuaFbs == 'extractionRate' &
+        measuredItemParentCPC %in% treeCurrentLevel[,get(p$parentVar)]
     ][,
       list(
         measuredItemParentCPC,
@@ -2929,7 +2929,7 @@ tree_parent_Level<-
         extractionRate = Value,
         processingLevel
       )
-      ]
+    ]
 
     dataMergeTree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stock_change')]
     
@@ -2997,15 +2997,16 @@ tree_parent_Level<-
     
     ##########Caculating and updating processed of parent--------------------------
     #amsata
-    datamergeNew<-copy(dataMergeTree)
+    datamergeNew <- copy(dataMergeTree)
     
-    datamergeNew<-datamergeNew[,list(geographicAreaM49,measuredItemParentCPC,availability,
-                                     measuredItemChildCPC,timePointYears,extractionRate,processingLevel,
-                                     shareDownUp)]
+    datamergeNew <-
+      datamergeNew[,
+        list(geographicAreaM49, measuredItemParentCPC, availability,
+             measuredItemChildCPC, timePointYears, extractionRate,
+             processingLevel, shareDownUp)
+      ]
     
-    datamergeNew<-unique(
-      datamergeNew,by=c(colnames(datamergeNew))
-    )
+    datamergeNew <- unique(datamergeNew, by = c(colnames(datamergeNew)))
     
     datamergeNew <-
       merge(
@@ -3013,16 +3014,16 @@ tree_parent_Level<-
         data[
           measuredElementSuaFbs == 'production',
           list(geographicAreaM49, timePointYears,
-               measuredItemChildCPC = measuredItemSuaFbs, production=Value, Protected)
+               measuredItemChildCPC = measuredItemSuaFbs, production = Value, Protected)
           ],
         by = c('geographicAreaM49', 'timePointYears', 'measuredItemChildCPC')
       )
     
-    datamergeNew_zw<-datamergeNew[measuredItemChildCPC %in% zeroWeight]
+    datamergeNew_zw <- datamergeNew[measuredItemChildCPC %in% zeroWeight]
     
-    datamergeNew<-datamergeNew[measuredItemChildCPC %!in% zeroWeight]
+    datamergeNew <- datamergeNew[measuredItemChildCPC %!in% zeroWeight]
     
-    datamergeNew<-merge(
+    datamergeNew <- merge(
       datamergeNew,
       data_Pshare,
       by = c(p$parentVar, p$geoVar, p$yearVar),
@@ -3031,7 +3032,7 @@ tree_parent_Level<-
     ) 
     
     
-    datamergeNew<-merge(
+    datamergeNew <- merge(
       datamergeNew,
       data_ShareUpDoawn_final,
       by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar),
@@ -3039,13 +3040,16 @@ tree_parent_Level<-
     ) 
     
     
-    datamergeNew<-datamergeNew[,list(geographicAreaM49,measuredItemParentCPC,availability,Pshare,
-                                     measuredItemChildCPC,timePointYears,extractionRate,processingLevel,
-                                     shareDownUp,shareUpDown,production,Protected,
-                                     flagObservationStatus,flagMethod)]
+    datamergeNew <-
+      datamergeNew[,
+        list(geographicAreaM49, measuredItemParentCPC, availability, Pshare,
+             measuredItemChildCPC, timePointYears, extractionRate,
+             processingLevel, shareDownUp, shareUpDown, production,
+             Protected, flagObservationStatus, flagMethod)
+      ]
 
-    datamergeNew<-unique(
-      datamergeNew,by=c(colnames(datamergeNew))
+    datamergeNew <- unique(
+      datamergeNew, by = c(colnames(datamergeNew))
     )
     
     # datamergeNew[,zeroweight:=measuredItemChildCPC %in% zeroWeight]
@@ -3080,29 +3084,33 @@ tree_parent_Level<-
     datamergeNew[timePointYears >= 2014 & processedProt == FALSE, processedBis := NA]
     
     #Calculate the number of child with protected production for each parent
-    datamergeNew[,Number_childPro:=sum(Protected==TRUE & 
-                                         shareUpDown>0,na.rm = TRUE) ,
-                 by=c(p$parentVar, p$geoVar, p$yearVar)
-                 ]
+    datamergeNew[,
+      Number_childPro := sum(Protected == TRUE & shareUpDown > 0, na.rm = TRUE),
+      by = c(p$parentVar, p$geoVar, p$yearVar)
+    ]
     
-    datamergeNew[,Number_childPro1:=sum(flagObservationStatus=="E" & 
-                                          flagMethod=="f",na.rm = TRUE) ,
-                 by=c(p$parentVar, p$geoVar, p$yearVar)
-                 ]
-    datamergeNew[,Number_childPro:=Number_childPro+Number_childPro1]
-    datamergeNew[,Number_childPro1:=NULL]
+    datamergeNew[,
+      Number_childPro1 := sum(flagObservationStatus == "E" &
+                              flagMethod == "f", na.rm = TRUE),
+      by = c(p$parentVar, p$geoVar, p$yearVar)
+    ]
+
+    datamergeNew[, Number_childPro := Number_childPro + Number_childPro1]
+
+    datamergeNew[, Number_childPro1 := NULL]
     
     
     
     #calculate the number of child of each parent where processed used to be send
-    datamergeNew[,Number_child:=sum(shareUpDown>0,na.rm = TRUE) ,
-                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
-                 ]
+    datamergeNew[,Number_child := sum(shareUpDown > 0, na.rm = TRUE) ,
+                 by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    ]
+
     #setnames(datamergeNew,"Value","production")
     
     #we estimate processed quantity for parent
     #based on the historique trend of processed percentage
-    datamergeNew[,Processed:=Pshare*availability] 
+    datamergeNew[, Processed := Pshare * availability] 
     
     #However, we may have cases where some production of child commodities are official
     
@@ -3110,114 +3118,169 @@ tree_parent_Level<-
     #in this case we update the shareUpDown of the child commodities for which the production is official
     #if the sum of their ShareUpdown is greater than 1, we update processed using the official production of those
     #children and then we update the shareUpDown of different child commodities
-    datamergeNew[,shareUpDown_NEW:=NA_real_]
-    datamergeNew[,Processed_new:=NA_real_]
+    datamergeNew[, shareUpDown_NEW := NA_real_]
+    datamergeNew[, Processed_new := NA_real_]
     
-    datamergeNew[flagObservationStatus=="E" & flagMethod=="f",
-                 `:=`(Protected=TRUE,shareUpDown_NEW=shareUpDown)]
+    datamergeNew[
+      flagObservationStatus == "E" & flagMethod == "f",
+      `:=`(
+        Protected = TRUE,
+        shareUpDown_NEW = shareUpDown
+      )
+    ]
     
-    datamergeNew[Number_childPro>0 & Number_childPro<Number_child,
-                 `:=`(shareUpDown_NEW=ifelse(Protected==TRUE & is.na(shareUpDown_NEW),
-                                             production/extractionRate*shareDownUp/Processed,shareUpDown_NEW),
-                      flagObservationStatus=ifelse(Protected==TRUE,
-                                                   ifelse(flagObservationStatus=="E",flagObservationStatus,"T"),
-                                                   flagObservationStatus),
-                      flagMethod=ifelse(Protected==TRUE,ifelse(flagMethod=="f",flagMethod,"-"),flagMethod)),
-                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
-                 ]
+    datamergeNew[
+      Number_childPro > 0 & Number_childPro < Number_child,
+      `:=`(
+        shareUpDown_NEW =
+          ifelse(
+            Protected == TRUE & is.na(shareUpDown_NEW),
+            production / extractionRate * shareDownUp / Processed,
+            shareUpDown_NEW
+          ),
+        flagObservationStatus =
+          ifelse(
+            Protected == TRUE,
+            ifelse(flagObservationStatus == "E" , flagObservationStatus, "T"),
+            flagObservationStatus
+          ),
+        flagMethod =
+          ifelse(
+            Protected == TRUE,
+            ifelse(flagMethod == "f", flagMethod, "-"),
+            flagMethod
+          )
+      ),
+      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    ]
   
     
     # datamergeNew[flagObservationStatus=="E" & flagMethod=="f",
     #              shareUpDown_NEW:= shareUpDown
     #              ]
     
-    datamergeNew[,sum_shareUD_high:=sum(shareUpDown_NEW,na.rm = TRUE)>1,
-                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
-                 ]
+    datamergeNew[,
+      sum_shareUD_high := sum(shareUpDown_NEW,na.rm = TRUE) > 1,
+      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    ]
     
-    datamergeNew[sum_shareUD_high==TRUE,
-                 Processed_new:=sum(production/extractionRate*shareDownUp,na.rm = TRUE),
-                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
-                 ]
+    datamergeNew[
+      sum_shareUD_high == TRUE,
+      Processed_new := sum(production / extractionRate * shareDownUp, na.rm = TRUE),
+      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    ]
 
-    datamergeNew[sum_shareUD_high==TRUE & is.na(shareUpDown_NEW),
-                 shareUpDown_NEW:=0,
-                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
-                 ]
+    datamergeNew[
+      sum_shareUD_high == TRUE & is.na(shareUpDown_NEW),
+      shareUpDown_NEW := 0,
+      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    ]
 
-    datamergeNew[sum_shareUD_high==TRUE,
-                 shareUpDown_NEW:=shareUpDown_NEW/sum(shareUpDown_NEW,na.rm = TRUE),
-                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
-                 ]
-    datamergeNew[,sum_shareUD_high:=NULL]
+    datamergeNew[
+      sum_shareUD_high == TRUE,
+      shareUpDown_NEW := shareUpDown_NEW / sum(shareUpDown_NEW, na.rm = TRUE),
+      by = c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+    ]
+
+    datamergeNew[, sum_shareUD_high := NULL]
     
     
-    datamergeNew[Number_childPro>0 & Number_childPro<Number_child ,
-                 shareUpDown_NEW:=ifelse(Protected==FALSE,shareUpDown/sum(shareUpDown[Protected==FALSE],na.rm = TRUE)*
-                                           (1-sum(shareUpDown_NEW[Protected==TRUE],na.rm = TRUE)),shareUpDown_NEW
+    datamergeNew[
+      Number_childPro > 0 & Number_childPro < Number_child,
+      shareUpDown_NEW :=
+        ifelse(
+          Protected == FALSE,
+          shareUpDown / sum(shareUpDown[Protected == FALSE], na.rm = TRUE) *
+            (1 - sum(shareUpDown_NEW[Protected==TRUE], na.rm = TRUE)),
+        shareUpDown_NEW
                                          ),
-                 by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
-                 ]
+      by = c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+    ]
     
     #cASE2: ALL THE PRODUCTION OF THE CHILD COMMODITIES ARE OFFICIAL
     #process is updated using the official production of those child commodidites
     #shareUpDown of the child commodities are updated
-    datamergeNew[Number_childPro>0 & Number_childPro==Number_child,
-                 Processed_new:=sum(production/extractionRate*shareDownUp,na.rm = TRUE) ,
-                 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
-                 ]
+    datamergeNew[
+      Number_childPro >0 & Number_childPro == Number_child,
+      Processed_new := sum(production / extractionRate * shareDownUp, na.rm = TRUE) ,
+      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    ]
     
-    datamergeNew[Number_childPro>0 & Number_childPro==Number_child,
-                 `:=`(shareUpDown_NEW=(production/extractionRate)*
-                   shareDownUp/sum(production/extractionRate*shareDownUp,na.rm = TRUE),
-                   flagObservationStatus="T",
-                   flagMethod="-"),
-                 by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")]
+    datamergeNew[
+      Number_childPro > 0 & Number_childPro == Number_child,
+      `:=`(
+        shareUpDown_NEW =
+          (production / extractionRate) * shareDownUp /
+            sum(production / extractionRate * shareDownUp, na.rm = TRUE),
+        flagObservationStatus = "T",
+        flagMethod = "-"
+      ),
+      by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
+    ]
+
     datamergeNew[!is.na(shareUpDown_NEW),shareUpDown:=shareUpDown_NEW]
     
     #Update the processed quantities
     
-    dataForProc<-datamergeNew[,list(geographicAreaM49,timePointYears,measuredItemParentCPC, 
-                                    availability,processedBis,
-                                    Processed_new)]
-    dataForProc<-unique(dataForProc,by=c(colnames(dataForProc)))
+    dataForProc <-
+      datamergeNew[,
+        list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+             availability, processedBis, Processed_new)
+      ]
+
+    dataForProc <- unique(dataForProc, by = c(colnames(dataForProc)))
     
+    dataForProc[
+      timePointYears > 2013 & !is.na(Processed_new),
+      processedBis := Processed_new
+    ]
     
-    dataForProc[timePointYears>2013 & !is.na(Processed_new),
-                 processedBis:=Processed_new]
+    dataForProc[,
+      Pshare := processedBis / availability,
+      by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
+    ]
     
-    dataForProc[,Pshare:=processedBis/availability,
-                        by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
-                        ]
+    dataForProc[Pshare > 1, Pshare := 1]
+    dataForProc[Pshare < 0, Pshare := 0]
+    dataForProc[is.nan(Pshare), Pshare := NA_real_]
     
-    dataForProc[Pshare>1,Pshare:=1]
-    dataForProc[Pshare<0,Pshare:=0]
-    dataForProc[is.nan(Pshare),Pshare:=NA_real_]
-    
-    dataForProc<-dataForProc[
-      order(geographicAreaM49, measuredItemParentCPC, timePointYears)
+    dataForProc <-
+      dataForProc[
+        order(geographicAreaM49, measuredItemParentCPC, timePointYears)
       ][,
-        Pshare_avr:=rollavg(Pshare, order = 3),
+        Pshare_avr := rollavg(Pshare, order = 3),
         by = c("geographicAreaM49", "measuredItemParentCPC")
-        ]
+      ]
+
     setkey(dataForProc, NULL)
-    dataForProc[timePointYears>2013 & is.na(Pshare),Pshare:=Pshare_avr]
-    dataForProc[,Pshare_avr:=NULL]
-    dataForProc[,Processed:=Pshare*availability] 
+
+    dataForProc[timePointYears > 2013 & is.na(Pshare), Pshare := Pshare_avr]
+
+    dataForProc[, Pshare_avr := NULL]
+
+    dataForProc[, Processed := Pshare * availability] 
+
     # datamergeNew[!is.na(shareUpDown_NEW),shareUpDown:=shareUpDown_NEW]
-    dataForProc[!is.na(Processed_new),Processed:=Processed_new]
+
+    dataForProc[!is.na(Processed_new), Processed := Processed_new]
+
     #dataForProc[,`:=`(Processed_new=NULL,shareUpDown_NEW=NULL)]
     
-    datamergeNew<-datamergeNew[,list(geographicAreaM49,timePointYears,measuredItemParentCPC,
-                                     measuredItemChildCPC,extractionRate,processingLevel,shareDownUp,
-                                     shareUpDown,production,Protected,flagObservationStatus,flagMethod)]
+    datamergeNew <-
+      datamergeNew[,
+        list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+             measuredItemChildCPC, extractionRate, processingLevel,
+             shareDownUp, shareUpDown, production, Protected,
+             flagObservationStatus, flagMethod)
+      ]
     
-   datamergeNew<-merge(
-     dataForProc,
-     datamergeNew,
-     by=c(p$geoVar,p$yearVar,p$parentVar),
-     allow.cartesian = TRUE
-   ) 
+    datamergeNew <-
+      merge(
+        dataForProc,
+        datamergeNew,
+        by = c(p$geoVar,p$yearVar,p$parentVar),
+        allow.cartesian = TRUE
+      ) 
     
     
     
@@ -3230,49 +3293,58 @@ tree_parent_Level<-
     #   
     # )
     
-    datamergeNew_zeroweight<-merge(
+    datamergeNew_zeroweight <-
+      merge(
       datamergeNew,
-      zw_coproduct ,
-      by=c("measuredItemChildCPC"),
-      allow.cartesian = TRUE
-      #all.y = TRUE
-    )
+        zw_coproduct ,
+        by = "measuredItemChildCPC",
+        allow.cartesian = TRUE
+        #all.y = TRUE
+      )
     
-    datamergeNew_zeroweight[,measuredItemChildCPC:=zeroweight]
-    datamergeNew_zeroweight[,zeroweight:=NULL]
+    datamergeNew_zeroweight[, measuredItemChildCPC := zeroweight]
+    datamergeNew_zeroweight[, zeroweight := NULL]
     
-    datamergeNew_zeroweight<-datamergeNew_zeroweight[,names(datamergeNew),with=FALSE]
+    datamergeNew_zeroweight <- datamergeNew_zeroweight[, names(datamergeNew), with = FALSE]
     
-    datamergeNew_zeroweight<-
-      datamergeNew_zeroweight[,list(geographicAreaM49,timePointYears,measuredItemParentCPC,
-                                    measuredItemChildCPC,Pshare,shareUpDown,Processed,
-                                    flagObservationStatus,flagMethod)]
+    datamergeNew_zeroweight <-
+      datamergeNew_zeroweight[,
+        list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+             measuredItemChildCPC, Pshare, shareUpDown, Processed,
+             flagObservationStatus, flagMethod)
+      ]
     
-    datamergeNew_zeroweight<-merge(
-      datamergeNew_zeroweight,
-      datamergeNew_zw,
-      by=c("geographicAreaM49","timePointYears","measuredItemParentCPC","measuredItemChildCPC")
-    )
+    datamergeNew_zeroweight <-
+      merge(
+        datamergeNew_zeroweight,
+        datamergeNew_zw,
+        by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC", "measuredItemChildCPC")
+      )
     
-    datamergeNew<-datamergeNew[,colnames(datamergeNew_zeroweight),with=FALSE]
+    datamergeNew <- datamergeNew[, colnames(datamergeNew_zeroweight), with = FALSE]
     
     
-    datamergeNew_final<-rbind(datamergeNew,datamergeNew_zeroweight)
+    datamergeNew_final <- rbind(datamergeNew, datamergeNew_zeroweight)
     
     #some correction
-    datamergeNew_final[is.na(shareUpDown),shareUpDown:=NA_real_]
+    datamergeNew_final[is.na(shareUpDown), shareUpDown := NA_real_]
     
     
     updated_shareUpDOwn[[as.character(lev)]] <-
-      datamergeNew_final[processingLevel==lev,
-                      list(geographicAreaM49, timePointYears, measuredItemParentCPC,measuredItemChildCPC,
-                           shareUpDown,flagObservationStatus,flagMethod)
-                      ]
+      datamergeNew_final[
+        processingLevel == lev,
+        list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+             measuredItemChildCPC, shareUpDown, flagObservationStatus, flagMethod)
+      ]
+
     #/processed of parent-----------------
-    estimated_processed<-datamergeNew_final[,
-                                            list(geographicAreaM49,timePointYears,measuredItemSuaFbs=measuredItemParentCPC,Processed)
-                                            ]
-     estimated_processed<-unique(estimated_processed,by=c(colnames(estimated_processed)))
+    estimated_processed <-
+      datamergeNew_final[,
+        list(geographicAreaM49, timePointYears,
+             measuredItemSuaFbs = measuredItemParentCPC, Processed)
+      ]
+
+     estimated_processed <- unique(estimated_processed, by = c(colnames(estimated_processed)))
      
      
     # 
@@ -3291,25 +3363,25 @@ tree_parent_Level<-
     # processed_to_save[Protected==FALSE |(is.na(Value) & !is.na(Processed)),
     #                   `:=`(Value=Processed,flagObservationStatus="I",flagMethod="e",
     #                        measuredElementSuaFbs= 'foodmanufacturing')]
-     #setDT(estimated_processed)
-     
-     complete_food_proc <-
-       CJ(
-         measuredItemSuaFbs    = unique(estimated_processed$measuredItemSuaFbs),
-         measuredElementSuaFbs = 'foodmanufacturing',
-         geographicAreaM49     = unique(estimated_processed$geographicAreaM49),
-         timePointYears        = unique(estimated_processed$timePointYears)
-       )
-     
-     # rbind with anti_join
-     data <-
-       rbind(
-         data,
-         complete_food_proc[!data, on = c('measuredItemSuaFbs', 'measuredElementSuaFbs',
-                             'geographicAreaM49', 'timePointYears')],
-         fill = TRUE
-       )
-     
+    #setDT(estimated_processed)
+    
+    complete_food_proc <-
+      CJ(
+        measuredItemSuaFbs    = unique(estimated_processed$measuredItemSuaFbs),
+        measuredElementSuaFbs = 'foodmanufacturing',
+        geographicAreaM49     = unique(estimated_processed$geographicAreaM49),
+        timePointYears        = unique(estimated_processed$timePointYears)
+      )
+    
+    # rbind with anti_join
+    data <-
+      rbind(
+        data,
+        complete_food_proc[!data, on = c('measuredItemSuaFbs', 'measuredElementSuaFbs',
+                            'geographicAreaM49', 'timePointYears')],
+        fill = TRUE
+      )
+    
     data <-
       merge(
         data,
@@ -3319,9 +3391,9 @@ tree_parent_Level<-
         all.x = TRUE
       )
     
-    data[is.na(Protected),Protected:=FALSE]
-    data[is.na(Official),Official:=FALSE]
-    data[is.na(Processed_estimed),Processed_estimed:=FALSE]
+    data[is.na(Protected), Protected := FALSE]
+    data[is.na(Official), Official := FALSE]
+    data[is.na(Processed_estimed), Processed_estimed := FALSE]
     
     data[
       measuredElementSuaFbs == "foodmanufacturing" &
@@ -3332,9 +3404,9 @@ tree_parent_Level<-
         flagMethod = "i",
         Processed_estimed=TRUE
       )
-      ][,
+    ][,
         Processed := NULL
-        ]
+    ]
     
     
     # processed_to_save <-
@@ -3366,33 +3438,35 @@ tree_parent_Level<-
     # }
     
     #######estimating production of derived
-    data_production<-
-        datamergeNew_final[processingLevel==lev,
-                           list(geographicAreaM49,timePointYears,measuredItemParentCPC,availability,
-                                Pshare,measuredItemChildCPC,extractionRate,shareDownUp,shareUpDown,
-                                production,Protected)]
+    data_production <-
+      datamergeNew_final[
+        processingLevel == lev,
+        list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+             availability, Pshare, measuredItemChildCPC, extractionRate,
+             shareDownUp, shareUpDown, production,Protected)
+      ]
     
-    data_production<-unique(data_production,by=c(colnames(data_production)))
+    data_production <- unique(data_production, by = c(colnames(data_production)))
     
     
-    data_production<-merge(
-      data_production,
+    data_production <-
+      merge(
+        data_production,
         unique(data[measuredElementSuaFbs=="foodmanufacturing" & !is.na(Value),
-                          list(geographicAreaM49,timePointYears,
-                               measuredItemParentCPC=measuredItemSuaFbs,
-                               Processed_parent=Value)]),
+                          list(geographicAreaM49, timePointYears,
+                               measuredItemParentCPC = measuredItemSuaFbs,
+                               Processed_parent = Value)]),
       
-      by=c(p$geoVar,p$yearVar,p$parentVar),
-      #allow.cartesian = TRUE,
-      all.x = TRUE
-    )
+        by = c(p$geoVar, p$yearVar, p$parentVar),
+        #allow.cartesian = TRUE,
+        all.x = TRUE
+      )
     
     data_production[,
-                    #new_imputation:=Processed_parent*shareUpDown*extractionRate*shareDownUp
-                    new_imputation:=Processed_parent*shareUpDown*extractionRate #shareDownUp is not part of the formula
-                    
-                    ]
-   #comentt--------------- 
+      #new_imputation:=Processed_parent*shareUpDown*extractionRate*shareDownUp
+      new_imputation := Processed_parent * shareUpDown * extractionRate #shareDownUp is not part of the formula
+    ]
+    #comentt--------------- 
     
     # dataMergeTree <-
     #   merge(
@@ -3610,12 +3684,14 @@ tree_parent_Level<-
     data_production <-
       #unique(
         data_production[,
-          list(geographicAreaM49, timePointYears, measuredItemParentCPC,availability,Pshare,
-               measuredItemChildCPC, production,new_imputation, extractionRate, shareDownUp,
-               shareUpDown, Processed_parent)]
+          list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+               availability, Pshare, measuredItemChildCPC, production,
+               new_imputation, extractionRate, shareDownUp,
+               shareUpDown, Processed_parent)
+        ]
       #)
     
-   data_production<-unique(data_production,by=c(colnames(data_production))) 
+   data_production <- unique(data_production, by = c(colnames(data_production))) 
     
     
     # dbg_print("impute production of derived")
@@ -3624,16 +3700,17 @@ tree_parent_Level<-
     # 
     computed_shares[[as.character(lev)]] <-
       data_production[,
-        list(geographicAreaM49, timePointYears, measuredItemParentCPC,availability,Pshare,
-             measuredItemChildCPC,extractionRate, shareDownUp, shareUpDown,Processed_parent)
+        list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+             availability, Pshare, measuredItemChildCPC, extractionRate,
+             shareDownUp, shareUpDown, Processed_parent)
       ]
     
     # XXX: change this name
     computed_shares_send[[as.character(lev)]] <-
       data_production[,
-        list(geographicAreaM49, timePointYears, measuredItemParentCPC,availability,Pshare,
-             measuredItemChildCPC, extractionRate, shareDownUp,
-             shareUpDown, Processed_parent)
+        list(geographicAreaM49, timePointYears, measuredItemParentCPC,
+             availability, Pshare, measuredItemChildCPC, extractionRate,
+             shareDownUp, shareUpDown, Processed_parent)
       ]
     
     dbg_print("sum unique of new_imputation")
@@ -3688,7 +3765,12 @@ tree_parent_Level<-
 
     dbg_print("dcast z data")
 
-    z <- data.table::dcast(z, geographicAreaM49+timePointYears+measuredItemSuaFbs~measuredElementSuaFbs, value.var = c("Value", "Protected"))
+    z <-
+      data.table::dcast(
+        z,
+        geographicAreaM49 + timePointYears + measuredItemSuaFbs ~ measuredElementSuaFbs,
+        value.var = c("Value", "Protected")
+      )
     
     # XXX stock_change may change below (and also production, if required)
 
@@ -3716,21 +3798,26 @@ tree_parent_Level<-
         !is.na(imputed_deriv_value),
       `:=`(
         Value = imputed_deriv_value,
-        flagObservationStatus = "I", flagMethod = "c")]
+        flagObservationStatus = "I", flagMethod = "c")
+    ]
     
     data[, imputed_deriv_value := NULL]
-   }
- }
+  }
+}
+
 #stop("testing...")
 computed_shares <- rbindlist(computed_shares)
-updated_shareUpDOwn<-rbindlist(updated_shareUpDOwn)
+updated_shareUpDOwn <- rbindlist(updated_shareUpDOwn)
 
 
-shareUpDown_to_save<-copy(updated_shareUpDOwn)
-shareUpDown_to_save[,measuredElementSuaFbs:="5431"]
-setnames(shareUpDown_to_save,c("measuredItemParentCPC", "measuredItemChildCPC"),
-         c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree"))
-setnames(shareUpDown_to_save,"shareUpDown","Value")
+shareUpDown_to_save <- copy(updated_shareUpDOwn)
+shareUpDown_to_save[, measuredElementSuaFbs := "5431"]
+
+setnames(
+  shareUpDown_to_save,
+  c("measuredItemParentCPC", "measuredItemChildCPC", "shareUpDown"),
+  c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree", "Value")
+)
 
 faosws::SaveData(
   domain = "suafbs",
@@ -3775,7 +3862,7 @@ if (STOP_AFTER_DERIVED == TRUE) {
         flagObservationStatus,
         flagMethod
       )
-      ]
+    ]
 
   # Save stock data in SUA Unbalanced
 
@@ -3798,7 +3885,13 @@ if (STOP_AFTER_DERIVED == TRUE) {
   opening_stocks_to_save <- copy(all_opening_stocks)
   opening_stocks_to_save[, Protected := NULL]
 
-  data_to_save_unbalanced <- rbind(data_deriv, data_processed,data_stock_to_save, opening_stocks_to_save)
+  data_to_save_unbalanced <-
+    rbind(
+      data_deriv,
+      data_processed,
+      data_stock_to_save,
+      opening_stocks_to_save
+    )
   
   out <-
     SaveData(
