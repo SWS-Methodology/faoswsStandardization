@@ -958,7 +958,8 @@ if (nrow(tree_exceptions) > 0) {
 ## for the standardization, we nee them to be treated as NA
 ## therefore here we are re-changing it
 
-tree[Value == 0, Value := NA]
+# TODO: Keep all protected 0 ERs
+tree[Value == 0 & !(flagObservationStatus == "E" & flagMethod == "f"), Value := NA]
 
 #proc_level_exceptions <- ReadDatatable("processing_level_exceptions")
 #
