@@ -2537,6 +2537,7 @@ shareUpDown_to_save[,measuredElementSuaFbs:="5431"]
 setnames(shareUpDown_to_save,c("measuredItemParentCPC", "measuredItemChildCPC"),
          c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree"))
 setnames(shareUpDown_to_save,"shareUpDown","Value")
+shareUpDown_to_save[,Value:=round(Value,3)]
 # shareUpDown_to_save[!is.na(Value),flagObservationStatus:="I"]
 # shareUpDown_to_save[!is.na(Value),flagMethod:="c"]
 
@@ -2593,22 +2594,29 @@ if (nrow(data_shareUpDown_sws)==0) {
 }
 
 
-#consistency check: we should not all protected TRUE with combinaition
-# at least a (E,f) for shareUpdown
+#consistency check: sum of shareUpDown by parent should exceed 1.
 
+# data_ShareUpDoawn_final_invalid <-
+#   merge(
+#     data_ShareUpDoawn_final,
+#     flagValidTable,
+#     by = c("flagObservationStatus", "flagMethod")
+#   )
 data_ShareUpDoawn_final_invalid <-
-  merge(
-    data_ShareUpDoawn_final,
-    flagValidTable,
-    by = c("flagObservationStatus", "flagMethod")
-  )
+  data_ShareUpDoawn_final[measuredItemChildCPC %!in% zeroWeight,
+                       .(sum_shares = round(sum(shareUpDown,na.rm = TRUE)), 2),
+                       by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
+                       ][
+                         !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+                         ]
 
 
-data_ShareUpDoawn_final_invalid<-data_ShareUpDoawn_final_invalid[,
-                        All_protected_WithEf:=sum(Protected==TRUE,na.rm = TRUE)==.N & 
-                          sum(flagObservationStatus=="E" & flagMethod=="f",na.rm = TRUE)>0,
-                        by=c(p$geoVar,p$yearVar,p$parentVar)
-                        ][All_protected_WithEf==TRUE,]
+
+# data_ShareUpDoawn_final_invalid<-data_ShareUpDoawn_final_invalid[,
+#                         All_protected_WithEf:=sum(Protected==TRUE,na.rm = TRUE)==.N & 
+#                           sum(flagObservationStatus=="E" & flagMethod=="f",na.rm = TRUE)>0,
+#                         by=c(p$geoVar,p$yearVar,p$parentVar)
+#                         ][All_protected_WithEf==TRUE,]
 
 if (nrow(data_ShareUpDoawn_final_invalid) > 0) {
   
@@ -2627,8 +2635,8 @@ if (nrow(data_ShareUpDoawn_final_invalid) > 0) {
     send_mail(
       from = "do-not-reply@fao.org",
       to = swsContext.userEmail,
-      subject = "Some shareUpDown can creates conflicts",
-      body = c(paste("We cannot have all shareUpDown protected with (E,f) inside. See attachment and fix them in"),
+      subject = "Some shareDownUp are invalid",
+      body = c(paste("There are some invalid shareUpDown (they do not sum to 1). See attachment and fix them in the SWS shareUpDown dataset"),
                file.path(paste0("ShareUpDown_toCorrect_", COUNTRY, ".csv")))
     )
   }
@@ -3206,10 +3214,15 @@ if (length(primaryInvolvedDescendents) == 0) {
         data[
           measuredElementSuaFbs == 'production',
           list(geographicAreaM49, timePointYears,
-               measuredItemChildCPC = measuredItemSuaFbs, production = Value, Protected)
+               measuredItemChildCPC = measuredItemSuaFbs, production = Value, Protected,
+               Official,flagObservationStatus,flagMethod)
           ],
         by = c('geographicAreaM49', 'timePointYears', 'measuredItemChildCPC')
       )
+    datamergeNew[, manual:=ifelse(flagObservationStatus=="E" & flagMethod=="f",TRUE,FALSE)]
+    datamergeNew[,`:=`(flagObservationStatus=NULL,
+                      flagMethod=NULL)]
+    
     
     datamergeNew_zw <- datamergeNew[measuredItemChildCPC %in% zeroWeight]
     
@@ -3237,7 +3250,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         list(geographicAreaM49, measuredItemParentCPC, availability, Pshare,
              measuredItemChildCPC, timePointYears, extractionRate,
              processingLevel, shareDownUp, shareUpDown, production,
-             Protected, flagObservationStatus, flagMethod)
+             Protected, flagObservationStatus, flagMethod,Official,manual)
       ]
 
     datamergeNew <- unique(
@@ -3287,7 +3300,7 @@ if (length(primaryInvolvedDescendents) == 0) {
       by = c(p$parentVar, p$geoVar, p$yearVar)
     ]
 
-    datamergeNew[, Number_childPro := Number_childPro + Number_childPro1]
+    # datamergeNew[, Number_childPro := Number_childPro + Number_childPro1]
 
     datamergeNew[, Number_childPro1 := NULL]
     
@@ -3313,104 +3326,164 @@ if (length(primaryInvolvedDescendents) == 0) {
     datamergeNew[, shareUpDown_NEW := NA_real_]
     datamergeNew[, Processed_new := NA_real_]
     
-    datamergeNew[
-      flagObservationStatus == "E" & flagMethod == "f",
-      `:=`(
-        Protected = TRUE,
-        shareUpDown_NEW = shareUpDown
-      )
-    ]
+    # datamergeNew[
+    #   flagObservationStatus == "E" & flagMethod == "f",
+    #   `:=`(
+    #     Protected = TRUE,
+    #     shareUpDown_NEW = shareUpDown
+    #   )
+    # ]
     
-    datamergeNew[
-      Number_childPro > 0 & Number_childPro < Number_child,
-      `:=`(
-        shareUpDown_NEW =
-          ifelse(
-            Protected == TRUE & is.na(shareUpDown_NEW),
-            production / extractionRate * shareDownUp / Processed,
-            shareUpDown_NEW
-          ),
-        flagObservationStatus =
-          ifelse(
-            Protected == TRUE,
-            ifelse(flagObservationStatus == "E" , flagObservationStatus, "T"),
-            flagObservationStatus
-          ),
-        flagMethod =
-          ifelse(
-            Protected == TRUE,
-            ifelse(flagMethod == "f", flagMethod, "-"),
-            flagMethod
-          )
-      ),
+    # datamergeNew[
+    #   Number_childPro > 0 & Number_childPro < Number_child,
+    #   `:=`(
+    #     shareUpDown_NEW =
+    #       ifelse(
+    #         Protected == TRUE & is.na(shareUpDown_NEW),
+    #         production / extractionRate * shareDownUp / Processed,
+    #         shareUpDown_NEW
+    #       ),
+    #     flagObservationStatus =
+    #       ifelse(
+    #         Protected == TRUE,
+    #         ifelse(flagObservationStatus == "E" , flagObservationStatus, "T"),
+    #         flagObservationStatus
+    #       ),
+    #     flagMethod =
+    #       ifelse(
+    #         Protected == TRUE,
+    #         ifelse(flagMethod == "f", flagMethod, "-"),
+    #         flagMethod
+    #       )
+    #   ),
+    #   by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    # ]
+    # 
+    # 
+    # # datamergeNew[flagObservationStatus=="E" & flagMethod=="f",
+    # #              shareUpDown_NEW:= shareUpDown
+    # #              ]
+    # 
+    # datamergeNew[,
+    #   sum_shareUD_high := sum(shareUpDown_NEW,na.rm = TRUE) > 1,
+    #   by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    # ]
+    # 
+    # datamergeNew[
+    #   sum_shareUD_high == TRUE,
+    #   Processed_new := sum(production / extractionRate * shareDownUp, na.rm = TRUE),
+    #   by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    # ]
+    
+  #JeanLuca suggestion----------------
+    
+    datamergeNew[Number_childPro>0,
+      #sum_shareUD_high == TRUE,
+      Processed_new := sum((production[Protected == TRUE] / extractionRate[Protected == TRUE] * 
+                              shareDownUp[Protected == TRUE]), na.rm = TRUE)/sum(shareUpDown[Protected == TRUE],na.rm = TRUE),
       by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
-    ]
-  
+      ]
+    datamergeNew[Processed_new==0,Processed_new:=NA_real_]
     
-    # datamergeNew[flagObservationStatus=="E" & flagMethod=="f",
-    #              shareUpDown_NEW:= shareUpDown
-    #              ]
+    datamergeNew[,processed_down_up:=sum(Protected==TRUE,na.rm = TRUE)>0,
+                 by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+                 ]
     
-    datamergeNew[,
-      sum_shareUD_high := sum(shareUpDown_NEW,na.rm = TRUE) > 1,
-      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
-    ]
+    # datamergeNew[,
+    #   `:=`(
+    #     shareUpDown_NEW =
+    #       ifelse(
+    #         Protected == TRUE,
+    #         production / extractionRate * shareDownUp / ifelse(is.na(Processed_new),Processed,Processed_new),
+    #         shareUpDown_NEW
+    #       )
+    #   ),
+    #   by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    # ]
+    # 
+    # 
+    # 
+    # 
+    # 
+    #  datamergeNew[,
+    #    shareUpDown_NEW :=
+    #      ifelse(
+    #        Protected == FALSE,
+    #        shareUpDown / sum(shareUpDown[Protected == FALSE], na.rm = TRUE) *
+    #          (1 - sum(shareUpDown_NEW[Protected==TRUE], na.rm = TRUE)),
+    #      shareUpDown_NEW),
+    #    by = c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+    #  ]
+     
+     
+     datamergeNew[Protected==TRUE & manual==FALSE,
+                  `:=`(flagObservationStatus="T",
+                       flagMethod="-")]
+     
+     datamergeNew[Protected==TRUE & manual==TRUE,
+                  `:=`(flagObservationStatus="E",
+                       flagMethod="f")]
+     
+     datamergeNew[Protected==FALSE ,
+                  `:=`(flagObservationStatus="I",
+                       flagMethod="c")]
     
-    datamergeNew[
-      sum_shareUD_high == TRUE,
-      Processed_new := sum(production / extractionRate * shareDownUp, na.rm = TRUE),
-      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
-    ]
+     
+     
+    datamergeNew[!is.na(shareUpDown_NEW),shareUpDown:=shareUpDown_NEW]
+    
+    #jean------------------------
+    
+    
+    # datamergeNew[
+    #   sum_shareUD_high == TRUE & is.na(shareUpDown_NEW),
+    #   shareUpDown_NEW := 0,
+    #   by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    # ]
 
-    datamergeNew[
-      sum_shareUD_high == TRUE & is.na(shareUpDown_NEW),
-      shareUpDown_NEW := 0,
-      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
-    ]
+    # datamergeNew[
+    #   sum_shareUD_high == TRUE,
+    #   shareUpDown_NEW := shareUpDown_NEW / sum(shareUpDown_NEW, na.rm = TRUE),
+    #   by = c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+    # ]
 
-    datamergeNew[
-      sum_shareUD_high == TRUE,
-      shareUpDown_NEW := shareUpDown_NEW / sum(shareUpDown_NEW, na.rm = TRUE),
-      by = c("geographicAreaM49","measuredItemParentCPC","timePointYears")
-    ]
-
-    datamergeNew[, sum_shareUD_high := NULL]
+    # datamergeNew[, sum_shareUD_high := NULL]
     
     
-    datamergeNew[
-      Number_childPro > 0 & Number_childPro < Number_child,
-      shareUpDown_NEW :=
-        ifelse(
-          Protected == FALSE,
-          shareUpDown / sum(shareUpDown[Protected == FALSE], na.rm = TRUE) *
-            (1 - sum(shareUpDown_NEW[Protected==TRUE], na.rm = TRUE)),
-        shareUpDown_NEW
-                                         ),
-      by = c("geographicAreaM49","timePointYears","measuredItemParentCPC")
-    ]
+    # datamergeNew[
+    #   Number_childPro > 0 & Number_childPro < Number_child,
+    #   shareUpDown_NEW :=
+    #     ifelse(
+    #       Protected == FALSE,
+    #       shareUpDown / sum(shareUpDown[Protected == FALSE], na.rm = TRUE) *
+    #         (1 - sum(shareUpDown_NEW[Protected==TRUE], na.rm = TRUE)),
+    #     shareUpDown_NEW
+    #                                      ),
+    #   by = c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+    # ]
     
     #cASE2: ALL THE PRODUCTION OF THE CHILD COMMODITIES ARE OFFICIAL
     #process is updated using the official production of those child commodidites
     #shareUpDown of the child commodities are updated
-    datamergeNew[
-      Number_childPro >0 & Number_childPro == Number_child,
-      Processed_new := sum(production / extractionRate * shareDownUp, na.rm = TRUE) ,
-      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
-    ]
-    
-    datamergeNew[
-      Number_childPro > 0 & Number_childPro == Number_child,
-      `:=`(
-        shareUpDown_NEW =
-          (production / extractionRate) * shareDownUp /
-            sum(production / extractionRate * shareDownUp, na.rm = TRUE),
-        flagObservationStatus = "T",
-        flagMethod = "-"
-      ),
-      by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
-    ]
-
-    datamergeNew[!is.na(shareUpDown_NEW),shareUpDown:=shareUpDown_NEW]
+    # datamergeNew[
+    #   Number_childPro >0 & Number_childPro == Number_child,
+    #   Processed_new := sum(production / extractionRate * shareDownUp, na.rm = TRUE) ,
+    #   by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    # ]
+    # 
+    # datamergeNew[
+    #   Number_childPro > 0 & Number_childPro == Number_child,
+    #   `:=`(
+    #     shareUpDown_NEW =
+    #       (production / extractionRate) * shareDownUp /
+    #         sum(production / extractionRate * shareDownUp, na.rm = TRUE),
+    #     flagObservationStatus = "T",
+    #     flagMethod = "-"
+    #   ),
+    #   by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
+    # ]
+    # 
+    # datamergeNew[!is.na(shareUpDown_NEW),shareUpDown:=shareUpDown_NEW]
     
     #Update the processed quantities
     
@@ -3444,7 +3517,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c("geographicAreaM49", "measuredItemParentCPC")
       ]
 
-    setkey(dataForProc, NULL)
+    # setkey(dataForProc, NULL)
 
     dataForProc[timePointYears > 2013 & is.na(Pshare), Pshare := Pshare_avr]
 
@@ -3463,7 +3536,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         list(geographicAreaM49, timePointYears, measuredItemParentCPC,
              measuredItemChildCPC, extractionRate, processingLevel,
              shareDownUp, shareUpDown, production, Protected,
-             flagObservationStatus, flagMethod)
+             flagObservationStatus, flagMethod,Official,manual,processed_down_up)
       ]
     
     datamergeNew <-
@@ -3503,7 +3576,7 @@ if (length(primaryInvolvedDescendents) == 0) {
       datamergeNew_zeroweight[,
         list(geographicAreaM49, timePointYears, measuredItemParentCPC,
              measuredItemChildCPC, Pshare, shareUpDown, Processed,
-             flagObservationStatus, flagMethod)
+             flagObservationStatus, flagMethod,processed_down_up)
       ]
     
     datamergeNew_zeroweight <-
@@ -3533,7 +3606,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     estimated_processed <-
       datamergeNew_final[,
         list(geographicAreaM49, timePointYears,
-             measuredItemSuaFbs = measuredItemParentCPC, Processed)
+             measuredItemSuaFbs = measuredItemParentCPC, Processed,processed_down_up)
       ]
 
      estimated_processed <- unique(estimated_processed, by = c(colnames(estimated_processed)))
@@ -3593,11 +3666,12 @@ if (length(primaryInvolvedDescendents) == 0) {
       `:=`(
         Value = Processed,
         flagObservationStatus = "E",
-        flagMethod = "i",
+        flagMethod = ifelse(processed_down_up==TRUE,"-","i"),
         Processed_estimed=TRUE
       )
     ][,
-        Processed := NULL
+        `:=`(Processed = NULL,
+             processed_down_up=NULL)
     ]
     
     
@@ -3639,7 +3713,7 @@ if (length(primaryInvolvedDescendents) == 0) {
       ]
     
     data_production <- unique(data_production, by = c(colnames(data_production)))
-    
+    data_production[,shareUpDown:=round(shareUpDown,2)]
     
     data_production <-
       merge(
@@ -4012,6 +4086,8 @@ setnames(
 )
 
 shareUpDown_to_save <- shareUpDown_to_save[!is.na(Value)]
+
+shareUpDown_to_save[,Value:=round(Value,3)]
 
 faosws::SaveData(
   domain = "suafbs",
