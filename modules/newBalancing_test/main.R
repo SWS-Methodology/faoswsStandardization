@@ -3728,7 +3728,7 @@ if (length(primaryInvolvedDescendents) == 0) {
       ]
     
     data_production <- unique(data_production, by = c(colnames(data_production)))
-    data_production[,shareUpDown:=round(shareUpDown,2)]
+    # data_production[,shareUpDown:=round(shareUpDown,2)]
     
     data_production <-
       merge(
