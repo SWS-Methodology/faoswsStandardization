@@ -3036,8 +3036,10 @@ if (length(primaryInvolvedDescendents) == 0) {
           by = c("geographicAreaM49", "measuredItemSuaFbs")
         ]
 
+        # upper_abs_stock_perc can be infinite if abs_stock_perc is always missing
+        # (note that abs_stock_perc is calculated only for supply > 100)
         data_histmod_stocks[
-          abs_delta_pred_perc > upper_abs_stock_perc & timePointYears >= 2014,
+          abs_delta_pred_perc > upper_abs_stock_perc & timePointYears >= 2014 & !is.infinite(upper_abs_stock_perc),
           delta_pred := upper_abs_stock_perc * avg_new_supply_inc * sign(delta_pred)
         ]
 
