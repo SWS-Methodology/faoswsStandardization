@@ -1021,6 +1021,21 @@ if (FILL_EXTRACTION_RATES == TRUE) {
   tree[, names(tree)[grep("^i\\.", names(tree))] := NULL]
 }
 
+
+# XXX: connections removed here that should not exist in
+# the commodity tree (so, they should be fixed there)
+tree[
+  timePointYears >= 2014 &
+    ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
+    (measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212")),
+  `:=`(
+    Value = 0,
+    flagObservationStatus = "M",
+    flagMethod = "n"
+  )
+]
+
+
 saveRDS(
   tree[
     !is.na(Value) & measuredElementSuaFbs == "extractionRate",
