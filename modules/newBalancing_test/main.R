@@ -2382,6 +2382,15 @@ zw_coproduct_bis[,`:=`(measuredItemChildCPC=zeroweight,
 zw_coproduct_bis<-zw_coproduct_bis[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
                                  timePointYears,processed_to_child)]
 
+#Correction to milk tree issue ( zeroweight can be associated with 2 main products from the same parent)
+#example: butter of cow milk
+zw_coproduct_bis<-zw_coproduct_bis[,
+                                   processed_to_child:=sum(processed_to_child,na.rm = TRUE),
+                                   by=c("geographicAreaM49", "measuredItemParentCPC","measuredItemChildCPC", "timePointYears")
+                                   ]
+zw_coproduct_bis<-unique(zw_coproduct_bis,
+                         by=c(colnames(zw_coproduct_bis))
+                         )
 
 data_zeroweight<-merge(
   data_zeroweight,
@@ -2395,6 +2404,7 @@ data_zeroweight<-data_zeroweight[, processed_to_child := processed_to_child*extr
 data_zeroweight<-data_zeroweight[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
                                        timePointYears,number_of_parent,parent_qty_processed,production_of_child,
                                        processed_to_child)]
+
 
 data_tree<-data_tree[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,timePointYears,
                            number_of_parent,parent_qty_processed,production_of_child,processed_to_child)]
@@ -2537,10 +2547,23 @@ shareUpDown_zeroweight[,zeroweight:=NULL]
 shareUpDown_zeroweight<-shareUpDown_zeroweight[,list(geographicAreaM49,measuredItemParentCPC,
                                                      measuredItemChildCPC,timePointYears,shareUpDown)]
 
+#Correction to milk tree issue ( zeroweight can be associated with 2 main products from the same parent)
+#example: butter of cow milk
+shareUpDown_zeroweight<-
+  shareUpDown_zeroweight[,
+                         shareUpDown:=sum(shareUpDown,na.rm = TRUE),
+                         by=c("geographicAreaM49", "measuredItemParentCPC","measuredItemChildCPC", "timePointYears")
+                        ]
+
+shareUpDown_zeroweight<-unique(shareUpDown_zeroweight,
+                               by=c(colnames(shareUpDown_zeroweight)))
+#/correction
+
+
 data_ShareUpDoawn_final<-rbind(data_ShareUpDoawn_final,shareUpDown_zeroweight)
 
 #some correction
-data_ShareUpDoawn_final[is.na(shareUpDown),shareUpDown:=NA_real_]
+data_ShareUpDoawn_final[is.na(shareUpDown),shareUpDown:=0]
 data_ShareUpDoawn_final[!is.na(shareUpDown),flagObservationStatus:="I"]
 data_ShareUpDoawn_final[!is.na(shareUpDown),flagMethod:="c"]
 
@@ -2671,6 +2694,17 @@ if (file.exists(shareDownUp_file)) {
   SHAREDOWNUP_LOADED <- TRUE
   
   shareDownUp_previous <- fread(shareDownUp_file, colClasses = c(rep("character", 4), "numeric", "logical"))
+ 
+  #correction (if some duplicates are already generated)
+  shareDownUp_previous<-unique(shareDownUp_previous,
+                               by=c(colnames(shareDownUp_previous)))
+  shareDownUp_previous[,shareDownUp:=sum(shareDownUp,na.rm = TRUE),
+                            by=c("geographicAreaM49", "measuredItemParentCPC","measuredItemChildCPC", "timePointYears")
+                       ]
+  shareDownUp_previous<-unique(shareDownUp_previous,
+                               by=c(colnames(shareDownUp_previous)))
+  
+  #/correction
   
   # Check on consistency of shareDownUp
   shareDownUp_invalid <-
@@ -2744,7 +2778,7 @@ if(nrow(shareDownUp_previous)>0){
     all.x = TRUE
   )
   data_tree_final[protect_share==TRUE, shareDownUp:=shareDownUp_prev]
-  
+  data_tree_final[is.na(protect_share),protect_share:=FALSE]
   
   ##Automatic update of shareDOwnUp (to discuss with Salar)
   #data_tree_final[,shareDownUp1:=ifelse(protect_share==FALSE & sum(protect_share==TRUE)>0,
@@ -2754,6 +2788,7 @@ if(nrow(shareDownUp_previous)>0){
   #by=c(p$geoVar,p$yearVar,p$childVar)
   #]
   data_tree_final[,shareDownUp_prev:=NULL]
+  data_tree_final<-unique(data_tree_final,by=c(colnames(data_tree_final)))
   data_tree_final_save<-copy(data_tree_final)
   data_tree_final[,protect_share:=NULL]
 }else{
@@ -3593,6 +3628,17 @@ if (length(primaryInvolvedDescendents) == 0) {
              measuredItemChildCPC, Pshare, shareUpDown, Processed,
              flagObservationStatus, flagMethod,processed_down_up)
       ]
+    
+  #correction
+    datamergeNew_zeroweight<-
+      datamergeNew_zeroweight[,
+                              shareUpDown:=sum(shareUpDown,na.rm = TRUE),
+                              by=c("geographicAreaM49", "measuredItemParentCPC","measuredItemChildCPC", "timePointYears")
+                              ]
+    
+    datamergeNew_zeroweight<-unique(datamergeNew_zeroweight,
+                                   by=c(colnames(datamergeNew_zeroweight)))
+  #/correction
     
     datamergeNew_zeroweight <-
       merge(
