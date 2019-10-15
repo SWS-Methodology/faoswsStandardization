@@ -3071,8 +3071,10 @@ if (length(primaryInvolvedDescendents) == 0) {
           by = c("geographicAreaM49", "measuredItemSuaFbs")
         ]
 
+        # upper_abs_stock_perc can be infinite if abs_stock_perc is always missing
+        # (note that abs_stock_perc is calculated only for supply > 100)
         data_histmod_stocks[
-          abs_delta_pred_perc > upper_abs_stock_perc & timePointYears >= 2014,
+          abs_delta_pred_perc > upper_abs_stock_perc & timePointYears >= 2014 & !is.infinite(upper_abs_stock_perc),
           delta_pred := upper_abs_stock_perc * avg_new_supply_inc * sign(delta_pred)
         ]
 
@@ -5163,7 +5165,9 @@ for (i in c("exports", "imports", "production", "stock_change")) {
   a_col <- grep(paste0("^", i, "$"), names(z_comp_shares))
   a_rows <- which(computed_shares_send[[paste0("Protected_", i)]] == TRUE) + 1
 
-  addStyle(wb, sheet = "SHARES", style_protected, rows = a_rows, cols = a_col)
+  if (all(length(a_col) > 0, length(a_rows) > 0)) {
+    addStyle(wb, sheet = "SHARES", style_protected, rows = a_rows, cols = a_col)
+  }
 }
 
 addStyle(wb, sheet = "SHARES", style_text, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(Parent|Child)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
