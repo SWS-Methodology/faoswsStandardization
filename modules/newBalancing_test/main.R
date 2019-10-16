@@ -1029,7 +1029,7 @@ tree[
     ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
     (measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212")),
   `:=`(
-    Value = 0,
+    Value = NA,
     flagObservationStatus = "M",
     flagMethod = "n"
   )
