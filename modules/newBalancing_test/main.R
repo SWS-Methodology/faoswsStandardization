@@ -768,9 +768,12 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
 
       # Assign imbalance to food if food "only" (not "residual") item
       data[
-        Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
+        Protected == FALSE &
+          food_resid == TRUE &
+          dplyr::near(imbalance, 0) == FALSE &
+          measuredElementSuaFbs == "food",
         `:=`(
-          Value = ifelse(is.na(Value) & imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
+          Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
           flagObservationStatus = "E",
           flagMethod = "h"
         )
@@ -850,9 +853,12 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       # Assign imbalance to food if food "only" (not "residual") item
 
       data[
-        Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
+        Protected == FALSE &
+          food_resid == TRUE &
+          dplyr::near(imbalance, 0) == FALSE &
+          measuredElementSuaFbs == "food",
         `:=`(
-          Value = ifelse(is.na(Value) & imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
+          Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
           flagObservationStatus = "E",
           flagMethod = "h"
         )
@@ -861,8 +867,12 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       calculateImbalance(data)
       
       # Assign the residual imbalance to industrial if the conditions are met
+
       data[
-        Protected == FALSE & industrial_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "industrial",
+        Protected == FALSE &
+          industrial_resid == TRUE &
+          dplyr::near(imbalance, 0) == FALSE &
+          measuredElementSuaFbs == "industrial",
         `:=`(
           Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
           flagObservationStatus = "E",
@@ -904,8 +914,12 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       calculateImbalance(data)
       
       # Assign the residual imbalance to feed if the conditions are met
+
       data[
-        Protected == FALSE & feed_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "feed",
+        Protected == FALSE &
+          feed_resid == TRUE &
+          dplyr::near(imbalance, 0) == FALSE &
+          measuredElementSuaFbs == "feed",
         `:=`(
           Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
           flagObservationStatus = "E",
@@ -914,7 +928,6 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       ]
      
       calculateImbalance(data)
-      
       
       data[, c("supply", "utilizations", "imbalance", "mov_share_rebased") := NULL]
       
@@ -5410,6 +5423,7 @@ if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
   standData <- rbind(standData_with_imbalance, standData_no_imbalance)
 
 }
+
 calculateImbalance(standData)
 
 # Remove tourist for industrial as in the pase the two
