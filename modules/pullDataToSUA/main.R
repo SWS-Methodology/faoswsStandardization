@@ -238,72 +238,49 @@ lossData = GetData(lossKey)
 ################################################
 #####      Harvest from Tourism Domain     #####
 ################################################
-TourGeoKeys = c("28",
-                "44",
-                "52",
-                "84",
-                "72",
-                "116",
-                "132",
-                "344",
-                "446",
-                "174",
-                "188",
-                "192",
-                "196",
-                "212",
-                "214",
-                "818",
-                "242",
-                "258",
-                "308",
-                "320",
-                "340",
-                "352",
-                "360",
-                "388",
-                "404",
-                "296",
-                "418",
-                "462",
-                "480",
-                "524",
-                "540",
-                "659",
-                "662",
-                "882",
-                "678",
-                "690",
-                "90",
-                "670",
-                "780",
-                "548")
-tourData = data.table()
-if(selectedGEOCode%in%TourGeoKeys){
-TourGeoKeys = TourGeoKeys[TourGeoKeys==selectedGEOCode]
-TourGeoDim = Dimension(name = "geographicAreaM49", TourGeoKeys)
+tourist_cons_table <- ReadDatatable("keep_tourist_consumption")
 
-message("Pulling data from Tourist")
-eleTourDim = Dimension(name = "tourismElement",
-                       keys = touristCode)
-tourKey = DatasetKey(domain = "tourism", dataset = "tourismprod",
-                     dimensions = list(
-                       geographicAreaM49 = TourGeoDim,
-                       tourismElement = eleTourDim,
-                       measuredItemCPC = itemDim,
-                       timePointYears = timeDim)
-)
-tourData = GetData(tourKey)
-tourData[, `:=`(tourismElement = suaTouristCode,
-                Value = Value * touristConversionFactor)]
-setnames(tourData, c("tourismElement", "measuredItemCPC"),
-         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+stopifnot(nrow(tourist_cons_table) > 0)
+
+TourGeoKeys <- tourist_cons_table$tourist
+
+tourData <- data.table()
+
+if (selectedGEOCode %in% TourGeoKeys) {
+
+  TourGeoKeys <- TourGeoKeys[TourGeoKeys==selectedGEOCode]
+
+  TourGeoDim <- Dimension(name = "geographicAreaM49", TourGeoKeys)
+
+  message("Pulling data from Tourist")
+
+  eleTourDim <- Dimension(name = "tourismElement",
+                         keys = touristCode)
+  tourKey <- DatasetKey(domain = "tourism", dataset = "tourismprod",
+                       dimensions = list(
+                         geographicAreaM49 = TourGeoDim,
+                         tourismElement = eleTourDim,
+                         measuredItemCPC = itemDim,
+                         timePointYears = timeDim)
+  )
+
+  tourData <- GetData(tourKey)
+
+  tourData[, `:=`(tourismElement = suaTouristCode,
+                  Value = Value * touristConversionFactor)]
+  setnames(tourData, c("tourismElement", "measuredItemCPC"),
+           c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 }
-if(nrow(tourData)>0){
-  tourData = as.data.frame(tourData)
-  tourData = unique(tourData)
-  tourData$timePointYears = as.integer(tourData$timePointYears)
-  tourData = tourData %>%
+
+if (nrow(tourData) > 0) {
+
+  tourData <- as.data.frame(tourData)
+
+  tourData <- unique(tourData)
+
+  tourData$timePointYears <- as.integer(tourData$timePointYears)
+
+  tourData <- tourData %>%
     dplyr::group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs) %>%
     tidyr::complete(timePointYears=min(timePointYears):2017,nesting(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs))%>%
     dplyr::arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs,timePointYears) %>%
@@ -312,8 +289,10 @@ if(nrow(tourData)>0){
     tidyr::fill(flagMethod,.direction="down") %>%
     dplyr::ungroup() %>%
     dplyr::arrange(geographicAreaM49,measuredItemSuaFbs,timePointYears)
-  tourData$timePointYears = as.character(tourData$timePointYears)
-  tourData = as.data.table(tourData)
+
+  tourData$timePointYears <- as.character(tourData$timePointYears)
+
+  tourData <- as.data.table(tourData)
 }
 
 ################################################
