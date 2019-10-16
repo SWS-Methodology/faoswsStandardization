@@ -734,7 +734,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data[,
         Value_0 := ifelse(is.na(Value), 0, Value)
       ][
-        Protected == FALSE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
+        Protected == FALSE & dplyr::near(imbalance, 0) == FALSE & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
         change_stocks :=
           # The numbers indicate the case. Assignmnet (value and flags) will be done below
           case_when(
@@ -800,10 +800,10 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         ###    ]
         
         
-        if (nrow(data[outside(imbalance, -1, 1)]) > 0) {
+        if (nrow(data[dplyr::near(imbalance, 0) == FALSE]) > 0) {
           
-          data_level_no_imbalance <- data[data.table::between(imbalance, -1, 1)]
-          data_level_with_imbalance <- data[outside(imbalance, -1, 1)]
+          data_level_no_imbalance <- data[dplyr::near(imbalance, 0) == TRUE]
+          data_level_with_imbalance <- data[dplyr::near(imbalance, 0) == FALSE]
           
           levels_to_optimize <- unique(data_level_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
           
@@ -5371,19 +5371,21 @@ standData[
 
 standData[measuredElementSuaFbs == "seed", Protected := TRUE]
 
-if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
+if (nrow(standData[data.table::between(imbalance_percent, -5, 5)]) > 0) {
 
-  standData_no_imbalance <- standData[data.table::between(imbalance, -1, 1)]
-  standData_with_imbalance <- standData[outside(imbalance, -1, 1)]
+  standData_high_imbalance <- standData[is.na(imbalance_percent) | outside(imbalance_percent, -5, 5)]
+  standData_small_imbalance <- standData[data.table::between(imbalance_percent, -5, 5)]
 
-  levels_to_optimize <- unique(standData_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
+  stopifnot(nrow(standData) == sum(nrow(standData_high_imbalance), nrow(standData_small_imbalance)))
+
+  levels_to_optimize <- unique(standData_small_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
 
   D_adj <- list()
 
   for (i in 1:nrow(levels_to_optimize)) {
     #print(i) ; flush.console()
     # FIXME: remove this (ugly) global assignment
-    x <<- standData_with_imbalance[levels_to_optimize[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
+    x <<- standData_small_imbalance[levels_to_optimize[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
 
     # The following two instructions basically imply to assign the
     # (small) imbalance with no limits
@@ -5416,11 +5418,11 @@ if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
     rm(x)
   }
 
-  standData_with_imbalance <- rbindlist(D_adj)
+  standData_small_imbalance <- rbindlist(D_adj)
 
-  standData_with_imbalance[, adjusted_value := NULL]
+  standData_small_imbalance[, adjusted_value := NULL]
 
-  standData <- rbind(standData_with_imbalance, standData_no_imbalance)
+  standData <- rbind(standData_small_imbalance, standData_high_imbalance)
 
 }
 
