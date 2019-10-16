@@ -10,7 +10,7 @@ library(openxlsx)
 # The only parameter is the string to print
 # COUNTRY is taken from environment (parameter)
 dbg_print <- function(x) {
-  print(paste0("NEWBAL (", COUNTRY, "): ", x))
+  message(paste0("NEWBAL (", COUNTRY, "): ", x))
 }
 
 start_time <- Sys.time()
