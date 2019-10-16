@@ -43,9 +43,6 @@ USER <- regmatches(
 
 STOP_AFTER_DERIVED <- as.logical(swsContext.computationParams$stop_after_derived)
 
-#BALANCING_METHOD <- swsContext.computationParams$balancing_method
-BALANCING_METHOD <- "proportional"
-
 #THRESHOLD_METHOD <- swsContext.computationParams$threshold_method
 THRESHOLD_METHOD <- 'share'
 
@@ -361,141 +358,6 @@ send_mail <- function(from = NA, to = NA, subject = NA,
   sendmailR::sendmail(from, to, subject, as.list(body))
 }
 
-
-################### optim stuff ###########################
-
-my_fun <- function(s) {
-  
-  zero_if_na <- function(x) {
-    ifelse(length(x) == 0, 0, ifelse(is.na(x), 0, x))
-  }
-  
-  prod_i <- x[, measuredElementSuaFbs == 'production']
-  impo_i <- x[, measuredElementSuaFbs == 'imports']
-  expo_i <- x[, measuredElementSuaFbs == 'exports']
-  stoc_i <- x[, measuredElementSuaFbs == 'stockChange']
-  food_i <- x[, measuredElementSuaFbs == 'food']
-  feed_i <- x[, measuredElementSuaFbs == 'feed']
-  seed_i <- x[, measuredElementSuaFbs == 'seed']
-  proc_i <- x[, measuredElementSuaFbs == 'foodManufacturing']
-  indu_i <- x[, measuredElementSuaFbs == 'industrial']
-  loss_i <- x[, measuredElementSuaFbs == 'loss']
-  tour_i <- x[, measuredElementSuaFbs == 'tourist']
-  resi_i <- x[, measuredElementSuaFbs == 'residual']
-  
-  prod_v <- zero_if_na(x$Value[prod_i])
-  impo_v <- zero_if_na(x$Value[impo_i])
-  expo_v <- zero_if_na(x$Value[expo_i])
-  stoc_v <- zero_if_na(x$Value[stoc_i])
-  food_v <- zero_if_na(x$Value[food_i])
-  feed_v <- zero_if_na(x$Value[feed_i])
-  seed_v <- zero_if_na(x$Value[seed_i])
-  proc_v <- zero_if_na(x$Value[proc_i])
-  indu_v <- zero_if_na(x$Value[indu_i])
-  loss_v <- zero_if_na(x$Value[loss_i])
-  tour_v <- zero_if_na(x$Value[tour_i])
-  resi_v <- zero_if_na(x$Value[resi_i])
-  
-  #  prod_p <- x$Protected[prod_i] ; prod_p <- ifelse(length(prod_p) == 0, 0, ifelse(is.na(prod_p), 0, prod_p))
-  #  impo_p <- x$Protected[impo_i] ; impo_p <- ifelse(length(impo_p) == 0, 0, ifelse(is.na(impo_p), 0, impo_p))
-  #  expo_p <- x$Protected[expo_i] ; expo_p <- ifelse(length(expo_p) == 0, 0, ifelse(is.na(expo_p), 0, expo_p))
-  #  stoc_p <- x$Protected[stoc_i] ; stoc_p <- ifelse(length(stoc_p) == 0, 0, ifelse(is.na(stoc_p), 0, stoc_p))
-  #  food_p <- x$Protected[food_i] ; food_p <- ifelse(length(food_p) == 0, 0, ifelse(is.na(food_p), 0, food_p))
-  #  feed_p <- x$Protected[feed_i] ; feed_p <- ifelse(length(feed_p) == 0, 0, ifelse(is.na(feed_p), 0, feed_p))
-  #  seed_p <- x$Protected[seed_i] ; seed_p <- ifelse(length(seed_p) == 0, 0, ifelse(is.na(seed_p), 0, seed_p))
-  #  proc_p <- x$Protected[proc_i] ; proc_p <- ifelse(length(proc_p) == 0, 0, ifelse(is.na(proc_p), 0, proc_p))
-  #  indu_p <- x$Protected[indu_i] ; indu_p <- ifelse(length(indu_p) == 0, 0, ifelse(is.na(indu_p), 0, indu_p))
-  #  loss_p <- x$Protected[loss_i] ; loss_p <- ifelse(length(loss_p) == 0, 0, ifelse(is.na(loss_p), 0, loss_p))
-  #  tour_p <- x$Protected[tour_i] ; tour_p <- ifelse(length(tour_p) == 0, 0, ifelse(is.na(tour_p), 0, tour_p))
-  #  resi_p <- x$Protected[resi_i] ; resi_p <- ifelse(length(resi_p) == 0, 0, ifelse(is.na(resi_p), 0, resi_p))
-  
-  supply <- prod_v + impo_v - expo_v - stoc_v
-  
-  #  utilizations <-
-  #    (food_v * !food_p) * s[1] +
-  #    (feed_v * !feed_p) * s[2] +
-  #    (seed_v * !seed_p) * s[3] +
-  #    (proc_v * !proc_p) * s[4] +
-  #    (indu_v * !indu_p) * s[5] +
-  #    (loss_v * !loss_p) * s[6] +
-  #    (tour_v * !tour_p) * s[7] +
-  #    (resi_v * !resi_p) * s[8]
-  
-  utilizations <-
-    food_v * s[1] +
-    feed_v * s[2] +
-    seed_v * s[3] +
-    proc_v * s[4] +
-    indu_v * s[5] +
-    loss_v * s[6] +
-    tour_v * s[7] +
-    resi_v * s[8]
-  
-  abs(supply - utilizations)
-}
-
-
-do_optim <- function(d) {
-  
-  elem_names <- c('food', 'feed', 'seed', 'foodManufacturing',
-                  'industrial', 'loss', 'tourist', 'residual')
-  
-  my_lower <- d$min_adj
-  my_upper <- d$max_adj
-  
-  my_protected <- d$Protected
-  
-  names(my_lower) <- names(my_upper) <- names(my_protected) <- d$measuredElementSuaFbs
-  
-  my_lower <- my_lower[elem_names]
-  my_upper <- my_upper[elem_names]
-  my_protected <- my_protected[elem_names]
-  
-  names(my_lower) <- names(my_upper) <- names(my_protected) <- elem_names
-  
-  my_lower[is.na(my_lower) | my_protected == TRUE] <- 0.999999
-  my_upper[is.na(my_upper) | my_protected == TRUE] <- 1.000001
-  
-  # XXX this used to be &, but we want now all 1s so it chan change
-  initial <- (my_lower | my_upper ) * 1.0
-  
-  #initial[initial < 1] <- 0.00000001
-  
-  opt <- optim(initial, my_fun, method = "L-BFGS-B",
-               lower = my_lower, upper = my_upper,
-               control = list(pgtol = 0.0001))
-  
-  opt$par <- opt$par * !dplyr::near(opt$par, 0, 0.0000001)
-  
-  res <- reshape2::melt(as.list(opt$par))
-  
-  setDT(res)
-  
-  setnames(res, c("value", "L1"), c("adj", "measuredElementSuaFbs"))
-  
-  # Round to keep things actually different from 1.
-  res[, adj := ifelse(dplyr::near(adj, 1, tol = 0.0001), 1, adj)]
-  
-  return(res)
-}
-
-
-balance_optimization <- function(d) {
-  myres_optim <- do_optim(d)
-  
-  res <- myres_optim[d[, list(measuredElementSuaFbs, Value)],
-                     on = c('measuredElementSuaFbs')]
-  
-  res[, adj := adj * Value]
-  
-  res[dplyr::near(adj, 0) | dplyr::near(adj, 1), adj := NA_real_]
-  
-  return(res$adj)
-}
-
-################### / optim stuff ###########################
-
-
 balance_proportional <- function(data) {
 
   x <- copy(data)
@@ -805,22 +667,16 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
           data_level_no_imbalance <- data[dplyr::near(imbalance, 0) == TRUE]
           data_level_with_imbalance <- data[dplyr::near(imbalance, 0) == FALSE]
           
-          levels_to_optimize <- unique(data_level_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
+          levels_to_balance <- unique(data_level_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
           
           D_adj <- list()
           
-          for (i in 1:nrow(levels_to_optimize)) {
+          for (i in 1:nrow(levels_to_balance)) {
             #print(i) ; flush.console()
             # FIXME: remove this (ugly) global assignment
-            x <<- data_level_with_imbalance[levels_to_optimize[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
+            x <<- data_level_with_imbalance[levels_to_balance[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
             
-            if (BALANCING_METHOD == "proportional") {
-              x[, adjusted_value := balance_proportional(x)]
-            } else if (BALANCING_METHOD == "optimization") {
-              x[, adjusted_value := balance_optimization(x)]
-            } else {
-              stop("Invalid balancing method.")
-            }
+            x[, adjusted_value := balance_proportional(x)]
             
             x[
               !is.na(adjusted_value) & adjusted_value != Value,
@@ -5378,14 +5234,14 @@ if (nrow(standData[data.table::between(imbalance_percent, -5, 5)]) > 0) {
 
   stopifnot(nrow(standData) == sum(nrow(standData_high_imbalance), nrow(standData_small_imbalance)))
 
-  levels_to_optimize <- unique(standData_small_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
+  levels_to_balance <- unique(standData_small_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
 
   D_adj <- list()
 
-  for (i in 1:nrow(levels_to_optimize)) {
+  for (i in 1:nrow(levels_to_balance)) {
     #print(i) ; flush.console()
     # FIXME: remove this (ugly) global assignment
-    x <<- standData_small_imbalance[levels_to_optimize[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
+    x <<- standData_small_imbalance[levels_to_balance[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
 
     # The following two instructions basically imply to assign the
     # (small) imbalance with no limits
@@ -5396,13 +5252,7 @@ if (nrow(standData[data.table::between(imbalance_percent, -5, 5)]) > 0) {
     x[measuredElementSuaFbs %!in% c("production", "imports", "exports", "stockChange", "food") &
       Protected == FALSE & !is.na(max_threshold), max_threshold := Inf]
 
-    if (BALANCING_METHOD == "proportional") {
-      x[, adjusted_value := balance_proportional(x)]
-    } else if (BALANCING_METHOD == "optimization") {
-      x[, adjusted_value := balance_optimization(x)]
-    } else {
-      stop("Invalid balancing method.")
-    }
+    x[, adjusted_value := balance_proportional(x)]
 
     x[
       !is.na(adjusted_value) & adjusted_value != Value,
