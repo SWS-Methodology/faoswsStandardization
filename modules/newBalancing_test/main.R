@@ -89,8 +89,11 @@ p$official <- "Official"
 shareDownUp_file <-
   file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_", COUNTRY, ".csv"))
 
-TourismNoIndustrial = read.csv(paste0(R_SWS_SHARE_PATH, "/wanner/","TourismNoIndustrial.csv"))
+tourist_cons_table <- ReadDatatable("keep_tourist_consumption")
 
+stopifnot(nrow(tourist_cons_table) > 0)
+
+TourismNoIndustrial <- tourist_cons_table[small == "X"]$tourist
 
 
 # Always source files in R/ (useful for local runs).
@@ -689,21 +692,24 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       ]
       
       
-      if(COUNTRY %in% as.character(unique(TourismNoIndustrial$TourismNoIndustrial))){
-      data[,
-                Value :=
-                  ifelse(
-                    measuredElementSuaFbs == "industrial" &
-                      !is.na(Value[measuredElementSuaFbs == "industrial"]) &
-                      !is.na(Value[measuredElementSuaFbs == "tourist"]),
-                    ifelse(Value[measuredElementSuaFbs == "industrial"] -
-                             Value[measuredElementSuaFbs == "tourist"]<0,0,
-                           Value[measuredElementSuaFbs == "industrial"] -
-                             Value[measuredElementSuaFbs == "tourist"]),
-                    Value
-                  ),
-                by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
-                ]
+      if (COUNTRY %in% TourismNoIndustrial) {
+        data[,
+          Value :=
+            ifelse(
+              measuredElementSuaFbs == "industrial" &
+                !is.na(Value[measuredElementSuaFbs == "industrial"]) &
+                !is.na(Value[measuredElementSuaFbs == "tourist"]),
+              ifelse(
+                Value[measuredElementSuaFbs == "industrial"] -
+                  Value[measuredElementSuaFbs == "tourist"] < 0,
+                0,
+                Value[measuredElementSuaFbs == "industrial"] -
+                  Value[measuredElementSuaFbs == "tourist"]
+              ),
+              Value
+            ),
+          by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+        ]
       }
       
       
@@ -728,7 +734,7 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       data[,
         Value_0 := ifelse(is.na(Value), 0, Value)
       ][
-        Protected == FALSE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
+        Protected == FALSE & dplyr::near(imbalance, 0) == FALSE & measuredElementSuaFbs == "stockChange" & stockable == TRUE,
         change_stocks :=
           # The numbers indicate the case. Assignmnet (value and flags) will be done below
           case_when(
@@ -762,9 +768,12 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
 
       # Assign imbalance to food if food "only" (not "residual") item
       data[
-        Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
+        Protected == FALSE &
+          food_resid == TRUE &
+          dplyr::near(imbalance, 0) == FALSE &
+          measuredElementSuaFbs == "food",
         `:=`(
-          Value = ifelse(is.na(Value) & imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
+          Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
           flagObservationStatus = "E",
           flagMethod = "h"
         )
@@ -791,10 +800,10 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         ###    ]
         
         
-        if (nrow(data[outside(imbalance, -1, 1)]) > 0) {
+        if (nrow(data[dplyr::near(imbalance, 0) == FALSE]) > 0) {
           
-          data_level_no_imbalance <- data[data.table::between(imbalance, -1, 1)]
-          data_level_with_imbalance <- data[outside(imbalance, -1, 1)]
+          data_level_no_imbalance <- data[dplyr::near(imbalance, 0) == TRUE]
+          data_level_with_imbalance <- data[dplyr::near(imbalance, 0) == FALSE]
           
           levels_to_optimize <- unique(data_level_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
           
@@ -844,9 +853,12 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       # Assign imbalance to food if food "only" (not "residual") item
 
       data[
-        Protected == FALSE & food_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "food",
+        Protected == FALSE &
+          food_resid == TRUE &
+          dplyr::near(imbalance, 0) == FALSE &
+          measuredElementSuaFbs == "food",
         `:=`(
-          Value = ifelse(is.na(Value) & imbalance>0,imbalance,ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
+          Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
           flagObservationStatus = "E",
           flagMethod = "h"
         )
@@ -855,8 +867,12 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       calculateImbalance(data)
       
       # Assign the residual imbalance to industrial if the conditions are met
+
       data[
-        Protected == FALSE & industrial_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "industrial",
+        Protected == FALSE &
+          industrial_resid == TRUE &
+          dplyr::near(imbalance, 0) == FALSE &
+          measuredElementSuaFbs == "industrial",
         `:=`(
           Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
           flagObservationStatus = "E",
@@ -864,31 +880,46 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
       ]
       
-      if(COUNTRY %in% as.character(unique(TourismNoIndustrial$TourismNoIndustrial))){
+      if (COUNTRY %in% TourismNoIndustrial) {
 
-        data[,Value:=
-               ifelse(measuredElementSuaFbs == "tourist" &
-                              !is.na(Value[measuredElementSuaFbs == "industrial"]),
-             ifelse(is.na(Value[measuredElementSuaFbs == "tourist"]),
-                           Value[measuredElementSuaFbs == "industrial"],
-                           Value[measuredElementSuaFbs == "tourist"]+
-                           Value[measuredElementSuaFbs == "industrial"]),Value
-             ),
-             by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
-             ]
+        data[,
+          Value :=
+            ifelse(
+              measuredElementSuaFbs == "tourist" &
+                !is.na(Value[measuredElementSuaFbs == "industrial"]),
+              ifelse(
+                is.na(Value[measuredElementSuaFbs == "tourist"]),
+                Value[measuredElementSuaFbs == "industrial"],
+                Value[measuredElementSuaFbs == "tourist"] +
+                  Value[measuredElementSuaFbs == "industrial"]
+              ),
+              Value
+            ),
+          by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+        ]
 
-        data[,Value:=ifelse(measuredElementSuaFbs == "industrial" &
-                              !is.na(Value[measuredElementSuaFbs == "industrial"]) &
-                              !is.na(Value[measuredElementSuaFbs == "tourist"]),
-             NA_real_,Value),
-             by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")]
+        data[,
+          Value :=
+            ifelse(
+              measuredElementSuaFbs == "industrial" &
+                !is.na(Value[measuredElementSuaFbs == "industrial"]) &
+                !is.na(Value[measuredElementSuaFbs == "tourist"]),
+              NA_real_,
+              Value
+            ),
+          by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+        ]
       }
 
       calculateImbalance(data)
       
       # Assign the residual imbalance to feed if the conditions are met
+
       data[
-        Protected == FALSE & feed_resid == TRUE & outside(imbalance, -1, 1) & measuredElementSuaFbs == "feed",
+        Protected == FALSE &
+          feed_resid == TRUE &
+          dplyr::near(imbalance, 0) == FALSE &
+          measuredElementSuaFbs == "feed",
         `:=`(
           Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
           flagObservationStatus = "E",
@@ -897,7 +928,6 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       ]
      
       calculateImbalance(data)
-      
       
       data[, c("supply", "utilizations", "imbalance", "mov_share_rebased") := NULL]
       
@@ -5341,19 +5371,21 @@ standData[
 
 standData[measuredElementSuaFbs == "seed", Protected := TRUE]
 
-if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
+if (nrow(standData[data.table::between(imbalance_percent, -5, 5)]) > 0) {
 
-  standData_no_imbalance <- standData[data.table::between(imbalance, -1, 1)]
-  standData_with_imbalance <- standData[outside(imbalance, -1, 1)]
+  standData_high_imbalance <- standData[is.na(imbalance_percent) | outside(imbalance_percent, -5, 5)]
+  standData_small_imbalance <- standData[data.table::between(imbalance_percent, -5, 5)]
 
-  levels_to_optimize <- unique(standData_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
+  stopifnot(nrow(standData) == sum(nrow(standData_high_imbalance), nrow(standData_small_imbalance)))
+
+  levels_to_optimize <- unique(standData_small_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
 
   D_adj <- list()
 
   for (i in 1:nrow(levels_to_optimize)) {
     #print(i) ; flush.console()
     # FIXME: remove this (ugly) global assignment
-    x <<- standData_with_imbalance[levels_to_optimize[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
+    x <<- standData_small_imbalance[levels_to_optimize[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
 
     # The following two instructions basically imply to assign the
     # (small) imbalance with no limits
@@ -5386,13 +5418,14 @@ if (nrow(standData[data.table::between(imbalance, -5, 5)]) > 0) {
     rm(x)
   }
 
-  standData_with_imbalance <- rbindlist(D_adj)
+  standData_small_imbalance <- rbindlist(D_adj)
 
-  standData_with_imbalance[, adjusted_value := NULL]
+  standData_small_imbalance[, adjusted_value := NULL]
 
-  standData <- rbind(standData_with_imbalance, standData_no_imbalance)
+  standData <- rbind(standData_small_imbalance, standData_high_imbalance)
 
 }
+
 calculateImbalance(standData)
 
 # Remove tourist for industrial as in the pase the two
