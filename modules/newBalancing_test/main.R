@@ -89,8 +89,11 @@ p$official <- "Official"
 shareDownUp_file <-
   file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_", COUNTRY, ".csv"))
 
-TourismNoIndustrial = read.csv(paste0(R_SWS_SHARE_PATH, "/wanner/","TourismNoIndustrial.csv"))
+tourist_cons_table <- ReadDatatable("keep_tourist_consumption")
 
+stopifnot(nrow(tourist_cons_table) > 0)
+
+TourismNoIndustrial <- tourist_cons_table[small == "X"]$tourist
 
 
 # Always source files in R/ (useful for local runs).
@@ -689,21 +692,24 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
       ]
       
       
-      if(COUNTRY %in% as.character(unique(TourismNoIndustrial$TourismNoIndustrial))){
-      data[,
-                Value :=
-                  ifelse(
-                    measuredElementSuaFbs == "industrial" &
-                      !is.na(Value[measuredElementSuaFbs == "industrial"]) &
-                      !is.na(Value[measuredElementSuaFbs == "tourist"]),
-                    ifelse(Value[measuredElementSuaFbs == "industrial"] -
-                             Value[measuredElementSuaFbs == "tourist"]<0,0,
-                           Value[measuredElementSuaFbs == "industrial"] -
-                             Value[measuredElementSuaFbs == "tourist"]),
-                    Value
-                  ),
-                by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
-                ]
+      if (COUNTRY %in% TourismNoIndustrial) {
+        data[,
+          Value :=
+            ifelse(
+              measuredElementSuaFbs == "industrial" &
+                !is.na(Value[measuredElementSuaFbs == "industrial"]) &
+                !is.na(Value[measuredElementSuaFbs == "tourist"]),
+              ifelse(
+                Value[measuredElementSuaFbs == "industrial"] -
+                  Value[measuredElementSuaFbs == "tourist"] < 0,
+                0,
+                Value[measuredElementSuaFbs == "industrial"] -
+                  Value[measuredElementSuaFbs == "tourist"]
+              ),
+              Value
+            ),
+          by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+        ]
       }
       
       
@@ -864,24 +870,35 @@ newBalancing <- function(data, tree, utilizationTable, Utilization_Table, zeroWe
         )
       ]
       
-      if(COUNTRY %in% as.character(unique(TourismNoIndustrial$TourismNoIndustrial))){
+      if (COUNTRY %in% TourismNoIndustrial) {
 
-        data[,Value:=
-               ifelse(measuredElementSuaFbs == "tourist" &
-                              !is.na(Value[measuredElementSuaFbs == "industrial"]),
-             ifelse(is.na(Value[measuredElementSuaFbs == "tourist"]),
-                           Value[measuredElementSuaFbs == "industrial"],
-                           Value[measuredElementSuaFbs == "tourist"]+
-                           Value[measuredElementSuaFbs == "industrial"]),Value
-             ),
-             by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
-             ]
+        data[,
+          Value :=
+            ifelse(
+              measuredElementSuaFbs == "tourist" &
+                !is.na(Value[measuredElementSuaFbs == "industrial"]),
+              ifelse(
+                is.na(Value[measuredElementSuaFbs == "tourist"]),
+                Value[measuredElementSuaFbs == "industrial"],
+                Value[measuredElementSuaFbs == "tourist"] +
+                  Value[measuredElementSuaFbs == "industrial"]
+              ),
+              Value
+            ),
+          by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+        ]
 
-        data[,Value:=ifelse(measuredElementSuaFbs == "industrial" &
-                              !is.na(Value[measuredElementSuaFbs == "industrial"]) &
-                              !is.na(Value[measuredElementSuaFbs == "tourist"]),
-             NA_real_,Value),
-             by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")]
+        data[,
+          Value :=
+            ifelse(
+              measuredElementSuaFbs == "industrial" &
+                !is.na(Value[measuredElementSuaFbs == "industrial"]) &
+                !is.na(Value[measuredElementSuaFbs == "tourist"]),
+              NA_real_,
+              Value
+            ),
+          by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+        ]
       }
 
       calculateImbalance(data)
