@@ -218,7 +218,7 @@ RemainingProdChildToAssign <- function(data) {
     by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")
    ]
   
-  data[only_parent_left == TRUE, processed_to_child := 0]
+  data[only_parent_left==TRUE,processed_to_child:=ifelse(only_parent_left==TRUE,remaining_to_process_child,processed_to_child)]
   
   data[,
     available_processed_child := sum(processed_to_child, na.rm = TRUE),
@@ -882,7 +882,9 @@ if (FILL_EXTRACTION_RATES == TRUE) {
 tree[
   timePointYears >= 2014 &
     ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
-    (measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212")),
+    (measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
+      #cheese from whole cow milk cannot come from skim mulk of cow
+    (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01")),
   `:=`(
     Value = NA,
     flagObservationStatus = "M",
