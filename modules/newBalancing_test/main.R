@@ -221,12 +221,7 @@ RemainingProdChildToAssign <- function(data) {
     by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")
    ]
   
-<<<<<<< HEAD
-  # data[only_parent_left==TRUE,processed_to_child:=0]
   data[only_parent_left==TRUE,processed_to_child:=ifelse(only_parent_left==TRUE,remaining_to_process_child,processed_to_child)]
-=======
-  data[only_parent_left == TRUE, processed_to_child := 0]
->>>>>>> 5abe33f4c5e73a82ba8d6aa35275e6778f49b701
   
   data[,
     available_processed_child := sum(processed_to_child, na.rm = TRUE),
