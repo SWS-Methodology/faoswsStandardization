@@ -217,9 +217,8 @@ RemainingProdChildToAssign <- function(data) {
       sum(is.na(processed_to_child)) == 1 &
         is.na(processed_to_child) &
         !is.na(parent_qty_processed) &
-        parent_qty_processed >= 0,
-    by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")
-   ]
+        parent_qty_processed >= 0
+    ]
   
   data[only_parent_left==TRUE,processed_to_child:=ifelse(only_parent_left==TRUE,remaining_to_process_child,processed_to_child)]
   
