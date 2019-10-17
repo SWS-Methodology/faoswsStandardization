@@ -376,47 +376,32 @@ balance_proportional <- function(data) {
 
   x <-
     x[
-      Protected == FALSE &
-        !measuredElementSuaFbs %in%
-        c("production", "imports", "exports", "stockChange", "foodManufacturing"),
-      list(measuredElementSuaFbs, measuredItemSuaFbs, Value,
-           mov_share, imbalance, min_threshold, max_threshold)
+      can_balance == TRUE,
+      c("measuredElementSuaFbs", "Value",
+           "mov_share", "imbalance", "min_threshold", "max_threshold", "can_balance"), with = FALSE
     ]
 
-  # Recalculate mov_share, as we are excluding protected values
-  x[, mov_share := mov_share / sum(mov_share, na.rm = TRUE)]
+  mov_share_sum <- sum(x$mov_share, na.rm = TRUE)
+
+  if (mov_share_sum > 0) {
+    # Recalculate mov_share, as we are excluding protected values
+    x[, mov_share := mov_share / mov_share_sum]
+  } else {
+    # It means that there are no back shares, so use current values
+    x[!is.na(Value) & can_balance == TRUE, mov_share := Value / sum(Value, na.rm = TRUE)]
+  }
 
   x[is.na(Value), Value := 0]
 
-  x[,
-    adjusted_value :=
-      ifelse(
-        Value + mov_share * imbalance >= 0,
-        Value + mov_share * imbalance,
-        0
-      )
-  ]
+  x[, adjusted_value := 0]
 
-  x[
-    adjusted_value > Value & adjusted_value > max_threshold,
-    adjusted_value := max_threshold
-  ]
+  x[Value + mov_share * imbalance >= 0, adjusted_value := Value + mov_share * imbalance]
 
-  x[
-    adjusted_value < Value & adjusted_value < min_threshold,
-    adjusted_value := min_threshold
-  ]
+  x[adjusted_value > Value & adjusted_value > max_threshold, adjusted_value := max_threshold]
 
-  x[, Value := NULL]
+  x[adjusted_value < Value & adjusted_value < min_threshold, adjusted_value := min_threshold]
 
-  x <-
-    merge(
-      data,
-      x[, list(measuredElementSuaFbs, measuredItemSuaFbs, adjusted_value)],
-      by = c("measuredElementSuaFbs", "measuredItemSuaFbs"),
-      allow.cartesian = TRUE, #TO REMOVE
-      all.x = TRUE
-    )
+  x <-  x[, c("measuredElementSuaFbs", "adjusted_value"), with = FALSE][data, on = "measuredElementSuaFbs"]
 
   return(as.numeric(x$adjusted_value))
 }
@@ -626,65 +611,97 @@ newBalancing <- function(data, Utilization_Table) {
       flagMethod = "h"
     )
   ]
-      
-  for (j in 1:10) {
+      for (j in 1:10) {
 
-    # Recalculate imbalance
-    calculateImbalance(data)
-    
-    ###    data[,
-    ###      mov_share_rebased := mov_share / sum(mov_share[Protected == FALSE], na.rm = TRUE),
-    ###      by = list(geographicAreaM49, timePointYears, measuredItemSuaFbs)
-    ###    ]
-    
-    ###    # Assign remaining imbalance proportionally, using rebased moving shares.
-    ###    data[
-    ###      Protected == FALSE & food_resid == FALSE & outside(imbalance, -100, 100) & !(measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stockChange')),
-    ###      `:=`(
-    ###        Value = Value + mov_share_rebased * imbalance,
-    ###        flagObservationStatus = "E",
-    ###        flagMethod = "u"
-    ###      )
-    ###    ]
-    
-    
-    if (nrow(data[dplyr::near(imbalance, 0) == FALSE]) > 0) {
-      
-      data_level_no_imbalance <- data[dplyr::near(imbalance, 0) == TRUE]
-      data_level_with_imbalance <- data[dplyr::near(imbalance, 0) == FALSE]
-      
-      levels_to_balance <- unique(data_level_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
-      
-      D_adj <- list()
-      
-      for (i in 1:nrow(levels_to_balance)) {
-        #print(i) ; flush.console()
-        x <- data_level_with_imbalance[levels_to_balance[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
-        
-        x[, adjusted_value := balance_proportional(x)]
-        
-        x[
-          !is.na(adjusted_value) & adjusted_value != Value,
-          `:=`(
-            Value = adjusted_value,
-            flagObservationStatus = "E",
-            flagMethod = "-"
-          )
+        # Recalculate imbalance
+        calculateImbalance(data)
+
+        data[, can_balance := FALSE]
+
+        data[
+          !is.na(Value) &
+            Protected == FALSE &
+            !(data.table::between(Value, min_threshold, max_threshold) %in% FALSE) &
+            !(measuredElementSuaFbs %chin%
+              c("production", "imports", "exports", "stockChange", "foodManufacturing")),
+          can_balance := TRUE
         ]
+
+        data[, elements_balance := sum(can_balance), by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")]
         
-        D_adj[[i]] <- x
-        
-        rm(x)
+            data[dplyr::near(imbalance, 0) == FALSE & elements_balance > 0, adjusted_value := balance_proportional(.SD), by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")]
+
+            data[
+              !is.na(adjusted_value) & adjusted_value != Value,
+              `:=`(
+                Value = adjusted_value,
+                flagObservationStatus = "E",
+                flagMethod = "-"
+              )
+            ]
+
+            data[, adjusted_value := NULL]
+
       }
       
-      data_level_with_imbalance <- rbindlist(D_adj)
-      
-      data_level_with_imbalance[, adjusted_value := NULL]
-      
-      data <- rbind(data_level_with_imbalance, data_level_no_imbalance)
-      
-    }
-  }
+  ###   for (j in 1:10) {
+
+  ###     # Recalculate imbalance
+  ###     calculateImbalance(data)
+  ###
+  ###     ###    data[,
+  ###     ###      mov_share_rebased := mov_share / sum(mov_share[Protected == FALSE], na.rm = TRUE),
+  ###     ###      by = list(geographicAreaM49, timePointYears, measuredItemSuaFbs)
+  ###     ###    ]
+  ###
+  ###     ###    # Assign remaining imbalance proportionally, using rebased moving shares.
+  ###     ###    data[
+  ###     ###      Protected == FALSE & food_resid == FALSE & outside(imbalance, -100, 100) & !(measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stockChange')),
+  ###     ###      `:=`(
+  ###     ###        Value = Value + mov_share_rebased * imbalance,
+  ###     ###        flagObservationStatus = "E",
+  ###     ###        flagMethod = "u"
+  ###     ###      )
+  ###     ###    ]
+  ###
+  ###
+  ###     if (nrow(data[dplyr::near(imbalance, 0) == FALSE]) > 0) {
+  ###
+  ###       data_level_no_imbalance <- data[dplyr::near(imbalance, 0) == TRUE]
+  ###       data_level_with_imbalance <- data[dplyr::near(imbalance, 0) == FALSE]
+  ###
+  ###       levels_to_balance <- unique(data_level_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
+  ###
+  ###       D_adj <- list()
+  ###
+  ###       for (i in 1:nrow(levels_to_balance)) {
+  ###         #print(i) ; flush.console()
+  ###         x <- data_level_with_imbalance[levels_to_balance[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
+  ###
+  ###         x[, adjusted_value := balance_proportional(x)]
+  ###
+  ###         x[
+  ###           !is.na(adjusted_value) & adjusted_value != Value,
+  ###           `:=`(
+  ###             Value = adjusted_value,
+  ###             flagObservationStatus = "E",
+  ###             flagMethod = "-"
+  ###           )
+  ###         ]
+  ###
+  ###         D_adj[[i]] <- x
+  ###
+  ###         rm(x)
+  ###       }
+  ###
+  ###       data_level_with_imbalance <- rbindlist(D_adj)
+  ###
+  ###       data_level_with_imbalance[, adjusted_value := NULL]
+  ###
+  ###       data <- rbind(data_level_with_imbalance, data_level_no_imbalance)
+  ###
+  ###     }
+  ###   }
   
   # At this point the imbalance (in the best case scenario) should be zero,
   # the following re-calculation is useful only for debugging
