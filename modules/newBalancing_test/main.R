@@ -54,18 +54,15 @@ FILL_EXTRACTION_RATES <- TRUE
 
 YEARS <- as.character(2000:2017)
 
+TMP_DIR <- file.path(tempdir(), USER)
+if (!file.exists(TMP_DIR)) dir.create(TMP_DIR, recursive = TRUE)
 
-tmp_file_name_imb         <- tempfile(pattern = paste0("IMBALANCE_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_shares      <- tempfile(pattern = paste0("SHARES_", COUNTRY, "_"), fileext = '.xlsx')
-tmp_file_name_negative    <- tempfile(pattern = paste0("NEGATIVE_AVAILAB_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_non_exist   <- tempfile(pattern = paste0("NONEXISTENT_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_fix_shares  <- tempfile(pattern = paste0("FIXED_PROC_SHARES_", COUNTRY, "_"), fileext = '.csv')
-tmp_file_name_NegNetTrade <- tempfile(pattern = paste0("NEG_NET_TRADE_", COUNTRY, "_"), fileext = '.csv')
-
-
-if (!file.exists(dirname(tmp_file_name_imb))) {
-  dir.create(dirname(tmp_file_name_imb), recursive = TRUE)
-}
+tmp_file_imb         <- file.path(TMP_DIR, paste0("IMBALANCE_", COUNTRY, ".csv"))
+tmp_file_shares      <- file.path(TMP_DIR, paste0("SHARES_", COUNTRY, ".xlsx"))
+tmp_file_negative    <- file.path(TMP_DIR, paste0("NEGATIVE_AVAILAB_", COUNTRY, ".csv"))
+tmp_file_non_exist   <- file.path(TMP_DIR, paste0("NONEXISTENT_", COUNTRY, ".csv"))
+tmp_file_fix_shares  <- file.path(TMP_DIR, paste0("FIXED_PROC_SHARES_", COUNTRY, ".csv"))
+tmp_file_NegNetTrade <- file.path(TMP_DIR, paste0("NEG_NET_TRADE_", COUNTRY, ".csv"))
 
 
 p <- defaultStandardizationParameters()
@@ -942,9 +939,9 @@ tree_to_send[,
     measuredItemChildCPC_tree = paste0("'", measuredItemChildCPC_tree))
 ]
 
-tmp_file_name_extr <- tempfile(pattern = paste0("FILLED_ER_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_extr <- file.path(TMP_DIR, paste0("FILLED_ER_", COUNTRY, ".csv"))
 
-write.csv(tree_to_send, tmp_file_name_extr)
+write.csv(tree_to_send, tmp_file_extr)
 
 # XXX remove NAs
 tree <- tree[!is.na(Value)]
@@ -4200,9 +4197,9 @@ new_elements <- nameData("suafbs", "sua_unbalanced", new_elements, except = "mea
 
 new_elements[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
-tmp_file_name_new <- tempfile(pattern = paste0("NEW_ELEMENTS_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_new <- file.path(TMP_DIR, paste0("NEW_ELEMENTS_", COUNTRY, ".csv"))
 
-write.csv(new_elements, tmp_file_name_new)
+write.csv(new_elements, tmp_file_new)
 
 # / Filter elements that appear for the first time
 
@@ -4508,7 +4505,7 @@ addFilter(wb, "SHARES", row = 1, cols = 1:ncol(z_comp_shares))
 
 dbg_print(paste("SHARES workbook, save", getwd()))
 
-saveWorkbook(wb, tmp_file_name_shares, overwrite = TRUE)
+saveWorkbook(wb, tmp_file_shares, overwrite = TRUE)
 
 
 ## 1 => year = 2014
@@ -4832,11 +4829,11 @@ non_existing_for_imputation <-
 
 non_existing_for_imputation[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
-write.csv(imbalances_to_send,          tmp_file_name_imb)
-write.csv(negative_availability,       tmp_file_name_negative)
-write.csv(non_existing_for_imputation, tmp_file_name_non_exist)
-write.csv(fixed_proc_shares,           tmp_file_name_fix_shares)
-write.csv(data_negtrade,               tmp_file_name_NegNetTrade)
+write.csv(imbalances_to_send,          tmp_file_imb)
+write.csv(negative_availability,       tmp_file_negative)
+write.csv(non_existing_for_imputation, tmp_file_non_exist)
+write.csv(fixed_proc_shares,           tmp_file_fix_shares)
+write.csv(data_negtrade,               tmp_file_NegNetTrade)
 
 saveRDS(
   computed_shares_send,
@@ -5126,12 +5123,7 @@ out_elems_items[, perc.change := round(perc.change, 2)]
 out_elems_items[, Historical_value_2010_2013 := round(Historical_value_2010_2013, 2)]
 
 
-tmp_file_outliers <-
-  tempfile(pattern = paste0("OUTLIERS_", COUNTRY, "_"), fileext = '.csv')
-
-if (!file.exists(dirname(tmp_file_outliers))) {
-  dir.create(dirname(tmp_file_outliers), recursive = TRUE)
-}
+tmp_file_outliers <- file.path(TMP_DIR, paste0("OUTLIERS_", COUNTRY, ".csv"))
 
 out_elems_items <-
   nameData("suafbs", "sua_unbalanced", out_elems_items, except = "timePointYears")
@@ -5230,7 +5222,7 @@ plot_main_des_diff <-
           subtitle = COUNTRY_NAME)
 
 tmp_file_plot_main_des_diff <-
-  tempfile(pattern = paste0("PLOT_MAIN_DES_DIFF_", COUNTRY, "_"), fileext = '.pdf')
+  file.path(TMP_DIR, paste0("PLOT_MAIN_DES_DIFF_", COUNTRY, ".pdf"))
 
 ggsave(tmp_file_plot_main_des_diff, plot = plot_main_des_diff)
 
@@ -5255,7 +5247,7 @@ plot_main_des_items <-
           subtitle = COUNTRY_NAME)
 
 tmp_file_plot_main_des_items <-
-  tempfile(pattern = paste0("PLOT_MAIN_DES_ITEMS_", COUNTRY, "_"), fileext = '.pdf')
+  file.path(TMP_DIR, paste0("PLOT_MAIN_DES_ITEMS_", COUNTRY, ".pdf"))
 
 ggsave(tmp_file_plot_main_des_items, plot = plot_main_des_items)
 
@@ -5286,7 +5278,7 @@ plot_des_main_diff_avg <-
 
 
 tmp_file_plot_des_main_diff_avg <-
-  tempfile(pattern = paste0("PLOT_DES_MAIN_DIFF_AVG_", COUNTRY, "_"), fileext = '.pdf')
+  file.path(TMP_DIR, paste0("PLOT_DES_MAIN_DIFF_AVG_", COUNTRY, ".pdf"))
 
 ggsave(tmp_file_plot_des_main_diff_avg, plot = plot_des_main_diff_avg)
 
@@ -5497,7 +5489,7 @@ setColWidths(wb, "DES_MAIN", 4, 40)
 setColWidths(wb, "DES_MAIN_diff", 4, 40)
 setColWidths(wb, "DES_MAIN_diff_perc", 4, 40)
 
-tmp_file_des_main <- tempfile(pattern = paste0("DES_MAIN_ITEMS_", COUNTRY, "_"), fileext = '.xlsx')
+tmp_file_des_main <- file.path(TMP_DIR, paste0("DES_MAIN_ITEMS_", COUNTRY, ".xlsx"))
 
 saveWorkbook(wb, tmp_file_des_main, overwrite = TRUE)
 
@@ -5505,15 +5497,13 @@ saveWorkbook(wb, tmp_file_des_main, overwrite = TRUE)
 ########## / create XLSX for main DES items
 
 
-tmp_file_des <- tempfile(pattern = paste0("DES_", COUNTRY, "_"), fileext = '.csv')
+tmp_file_des <- file.path(TMP_DIR, paste0("DES_", COUNTRY, ".csv"))
 
 #des_cast[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
 write.csv(des_cast, tmp_file_des)
 
 ########## / DES calculation
-
-
 
 
 out <- SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData, waitTimeout = 20000)
@@ -5651,18 +5641,20 @@ if (exists("out")) {
                tmp_file_des_main,
                tmp_file_des,
                tmp_file_outliers,
-               tmp_file_name_shares,
-               tmp_file_name_imb,
-               tmp_file_name_extr,
-               tmp_file_name_negative,
-               tmp_file_name_non_exist,
-               tmp_file_name_new,
-               tmp_file_name_fix_shares,
-               tmp_file_name_NegNetTrade
+               tmp_file_shares,
+               tmp_file_imb,
+               tmp_file_extr,
+               tmp_file_negative,
+               tmp_file_non_exist,
+               tmp_file_new,
+               tmp_file_fix_shares,
+               tmp_file_NegNetTrade
               )
     )
   }
   
+  unlink(TMP_DIR, recursive = TRUE)
+
   print(paste(out$inserted + out$ignored, "observations written and problems with", out$discarded))
   
 } else {
