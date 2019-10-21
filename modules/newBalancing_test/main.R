@@ -626,20 +626,28 @@ newBalancing <- function(data, Utilization_Table) {
           can_balance := TRUE
         ]
 
-        data[, elements_balance := sum(can_balance), by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")]
+        data[,
+          elements_balance := sum(can_balance),
+          by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+        ]
         
-            data[dplyr::near(imbalance, 0) == FALSE & elements_balance > 0, adjusted_value := balance_proportional(.SD), by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")]
+        data[
+          dplyr::near(imbalance, 0) == FALSE &
+            elements_balance > 0,
+          adjusted_value := balance_proportional(.SD),
+          by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+        ]
 
-            data[
-              !is.na(adjusted_value) & adjusted_value != Value,
-              `:=`(
-                Value = adjusted_value,
-                flagObservationStatus = "E",
-                flagMethod = "-"
-              )
-            ]
+        data[
+          !is.na(adjusted_value) & adjusted_value != Value,
+          `:=`(
+            Value = adjusted_value,
+            flagObservationStatus = "E",
+            flagMethod = "-"
+          )
+        ]
 
-            data[, adjusted_value := NULL]
+        data[, adjusted_value := NULL]
 
       }
       
@@ -898,7 +906,6 @@ if (FILL_EXTRACTION_RATES == TRUE) {
 tree[
   timePointYears >= 2014 &
     ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
-    (measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
       #cheese from whole cow milk cannot come from skim mulk of cow
     (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01")),
   `:=`(
