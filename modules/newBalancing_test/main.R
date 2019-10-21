@@ -5660,7 +5660,7 @@ if (exists("out")) {
     send_mail(
       from = "do-not-reply@fao.org",
       to = swsContext.userEmail,
-      subject = "Results from newBalancing plugin",
+      subject = "Results from SUA_bal_compilation plugin",
       body = c(body_message,
                tmp_file_plot_main_des_items,
                tmp_file_plot_main_des_diff,
@@ -5686,7 +5686,7 @@ if (exists("out")) {
   
 } else {
   
-  print("The newBalancing plugin had a problem when saving data.")
+  print("The SUA_bal_compilation plugin had a problem when saving data.")
   
 }
 
