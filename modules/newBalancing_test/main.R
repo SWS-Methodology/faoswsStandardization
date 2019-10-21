@@ -3596,6 +3596,8 @@ if (length(primaryInvolvedDescendents) == 0) {
                'timePointYears'     = 'timePointYears',
                'measuredItemSuaFbs' = 'measuredItemChildCPC')]
 
+    setkey(tmp, NULL)
+
     # XXX stocks create duplicates
     tmp <- unique(tmp)
 
