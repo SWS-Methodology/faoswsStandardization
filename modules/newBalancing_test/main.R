@@ -4838,7 +4838,7 @@ standData <- standData[!is.na(Value)]
 # These cases should not happen (i.e., all flags should already be
 # set), but in any case, add specific flags so to check.
 standData[is.na(flagObservationStatus), flagObservationStatus := "M"]
-standData[is.na(flagMethod), flagObservationStatus := "q"]
+standData[is.na(flagMethod), flagMethod := "q"]
 
 
 # Calculate calories
