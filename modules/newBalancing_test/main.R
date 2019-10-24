@@ -3242,6 +3242,7 @@ if (length(primaryInvolvedDescendents) == 0) {
       by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
     ]
     
+    datamergeNew[is.na(Processed_new) & processed_down_up==TRUE, Processed_new := 0]
     datamergeNew[Processed_new == 0 & processed_down_up==FALSE, Processed_new := NA_real_]
     
     
