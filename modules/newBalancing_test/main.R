@@ -3237,12 +3237,13 @@ if (length(primaryInvolvedDescendents) == 0) {
                  by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
                  ]
     
-    datamergeNew[Processed_new == 0 & processed_down_up==FALSE, Processed_new := NA_real_]
-    
     datamergeNew[,
       processed_down_up := sum(Protected == TRUE, na.rm = TRUE) > 0,
       by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
     ]
+    
+    datamergeNew[Processed_new == 0 & processed_down_up==FALSE, Processed_new := NA_real_]
+    
     
     datamergeNew[
       Protected == TRUE & manual == FALSE,
