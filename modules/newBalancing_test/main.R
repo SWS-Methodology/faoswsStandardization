@@ -4638,9 +4638,6 @@ if (nrow(standData[data.table::between(imbalance_percent, -5, 5)]) > 0) {
 
 calculateImbalance(standData)
 
-# Remove tourist for industrial as in the pase the two
-# elements could have been mixed
-
 standData[
   supply > 0,
   imbalance_percent := imbalance / supply * 100
