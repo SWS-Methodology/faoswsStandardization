@@ -2123,7 +2123,7 @@ dataprodchild <-
         "timePointYears", "Value", "flagObservationStatus",
         "flagMethod"),
       with = FALSE
-    ],
+    ]
   )
 
 setnames(dataprodchild, "Value", "production_of_child")
@@ -2402,7 +2402,7 @@ data_ShareUpDoawn <- data_ShareUpDoawn[measuredItemChildCPC %!in% zeroWeight]
 data_ShareUpDoawn[, shareUpDown := NA_real_]
 
 data_ShareUpDoawn[
-  !is.na(parent_qty_processed) & extractionRate,
+  !is.na(parent_qty_processed) & extractionRate>0,
   shareUpDown := (production_of_child / extractionRate) * shareDownUp / sum(production_of_child / extractionRate * shareDownUp, na.rm = TRUE),
   by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
 ]
@@ -3233,7 +3233,11 @@ if (length(primaryInvolvedDescendents) == 0) {
       by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
     ]
 
-    datamergeNew[Processed_new == 0, Processed_new := NA_real_]
+    datamergeNew[, Processed_new := ifelse(is.na(Processed_new),mean(Processed_new,na.rm = TRUE),Processed_new),
+                 by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+                 ]
+    
+    datamergeNew[Processed_new == 0 & processed_down_up==FALSE, Processed_new := NA_real_]
     
     datamergeNew[,
       processed_down_up := sum(Protected == TRUE, na.rm = TRUE) > 0,
@@ -3292,13 +3296,13 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c("geographicAreaM49", "measuredItemParentCPC")
       ]
 
-    # setkey(dataForProc, NULL)
+    setkey(dataForProc, NULL)
 
     dataForProc[timePointYears > 2013 & is.na(Pshare), Pshare := Pshare_avr]
 
     dataForProc[, Pshare_avr := NULL]
 
-    dataForProc[, Processed := Pshare * availability] 
+    dataForProc[, Processed := Pshare * availability]
 
     dataForProc[!is.na(Processed_new), Processed := Processed_new]
 
