@@ -2402,7 +2402,7 @@ data_ShareUpDoawn <- data_ShareUpDoawn[measuredItemChildCPC %!in% zeroWeight]
 data_ShareUpDoawn[, shareUpDown := NA_real_]
 
 data_ShareUpDoawn[
-  !is.na(parent_qty_processed),
+  !is.na(parent_qty_processed) & extractionRate,
   shareUpDown := (production_of_child / extractionRate) * shareDownUp / sum(production_of_child / extractionRate * shareDownUp, na.rm = TRUE),
   by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
 ]
@@ -3222,7 +3222,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     # GianLuca suggestion----------------
     
-    datamergeNew[Number_childPro > 0,
+    datamergeNew[Number_childPro > 0 & extractionRate > 0,
       #sum_shareUD_high == TRUE,
       Processed_new :=
         sum(
