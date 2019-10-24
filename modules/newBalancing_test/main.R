@@ -470,7 +470,7 @@ newBalancing <- function(data, Utilization_Table) {
       # ... is the only utilization
       all(is.na(Value[!(measuredElementSuaFbs %chin%
                           c('loss', 'food', 'production', 'imports',
-                            'exports', 'stockChange','foodManufacturing'))])),
+                            'exports', 'stockChange','foodManufacturing', 'tourist'))])),
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
   
