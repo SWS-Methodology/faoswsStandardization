@@ -2123,7 +2123,7 @@ dataprodchild <-
         "timePointYears", "Value", "flagObservationStatus",
         "flagMethod"),
       with = FALSE
-    ],
+    ]
   )
 
 setnames(dataprodchild, "Value", "production_of_child")
