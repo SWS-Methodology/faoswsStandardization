@@ -1015,7 +1015,7 @@ processedCPC <- processed_item_datatable[, measured_item_cpc]
 
 # XXX what is this for?
 itemMap <- GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
-itemMap <- itemMap[, .(measuredItemSuaFbs = code, by = "type")]
+itemMap <- itemMap[, .(measuredItemSuaFbs = code, type)]
 
 ##################################### / TREE ################################
 
