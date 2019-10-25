@@ -1600,14 +1600,14 @@ codes <- tibble::tribble(
   "5910", "exports",
   "5520", "feed",
   "5141", "food",
-  "5023", "foodmanufacturing",
+  "5023", "foodManufacturing",
   "5610", "imports",
   "5165", "industrial",
   "5016", "loss",
   "5510", "production",
   "5525", "seed",
   "5164", "tourist",
-  "5071", "stock_change"
+  "5071", "stockChange"
 )
 
 data <- merge(data, codes, by = "measuredElementSuaFbs", all.x = TRUE)
@@ -1616,6 +1616,7 @@ data[, measuredElementSuaFbs := name]
 
 data[, name := NULL]
 
+# NOTE: if this should be used again (#38), camelCase the element names (#45)
 #data <-
 #  elementCodesToNames(
 #    data,
@@ -1679,13 +1680,13 @@ if (nrow(new_feed) > 0) {
       by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
     ]
 
-  calculateImbalance(prev_data_avg, supply_subtract = c("exports", "stock_change"))
+  calculateImbalance(prev_data_avg, supply_subtract = c("exports", "stockChange"))
 
   prev_processed_avg <-
     prev_data_avg[
       supply > 0 &
         utilizations > 0 &
-        measuredElementSuaFbs == "foodmanufacturing" &
+        measuredElementSuaFbs == "foodManufacturing" &
         !is.na(Value),
       .(geographicAreaM49, measuredItemSuaFbs, proc_ratio = Value / supply)
     ]
@@ -1696,7 +1697,7 @@ if (nrow(new_feed) > 0) {
       new_feed,
       on = c("geographicAreaM49", "measuredItemSuaFbs")
     ][
-      measuredElementSuaFbs != "foodmanufacturing" & timePointYears >= 2014
+      measuredElementSuaFbs != "foodManufacturing" & timePointYears >= 2014
     ][
       order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
       Value := na.fill_(Value),
@@ -1709,7 +1710,7 @@ if (nrow(new_feed) > 0) {
   calculateImbalance(
     new_data_avg,
     keep_utilizations = FALSE,
-    supply_subtract = c("exports", "stock_change")
+    supply_subtract = c("exports", "stockChange")
   )
 
   new_data_supply <-
@@ -1731,7 +1732,7 @@ if (nrow(new_feed) > 0) {
     new_data_proc[
       supply > 0,
       .(geographicAreaM49, measuredItemSuaFbs,
-        measuredElementSuaFbs = "foodmanufacturing",
+        measuredElementSuaFbs = "foodManufacturing",
         Value = supply * proc_ratio, timePointYears = 1)
     ]
 
@@ -1743,7 +1744,7 @@ if (nrow(new_feed) > 0) {
       new_data_proc
     )
 
-  calculateImbalance(new_data_avg, supply_subtract = c("exports", "stock_change"))
+  calculateImbalance(new_data_avg, supply_subtract = c("exports", "stockChange"))
 
 
   new_feed_to_remove <-
@@ -1815,7 +1816,7 @@ items_to_generate_stocks <-
 stock <-
   CJ(
     measuredItemSuaFbs    = items_to_generate_stocks,
-    measuredElementSuaFbs = 'stock_change',
+    measuredElementSuaFbs = 'stockChange',
     geographicAreaM49     = unique(data$geographicAreaM49),
     timePointYears        = unique(data$timePointYears)
   )
@@ -1974,7 +1975,7 @@ data_tree <-
   data[
     measuredElementSuaFbs %chin%
       c('production', 'imports', 'exports',
-        'stock_change', 'foodmanufacturing', 'loss',
+        'stockChange', 'foodManufacturing', 'loss',
         'food', 'industrial', 'feed', 'seed')
   ]
 
@@ -2007,7 +2008,7 @@ data_tree[,
   availability :=
     sum(
       Value[get(p$elementVar) %in% c(p$productionCode, p$importCode)],
-      - Value[get(p$elementVar) %in% c(p$exportCode, "stock_change")],
+      - Value[get(p$elementVar) %in% c(p$exportCode, "stockChange")],
       na.rm = TRUE
     ),
   by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar)
@@ -2017,7 +2018,7 @@ data_tree[,
 data_tree[,
   proc_Median :=
     median(
-      Value[measuredElementSuaFbs == "foodmanufacturing" & timePointYears %in% 2000:2017],
+      Value[measuredElementSuaFbs == "foodManufacturing" & timePointYears %in% 2000:2017],
       na.rm=TRUE
     ),
   by = c(p$parentVar, p$geoVar)
@@ -2031,7 +2032,7 @@ data_tree[,
       # ... is the only utilization
       all(is.na(Value[!(measuredElementSuaFbs %chin%
                         c('production', 'imports', 'exports',
-                          'stock_change','foodmanufacturing'))])),
+                          'stockChange','foodManufacturing'))])),
   by = c(p$parentVar, p$geoVar, p$yearVar)
 ]
 
@@ -2079,7 +2080,7 @@ data_tree <- merge(
 food_proc <-
   unique(
     data_tree[
-      measuredElementSuaFbs == "foodmanufacturing",
+      measuredElementSuaFbs == "foodManufacturing",
       c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "Value"),
       with = FALSE
     ],
@@ -2762,7 +2763,7 @@ write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
 # 5 non-missing/non-null data points exist
 historical_avail_stocks <-
   data[
-    measuredElementSuaFbs == "stock_change" &
+    measuredElementSuaFbs == "stockChange" &
       timePointYears <= 2013 &
       !is.na(Value) &
       stockable == TRUE,
@@ -2788,7 +2789,7 @@ fixed_proc_shares <- list()
 
 original_stock_variation <-
   data[
-    measuredElementSuaFbs == "stock_change" &
+    measuredElementSuaFbs == "stockChange" &
       timePointYears >= 2014 &
       !is.na(Value),
     c(
@@ -2866,7 +2867,7 @@ if (length(primaryInvolvedDescendents) == 0) {
               supply_inc =
                 sum(
                   Value[measuredElementSuaFbs %chin% c("production", "imports")],
-                  - Value[measuredElementSuaFbs %chin% c("exports", "stock_change")],
+                  - Value[measuredElementSuaFbs %chin% c("exports", "stockChange")],
                   na.rm = TRUE
                 ),
               supply_exc =
@@ -2951,7 +2952,7 @@ if (length(primaryInvolvedDescendents) == 0) {
           stockdata <-
             data[
               Protected == TRUE &
-                measuredElementSuaFbs == "stock_change" &
+                measuredElementSuaFbs == "stockChange" &
                 !is.na(Value) &
                 measuredItemSuaFbs %chin% data_for_stocks$measuredItemSuaFbs,
               .(
@@ -2992,7 +2993,7 @@ if (length(primaryInvolvedDescendents) == 0) {
             )
 
           data[
-            measuredElementSuaFbs == "stock_change" &
+            measuredElementSuaFbs == "stockChange" &
               Protected == FALSE &
               !is.na(delta),
             `:=`(
@@ -3037,7 +3038,7 @@ if (length(primaryInvolvedDescendents) == 0) {
 
     ############# / Create stocks, if missing ##################
 
-    dataMergeTree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stock_change')]
+    dataMergeTree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stockChange')]
     
     setnames(dataMergeTree, "measuredItemSuaFbs", "measuredItemParentCPC")
     
@@ -3067,8 +3068,8 @@ if (length(primaryInvolvedDescendents) == 0) {
       availability :=
         sum(
           Value[get(p$elementVar) %in% c(p$productionCode, p$importCode)],
-          # XXX p$stockCode is "stockChange", not "stock_change"
-          - Value[get(p$elementVar) %in% c(p$exportCode, "stock_change")],
+          # XXX p$stockCode is "stockChange", not "stockChange"
+          - Value[get(p$elementVar) %in% c(p$exportCode, "stockChange")],
           na.rm = TRUE
         ),
       by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar)
@@ -3171,7 +3172,7 @@ if (length(primaryInvolvedDescendents) == 0) {
       merge(
         datamergeNew,
         data[
-          measuredElementSuaFbs == 'foodmanufacturing',
+          measuredElementSuaFbs == 'foodManufacturing',
           list(geographicAreaM49, timePointYears,
                measuredItemParentCPC = measuredItemSuaFbs,
                processedBis = Value, processedProt = Protected)
@@ -3400,7 +3401,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     complete_food_proc <-
       CJ(
         measuredItemSuaFbs    = unique(estimated_processed$measuredItemSuaFbs),
-        measuredElementSuaFbs = 'foodmanufacturing',
+        measuredElementSuaFbs = 'foodManufacturing',
         geographicAreaM49     = unique(estimated_processed$geographicAreaM49),
         timePointYears        = unique(estimated_processed$timePointYears)
       )
@@ -3431,7 +3432,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     data[is.na(Processed_estimed), Processed_estimed := FALSE]
     
     data[
-      measuredElementSuaFbs == "foodmanufacturing" &
+      measuredElementSuaFbs == "foodManufacturing" &
         Protected == FALSE & !is.na(Processed) & Processed_estimed == FALSE,
       `:=`(
         Value = Processed,
@@ -3461,7 +3462,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         data_production,
         unique(
           data[
-            measuredElementSuaFbs == "foodmanufacturing" & !is.na(Value),
+            measuredElementSuaFbs == "foodManufacturing" & !is.na(Value),
             .(geographicAreaM49, timePointYears,
               measuredItemParentCPC = measuredItemSuaFbs,
               Processed_parent = Value)
@@ -3538,7 +3539,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     dbg_print("z data for shares to send")
 
     z <- data[
-        measuredElementSuaFbs %chin% c("production", "imports", "exports", "stock_change"),
+        measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange"),
         .(geographicAreaM49, timePointYears, measuredItemSuaFbs,
           measuredElementSuaFbs, Value, Protected, imputed_deriv_value)
         ]
@@ -3559,7 +3560,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         value.var = c("Value", "Protected")
       )
     
-    # XXX stock_change may change below (and also production, if required)
+    # XXX stockChange may change below (and also production, if required)
 
     dbg_print("z data + computed_shares_send")
 
@@ -3594,6 +3595,8 @@ if (length(primaryInvolvedDescendents) == 0) {
   }
 }
 
+setkey(data, NULL)
+
 computed_shares <- rbindlist(computed_shares)
 
 updated_shareUpDOwn <- rbindlist(updated_shareUpDOwn)
@@ -3623,7 +3626,6 @@ faosws::SaveData(
 dbg_print("end of derived production loop")
 
 
-
 data_deriv <-
   data[
     measuredElementSuaFbs == 'production' &
@@ -3642,7 +3644,7 @@ data_deriv <-
 # save processed data
 data_processed <-
   data[
-    measuredElementSuaFbs == 'foodmanufacturing' &
+    measuredElementSuaFbs == 'foodManufacturing' &
       timePointYears %in% 2014:2017,
     list(
       geographicAreaM49,
@@ -3659,7 +3661,7 @@ data_processed <-
 
 data_stock_to_save <-
   data[
-    measuredElementSuaFbs == 'stock_change' &
+    measuredElementSuaFbs == 'stockChange' &
       timePointYears %in% 2014:2017 &
       !is.na(Value),
     list(
@@ -3796,6 +3798,14 @@ if (nrow(negative_availability) > 0) {
 
 }
 
+data <-
+  plyr::ddply(
+    data,
+    .variables = c('geographicAreaM49', 'timePointYears'),
+    .fun = function(x) addMissingElements(as.data.table(x), p)
+  )
+
+setDT(data)
 
 
 dbg_print("start outliers")
@@ -3819,13 +3829,13 @@ if (FIX_OUTLIERS == TRUE) {
 
   dout <-
     CJ(
-      measuredItemSuaFbs = unique(data$measuredItemSuaFbs),
-      measuredElementSuaFbs = unique(data$measuredElementSuaFbs),
       geographicAreaM49 = unique(data$geographicAreaM49),
-      timePointYears = unique(data$timePointYears)
+      timePointYears = unique(data$timePointYears),
+      measuredItemSuaFbs = unique(data$measuredItemSuaFbs),
+      measuredElementSuaFbs = unique(data$measuredElementSuaFbs)
     )
 
-  dout <- merge(dout, data, by = sel_vars, all.x = TRUE)
+  dout <- data[dout, on = sel_vars]
 
   dout[is.na(Protected), Protected := FALSE]
 
@@ -3833,7 +3843,7 @@ if (FIX_OUTLIERS == TRUE) {
     `:=`(
       production = Value[measuredElementSuaFbs  == "production"],
       supply     = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
-                       - Value[measuredElementSuaFbs %in% c("exports", "stock_change")],
+                       - Value[measuredElementSuaFbs %in% c("exports", "stockChange")],
                        na.rm = TRUE),
       domsupply  = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
                        na.rm = TRUE)
@@ -3948,7 +3958,7 @@ data_complete_loss <-
     timePointYears = sort(unique(data$timePointYears)))[
       unique(
         data[
-          measuredElementSuaFbs == "loss",
+          measuredElementSuaFbs == "loss" & !is.na(Value),
           c("geographicAreaM49", "measuredItemSuaFbs"),
           with = FALSE
         ]
@@ -3956,7 +3966,6 @@ data_complete_loss <-
       on = "geographicAreaM49",
       allow.cartesian = TRUE
     ]
-
 
 data_complete_loss <-
   merge(
@@ -3994,18 +4003,13 @@ new_elements_loss <-
     with = FALSE
   ]
 
-new_elements_loss_dairy_meat <-
+new_loss_dairy_meat <-
   new_elements_loss[measuredItemSuaFbs %chin% dairy_meat_items]
 
-new_elements_loss_dairy_meat[, new_loss_dm := TRUE]
+new_loss_dairy_meat[, new_loss_dm := TRUE]
 
 data <-
-  merge(
-    data,
-    new_elements_loss_dairy_meat,
-    by = c("geographicAreaM49", "measuredItemSuaFbs"),
-    all.x = TRUE
-  )
+  new_loss_dairy_meat[data, on = c("geographicAreaM49", "measuredItemSuaFbs")]
 
 data[
   new_loss_dm == TRUE & timePointYears >= 2014 & measuredElementSuaFbs == "loss",
@@ -4038,26 +4042,11 @@ uniqueLevels <- unique(data[, c("geographicAreaM49", "timePointYears"), with = F
 
 uniqueLevels <- uniqueLevels[order(geographicAreaM49, timePointYears)]
 
-
-# FIXME: some names are set lowercase, but should be now camelCase
-data[measuredElementSuaFbs == 'foodmanufacturing', measuredElementSuaFbs := 'foodManufacturing']
-data[measuredElementSuaFbs == 'stock_change', measuredElementSuaFbs := 'stockChange']
-
-
-data <-
-  plyr::ddply(
-    data,
-    .variables = c('geographicAreaM49', 'timePointYears'),
-    .fun = function(x) addMissingElements(as.data.table(x), p)
-  )
-
-setDT(data)
-
 data[, stockable := measuredItemSuaFbs %chin% stockable_items]
 
 
 # Remove stocks for non stockable items
-data <- data[!(measuredElementSuaFbs == 'stock_change' & stockable == 'FALSE')]
+data <- data[!(measuredElementSuaFbs == 'stockChange' & stockable == 'FALSE')]
 
 data <- data[measuredElementSuaFbs != 'residual']
 
@@ -4393,7 +4382,7 @@ z_comp_shares <- copy(computed_shares_send)
 z_comp_shares[, Protected_exports := NULL]
 z_comp_shares[, Protected_imports := NULL]
 z_comp_shares[, Protected_production := NULL]
-z_comp_shares[, Protected_stock_change := NULL]
+z_comp_shares[, Protected_stockChange := NULL]
 
 # FIXME: fix above
 z_comp_shares[, Parent := sub("'", "", Parent)]
@@ -4404,7 +4393,7 @@ setcolorder(
   z_comp_shares,
   c("Country", "Country_name", "Parent", "Parent_name",
     "Child", "Child_name", "year", "production", "imports", "exports",
-    "stock_change", "extractionRate", "shareDownUp", "shareUpDown",
+    "stockChange", "extractionRate", "shareDownUp", "shareUpDown",
     "availability", "Pshare", "zero_weigth", "Processed_parent")
 )
 
@@ -4417,7 +4406,7 @@ style_text <- createStyle(numFmt = "TEXT")
 style_comma <- createStyle(numFmt = "COMMA")
 writeData(wb, "SHARES", z_comp_shares)
 
-for (i in c("exports", "imports", "production", "stock_change")) {
+for (i in c("exports", "imports", "production", "stockChange")) {
   a_col <- grep(paste0("^", i, "$"), names(z_comp_shares))
   a_rows <- which(computed_shares_send[[paste0("Protected_", i)]] == TRUE) + 1
 
@@ -4427,7 +4416,7 @@ for (i in c("exports", "imports", "production", "stock_change")) {
 }
 
 addStyle(wb, sheet = "SHARES", style_text, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(Parent|Child)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
-addStyle(wb, sheet = "SHARES", style_comma, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(production|imports|exports|stock_change|availability_parent|processed)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
+addStyle(wb, sheet = "SHARES", style_comma, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(production|imports|exports|stockChange|availability_parent|processed)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
 
 addFilter(wb, "SHARES", row = 1, cols = 1:ncol(z_comp_shares))
 
