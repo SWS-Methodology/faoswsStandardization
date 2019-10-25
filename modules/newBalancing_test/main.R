@@ -3244,16 +3244,28 @@ if (length(primaryInvolvedDescendents) == 0) {
     # children and then we update the shareUpDown of different child commodities
     datamergeNew[, c("shareUpDown_NEW", "Processed_new") := NA_real_]
     
+    # A child is converted up to process of parent if it has a protected production 
+    # with shareUpDown>0, shareDownUp>0 and extractionRate > 0. this avoid issue caused by multiple parent
+    # children with protected production
+    
+    datamergeNew[,
+                 child_DownUp := 
+                   Protected == TRUE & 
+                   shareUpDown>0 &
+                   extractionRate > 0 & 
+                   shareDownUp>0
+                 ]
+    
     # GianLuca suggestion----------------
     
-    datamergeNew[Number_childPro > 0 & extractionRate > 0,
+    datamergeNew[Number_childPro > 0, #& extractionRate > 0,
       #sum_shareUD_high == TRUE,
       Processed_new :=
         sum(
-          production[Protected == TRUE] / extractionRate[Protected == TRUE] * shareDownUp[Protected == TRUE],
+          production[child_DownUp == TRUE] / extractionRate[child_DownUp == TRUE] * shareDownUp[child_DownUp == TRUE],
           na.rm = TRUE
         ) /
-        sum(shareUpDown[Protected == TRUE], na.rm = TRUE),
+        sum(shareUpDown[child_DownUp == TRUE], na.rm = TRUE),
       by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
     ]
 
@@ -3262,13 +3274,12 @@ if (length(primaryInvolvedDescendents) == 0) {
                  ]
     
     datamergeNew[,
-      processed_down_up := sum(Protected == TRUE, na.rm = TRUE) > 0,
-      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
-    ]
+                 processed_down_up := sum(child_DownUp, na.rm = TRUE) > 0 ,
+                 by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+                 ]
     
     datamergeNew[is.na(Processed_new) & processed_down_up==TRUE, Processed_new := 0]
     datamergeNew[Processed_new == 0 & processed_down_up==FALSE, Processed_new := NA_real_]
-    
     
     datamergeNew[
       Protected == TRUE & manual == FALSE,
@@ -3295,10 +3306,9 @@ if (length(primaryInvolvedDescendents) == 0) {
     dataForProc <-
       datamergeNew[,
         c("geographicAreaM49", "timePointYears", "measuredItemParentCPC",
-          "availability", "processedBis", "Processed_new"),
+          "availability","Pshare","Processed", "processedBis", "Processed_new"),
         with = FALSE
       ]
-
     dataForProc <- unique(dataForProc)
     
     dataForProc[
@@ -3306,29 +3316,30 @@ if (length(primaryInvolvedDescendents) == 0) {
       processedBis := Processed_new
     ]
     
-    dataForProc[,
-      Pshare := processedBis / availability,
-      by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
-    ]
+    # cancel the automatic update of Pshare for 2014 onward
+    #However this lines can be kept for futur improvement
     
-    dataForProc[is.nan(Pshare), Pshare := NA_real_]
-    dataForProc[Pshare > 1, Pshare := 1]
-    dataForProc[Pshare < 0, Pshare := 0]
-    
-    dataForProc <-
-      dataForProc[
-        order(geographicAreaM49, measuredItemParentCPC, timePointYears),
-        Pshare_avr := rollavg(Pshare, order = 3),
-        by = c("geographicAreaM49", "measuredItemParentCPC")
-      ]
-
-    setkey(dataForProc, NULL)
-
-    dataForProc[timePointYears > 2013 & is.na(Pshare), Pshare := Pshare_avr]
-
-    dataForProc[, Pshare_avr := NULL]
-
-    dataForProc[, Processed := Pshare * availability]
+    # dataForProc[,
+    #   Pshare := processedBis / availability,
+    #   by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
+    # ]
+    # dataForProc[is.nan(Pshare), Pshare := NA_real_]
+    # dataForProc[Pshare > 1, Pshare := 1]
+    # dataForProc[Pshare < 0, Pshare := 0]
+    # dataForProc <-
+    #   dataForProc[
+    #     order(geographicAreaM49, measuredItemParentCPC, timePointYears),
+    #     Pshare_avr := rollavg(Pshare, order = 3),
+    #     by = c("geographicAreaM49", "measuredItemParentCPC")
+    #   ]
+    # 
+    # setkey(dataForProc, NULL)
+    # 
+    # dataForProc[timePointYears > 2013 & is.na(Pshare), Pshare := Pshare_avr]
+    # 
+    # dataForProc[, Pshare_avr := NULL]
+    # 
+    # dataForProc[, Processed := Pshare * availability]
 
     dataForProc[!is.na(Processed_new), Processed := Processed_new]
 
