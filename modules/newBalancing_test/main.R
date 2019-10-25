@@ -3218,14 +3218,6 @@ if (length(primaryInvolvedDescendents) == 0) {
       by = c(p$parentVar, p$geoVar, p$yearVar)
     ]
     
-    datamergeNew[,
-      Number_childPro1 :=
-        sum(flagObservationStatus == "E" & flagMethod == "f", na.rm = TRUE),
-      by = c(p$parentVar, p$geoVar, p$yearVar)
-    ]
-
-    datamergeNew[, Number_childPro1 := NULL]
-    
     # calculate the number of child of each parent where processed used to be send
     datamergeNew[,
       Number_child := sum(shareUpDown > 0, na.rm = TRUE),
