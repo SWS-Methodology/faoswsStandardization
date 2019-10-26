@@ -691,65 +691,6 @@ newBalancing <- function(data, Utilization_Table) {
 
   }
       
-  ###   for (j in 1:10) {
-
-  ###     # Recalculate imbalance
-  ###     calculateImbalance(data)
-  ###
-  ###     ###    data[,
-  ###     ###      mov_share_rebased := mov_share / sum(mov_share[Protected == FALSE], na.rm = TRUE),
-  ###     ###      by = list(geographicAreaM49, timePointYears, measuredItemSuaFbs)
-  ###     ###    ]
-  ###
-  ###     ###    # Assign remaining imbalance proportionally, using rebased moving shares.
-  ###     ###    data[
-  ###     ###      Protected == FALSE & food_resid == FALSE & outside(imbalance, -100, 100) & !(measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stockChange')),
-  ###     ###      `:=`(
-  ###     ###        Value = Value + mov_share_rebased * imbalance,
-  ###     ###        flagObservationStatus = "E",
-  ###     ###        flagMethod = "u"
-  ###     ###      )
-  ###     ###    ]
-  ###
-  ###
-  ###     if (nrow(data[dplyr::near(imbalance, 0) == FALSE]) > 0) {
-  ###
-  ###       data_level_no_imbalance <- data[dplyr::near(imbalance, 0) == TRUE]
-  ###       data_level_with_imbalance <- data[dplyr::near(imbalance, 0) == FALSE]
-  ###
-  ###       levels_to_balance <- unique(data_level_with_imbalance[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])
-  ###
-  ###       D_adj <- list()
-  ###
-  ###       for (i in 1:nrow(levels_to_balance)) {
-  ###         #print(i) ; flush.console()
-  ###         x <- data_level_with_imbalance[levels_to_balance[i], on = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')]
-  ###
-  ###         x[, adjusted_value := balance_proportional(x)]
-  ###
-  ###         x[
-  ###           !is.na(adjusted_value) & adjusted_value != Value,
-  ###           `:=`(
-  ###             Value = adjusted_value,
-  ###             flagObservationStatus = "E",
-  ###             flagMethod = "-"
-  ###           )
-  ###         ]
-  ###
-  ###         D_adj[[i]] <- x
-  ###
-  ###         rm(x)
-  ###       }
-  ###
-  ###       data_level_with_imbalance <- rbindlist(D_adj)
-  ###
-  ###       data_level_with_imbalance[, adjusted_value := NULL]
-  ###
-  ###       data <- rbind(data_level_with_imbalance, data_level_no_imbalance)
-  ###
-  ###     }
-  ###   }
-  
   # At this point the imbalance (in the best case scenario) should be zero,
   # the following re-calculation is useful only for debugging
   
