@@ -649,46 +649,47 @@ newBalancing <- function(data, Utilization_Table) {
       flagMethod = "h"
     )
   ]
-      for (j in 1:10) {
 
-        # Recalculate imbalance
-        calculateImbalance(data)
+  for (j in 1:10) {
 
-        data[, can_balance := FALSE]
+    # Recalculate imbalance
+    calculateImbalance(data)
 
-        data[
-          !is.na(Value) &
-            Protected == FALSE &
-            !(data.table::between(Value, min_threshold, max_threshold) %in% FALSE) &
-            !(measuredElementSuaFbs %chin%
-              c("production", "imports", "exports", "stockChange", "foodManufacturing")),
-          can_balance := TRUE
-        ]
+    data[, can_balance := FALSE]
 
-        data[,
-          elements_balance := any(can_balance),
-          by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-        ]
-        
-        data[
-          dplyr::near(imbalance, 0) == FALSE &
-            elements_balance == TRUE,
-          adjusted_value := balance_proportional(.SD),
-          by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-        ]
+    data[
+      !is.na(Value) &
+        Protected == FALSE &
+        !(data.table::between(Value, min_threshold, max_threshold) %in% FALSE) &
+        !(measuredElementSuaFbs %chin%
+          c("production", "imports", "exports", "stockChange", "foodManufacturing")),
+      can_balance := TRUE
+    ]
 
-        data[
-          !is.na(adjusted_value) & adjusted_value != Value,
-          `:=`(
-            Value = adjusted_value,
-            flagObservationStatus = "E",
-            flagMethod = "-"
-          )
-        ]
+    data[,
+      elements_balance := any(can_balance),
+      by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+    ]
+    
+    data[
+      dplyr::near(imbalance, 0) == FALSE &
+        elements_balance == TRUE,
+      adjusted_value := balance_proportional(.SD),
+      by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+    ]
 
-        data[, adjusted_value := NULL]
+    data[
+      !is.na(adjusted_value) & adjusted_value != Value,
+      `:=`(
+        Value = adjusted_value,
+        flagObservationStatus = "E",
+        flagMethod = "-"
+      )
+    ]
 
-      }
+    data[, adjusted_value := NULL]
+
+  }
       
   ###   for (j in 1:10) {
 
@@ -3241,12 +3242,12 @@ if (length(primaryInvolvedDescendents) == 0) {
     # children with protected production
     
     datamergeNew[,
-                 child_DownUp := 
-                   Protected == TRUE & 
-                   shareUpDown>0 &
-                   extractionRate > 0 & 
-                   shareDownUp>0
-                 ]
+      child_DownUp :=
+        Protected == TRUE &
+        shareUpDown > 0 &
+        extractionRate > 0 &
+        shareDownUp > 0
+    ]
     
     # GianLuca suggestion----------------
     
@@ -3261,17 +3262,19 @@ if (length(primaryInvolvedDescendents) == 0) {
       by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
     ]
 
-    datamergeNew[, Processed_new := ifelse(is.na(Processed_new),mean(Processed_new,na.rm = TRUE),Processed_new),
-                 by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
-                 ]
+    datamergeNew[,
+      Processed_new := ifelse(is.na(Processed_new), mean(Processed_new, na.rm = TRUE), Processed_new),
+      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    ]
     
     datamergeNew[,
-                 processed_down_up := sum(child_DownUp, na.rm = TRUE) > 0 ,
-                 by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
-                 ]
+      processed_down_up := sum(child_DownUp, na.rm = TRUE) > 0,
+      by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+    ]
     
-    datamergeNew[is.na(Processed_new) & processed_down_up==TRUE, Processed_new := 0]
-    datamergeNew[Processed_new == 0 & processed_down_up==FALSE, Processed_new := NA_real_]
+    datamergeNew[is.na(Processed_new) & processed_down_up == TRUE, Processed_new := 0]
+
+    datamergeNew[Processed_new == 0 & processed_down_up == FALSE, Processed_new := NA_real_]
     
     datamergeNew[
       Protected == TRUE & manual == FALSE,
@@ -3301,6 +3304,7 @@ if (length(primaryInvolvedDescendents) == 0) {
           "availability","Pshare","Processed", "processedBis", "Processed_new"),
         with = FALSE
       ]
+
     dataForProc <- unique(dataForProc)
     
     dataForProc[
@@ -3426,7 +3430,6 @@ if (length(primaryInvolvedDescendents) == 0) {
       ]
 
     estimated_processed <- unique(estimated_processed)
-     
      
     complete_food_proc <-
       CJ(
@@ -3567,13 +3570,18 @@ if (length(primaryInvolvedDescendents) == 0) {
 
     dbg_print("z data for shares to send")
 
-    z <- data[
+    z <-
+      data[
         measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange"),
-        .(geographicAreaM49, timePointYears, measuredItemSuaFbs,
-          measuredElementSuaFbs, Value, Protected, imputed_deriv_value)
-        ]
+        c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs",
+          "measuredElementSuaFbs", "Value", "Protected", "imputed_deriv_value"),
+        with = FALSE
+      ]
 
-    z[measuredElementSuaFbs == 'production' & Protected == FALSE, Value := imputed_deriv_value]
+    z[
+      measuredElementSuaFbs == 'production' & Protected == FALSE,
+      Value := imputed_deriv_value
+    ]
 
     z[, imputed_deriv_value := NULL]
 
