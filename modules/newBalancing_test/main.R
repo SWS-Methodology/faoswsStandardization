@@ -555,27 +555,6 @@ newBalancing <- function(data, Utilization_Table) {
     )
   ]
   
-  
-  if (COUNTRY %in% TourismNoIndustrial) {
-    data[,
-      Value :=
-        ifelse(
-          measuredElementSuaFbs == "industrial" &
-            !is.na(Value[measuredElementSuaFbs == "industrial"]) &
-            !is.na(Value[measuredElementSuaFbs == "tourist"]),
-          ifelse(
-            Value[measuredElementSuaFbs == "industrial"] -
-              Value[measuredElementSuaFbs == "tourist"] < 0,
-            0,
-            Value[measuredElementSuaFbs == "industrial"] -
-              Value[measuredElementSuaFbs == "tourist"]
-          ),
-          Value
-        ),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
-    ]
-  }
-  
   calculateImbalance(data)
   
   # Try to assign the maximum of imbalance to stocks
@@ -703,7 +682,12 @@ newBalancing <- function(data, Utilization_Table) {
       dplyr::near(imbalance, 0) == FALSE &
       measuredElementSuaFbs == "food",
     `:=`(
-      Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, 0)),
+      Value =
+        ifelse(
+          is.na(Value) & imbalance > 0,
+          imbalance,
+          ifelse(Value + imbalance >= 0, Value + imbalance, 0)
+        ),
       flagObservationStatus = "E",
       flagMethod = "h"
     )
@@ -718,7 +702,12 @@ newBalancing <- function(data, Utilization_Table) {
       dplyr::near(imbalance, 0) == FALSE &
       measuredElementSuaFbs == "industrial",
     `:=`(
-      Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
+      Value =
+        ifelse(
+          is.na(Value) & imbalance > 0,
+          imbalance,
+          ifelse(Value + imbalance >= 0, Value + imbalance, Value)
+        ),
       flagObservationStatus = "E",
       flagMethod = "b"
     )
@@ -726,33 +715,46 @@ newBalancing <- function(data, Utilization_Table) {
   
   if (COUNTRY %in% TourismNoIndustrial) {
 
-    data[,
-      Value :=
-        ifelse(
-          measuredElementSuaFbs == "tourist" &
-            !is.na(Value[measuredElementSuaFbs == "industrial"]),
-          ifelse(
-            is.na(Value[measuredElementSuaFbs == "tourist"]),
-            Value[measuredElementSuaFbs == "industrial"],
-            Value[measuredElementSuaFbs == "tourist"] +
-              Value[measuredElementSuaFbs == "industrial"]
-          ),
-          Value
-        ),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+    adj_tour_ind <-
+      dcast(
+        data[
+          measuredItemSuaFbs %chin% Utilization_Table[food_item == "X"]$cpc_code &
+          measuredElementSuaFbs %chin% c("industrial", "tourist")
+        ],
+        geographicAreaM49 + timePointYears + measuredItemSuaFbs ~ measuredElementSuaFbs,
+        value.var = "Value"
+      )
+
+    adj_tour_ind <- adj_tour_ind[industrial > 0]
+
+    adj_tour_ind[, new_tourist := industrial]
+    adj_tour_ind[!is.na(tourist), new_tourist := tourist + industrial]
+
+    adj_tour_ind[, c("industrial", "tourist") := NULL]
+
+    by_vars <- c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+
+    data <- dt_left_join(data, adj_tour_ind, by = by_vars)
+
+    data[
+      !is.na(new_tourist) & measuredElementSuaFbs == "tourist",
+      `:=`(
+        Value = new_tourist,
+        flagObservationStatus = "E",
+        flagMethod = "e"
+      )
     ]
 
-    data[,
-      Value :=
-        ifelse(
-          measuredElementSuaFbs == "industrial" &
-            !is.na(Value[measuredElementSuaFbs == "industrial"]) &
-            !is.na(Value[measuredElementSuaFbs == "tourist"]),
-          NA_real_,
-          Value
-        ),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+    data[
+      !is.na(new_tourist) & measuredElementSuaFbs == "industrial",
+      `:=`(
+        Value = 0,
+        flagObservationStatus = "E",
+        flagMethod = "e"
+      )
     ]
+
+    data[, new_tourist := NULL]
   }
 
   calculateImbalance(data)
@@ -766,7 +768,12 @@ newBalancing <- function(data, Utilization_Table) {
     `:=`(
       # XXX: this creates a warning when no assignment is done:
       # Coerced 'logical' RHS to 'double'
-      Value = ifelse(is.na(Value) & imbalance > 0, imbalance, ifelse(Value + imbalance >= 0, Value + imbalance, Value)),
+      Value =
+        ifelse(
+          is.na(Value) & imbalance > 0,
+          imbalance,
+          ifelse(Value + imbalance >= 0, Value + imbalance, Value)
+        ),
       flagObservationStatus = "E",
       flagMethod = "b"
     )
@@ -3918,8 +3925,58 @@ if (FIX_OUTLIERS == TRUE) {
 
 dbg_print("end outliers")
 
-
 ####################### / OUTLIERS #################################
+
+dbg_print("Fix tourism/industrial")
+
+# In the past, industrial contained what is now tourism =>
+# remove tourism from industrial.
+# XXX: it seems (actually, is) slow.
+if (COUNTRY %in% TourismNoIndustrial) {
+  ind_tour_tab <-
+    data[
+      measuredItemSuaFbs %chin% Utilization_Table[food_item == "X"]$cpc_code &
+        timePointYears >= 2014 &
+        measuredElementSuaFbs %chin% c("industrial", "tourist") &
+        !is.na(Value),
+      .SD[.N == 2], # both industrial and tourism need to be non-missing
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+    ]
+
+  ind_tour_tab <-
+    ind_tour_tab[,
+      .(
+        indNoTour =
+          Value[measuredElementSuaFbs == "industrial"] -
+            Value[measuredElementSuaFbs == "tourist"]
+      ),
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+    ]
+
+  ind_tour_tab[indNoTour < 0, indNoTour := 0]
+
+  data <-
+    dt_left_join(
+      data,
+      ind_tour_tab,
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+    )
+
+  data[
+    measuredElementSuaFbs == "industrial" &
+      !is.na(indNoTour) &
+      Protected == FALSE,
+    `:=`(
+      Value = indNoTour,
+      # XXX: these should not be Ee, but something different
+      flagObservationStatus = "E",
+      flagMethod = "e"
+    )
+  ]
+
+  data[, indNoTour := NULL]
+}
+
 
 fbsTree <- ReadDatatable("fbs_tree")
 
