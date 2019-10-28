@@ -279,7 +279,7 @@ calculateImbalance <- function(data,
   
   stopifnot(is.data.table(data))
   
-  data[,
+  data[measuredElementSuaFbs %!in% c("residual"),
        `:=`(
          supply =
            sum(Value[measuredElementSuaFbs %chin% supply_add],
@@ -440,7 +440,7 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
                              childName = "childID",
                              extractionName = "extractionRate",
                              keyCols = c("timePointYearsSP", "geographicAreaFS"),
-                             notStandChild){
+                             notStandChild,weight="weight"){
   ## Data quality checks
   stopifnot(is(edges, "data.table"))
   stopifnot(c(parentName, childName, extractionName) %in% colnames(edges))
@@ -462,11 +462,11 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
   targetNodes = setdiff(edges[[parentName]], edges[[childName]])
   targetNodes=unique(c(targetNodes,nonstand))
   
-  edgesCopy = copy(edges[, c(parentName, childName, extractionName,
+  edgesCopy = copy(edges[, c(parentName, childName, extractionName,p$shareVar,weight,
                              keyCols), with = FALSE])
  
-  setnames(edgesCopy, c(parentName, childName, extractionName),
-           c("newParent", parentName, "extractionMult"))
+  setnames(edgesCopy, c(parentName, childName, extractionName,p$shareVar,weight),
+           c("newParent", parentName, "extractionMult","share.parent","weight.Parent"))
   finalEdges = edges[get(parentName) %in% targetNodes, ]
   currEdges = edges[!get(parentName) %in% targetNodes, ]
   while(nrow(currEdges) > 0){
@@ -478,7 +478,14 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
                                         newParent)]
     currEdges[, c(extractionName) := get(extractionName) *
                 ifelse(is.na(extractionMult), 1, extractionMult)]
-    currEdges[, c("newParent", "extractionMult") := NULL]
+    
+    currEdges[, c(p$shareVar) := get(p$shareVar) *(share.parent/sum(share.parent,na.rm = TRUE)),
+              by=c(p$geoVar,p$yearVar,childName)
+              ]
+    currEdges[,c(weight):=ifelse(!is.na(weight.Parent),weight.Parent,get(weight))]
+    
+    currEdges[, c("newParent", "extractionMult","share.parent","weight.Parent") := NULL]
+    
     finalEdges = rbind(finalEdges, currEdges[get(parentName) %in% targetNodes, ])
     currEdges = currEdges[!get(parentName) %in% targetNodes, ]
   }
@@ -768,6 +775,8 @@ params$createIntermetiateFile= "TRUE"
 params$protected = "Protected"
 params$official = "Official"
 params$calories = "calories"
+params$proteins = "proteins"
+params$fats = "fats"
 
 
 ##############################################################
@@ -1276,7 +1285,117 @@ message("Loading nutrient data...")
 
 itemKeys = GetCodeList("agriculture", "aupus_ratio", "measuredItemCPC")[, code]
 
+# Nutrients are:
+# 1001 Calories
+# 1003 Proteins
+# 1005 Fats
+nutrientCodes = c("1001", "1003", "1005")
 
+nutrientData = getNutritiveFactors(measuredElement = nutrientCodes,
+                                   timePointYears = as.character(2014:2017),
+                                   geographicAreaM49 = COUNTRY
+                                   )
+setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
+         c("measuredItemSuaFbs", "timePointYears"))
+
+# It has been found that some Nutrient Values are wrong in the Nutrient Data Dataset
+
+######### CREAM SWEDEN 
+
+nutrientData[geographicAreaM49=="752"&measuredItemSuaFbs=="22120"&measuredElement=="1001",Value:=195]
+nutrientData[geographicAreaM49=="752"&measuredItemSuaFbs=="22120"&measuredElement=="1003",Value:=3]
+nutrientData[geographicAreaM49=="752"&measuredItemSuaFbs=="22120"&measuredElement=="1005",Value:=19]
+
+### MILK SWEDEN
+nutrientData[geographicAreaM49%in%c("756","300","250","372","276")&measuredItemSuaFbs=="22251.01"&measuredElement=="1001",Value:=387]
+nutrientData[geographicAreaM49%in%c("756","300","250","372","276")&measuredItemSuaFbs=="22251.01"&measuredElement=="1003",Value:=26]
+nutrientData[geographicAreaM49%in%c("756","300","250","372","276")&measuredItemSuaFbs=="22251.01"&measuredElement=="1005",Value:=30]
+
+nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElement=="1001",Value:=310]
+nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElement=="1003",Value:=23]
+nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElement=="1005",Value:=23]
+
+setnames(nutrientData,"measuredElement","measuredElementSuaFbs")
+nutrientData[get(params$elementVar)=="1001",params$elementVar:=params$calories]
+nutrientData[get(params$elementVar)=="1003",params$elementVar:=params$proteins]
+nutrientData[get(params$elementVar)=="1005",params$elementVar:=params$fats]
+
+
+############################ POPULATION #####################################
+
+key <-
+  DatasetKey(
+    domain = "population",
+    dataset = "population_unpd",
+    dimensions =
+      list(
+        geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
+        measuredElementSuaFbs = Dimension(name = "measuredElement", keys = "511"), # 511 = Total population
+        timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2017))
+      )
+  )
+
+
+popSWS <- GetData(key)
+
+stopifnot(nrow(popSWS) > 0)
+
+popSWS[geographicAreaM49 == "156", geographicAreaM49 := "1248"]
+
+
+############################ / POPULATION ##################################
+
+
+# # Calculate calories
+
+calories_per_capita <-
+  merge(
+    # Food
+    data[
+      measuredElementSuaFbs == "food",
+      list(
+        geographicAreaM49,
+        # measuredElementSuaFbs = "664",
+        measuredItemSuaFbs,
+        timePointYears,
+        food = Value #,
+        # flagObservationStatus = "T",
+        # flagMethod = "i"
+      )
+      ],
+    # Calories
+    nutrientData[,
+                 list(
+                   geographicAreaM49,
+                   measuredItemSuaFbs, #= measuredItemCPC,
+                   timePointYears, #= timePointYearsSP,
+                   measuredElementSuaFbs,
+                   nutrient = Value
+                 )
+                 ],
+    by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
+    all.x = TRUE,
+    allow.cartesian = TRUE
+  )
+# 
+calories_per_capita <-
+  merge(
+    calories_per_capita,
+    popSWS[, list(geographicAreaM49, timePointYears, population = Value)],
+    by = c('geographicAreaM49', 'timePointYears'),
+    all.x = TRUE
+  )
+
+calories_per_capita[, Value := food * nutrient / population / 365 * 10]
+
+#calories_per_capita[, Protected := FALSE]
+calories_per_capita[, flagObservationStatus := "T"]
+calories_per_capita[, flagMethod := "I"]
+
+
+calories_per_capita[, c("food", "nutrient", "population") := NULL]
+
+dataDes<-copy(calories_per_capita)
 #################################################################
 #################################################################
 #################################################################
@@ -1337,8 +1456,8 @@ NonStanditemChild = vector(mode = "list", length = nrow(uniqueLevels))
 #########STANDARDIZATION AND AGGREGATION-----------------------------------
 message("Beginning actual standardization process...")
 
-for (i in seq_len(nrow(uniqueLevels))) {
- #i=1
+ for (i in seq_len(nrow(uniqueLevels))) {
+   # i=1
   
   message(paste("Standardizing ",uniqueLevels$geographicAreaM49[i]," for the year ",uniqueLevels$timePointYears[i]))
   
@@ -1427,6 +1546,9 @@ for (i in seq_len(nrow(uniqueLevels))) {
   dataTest1<-dataTest[standard_child1==FALSE & measuredElementSuaFbs=="production"]
   dataTest1[,measuredElementSuaFbs:="foodManufacturing"]
   
+  # zeroweightBis<-tree[measuredItemParentCPC %in% zeroWeight | measuredItemChildCPC %in% zeroWeight,get(p$childVar)]
+  # 
+  # dataTest1[measuredItemChildCPC %in% zeroweightBis,weight:=0]
   outData1 = dataTest1[, list(
     Value = sum( Value*weight /get(standParams$extractVar)*get(standParams$shareVar), na.rm = TRUE)),
     by = c(standParams$yearVar, standParams$geoVar,
@@ -1442,23 +1564,24 @@ for (i in seq_len(nrow(uniqueLevels))) {
     dataTest2,by=colnames(dataTest)
   )
   
+  
   outData2 = dataTest2[, list(
     Value = sum( Value*weight /get(standParams$extractVar)*get(standParams$shareVar), na.rm = TRUE)),
     by = c(standParams$yearVar, standParams$geoVar,
            "measuredElementSuaFbs", standParams$parentVar)]
   
-  amsa<-copy(dataSubset)
-  amsa<-amsa[,list(geographicAreaM49,measuredItemSuaFbs,measuredElementSuaFbs,timePointYears,Value)]
-  #amsa[,Value.new:=NULL]
-  amsa[,Value.par:=Value]
-  amsa[,Value:=NULL]
+  dataSubset_2<-copy(dataSubset)
+  dataSubset_2<-dataSubset_2[,list(geographicAreaM49,measuredItemSuaFbs,measuredElementSuaFbs,timePointYears,Value)]
+  #dataSubset_2[,Value.new:=NULL]
+  dataSubset_2[,Value.par:=Value]
+  dataSubset_2[,Value:=NULL]
   
-  amsa<-unique(amsa, by=colnames(amsa))
-  setnames(amsa,"measuredItemSuaFbs","measuredItemParentCPC")
+  dataSubset_2<-unique(dataSubset_2, by=colnames(dataSubset_2))
+  setnames(dataSubset_2,"measuredItemSuaFbs","measuredItemParentCPC")
   
   outData2<-merge(
     outData2,
-    amsa,
+    dataSubset_2,
     by=c("geographicAreaM49","measuredItemParentCPC","measuredElementSuaFbs","timePointYears"),
     all.x = TRUE
   )
@@ -1467,7 +1590,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
            Value:=ifelse(measuredItemParentCPC %!in% nonStandChildren,
                          Value+ifelse(is.na(Value.par),0,Value.par),Value)]
   
-  outData2[measuredElementSuaFbs=="production",Value:=Value.par] 
+  outData2[measuredElementSuaFbs=="production",Value:=Value.par] #ToDO: multiply by weight
   
   outData2[,Value.par:=NULL]
   
@@ -1495,6 +1618,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
              list(as.character(get(standParams$parentVar)), as.character(get(standParams$childVar)),
                   as.character(get(standParams$yearVar)), as.character(get(standParams$geoVar)))]
   
+  
   setnames(dataTest, standParams$itemVar, standParams$childVar)
   dataTest = merge(dataTest, treeTest,
                    by = c(standParams$yearVar, standParams$geoVar, standParams$childVar),
@@ -1505,7 +1629,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
              list(get(standParams$childVar), 1, 1)]
   
   dataTest[,missedDES:=mean(Value,na.rm = TRUE)>0 & sum(share,na.rm = TRUE)==0,
-           by = c(standParams$yearVar, standParams$geoVar, standParams$childVar)
+           by = c(standParams$yearVar, standParams$geoVar, standParams$childVar,p$elementVar)
            ]
 
   dataTest[standard_child1==FALSE | missedDES==TRUE,measuredItemParentCPC:=measuredItemChildCPC]
@@ -1518,10 +1642,17 @@ for (i in seq_len(nrow(uniqueLevels))) {
     dataTest,by=names(dataTest)
   )
   
+#   #normalize the shareDownUp
+#   
+#   dataTest[,share:=share/sum(share,na.rm = TRUE),
+#            by = c(standParams$yearVar, standParams$geoVar, standParams$childVar)
+#            ]
+# #/normalize share
+  
+  
   outDes = dataTest[, list(
     Value = sum( Value*get(standParams$shareVar), na.rm = TRUE)),
-    by = c(standParams$yearVar, standParams$geoVar,
-           "measuredElementSuaFbs", standParams$parentVar)]
+    by = c(standParams$yearVar, standParams$geoVar, standParams$parentVar,p$elementVar)]
   
   setnames(outDes,"measuredItemParentCPC","measuredItemSuaFbs")
   outDes<-outDes[,list(measuredElementSuaFbs,timePointYears,geographicAreaM49,measuredItemSuaFbs,Value)]
@@ -1542,7 +1673,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
   names(standData[[i]])[grep("^fbsID", names(standData[[i]]))] <- params$itemVar
   standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))]
   
-}
+ }
 
 
 ##############ITEMS THAT ARE NOT STANDARDIZED##################################################
@@ -1551,6 +1682,7 @@ NonStanditemChild<-unique(NonStanditemChild[,list(geographicAreaM49,measuredItem
 setnames(NonStanditemChild,"measuredItemSuaFbs","measuredItemFbsSua")
 NonStanditemChild<-nameData("suafbs", "sua_balanced", NonStanditemChild)
 
+#if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
 if(length(selectedGEOCode)==1){
   tmp_file_nonStandItemps<- tempfile(pattern = paste0("NON_STANDARDIZED_ITEMS_", COUNTRY_NAME,
                                                       "_"), fileext = '.csv')
@@ -1574,6 +1706,8 @@ codes <- tibble::tribble(
   "5525", "seed",
   "5071", "stockChange",
   "664", "calories",
+  "674", "proteins",
+  "684", "fats",
   "5166", "residual"
 )
 
@@ -1607,20 +1741,25 @@ setnames(fbs_balanced,"measuredItemSuaFbs","measuredItemFbsSua")
 #calculate imbalance for fbs and put it the residual and othe ruses
 
 fbs_residual<-copy(fbs_balanced)
-calculateImbalance(fbs_residual,keep_supply = TRUE,keep_utilizations = FALSE)
+calculateImbalance(data=fbs_residual,keep_supply = TRUE,keep_utilizations = FALSE)
 
 fbs_residual<-
-  fbs_residual[,list(geographicAreaM49,timePointYears,
+  fbs_residual[!is.na(imbalance),list(geographicAreaM49,timePointYears,
                                         measuredItemFbsSua,supply,imbalance)]
 fbs_residual<-unique(fbs_residual,by=c(colnames(fbs_residual)))
 fbs_residual[,imbalance_percentage:=round(imbalance/supply*100,2)]
 
-# fbs_residual[,`:=`(Value=imbalance,
-#                    measuredElementSuaFbs="residual",
-#                    imbalance=NULL)]
-# fbs_residual<-unique(fbs_residual, by=colnames(fbs_residual))
-# 
-# fbs_balanced<-rbind(fbs_balanced,fbs_residual)
+
+
+fbs_residual1<-copy(fbs_balanced)
+calculateImbalance(data=fbs_residual1,keep_supply = FALSE,keep_utilizations = FALSE)
+
+fbs_residual1[,`:=`(Value=imbalance,
+                   measuredElementSuaFbs="residual",
+                   imbalance=NULL)]
+fbs_residual1<-unique(fbs_residual1, by=colnames(fbs_residual1))
+
+fbs_balanced<-rbind(fbs_balanced[measuredElementSuaFbs %!in% c("residual")],fbs_residual1)
 
 
 fbs_balanced <- fbs_balanced[codes, on = c('measuredElementSuaFbs' = 'name')]
@@ -1634,9 +1773,10 @@ SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = fbs_balanced, wait
 #end fbs balanced---------------------------------------
 
 ### File containing imbalances greater that 1 MT----------------------
-fbs_residual_to_send<-fbs_residual[abs(imbalance_percentage)>1]
+fbs_residual_to_send<-fbs_residual[abs(imbalance_percentage)>=1]
 fbs_residual_to_send<-nameData("suafbs", "fbs_balanced_", fbs_residual_to_send)
 
+#if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
 if(length(selectedGEOCode)==1){
   tmp_file_residual<- tempfile(pattern = paste0("FBS_IMBALANCES_", COUNTRY_NAME, "_"), fileext = '.csv')
 }else{
@@ -1655,6 +1795,8 @@ fbs_des_to_send <-
     fun.aggregate = sum,
     value.var = "Value"
   )
+
+#if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
 if(length(selectedGEOCode)==1){
   tmp_file_des<- tempfile(pattern = paste0("FBS_DES_", COUNTRY_NAME, "_"), fileext = '.csv')
 }else{
@@ -1664,7 +1806,7 @@ write.csv(fbs_des_to_send, tmp_file_des)
 #End File containing aggregated DES from FBS-----------------------
 
 #DES comparison: SUA and FBS-----------------
-DEssua<-dataDes[,measuredElementSuaFbs:="664"]
+DEssua<-dataDes[measuredElementSuaFbs=="calories",]
 DEssua<-DEssua[,
        list(Value=sum(Value,na.rm = TRUE)),
        by=c("geographicAreaM49","measuredElementSuaFbs","timePointYears")
@@ -1685,6 +1827,8 @@ setDT(fbs_des_to_send)
 DesFBS<-fbs_des_to_send[measuredItemFbsSua_description=="GRAND TOTAL - DEMAND"]
 DesFBS[,measuredItemFbsSua_description:="DES from FBS"]
 ComparativeDES<-rbind(DEssua,DesFBS)
+
+#if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
 if(length(selectedGEOCode)==1){
   tmp_file_desSuaFbs<- tempfile(pattern = paste0("DES_SUA_vs_FBS_", COUNTRY_NAME, "_"), fileext = '.csv')
 }else{
@@ -1709,6 +1853,7 @@ if(nrow(DESItems_noFBSGroup)>0){
     )
 }
 
+#if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
 if(length(selectedGEOCode)==1){
   tmp_file_noFbsGroup<- tempfile(pattern = paste0("ITEMS_NO_FBSGROUP_", COUNTRY_NAME, "_"), fileext = '.csv')
 }else{
