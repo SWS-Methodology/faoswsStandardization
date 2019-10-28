@@ -3673,115 +3673,9 @@ data_to_save_unbalanced <-
 
 data_to_save_unbalanced <- data_to_save_unbalanced[!is.na(Value)]
 
-#saveRDS(data_to_save_unbalanced, paste0("/tmp/out_", COUNTRY, ".rds"))
 
-out <-
-  SaveData(
-    domain = "suafbs",
-    dataset = "sua_unbalanced",
-    data = data_to_save_unbalanced,
-    waitTimeout = 20000
-  )
 
-if (STOP_AFTER_DERIVED == TRUE) {
-  dbg_print("stop after production of derived")
-
-  if (exists("out")) {
-    
-    print(paste(out$inserted + out$ignored, "derived products written"))
-
-    if (!CheckDebug()) {
-      send_mail(
-        from = "do-not-reply@fao.org",
-        to = swsContext.userEmail,
-        subject = "Production of derived items created",
-        body = paste("The plugin stopped after production of derived items. A file with shareDownUp is available in", sub("/work/SWS_R_Share/", "", shareDownUp_file))
-
-      )
-    }
-    
-  } else {
-    print("The newBalancing plugin had a problem when saving derived data.")
-  }
-
-  stop("Plugin stopped after derived, as requested. This is fine.")
-}
-
-computed_shares_send <- rbindlist(computed_shares_send, fill = TRUE)
-
-# XXX
-computed_shares_send <- unique(computed_shares_send)
-
-colnames(computed_shares_send) <-
-  sub("Value_", "", colnames(computed_shares_send))
-
-setnames(
-  computed_shares_send,
-  c("timePointYears", "measuredItemSuaFbs", "measuredItemParentCPC"),
-  c("year", "measuredItemChildCPC_tree", "measuredItemParentCPC_tree")
-)
-
-computed_shares_send <-
-  nameData(
-    "suafbs",
-    "ess_fbs_commodity_tree2",
-    computed_shares_send
-  )
-
-setnames(
-  computed_shares_send,
-  c("geographicAreaM49", "geographicAreaM49_description",
-    "measuredItemChildCPC_tree", "measuredItemChildCPC_tree_description",
-    "measuredItemParentCPC_tree", "measuredItemParentCPC_tree_description"),
-  c("Country", "Country_name", "Child", "Child_name", "Parent", "Parent_name")
-)
-
-computed_shares_send[, zero_weigth := Child %chin% zeroWeight]
-
-computed_shares_send[, `:=`(Child = paste0("'", Child), Parent = paste0("'", Parent))]
-
-negative_availability <- rbindlist(negative_availability)
-
-if (nrow(negative_availability) > 0) {
-
-  # FIXME: stocks may be generated twice for parents in multiple level,
-  # (though, the resulting figures are the same). Fix in the prod deriv loop.
-  negative_availability <- unique(negative_availability)
-
-  negative_availability_var <-
-    negative_availability[,
-      .(
-        country,
-        year,
-        measuredItemFbsSua,
-        element = "availability",
-        Value = availability,
-        flagObservationStatus = "I",
-        flagMethod = "i"
-      )
-    ]
-
-  negative_availability[, availability := NULL]
-
-  negative_availability <-
-    rbind(
-      negative_availability,
-      unique(negative_availability_var) #FIXME
-    )
-
-  negative_availability <-
-    data.table::dcast(
-      negative_availability,
-      country + measuredItemFbsSua + year ~ element,
-      value.var = "Value"
-    )
-
-  negative_availability <-
-    nameData("suafbs", "sua_unbalanced", negative_availability)
-
-  negative_availability[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
-
-}
+dbg_print("complete data elements")
 
 data <-
   plyr::ddply(
@@ -3793,10 +3687,10 @@ data <-
 setDT(data)
 
 
-dbg_print("start outliers")
-
 ######################## OUTLIERS #################################
 # re-writing of Cristina's outliers plugin with data.table syntax #
+
+dbg_print("start outliers")
 
 if (FIX_OUTLIERS == TRUE) {
 
@@ -3927,6 +3821,10 @@ dbg_print("end outliers")
 
 ####################### / OUTLIERS #################################
 
+
+
+##################### INDUSTRIAL-TOURISM ###############################
+
 dbg_print("Fix tourism/industrial")
 
 # In the past, industrial contained what is now tourism =>
@@ -3976,6 +3874,150 @@ if (COUNTRY %in% TourismNoIndustrial) {
 
   data[, indNoTour := NULL]
 }
+
+##################### / INDUSTRIAL-TOURISM ###############################
+
+data_ind_tour <-
+  data[measuredElementSuaFbs %chin% c("industrial", "tourist")]
+
+setnames(data_ind_tour, "measuredItemSuaFbs", "measuredItemFbsSua")
+
+data_ind_tour <-
+  data_ind_tour[!is.na(Value), names(data_to_save_unbalanced), with = FALSE]
+
+data_ind_tour[
+  measuredElementSuaFbs == "industrial",
+  measuredElementSuaFbs := "5165"
+]
+
+data_ind_tour[
+  measuredElementSuaFbs == "tourist",
+  measuredElementSuaFbs := "5164"
+]
+
+data_to_save_unbalanced <-
+
+data_to_save_unbalanced <- data_to_save_unbalanced[timePointYears >= 2014]
+
+out <-
+  SaveData(
+    domain = "suafbs",
+    dataset = "sua_unbalanced",
+    data = data_to_save_unbalanced,
+    waitTimeout = 20000
+  )
+
+if (STOP_AFTER_DERIVED == TRUE) {
+  dbg_print("stop after production of derived")
+
+  if (exists("out")) {
+
+    print(paste(out$inserted + out$ignored, "derived products written"))
+
+    if (!CheckDebug()) {
+      send_mail(
+        from = "do-not-reply@fao.org",
+        to = swsContext.userEmail,
+        subject = "Production of derived items created",
+        body = paste("The plugin stopped after production of derived items. A file with shareDownUp is available in", sub("/work/SWS_R_Share/", "", shareDownUp_file))
+
+      )
+    }
+
+  } else {
+    print("The newBalancing plugin had a problem when saving derived data.")
+  }
+
+  stop("Plugin stopped after derived, as requested. This is fine.")
+}
+
+
+
+
+
+computed_shares_send <- rbindlist(computed_shares_send, fill = TRUE)
+
+# XXX
+computed_shares_send <- unique(computed_shares_send)
+
+colnames(computed_shares_send) <-
+  sub("Value_", "", colnames(computed_shares_send))
+
+setnames(
+  computed_shares_send,
+  c("timePointYears", "measuredItemSuaFbs", "measuredItemParentCPC"),
+  c("year", "measuredItemChildCPC_tree", "measuredItemParentCPC_tree")
+)
+
+computed_shares_send <-
+  nameData(
+    "suafbs",
+    "ess_fbs_commodity_tree2",
+    computed_shares_send
+  )
+
+setnames(
+  computed_shares_send,
+  c("geographicAreaM49", "geographicAreaM49_description",
+    "measuredItemChildCPC_tree", "measuredItemChildCPC_tree_description",
+    "measuredItemParentCPC_tree", "measuredItemParentCPC_tree_description"),
+  c("Country", "Country_name", "Child", "Child_name", "Parent", "Parent_name")
+)
+
+computed_shares_send[, zero_weigth := Child %chin% zeroWeight]
+
+computed_shares_send[, `:=`(Child = paste0("'", Child), Parent = paste0("'", Parent))]
+
+negative_availability <- rbindlist(negative_availability)
+
+if (nrow(negative_availability) > 0) {
+
+  # FIXME: stocks may be generated twice for parents in multiple level,
+  # (though, the resulting figures are the same). Fix in the prod deriv loop.
+  negative_availability <- unique(negative_availability)
+
+  negative_availability_var <-
+    negative_availability[,
+      .(
+        country,
+        year,
+        measuredItemFbsSua,
+        element = "availability",
+        Value = availability,
+        flagObservationStatus = "I",
+        flagMethod = "i"
+      )
+    ]
+
+  negative_availability[, availability := NULL]
+
+  negative_availability <-
+    rbind(
+      negative_availability,
+      unique(negative_availability_var) #FIXME
+    )
+
+  negative_availability <-
+    data.table::dcast(
+      negative_availability,
+      country + measuredItemFbsSua + year ~ element,
+      value.var = "Value"
+    )
+
+  negative_availability <-
+    nameData("suafbs", "sua_unbalanced", negative_availability)
+
+  negative_availability[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+
+}
+
+
+
+
+
+
+
+
 
 
 fbsTree <- ReadDatatable("fbs_tree")
@@ -4079,8 +4121,11 @@ uniqueLevels <- uniqueLevels[order(geographicAreaM49, timePointYears)]
 data[, stockable := measuredItemSuaFbs %chin% stockable_items]
 
 
-# Remove stocks for non stockable items
-data <- data[!(measuredElementSuaFbs == 'stockChange' & stockable == 'FALSE')]
+## Remove stocks for non stockable items
+#data <- data[!(measuredElementSuaFbs == 'stockChange' &
+#               stockable == FALSE &
+#               flagObservationStatus != "E" &
+#               flagMethod != "f")]
 
 data <- data[measuredElementSuaFbs != 'residual']
 
