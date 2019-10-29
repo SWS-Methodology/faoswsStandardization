@@ -639,7 +639,7 @@ newBalancing <- function(data, Utilization_Table) {
     data[
       !is.na(Value) &
         Protected == FALSE &
-        !(data.table::between(Value, min_threshold, max_threshold) %in% FALSE) &
+        !(data.table::between(Value, min_threshold, max_threshold, incbounds = FALSE) %in% FALSE) &
         !(measuredElementSuaFbs %chin%
           c("production", "imports", "exports", "stockChange", "foodManufacturing")),
       can_balance := TRUE
@@ -4632,7 +4632,7 @@ if (nrow(standData[data.table::between(imbalance_percent, -5, 5)]) > 0) {
   standData[
     !is.na(Value) &
       Protected == FALSE &
-      !(data.table::between(Value, min_threshold, max_threshold) %in% FALSE) &
+      !(data.table::between(Value, min_threshold, max_threshold, incbounds = FALSE) %in% FALSE) &
       !(measuredElementSuaFbs %chin%
         c("production", "imports", "exports", "stockChange", "foodManufacturing")),
     can_balance := TRUE
