@@ -716,7 +716,7 @@ newBalancing <- function(data, Utilization_Table) {
   if (COUNTRY %in% TourismNoIndustrial) {
 
     adj_tour_ind <-
-      dcast(
+      data.table::dcast(
         data[
           measuredItemSuaFbs %chin% Utilization_Table[food_item == "X"]$cpc_code &
           measuredElementSuaFbs %chin% c("industrial", "tourist")
@@ -4340,49 +4340,6 @@ if (THRESHOLD_METHOD == 'share') {
     )
   ]
 
-  data[, supply := NULL]
-  
-} else if (THRESHOLD_METHOD == "sharequartile") {
-  
-  dbg_print("thresholds, sharequartile")
-  
-  data[,
-    supply :=
-      sum(
-        Value[measuredElementSuaFbs %in% c('production', 'imports')],
-        - Value[measuredElementSuaFbs %in% c('exports', 'stockChange')],
-        na.rm = TRUE
-      ),
-    by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-  ]
-  
-  data[supply < 0, supply := 0]
-  
-  data[, util_share := Value / supply]
-  
-  data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
-  
-  data[,
-    `:=`(
-      min_util_share = quantile(util_share[timePointYears %in% 2000:2013], 0.25, na.rm = TRUE),
-      max_util_share = quantile(util_share[timePointYears %in% 2000:2013], 0.75, na.rm = TRUE)
-    ),
-    by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
-  ]
-  
-  data[is.infinite(min_util_share) | is.nan(min_util_share), min_util_share := NA_real_]
-  
-  data[is.infinite(max_util_share) | is.nan(max_util_share), max_util_share := NA_real_]
-  
-  data[max_util_share > 1, max_util_share := 1]
-  
-  data[,
-    `:=`(
-      min_threshold = supply * min_util_share,
-      max_threshold = supply * max_util_share
-    )
-  ]
-  
   data[, supply := NULL]
   
 } else {
