@@ -649,24 +649,28 @@ newBalancing <- function(data, Utilization_Table) {
       elements_balance := any(can_balance),
       by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
     ]
-    
-    data[
-      dplyr::near(imbalance, 0) == FALSE &
-        elements_balance == TRUE,
-      adjusted_value := balance_proportional(.SD),
-      by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-    ]
 
-    data[
-      !is.na(adjusted_value) & adjusted_value != Value,
-      `:=`(
-        Value = adjusted_value,
-        flagObservationStatus = "E",
-        flagMethod = "-"
-      )
-    ]
+    if (nrow(data[dplyr::near(imbalance, 0) == FALSE & elements_balance == TRUE]) == 0) {
+      break()
+    } else {
+      data[
+        dplyr::near(imbalance, 0) == FALSE &
+          elements_balance == TRUE,
+        adjusted_value := balance_proportional(.SD),
+        by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+      ]
 
-    data[, adjusted_value := NULL]
+      data[
+        !is.na(adjusted_value) & adjusted_value != Value,
+        `:=`(
+          Value = adjusted_value,
+          flagObservationStatus = "E",
+          flagMethod = "-"
+        )
+      ]
+
+      data[, adjusted_value := NULL]
+    }
 
   }
       
@@ -3895,7 +3899,7 @@ data_ind_tour[
   measuredElementSuaFbs := "5164"
 ]
 
-data_to_save_unbalanced <-
+data_to_save_unbalanced <- rbind(data_to_save_unbalanced, data_ind_tour)
 
 data_to_save_unbalanced <- data_to_save_unbalanced[timePointYears >= 2014]
 
@@ -4642,24 +4646,27 @@ if (nrow(standData[data.table::between(imbalance_percent, -5, 5)]) > 0) {
     elements_balance := any(can_balance),
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
+
+  if (nrow(standData[data.table::between(imbalance_percent, -5, 5) & elements_balance == TRUE]) > 0) {
   
-  standData[
-    data.table::between(imbalance_percent, -5, 5) &
-      elements_balance == TRUE,
-    adjusted_value := balance_proportional(.SD),
-    by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
-  ]
+    standData[
+      data.table::between(imbalance_percent, -5, 5) &
+        elements_balance == TRUE,
+      adjusted_value := balance_proportional(.SD),
+      by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+    ]
 
-  standData[
-    !is.na(adjusted_value) & adjusted_value != Value,
-    `:=`(
-      Value = adjusted_value,
-      flagObservationStatus = "E",
-      flagMethod = "n"
-    )
-  ]
+    standData[
+      !is.na(adjusted_value) & adjusted_value != Value,
+      `:=`(
+        Value = adjusted_value,
+        flagObservationStatus = "E",
+        flagMethod = "n"
+      )
+    ]
 
-  standData[, adjusted_value := NULL]
+    standData[, adjusted_value := NULL]
+  }
 }
 
 calculateImbalance(standData)
@@ -4724,6 +4731,14 @@ saveRDS(
 
 ######################### / Save BAL for validation #######################
 
+
+saveRDS(
+  computed_shares_send,
+  file.path(R_SWS_SHARE_PATH, 'mongeau', paste0('computed_shares_send_', COUNTRY, '.rds'))
+)
+
+
+
 imbalances <-
   unique(
     standData[,
@@ -4750,57 +4765,78 @@ imbalances_to_send <-
       flag = paste(flagObservationStatus, flagMethod, sep = ","))
   ]
 
-imbalances_to_send <-
-  data.table::dcast(
-    imbalances_to_send,
-    country + measuredItemSuaFbs + year ~ element,
-    value.var = c("value", "flag")
-  )
+if (nrow(imbalances_to_send) > 0) {
 
-names(imbalances_to_send) <- sub("value_", "", names(imbalances_to_send))
+  imbalances_to_send <-
+    data.table::dcast(
+      imbalances_to_send,
+      country + measuredItemSuaFbs + year ~ element,
+      value.var = c("value", "flag")
+    )
 
-imbalances_to_send <-
-  dt_left_join(
-    imbalances_to_send,
-    unique(standData[, .(country = geographicAreaM49, year = timePointYears,
-                         measuredItemSuaFbs, supply, utilizations, imbalance,
-                         imbalance_percent)]),
-    by = c("country", "year", "measuredItemSuaFbs")
-  )
+  names(imbalances_to_send) <- sub("value_", "", names(imbalances_to_send))
 
-d_imbal_info <-
-  imbalances_to_send[,
-    .(country, year, measuredItemSuaFbs,
-      supply = round(supply, 2),
-      imbalance = round(imbalance, 2),
-      perc_imb = round(abs(imbalance / supply) * 100, 2))
-  ]
+  imbalances_to_send <-
+    dt_left_join(
+      imbalances_to_send,
+      unique(standData[, .(country = geographicAreaM49, year = timePointYears,
+                           measuredItemSuaFbs, supply, utilizations, imbalance,
+                           imbalance_percent)]),
+      by = c("country", "year", "measuredItemSuaFbs")
+    )
 
-imbalances_info <-
-  c(
-    all_items = nrow(unique(standData[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])),
-    imb_tot = nrow(d_imbal_info),
-    imb_pos_supply = nrow(d_imbal_info[supply > 0]),
-    imb_gt_5percent = nrow(d_imbal_info[supply > 0][perc_imb > 5]),
-    imb_avg_percent = d_imbal_info[supply > 0, mean(abs(perc_imb))]
-  )
+  d_imbal_info <-
+    imbalances_to_send[,
+      .(country, year, measuredItemSuaFbs,
+        supply = round(supply, 2),
+        imbalance = round(imbalance, 2),
+        perc_imb = round(abs(imbalance / supply) * 100, 2))
+    ]
 
-setnames(imbalances_to_send, "measuredItemSuaFbs", "measuredItemFbsSua")
+  imbalances_info <-
+    c(
+      all_items = nrow(unique(standData[, .(geographicAreaM49, timePointYears, measuredItemSuaFbs)])),
+      imb_tot = nrow(d_imbal_info),
+      imb_pos_supply = nrow(d_imbal_info[supply > 0]),
+      imb_gt_5percent = nrow(d_imbal_info[supply > 0][perc_imb > 5]),
+      imb_avg_percent = d_imbal_info[supply > 0, mean(abs(perc_imb))]
+    )
 
-imbalances_to_send <-
-  nameData('suafbs', 'sua_unbalanced', imbalances_to_send,
-           except = c('measuredElementSuaFbs'))
+  setnames(imbalances_to_send, "measuredItemSuaFbs", "measuredItemFbsSua")
 
-imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+  imbalances_to_send <-
+    nameData('suafbs', 'sua_unbalanced', imbalances_to_send,
+             except = c('measuredElementSuaFbs'))
 
-data_negtrade <-
-  imbalances_to_send[
-    utilizations == 0 &
-      imbalance < 0 &
-      round(imbalance, 10) == round(supply, 10)
-  ]
+  imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
-data_negtrade[, imbalance_percent := NULL]
+  data_negtrade <-
+    imbalances_to_send[
+      utilizations == 0 &
+        imbalance < 0 &
+        round(imbalance, 10) == round(supply, 10)
+    ]
+
+  data_negtrade[, imbalance_percent := NULL]
+} else {
+  imbalances_to_send <-
+    data.table(
+      info = c("Great, no imbalances!",
+               "Well, at least not greater than 100 tonnes in absolute value")
+    )
+
+  data_negtrade <- imbalances_to_send
+
+  imbalances_info <-
+    c(
+      all_items = 0,
+      imb_tot = 0,
+      imb_pos_supply = 0,
+      imb_gt_5percent = 0,
+      imb_avg_percent = 0
+    )
+}
+
 
 non_existing_for_imputation <-
   data.table(measuredItemFbsSua = non_existing_for_imputation)
@@ -4810,17 +4846,12 @@ non_existing_for_imputation <-
 
 non_existing_for_imputation[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
+
 write.csv(imbalances_to_send,          tmp_file_imb)
+write.csv(data_negtrade,               tmp_file_NegNetTrade)
 write.csv(negative_availability,       tmp_file_negative)
 write.csv(non_existing_for_imputation, tmp_file_non_exist)
 write.csv(fixed_proc_shares,           tmp_file_fix_shares)
-write.csv(data_negtrade,               tmp_file_NegNetTrade)
-
-saveRDS(
-  computed_shares_send,
-  file.path(R_SWS_SHARE_PATH, 'mongeau', paste0('computed_shares_send_', COUNTRY, '.rds'))
-)
-
 
 
 
