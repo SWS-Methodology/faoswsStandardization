@@ -536,7 +536,6 @@ newBalancing <- function(data, Utilization_Table) {
         - Value[measuredElementSuaFbs %chin% c('exports')],
         na.rm = TRUE
       ),
-    # year is quite unnecessary, but let's use it in any case
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
   
@@ -3816,6 +3815,10 @@ if (FIX_OUTLIERS == TRUE) {
         flagObservationStatus = "E",
         flagMethod = "e")
       ]
+
+    data_outliers <-
+      data[!is.na(Value_imputed) &
+           measuredElementSuaFbs %in% c("feed", "seed", "loss", "industrial")]
     
     data[, Value_imputed := NULL]
   }
@@ -3884,22 +3887,35 @@ if (COUNTRY %in% TourismNoIndustrial) {
 data_ind_tour <-
   data[measuredElementSuaFbs %chin% c("industrial", "tourist")]
 
-setnames(data_ind_tour, "measuredItemSuaFbs", "measuredItemFbsSua")
+if (nrow(data_ind_tour) > 0) {
 
-data_ind_tour <-
-  data_ind_tour[!is.na(Value), names(data_to_save_unbalanced), with = FALSE]
+  setnames(data_ind_tour, "measuredItemSuaFbs", "measuredItemFbsSua")
 
-data_ind_tour[
-  measuredElementSuaFbs == "industrial",
-  measuredElementSuaFbs := "5165"
-]
+  data_ind_tour <-
+    data_ind_tour[!is.na(Value), names(data_to_save_unbalanced), with = FALSE]
 
-data_ind_tour[
-  measuredElementSuaFbs == "tourist",
-  measuredElementSuaFbs := "5164"
-]
+  data_ind_tour[
+    measuredElementSuaFbs == "industrial",
+    measuredElementSuaFbs := "5165"
+  ]
 
-data_to_save_unbalanced <- rbind(data_to_save_unbalanced, data_ind_tour)
+  data_ind_tour[
+    measuredElementSuaFbs == "tourist",
+    measuredElementSuaFbs := "5164"
+  ]
+
+  data_to_save_unbalanced <- rbind(data_to_save_unbalanced, data_ind_tour)
+}
+
+if (exists("data_outliers")) {
+  setnames(data_outliers, c("measuredItemSuaFbs", "measuredElementSuaFbs"), c("measuredItemFbsSua", "name"))
+
+  data_outliers <- dt_left_join(data_outliers, codes, by = "name")
+
+  data_outliers <- data_outliers[, names(data_to_save_unbalanced), with = FALSE]
+
+  data_to_save_unbalanced <- rbind(data_to_save_unbalanced, data_outliers)
+}
 
 data_to_save_unbalanced <- data_to_save_unbalanced[timePointYears >= 2014]
 
