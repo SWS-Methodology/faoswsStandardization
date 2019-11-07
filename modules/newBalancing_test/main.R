@@ -44,6 +44,11 @@ USER <- regmatches(
   regexpr("(?<=/).+$", swsContext.username, perl = TRUE)
 )
 
+if (!file.exists(file.path(R_SWS_SHARE_PATH, USER))) {
+  dir.create(file.path(R_SWS_SHARE_PATH, USER))
+}
+
+
 STOP_AFTER_DERIVED <- as.logical(swsContext.computationParams$stop_after_derived)
 
 THRESHOLD_METHOD <- 'share'
@@ -78,6 +83,7 @@ p$official <- "Official"
 
 shareDownUp_file <-
   file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_", COUNTRY, ".csv"))
+
 
 tourist_cons_table <- ReadDatatable("keep_tourist_consumption")
 
@@ -2731,9 +2737,9 @@ shareDownUp_save[,
   )
 ]
 
-if (!file.exists(dirname(shareDownUp_file))) {
-  dir.create(dirname(tmp_file_outliers), recursive = TRUE)
-}
+#if (!file.exists(dirname(shareDownUp_file))) {
+#  dir.create(dirname(tmp_file_outliers), recursive = TRUE)
+#}
 
 write.csv(shareDownUp_save, shareDownUp_file, row.names = FALSE)
 
