@@ -666,7 +666,7 @@ newBalancing <- function(data, Utilization_Table) {
       ]
 
       data[
-        !is.na(adjusted_value) & adjusted_value != Value,
+        !is.na(adjusted_value) & !dplyr::near(adjusted_value, Value),
         `:=`(
           Value = adjusted_value,
           flagObservationStatus = "E",
@@ -4632,7 +4632,15 @@ standData[measuredElementSuaFbs == "seed", Protected := TRUE]
 
 dbg_print("balancing of imbalances < 5%")
 
-if (nrow(standData[data.table::between(imbalance_percent, -5, 5)]) > 0) {
+standData[, small_imb := FALSE]
+
+standData[
+  data.table::between(imbalance_percent, -5, -0.01) |
+    data.table::between(imbalance_percent, 0.01, 5),
+  small_imb := TRUE
+]
+
+if (nrow(standData[small_imb == TRUE]) > 0) {
 
   standData[, can_balance := FALSE]
 
@@ -4669,11 +4677,10 @@ if (nrow(standData[data.table::between(imbalance_percent, -5, 5)]) > 0) {
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
 
-  if (nrow(standData[data.table::between(imbalance_percent, -5, 5) & elements_balance == TRUE]) > 0) {
+  if (nrow(standData[small_imb == TRUE & elements_balance == TRUE]) > 0) {
   
     standData[
-      data.table::between(imbalance_percent, -5, 5) &
-        elements_balance == TRUE,
+      small_imb == TRUE & elements_balance == TRUE,
       adjusted_value := balance_proportional(.SD),
       by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
     ]
