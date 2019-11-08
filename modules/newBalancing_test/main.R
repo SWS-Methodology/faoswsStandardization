@@ -5335,19 +5335,7 @@ des_cast <-
 
 des_cast <- nameData("suafbs", "sua_balanced", des_cast)
 
-# The "000" is a trick so that it appears in first place after ordering
-des_cast[
-  measuredItemFbsSua == "S2901",
-  measuredItemFbsSua_description :=
-    paste0("000", measuredItemFbsSua_description)
-]
-
-des_cast <- des_cast[order(measuredItemFbsSua_description)]
-
-des_cast[,
-  measuredItemFbsSua_description :=
-    sub("^000", "", measuredItemFbsSua_description)
-]
+setorderv(des_cast, names(des_cast)[ncol(des_cast)], order = -1)
 
 
 # Main items, more then 90%
@@ -5358,7 +5346,8 @@ des_main_90 <-
     .(tot = sum(Value)),
     by = c("geographicAreaM49", "measuredItemFbsSua")
   ][
-    order(-tot),
+    order(-tot)
+  ][,
     cumsum := cumsum(tot)
   ]
 
