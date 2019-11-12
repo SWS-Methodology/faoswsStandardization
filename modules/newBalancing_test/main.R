@@ -4114,7 +4114,10 @@ data <-
   new_loss_dairy_meat[data, on = c("geographicAreaM49", "measuredItemSuaFbs")]
 
 data[
-  new_loss_dm == TRUE & timePointYears >= 2014 & measuredElementSuaFbs == "loss",
+  new_loss_dm == TRUE &
+    timePointYears >= 2014 &
+    measuredElementSuaFbs == "loss" &
+    Protected == FALSE,
   `:=`(
     Value = NA_real_,
     flagObservationStatus = NA_character_,
