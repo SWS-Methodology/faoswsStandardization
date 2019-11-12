@@ -1084,9 +1084,6 @@ zeroWeight <- ReadDatatable("zero_weight")[, item_code]
 
 flagValidTable <- ReadDatatable("valid_flags")
 
-# XXX: we decided to unprotect E,e (replaced outliers)
-flagValidTable[flagObservationStatus == 'E' & flagMethod == 'e', Protected := FALSE]
-
 # XXX: we need to unprotect I,c because it was being assigned
 # to imputation of production of derived which is NOT protected.
 # This will need to change in the next exercise.
@@ -2508,7 +2505,7 @@ if (nrow(data_shareUpDown_sws) == 0) {
   
   #If a new connection parent-child is added, the shareUpDown of all the children are affected
   #So we overwrite the share of all the children of the parent in the new connection
- new_connection<- data_ShareUpDoawn_final[!data_ShareUpDoawn_to_use,
+  new_connection<- data_ShareUpDoawn_final[!data_ShareUpDoawn_to_use,
                                           on = c('geographicAreaM49', 'measuredItemParentCPC',
                                                  'measuredItemChildCPC', 'timePointYears')
                                           ]
@@ -3846,6 +3843,12 @@ if (FIX_OUTLIERS == TRUE) {
 dbg_print("end outliers")
 
 ####################### / OUTLIERS #################################
+
+
+# We decided to unprotect E,e (replaced outliers). Done after they are
+# replaced (i.e., if initially an Ee exists, it should remain; they need
+# to be unprotected for balancing.
+flagValidTable[flagObservationStatus == 'E' & flagMethod == 'e', Protected := FALSE]
 
 
 
