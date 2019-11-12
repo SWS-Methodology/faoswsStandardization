@@ -746,7 +746,13 @@ newBalancing <- function(data, Utilization_Table) {
     data <- dt_left_join(data, adj_tour_ind, by = by_vars)
 
     data[
-      !is.na(new_tourist) & measuredElementSuaFbs == "tourist",
+      measuredElementSuaFbs %in% c("industrial", "tourist"),
+      any_protected := any(Protected == TRUE),
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+    ]
+
+    data[
+      !is.na(new_tourist) & measuredElementSuaFbs == "tourist" & any_protected == FALSE,
       `:=`(
         Value = new_tourist,
         flagObservationStatus = "E",
@@ -755,7 +761,7 @@ newBalancing <- function(data, Utilization_Table) {
     ]
 
     data[
-      !is.na(new_tourist) & measuredElementSuaFbs == "industrial",
+      !is.na(new_tourist) & measuredElementSuaFbs == "industrial" & any_protected == FALSE,
       `:=`(
         Value = 0,
         flagObservationStatus = "E",
@@ -763,7 +769,7 @@ newBalancing <- function(data, Utilization_Table) {
       )
     ]
 
-    data[, new_tourist := NULL]
+    data[, c("any_protected", "new_tourist") := NULL]
   }
 
   calculateImbalance(data)
@@ -1083,6 +1089,13 @@ stockable_items <- Utilization_Table[stock == 'X', cpc_code]
 zeroWeight <- ReadDatatable("zero_weight")[, item_code]
 
 flagValidTable <- ReadDatatable("valid_flags")
+
+
+# We decided to unprotect E,e (replaced outliers). Done after they are
+# replaced (i.e., if initially an Ee exists, it should remain; they need
+# to be unprotected for balancing.
+flagValidTable[flagObservationStatus == 'E' & flagMethod == 'e', Protected := FALSE]
+
 
 # XXX: we need to unprotect I,c because it was being assigned
 # to imputation of production of derived which is NOT protected.
@@ -3737,6 +3750,9 @@ if (FIX_OUTLIERS == TRUE) {
 
   dout[is.na(Protected), Protected := FALSE]
 
+  # Protecting here Ee as we should not correct already corrected outliers
+  dout[flagObservationStatus == "E" & flagMethod == "e", Protected := TRUE]
+
   dout[,
     `:=`(
       production = Value[measuredElementSuaFbs  == "production"],
@@ -3760,7 +3776,7 @@ if (FIX_OUTLIERS == TRUE) {
   dout[,
     `:=`(
       mean_ratio = mean(ratio[timePointYears %in% 2011:2013], na.rm = TRUE),
-      Meanold    = mean(Value[timePointYears < 2014], na.rm = TRUE)
+      Meanold    = mean(Value[timePointYears %in% 2011:2013], na.rm = TRUE)
     ),
     by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
   ]
@@ -3829,7 +3845,8 @@ if (FIX_OUTLIERS == TRUE) {
       `:=`(
         Value = Value_imputed,
         flagObservationStatus = "E",
-        flagMethod = "e")
+        flagMethod = "e",
+        Protected = TRUE)
       ]
 
     data_outliers <-
@@ -3845,16 +3862,13 @@ dbg_print("end outliers")
 ####################### / OUTLIERS #################################
 
 
-# We decided to unprotect E,e (replaced outliers). Done after they are
-# replaced (i.e., if initially an Ee exists, it should remain; they need
-# to be unprotected for balancing.
-flagValidTable[flagObservationStatus == 'E' & flagMethod == 'e', Protected := FALSE]
-
-
 
 ##################### INDUSTRIAL-TOURISM ###############################
 
 dbg_print("Fix tourism/industrial")
+
+data[, Protected_orig := Protected]
+data[flagObservationStatus == "E" & flagMethod == "e", Protected := TRUE]
 
 # In the past, industrial contained what is now tourism =>
 # remove tourism from industrial.
@@ -3869,6 +3883,15 @@ if (COUNTRY %in% TourismNoIndustrial) {
       .SD[.N == 2], # both industrial and tourism need to be non-missing
       by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
     ]
+
+  ind_tour_tab[,
+    any_protected := any(Protected == TRUE),
+    by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+  ]
+
+  ind_tour_tab <- ind_tour_tab[any_protected == FALSE]
+
+  ind_tour_tab[, any_protected := FALSE]
 
   ind_tour_tab <-
     ind_tour_tab[,
@@ -3895,7 +3918,7 @@ if (COUNTRY %in% TourismNoIndustrial) {
       Protected == FALSE,
     `:=`(
       Value = indNoTour,
-      # XXX: these should not be Ee, but something different
+      # XXX: probably other flags (initially protected, then unprotected)
       flagObservationStatus = "E",
       flagMethod = "e"
     )
@@ -3903,6 +3926,9 @@ if (COUNTRY %in% TourismNoIndustrial) {
 
   data[, indNoTour := NULL]
 }
+
+data[, Protected := Protected_orig]
+data[, Protected_orig := NULL]
 
 ##################### / INDUSTRIAL-TOURISM ###############################
 
@@ -3972,7 +3998,6 @@ if (STOP_AFTER_DERIVED == TRUE) {
 
   stop("Plugin stopped after derived, as requested. This is fine.")
 }
-
 
 
 
