@@ -2506,14 +2506,27 @@ if (nrow(data_shareUpDown_sws) == 0) {
     data_ShareUpDoawn_to_use[, colnames(data_ShareUpDoawn_final), with = FALSE]
   
   
+  #If a new connection parent-child is added, the shareUpDown of all the children are affected
+  #So we overwrite the share of all the children of the parent in the new connection
+ new_connection<- data_ShareUpDoawn_final[!data_ShareUpDoawn_to_use,
+                                          on = c('geographicAreaM49', 'measuredItemParentCPC',
+                                                 'measuredItemChildCPC', 'timePointYears')
+                                          ]
+  
   # rbind with anti_join
   data_ShareUpDoawn_final <-
     rbind(
-      data_ShareUpDoawn_to_use,
+      data_ShareUpDoawn_to_use[!new_connection,           #we exclude parent included in the new connection
+                               on = c('geographicAreaM49', 
+                                      'measuredItemParentCPC',
+                                      'timePointYears')],
       data_ShareUpDoawn_final[
-        !data_ShareUpDoawn_to_use,
-        on = c('geographicAreaM49', 'measuredItemParentCPC',
-               'measuredItemChildCPC', 'timePointYears')
+        new_connection[,c('geographicAreaM49', 
+                          'measuredItemParentCPC', 
+                          'timePointYears'),with=FALSE],
+        on = c('geographicAreaM49', 
+               'measuredItemParentCPC', 
+               'timePointYears')
       ],
       fill = TRUE
     )
