@@ -1228,7 +1228,12 @@ opening_stocks_2014 <-
                    paste(shQuote(COUNTRY, type = "sh"), collapse = ", "), ")")
   )
 
-stopifnot(nrow(opening_stocks_2014) > 0)
+# The procedure works even if no previous opening stocks  exists, but in that
+# case there is no way to know if data does not exist because there was an
+# issue downloading data or because it actually does not exist. Luckily there
+# are many calls to SWS, which should fail if there are issues: it is unlikely
+# that only this one fails.
+#stopifnot(nrow(opening_stocks_2014) > 0)
 
 non_null_prev_deltas <-
   unique(
