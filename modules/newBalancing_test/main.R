@@ -5729,7 +5729,19 @@ if (exists("out")) {
   
   unlink(TMP_DIR, recursive = TRUE)
 
-  print(paste(out$inserted + out$ignored, "observations written and problems with", out$discarded))
+  out[c("inserted", "appended", "ignored", "discarded")] <-
+    lapply(
+      out[c("inserted", "appended", "ignored", "discarded")],
+      function(x) ifelse(is.na(x[[1]]), 0, x[[1]])
+    )
+
+  last_msg <- paste(out$inserted + out$appended, "observations written")
+
+  if (out$discarded + out$ignored > 0) {
+    last_msg <- paste(last_msg, "and issues with", out$discarded + out$ignored)
+  }
+
+  print(last_msg)
   
 } else {
   
