@@ -932,7 +932,7 @@ saveRDS(
     -grepl("measuredElementSuaFbs", names(tree)),
     with = FALSE
   ],
-  file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "tree.rds")
+  file.path(R_SWS_SHARE_PATH, "FBSvalidation", COUNTRY, "tree.rds")
 )
 
 tree_to_send <-
@@ -4253,7 +4253,7 @@ sua_unbalanced <- rbind(sua_unbalanced, sua_unbalanced_aux)
 
 saveRDS(
   sua_unbalanced,
-  file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "sua_unbalanced.rds")
+  file.path(R_SWS_SHARE_PATH, "FBSvalidation", COUNTRY, "sua_unbalanced.rds")
 )
 
 ######################### Save UNB for validation #######################
@@ -4803,7 +4803,7 @@ sua_balanced <- rbind(sua_balanced, sua_balanced_aux)
 
 saveRDS(
   sua_balanced,
-  file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "sua_balanced.rds")
+  file.path(R_SWS_SHARE_PATH, "FBSvalidation", COUNTRY, "sua_balanced.rds")
 )
 
 
@@ -5279,7 +5279,7 @@ des <-
 
 des[, Value := round(Value, 2)]
 
-f_des <- file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "des.rds")
+f_des <- file.path(R_SWS_SHARE_PATH, "FBSvalidation", COUNTRY, "des.rds")
 
 if (file.exists(f_des)) {
   file.copy(f_des, sub("des\\.rds", "des_prev.rds", f_des))
