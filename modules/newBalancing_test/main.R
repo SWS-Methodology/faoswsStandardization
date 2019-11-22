@@ -5741,6 +5741,20 @@ if (exists("out")) {
     last_msg <- paste(last_msg, "and issues with", out$discarded + out$ignored)
   }
 
+  f <- file.path(R_SWS_SHARE_PATH, "FBSvalidation", "reference", "plugin_success.txt")
+
+  if (file.exists(f)) {
+
+    f <- read.delim(f, header = FALSE, stringsAsFactors = FALSE)
+
+    last_msg <- paste0("<div>", last_msg, "</div><br />",
+                       "<div style = \"color: red; font-size: 20px; text-align: center;\">",
+                       f[, sample(2:ncol(f), 1)][1],
+                       "</div><br /><div style = \"color: red; font-size: 20px; background-size: ",
+                       "300px 200px; width: 300; height: 200px; background-image: url('",
+                       f[1, 1], "')\"></div>")
+  }
+
   print(last_msg)
   
 } else {
