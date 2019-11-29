@@ -925,6 +925,22 @@ tree[
   )
 ]
 
+#correction of milk tree for Czechia TO DO: generalize for the next round
+
+tree[
+  timePointYears >= 2014 & geographicAreaM49=="203" &
+  
+  #“whole milk powder”  from whole cow milk cannot come from skim mulk of cow
+    ((measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22211") |
+       #“whole milk condensed” from whole cow milk cannot come from skim mulk of cow
+       (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22222.01")),
+  `:=`(
+    Value = NA,
+    flagObservationStatus = "M",
+    flagMethod = "n"
+  )
+  ]
+
 
 saveRDS(
   tree[
