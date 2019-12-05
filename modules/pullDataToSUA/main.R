@@ -33,6 +33,8 @@ library(faosws)
 library(data.table)
 library(faoswsUtil)
 library(sendmailR)
+library(dtplyr)
+library(tidyr)
 
 oldProductionCode = "51"
 foodCode = "5141"
@@ -49,8 +51,7 @@ suaTouristCode = "5164"
 # Convert tourism units to tonnes
 # touristConversionFactor = -1/1000
 touristConversionFactor = 1
-# warning("Stocks is change in stocks, not absolute! This needs to be changed")
-stocksCode = "5071"
+stocksCode = c("5113", "5071") # 5113 = opening, 5071 = variation
 
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
@@ -162,6 +163,8 @@ message("Pulling data from industrial domain")
 indEleDim = Dimension(name = "measuredElement",
                       keys = industrialCode)
 
+geoDim = Dimension(name = "geographicAreaM49", keys = selectedGEOCode)
+
 indKey = DatasetKey(domain = "agriculture", dataset = "aproduction",
                     dimensions = list(
                       geographicAreaM49 = geoDim,
@@ -235,23 +238,62 @@ lossData = GetData(lossKey)
 ################################################
 #####      Harvest from Tourism Domain     #####
 ################################################
+tourist_cons_table <- ReadDatatable("keep_tourist_consumption")
 
-message("Pulling data from Tourist")
-eleTourDim = Dimension(name = "tourismElement",
-                       keys = touristCode)
-tourKey = DatasetKey(domain = "tourism", dataset = "tourismprod",
-                     dimensions = list(
-                       geographicAreaM49 = geoDim,
-                       tourismElement = eleTourDim,
-                       measuredItemCPC = itemDim,
-                       timePointYears = timeDim)
-)
-tourData = GetData(tourKey)
-tourData[, `:=`(tourismElement = suaTouristCode,
-                Value = Value * touristConversionFactor)]
-setnames(tourData, c("tourismElement", "measuredItemCPC"),
-         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+stopifnot(nrow(tourist_cons_table) > 0)
 
+TourGeoKeys <- tourist_cons_table$tourist
+
+tourData <- data.table()
+
+if (selectedGEOCode %in% TourGeoKeys) {
+
+  TourGeoKeys <- TourGeoKeys[TourGeoKeys==selectedGEOCode]
+
+  TourGeoDim <- Dimension(name = "geographicAreaM49", TourGeoKeys)
+
+  message("Pulling data from Tourist")
+
+  eleTourDim <- Dimension(name = "tourismElement",
+                         keys = touristCode)
+  tourKey <- DatasetKey(domain = "tourism", dataset = "tourismprod",
+                       dimensions = list(
+                         geographicAreaM49 = TourGeoDim,
+                         tourismElement = eleTourDim,
+                         measuredItemCPC = itemDim,
+                         timePointYears = timeDim)
+  )
+
+  tourData <- GetData(tourKey)
+
+  tourData[, `:=`(tourismElement = suaTouristCode,
+                  Value = Value * touristConversionFactor)]
+  setnames(tourData, c("tourismElement", "measuredItemCPC"),
+           c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+}
+
+if (nrow(tourData) > 0) {
+
+  tourData <- as.data.frame(tourData)
+
+  tourData <- unique(tourData)
+
+  tourData$timePointYears <- as.integer(tourData$timePointYears)
+
+  tourData <- tourData %>%
+    dplyr::group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs) %>%
+    tidyr::complete(timePointYears=min(timePointYears):2017,nesting(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs))%>%
+    dplyr::arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs,timePointYears) %>%
+    tidyr::fill(Value,.direction="down") %>%
+    tidyr::fill(flagObservationStatus,.direction="down") %>%
+    tidyr::fill(flagMethod,.direction="down") %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(geographicAreaM49,measuredItemSuaFbs,timePointYears)
+
+  tourData$timePointYears <- as.character(tourData$timePointYears)
+
+  tourData <- as.data.table(tourData)
+}
 
 ################################################
 #####       Harvest from Trade Domain      #####
@@ -403,17 +445,44 @@ setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
 ################################################
 
 message("Merging data files together and saving")
+if((nrow(indData)>0)&(nrow(tourData)>0)){
+Tourism_Industrial = rbind(tourData,indData)
+Tourism_Industrial = as.data.frame(Tourism_Industrial)
+Tourism_Industrial = dplyr::select(Tourism_Industrial,-flagObservationStatus,-flagMethod)
+Tourism_Industrial = tidyr::spread(Tourism_Industrial,measuredElementSuaFbs,Value)
+Tourism_Industrial$`5164`[is.na(Tourism_Industrial$`5164`)] = 0
+Tourism_Industrial = Tourism_Industrial %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(`5165` = `5165` - `5164`) %>%
+  dplyr::ungroup()
+Tourism_Industrial$`5165`[Tourism_Industrial$`5165`<0&!is.na(Tourism_Industrial$`5165`)] = 0
+Tourism_Industrial = tidyr::gather(Tourism_Industrial,measuredElementSuaFbs,Value,-c(geographicAreaM49,
+                                                                              measuredItemSuaFbs,
+                                                                              timePointYears))
+Industrial = dplyr::filter(Tourism_Industrial,measuredElementSuaFbs=="5165")
+Industrial = as.data.table(Industrial)
+Industrial$flagObservationStatus = "I"
+Industrial$flagMethod = "e"
+out = rbind(agData, stockData,foodData, lossData, tradeData, tourData,Industrial)
+}
+if((nrow(indData)==0)|(nrow(tourData)==0)){
 out = rbind(agData, stockData,foodData, lossData, tradeData, tourData,indData)
-#protected data
-#### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
-# now we have to delete all the wrong values:
-# THE FOLLOWING STEPS HAVE BEEN COMMENTED BECAUSE THEY SHOULD NOT BE NEEDED
-# the data might have to be corrected from the questionnaires
+}
 
-cropsOfficialFood = c("0111","0112","0113","0115","0116","0117","01199.02","01801","01802")
-out[!geographicAreaM49%in%c("604")&measuredItemSuaFbs%in%cropsOfficialFood
-     &measuredElementSuaFbs=="5141"
-     ,Value:=NA]
+# NOTE: on 20190911 the removal of items below was commented out after
+# discussion with TF about cases where food for important items was
+# missing (e.g., Maize in Brazil)
+###   #protected data
+###   #### CRISTINA: after havig discovered that for crops , official food values are Wrong and have to be deleted. 
+###   # now we have to delete all the wrong values:
+###   # THE FOLLOWING STEPS HAVE BEEN COMMENTED BECAUSE THEY SHOULD NOT BE NEEDED
+###   # the data might have to be corrected from the questionnaires
+###   
+###   cropsOfficialFood = c("0111","0112","0113","0115","0116","0117","01199.02","01801","01802")
+###   out[!geographicAreaM49%in%c("604")&measuredItemSuaFbs%in%cropsOfficialFood
+###        &measuredElementSuaFbs=="5141"
+###        ,Value:=NA]
+
 # only for Japan, delete also Food of Rice Milled.
 out[geographicAreaM49=="392"&measuredElementSuaFbs=="5141"&measuredItemSuaFbs=="23161.02",Value:=0]
 
