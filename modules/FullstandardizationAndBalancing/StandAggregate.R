@@ -279,7 +279,8 @@ calculateImbalance <- function(data,
   
   stopifnot(is.data.table(data))
   
-  data[measuredElementSuaFbs %!in% c("residual"),
+  data[measuredElementSuaFbs %!in% c("residual","TotalCalories","TotalProteins",
+                                     "TotalFats","calories","proteins","fats"),
        `:=`(
          supply =
            sum(Value[measuredElementSuaFbs %chin% supply_add],
@@ -626,16 +627,22 @@ computeFbsAggregate = function(data, fbsTree, standParams){
                   by = c(standParams$elementVar, standParams$yearVar,
                          standParams$geoVar, "fbsID3")]
   
-  out[[3]] = data[get(standParams$elementVar) %in% c(standParams$calories, 
+  out[[3]] = data[ get(standParams$elementVar) %in% c(standParams$calories, 
                                                      standParams$proteins,
-                                                     standParams$fats), 
+                                                     standParams$fats,
+                                                     "TotalCalories",
+                                                     "TotalProteins",
+                                                     "TotalFats"), 
                   list(Value = sum(Value, na.rm = TRUE)),
                   by = c(standParams$elementVar, standParams$yearVar,
                          standParams$geoVar, "fbsID2")]
   
   out[[4]] = data[get(standParams$elementVar) %in% c(standParams$calories, 
                                                      standParams$proteins,
-                                                     standParams$fats), 
+                                                     standParams$fats,
+                                                     "TotalCalories",
+                                                     "TotalProteins",
+                                                     "TotalFats"), 
                   list(Value = sum(Value, na.rm = TRUE)),
                   by = c(standParams$elementVar, standParams$yearVar,
                          standParams$geoVar, "fbsID1")]
@@ -789,7 +796,7 @@ NonStandardizedChidren<-function(fbsTree,tree,standParams){
 #QUick way to have the exact shareDownUp
 #LoadShareUpDowm
 shareUpDownTree=getShareUpDownTree(areaKeys,as.character(2000:2017)) 
-shareUpDownTree[is.na(Value),Value:=0]
+shareUpDownTree<-shareUpDownTree[!is.na(Value)]
 shareUpDownTree[,shareUpDown:=Value]
 shareUpDownTree[,Value:=NULL]
 shareUpDownTree[,flagObservationStatus:=NULL]
@@ -886,7 +893,7 @@ fbs_balancedData=fbs_balancedData[timePointYears%in%yearVals]
 fbs_balancedData[, Value := NA_real_]
 fbs_balancedData[, CONFIG$flags := NA_character_]
 
-SaveData(CONFIG$domain, CONFIG$dataset , data = fbs_balancedData, waitTimeout = Inf)
+# SaveData(CONFIG$domain, CONFIG$dataset , data = fbs_balancedData, waitTimeout = Inf)
 
 ##############################################################
 #################### SET KEYS FOR DATA #######################
@@ -962,6 +969,20 @@ data[measuredElementSuaFbs=="stock_change",measuredElementSuaFbs:="stockChange"]
 #data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
 message("delete null elements")
 data=data[!is.na(measuredElementSuaFbs)]
+
+data_residual<-copy(data)
+setnames(data_residual,"measuredItemSuaFbs" ,"measuredItemFbsSua")
+calculateImbalance(data=data_residual,keep_supply = FALSE,keep_utilizations = FALSE)
+
+data_residual[,`:=`(Value=imbalance,
+                    measuredElementSuaFbs="residual",
+                    imbalance=NULL)]
+
+setnames(data_residual,"measuredItemFbsSua","measuredItemSuaFbs")
+
+data_residual<-unique(data_residual, by=colnames(data))
+
+data<-rbind(data[measuredElementSuaFbs %!in% c("residual")],data_residual)
 
 #Sua balanced DES
 # dataDes<-SuabalData[get(params$elementVar) %in% desKeys]
@@ -1729,6 +1750,10 @@ data[flagObservationStatus%in%c("","T"),Protected:=TRUE]
 # will be merged with this original data object
 dataFlags = copy(data)
 
+
+
+
+
 ##############################################################
 # For DERIVED select only the protected and the estimation 
 # (coming from the submodule of derived and Livestock)
@@ -1904,16 +1929,36 @@ calories_per_capita <-
     all.x = TRUE
   )
 
-calories_per_capita[, Value := food * nutrient / population / 365 * 10]
 
 #calories_per_capita[, Protected := FALSE]
 calories_per_capita[, flagObservationStatus := "T"]
 calories_per_capita[, flagMethod := "I"]
 
+calories_per_capita_total<-copy(calories_per_capita)
+
+
+calories_per_capita[, Value := food * nutrient / population / 365 * 10]
 
 calories_per_capita[, c("food", "nutrient", "population") := NULL]
 
-dataDes<-copy(calories_per_capita)
+# calories_per_capita_total<-copy(calories_per_capita)
+
+calories_per_capita_total[, Value := food * nutrient/100]
+calories_per_capita_total[, c("food", "nutrient", "population") := NULL]
+
+
+calories_per_capita_total[measuredElementSuaFbs=="calories",
+                          measuredElementSuaFbs:="TotalCalories"]
+
+calories_per_capita_total[measuredElementSuaFbs=="proteins",
+                          measuredElementSuaFbs:="TotalProteins"]
+
+calories_per_capita_total[measuredElementSuaFbs=="fats",
+                          measuredElementSuaFbs:="TotalFats"]
+
+
+
+dataDes<-rbind(calories_per_capita,calories_per_capita_total)
 #################################################################
 #################################################################
 #################################################################
@@ -1947,14 +1992,20 @@ aggFun = function(x) {
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
 standData0 = vector(mode = "list", length = nrow(uniqueLevels))
+standQTY=vector(mode = "list", length = nrow(uniqueLevels))
 NonStanditemChild = vector(mode = "list", length = nrow(uniqueLevels))
+
+onlyCalories<-c("39120.01","23140.01","23220.02","39130.01","39120.02","39120.03",
+                "23120.02","23140.06","39120.04","39130.02",	"39120.05","39120.06",
+                "39120.07","39120.08","39120.09","39120.10","39120.11","39120.12","39120.13",
+                "23180","23999.02","23540","39120.14","22130.01","22290","22270","23993.01")
 
 #########STANDARDIZATION AND AGGREGATION-----------------------------------
 message("Beginning actual standardization process...")
 
  #
-  for (i in seq_len(nrow(uniqueLevels))) {
-               # i=4
+ for (i in seq_len(nrow(uniqueLevels))) {
+                  # i=4
   
   message(paste("Standardizing ",uniqueLevels$geographicAreaM49[i]," for the year ",uniqueLevels$timePointYears[i]))
   
@@ -2017,6 +2068,8 @@ message("Beginning actual standardization process...")
   
   treeSubset[,weight:=1]
   treeSubset[measuredItemChildCPC %in% zeroWeight , weight:=0]
+  treeSubset[measuredItemChildCPC %in% onlyCalories , weight:=0]
+  
   #**************************************
   #data<-dataSubset
   #tree<-treeSubset
@@ -2103,6 +2156,13 @@ standardization<-function(dataQTY=dataSubset,
           c(params$parentVar, params$extractVar, params$shareVar,"weight") :=
             list(get(params$childVar), 1, 1,0)]
   
+  dataQTY[get(params$childVar) %in% onlyCalories, weight:=0]
+  #Cut this connection for Korea
+  dataQTY[get(params$childVar)=="24230.01", share:=0]
+  
+  
+  
+  
   dataQTY_pprocessed<-dataQTY[standard_child==FALSE & get(params$elementVar)==c(params$productionCode)]
   
   dataQTY_pprocessed[,params$elementVar:=params$foodProcCode]
@@ -2151,10 +2211,14 @@ standardization<-function(dataQTY=dataSubset,
   
   #WEIGH correction
   dataQTY_other[get(params$childVar) %!in% nonStandChildren & standard_child==FALSE, weight:=0]
+  dataQTY_other[get(params$childVar) %in% onlyCalories, weight:=0]
+  
   
   outDataQTY_other = dataQTY_other[, list(
     Value = sum( Value*weight /get(params$extractVar)*get(params$shareVar), na.rm = TRUE)),
     by = c(params$yearVar, params$geoVar,params$elementVar, params$parentVar)]
+  
+  
   
   dataQTY_prod<-copy(dataSubset)
   dataQTY_prod<-dataQTY[,
@@ -2237,156 +2301,26 @@ standardization<-function(dataQTY=dataSubset,
   
   setnames(out,params$parentVar,params$itemVar)
   
-  return(out)
+  
+  
+  #Standardized file
+  standardizeQty<-rbind(dataQTY_other,dataQTY_pprocessed)
+  standardizeQty<-standardizeQty[,list(geographicAreaM49,timePointYears,measuredItemParentCPC,
+                                       measuredItemChildCPC,measuredElementSuaFbs,
+                                       Value,flagObservationStatus,flagMethod,extractionRate,share,
+                                       standard_child,weight,Stand_Value=Value/extractionRate*share*weight)]
+  
+  output<-list(fbs=out,stand=standardizeQty)
+  
+  return(output)
 }
 
-out=standardization(dataSubset,dataDesSubset,treeTest,standParams)
-#   ## Merge the tree with the node data
-#   treeTest[, c(standParams$parentVar, standParams$childVar, standParams$yearVar, standParams$geoVar) :=
-#              list(as.character(get(standParams$parentVar)), as.character(get(standParams$childVar)),
-#                   as.character(get(standParams$yearVar)), as.character(get(standParams$geoVar)))]
-#   
-#   
-#   #coorection of some weight (in principale this should be done in the SUA caluclation)
-#   treeTest[measuredItemChildCPC=="22241.01",weight:=1] #Butter of cow milk
-#   treeTest[measuredItemChildCPC=="22120",weight:=1]  #Cream fresh
-#   
-#   
-#   setnames(dataTest, standParams$itemVar, standParams$childVar)
-#   dataTest = merge(dataTest, treeTest,
-#                    by = c(standParams$yearVar, standParams$geoVar, standParams$childVar),
-#                    all.x = TRUE, allow.cartesian = TRUE)
-#   
-#   dataTest[is.na(get(standParams$parentVar)),
-#            c(standParams$parentVar, standParams$extractVar, standParams$shareVar,"weight") :=
-#              list(get(standParams$childVar), 1, 1,1)]
-#   
-#   dataTest1<-dataTest[standard_child==FALSE & measuredElementSuaFbs=="production"]
-#   dataTest1[,measuredElementSuaFbs:="foodManufacturing"]
-#   
-#   # zeroweightBis<-tree[measuredItemParentCPC %in% zeroWeight | measuredItemChildCPC %in% zeroWeight,get(p$childVar)]
-#   # 
-#   # dataTest1[measuredItemChildCPC %in% zeroweightBis,weight:=0]
-#   outData1 = dataTest1[, list(
-#     Value = sum( Value*weight /get(standParams$extractVar)*get(standParams$shareVar), na.rm = TRUE)),
-#     by = c(standParams$yearVar, standParams$geoVar,
-#            "measuredElementSuaFbs", standParams$parentVar)]
-#   
-#   dataTest2<-dataTest[ measuredElementSuaFbs!="foodManufacturing"]
-#   
-#   dataTest2[measuredItemChildCPC %in% nonStandChildren,
-#            c(standParams$parentVar, standParams$extractVar, standParams$shareVar) :=
-#              list(get(standParams$childVar), 1, 1)]
-#   
-#   dataTest2<-unique(
-#     dataTest2,by=colnames(dataTest)
-#   )
-#   
-#   #WEIGH correction
-#   
-#   dataTest2[measuredItemChildCPC %!in% nonStandChildren & standard_child==FALSE, weight:=0]
-#   
-#   outData2 = dataTest2[, list(
-#     Value = sum( Value*weight /get(standParams$extractVar)*get(standParams$shareVar), na.rm = TRUE)),
-#     by = c(standParams$yearVar, standParams$geoVar,
-#            "measuredElementSuaFbs", standParams$parentVar)]
-#   
-#   dataSubset_2<-copy(dataSubset)
-#   dataSubset_2<-dataSubset_2[,list(geographicAreaM49,measuredItemSuaFbs,measuredElementSuaFbs,timePointYears,Value)]
-#   #dataSubset_2[,Value.new:=NULL]
-#   dataSubset_2[,Value.par:=Value]
-#   dataSubset_2[,Value:=NULL]
-#   
-#   dataSubset_2<-unique(dataSubset_2, by=colnames(dataSubset_2))
-#   setnames(dataSubset_2,"measuredItemSuaFbs","measuredItemParentCPC")
-#   
-#   outData2<-merge(
-#     outData2,
-#     dataSubset_2,
-#     by=c("geographicAreaM49","measuredItemParentCPC","measuredElementSuaFbs","timePointYears"),
-#     all.x = TRUE
-#   )
-#   
-#   # outData2[measuredElementSuaFbs!="production",
-#   #          Value:=ifelse(measuredItemParentCPC %!in% nonStandChildren,
-#   #                        Value+ifelse(is.na(Value.par),0,Value.par),Value)]
-#   
-#   outData2[measuredElementSuaFbs=="production",Value:=Value.par] #ToDO: multiply by weight
-#   
-#   outData2[,Value.par:=NULL]
-#   
-#   outData1<-outData1[,list(geographicAreaM49,measuredItemParentCPC,measuredElementSuaFbs,timePointYears,Value)]
-#   outData2<-outData2[,list(geographicAreaM49,measuredItemParentCPC,measuredElementSuaFbs,timePointYears,Value)]
-#   
-#   out<-rbind(outData1,outData2)
-#   
-#   setnames(out,"measuredItemParentCPC","measuredItemSuaFbs")
-#   out<-out[,list(measuredElementSuaFbs,timePointYears,geographicAreaM49,measuredItemSuaFbs,Value)]
-#   #standardize quantities
-#   
-#   #DES AGGREGATION
-#   
-#   dataTest<-copy(dataDesSubset)
-#   
-#   standKey = standParams$mergeKey[standParams$mergeKey != standParams$itemVar]
-#   treeTest = collapseEdges_NEW(edges = treeSubset, parentName = standParams$parentVar,
-#                            childName = standParams$childVar,
-#                            extractionName = standParams$extractVar,
-#                            keyCols = standKey, notStandChild = nonStandChildren)
-#   
-#   ## Merge the tree with the node data
-#   treeTest[, c(standParams$parentVar, standParams$childVar, standParams$yearVar, standParams$geoVar) :=
-#              list(as.character(get(standParams$parentVar)), as.character(get(standParams$childVar)),
-#                   as.character(get(standParams$yearVar)), as.character(get(standParams$geoVar)))]
-#   
-#   
-#   setnames(dataTest, standParams$itemVar, standParams$childVar)
-#   dataTest = merge(dataTest, treeTest,
-#                    by = c(standParams$yearVar, standParams$geoVar, standParams$childVar),
-#                    all.x = TRUE, allow.cartesian = TRUE)
-#   
-#   dataTest[is.na(get(standParams$parentVar)) | measuredItemChildCPC%in% nonStandChildren,
-#            c(standParams$parentVar, standParams$extractVar, standParams$shareVar) :=
-#              list(get(standParams$childVar), 1, 1)]
-#   
-#   dataTest[,missedDES:=mean(Value,na.rm = TRUE)>0 & sum(share,na.rm = TRUE)==0,
-#            by = c(standParams$yearVar, standParams$geoVar, standParams$childVar,p$elementVar)
-#            ]
-# 
-#   dataTest[measuredItemChildCPC %in% nonStandChildren | missedDES==TRUE,
-#            `:=`(measuredItemParentCPC=measuredItemChildCPC,share=1,
-#                 standard_child=FALSE)]
-#   
-#   
-#   # dataTest[measuredItemChildCPC %in% nonStandChildren | missedDES==TRUE,measuredItemParentCPC:=measuredItemChildCPC]
-#   # dataTest[measuredItemChildCPC %in% nonStandChildren | missedDES==TRUE,share:=1]
-#   
-#   dataTest[,weight:=1]
-#   dataTest[,standParams$extractVar:=1]
-#   
-#   dataTest<-unique(
-#     dataTest,by=names(dataTest)
-#   )
-#   
-# #   #normalize the shareDownUp
-# #   
-# #   dataTest[,share:=share/sum(share,na.rm = TRUE),
-# #            by = c(standParams$yearVar, standParams$geoVar, standParams$childVar)
-# #            ]
-# # #/normalize share
-#   
-#   
-#   outDes = dataTest[, list(
-#     Value = sum( Value*get(standParams$shareVar), na.rm = TRUE)),
-#     by = c(standParams$yearVar, standParams$geoVar, standParams$parentVar,p$elementVar)]
-#   
-#   setnames(outDes,"measuredItemParentCPC","measuredItemSuaFbs")
-#   outDes<-outDes[,list(measuredElementSuaFbs,timePointYears,geographicAreaM49,measuredItemSuaFbs,Value)]
-#   
-#   out = rbind(out,outDes)
-  
-  
+output=standardization(dataSubset,dataDesSubset,treeTest,standParams)
+out=output$fbs
+
   standData0[[i]] <- out
+  standQTY[[i]] <- output$stand
+  
   # STEP 7: Aggregate to FBS Level
   if(is.null(fbsTree)){
     # If no FBS tree, just return SUA-level results
@@ -2402,6 +2336,7 @@ out=standardization(dataSubset,dataDesSubset,treeTest,standParams)
 }
 
 ##############ITEMS THAT ARE NOT STANDARDIZED##################################################
+standQTY<-rbindlist(standQTY)
 NonStanditemChild<-rbindlist(NonStanditemChild)
 NonStanditemChild<-unique(NonStanditemChild[,list(geographicAreaM49,measuredItemSuaFbs)], by=c(p$geoVar,p$itemVar))
 setnames(NonStanditemChild,"measuredItemSuaFbs","measuredItemFbsSua")
@@ -2434,7 +2369,10 @@ codes <- tibble::tribble(
   "674", "proteins",
   "684", "fats",
   "5166", "residual",
-  "5164", "tourist"
+  "5164", "tourist",
+  "261", "TotalCalories",
+  "271", "TotalProteins",
+  "281", "TotalFats"
 )
 
 setDT(codes)
@@ -2445,11 +2383,27 @@ fbs_standardized[,`:=`(flagObservationStatus="I",
                        flagMethod="s")]
 setnames(fbs_standardized,"measuredItemSuaFbs","measuredItemFbsSua")
 setDT(fbs_standardized)
+
+
+
+fbsstand_residual<-copy(fbs_standardized)
+
+calculateImbalance(data=fbsstand_residual,keep_supply = FALSE,keep_utilizations = FALSE)
+
+fbsstand_residual[,`:=`(Value=imbalance,
+                    measuredElementSuaFbs="residual",
+                    imbalance=NULL)]
+fbsstand_residual<-unique(fbsstand_residual, by=colnames(fbsstand_residual))
+
+fbs_standardized<-rbind(fbs_standardized[measuredElementSuaFbs %!in% c("residual")],fbs_standardized)
+
+
 fbs_standardized <- fbs_standardized[codes, on = c('measuredElementSuaFbs' = 'name')]
 fbs_standardized[,measuredElementSuaFbs:=code]
 fbs_standardized[,code:=NULL]
 fbs_standardized[is.na(Value),flagObservationStatus:=NA]
 fbs_standardized[is.na(Value),flagMethod:=NA]
+fbs_standardized<-fbs_standardized[measuredElementSuaFbs %!in% c("261","271","281")]
 
 
 message("saving FBS standardized...")
@@ -2518,17 +2472,157 @@ SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = popData, waitTimeo
 
 #end fbs balanced---------------------------------------
 
+######################
+
+
+# data_residual<-copy(data)
+# setnames(data_residual,"measuredItemSuaFbs" ,"measuredItemFbsSua")
+# calculateImbalance(data=data_residual,keep_supply = FALSE,keep_utilizations = FALSE)
+# 
+# data_residual[,`:=`(Value=imbalance,
+#                     measuredElementSuaFbs="residual",
+#                     imbalance=NULL)]
+# 
+# setnames(data_residual,"measuredItemFbsSua","measuredItemSuaFbs")
+# 
+# data_residual<-unique(data_residual, by=colnames(data))
+# 
+# data<-rbind(data[measuredElementSuaFbs %!in% c("residual")],data_residual)
+
+Item_with_unbalanced<-
+  data[measuredElementSuaFbs=="residual"][,
+                                          balanced:=ifelse(abs(Value)<1000,TRUE,FALSE)][balanced==FALSE]
+
+Item_with_unbalanced<-merge(
+  Item_with_unbalanced,
+  fbsTree,
+  by=c(p$itemVar),
+  allow.cartesian = TRUE,
+  all.x = TRUE
+)
+
+Item_with_unbalanced<-Item_with_unbalanced[!is.na(fbsID4) & (measuredItemSuaFbs %!in% onlyCalories),
+                                           list(geographicAreaM49,timePointYears,
+                                                measuredItemFbsSua=paste0("S",fbsID4),
+                                                measuredItemSuaFbs)
+                                           ]
+Item_with_unbalanced<-unique(Item_with_unbalanced,by=c(colnames(Item_with_unbalanced)))
+
+
+Item_with_unbalanced<-aggregate(
+  measuredItemSuaFbs ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
+          Item_with_unbalanced, paste0, collapse = "; ")
+
+# Item_with_unbalanced<-as.data.frame(Item_with_unbalanced)
+# Item_with_unbalanced<-Item_with_unbalanced %>% 
+#   group_by(geographicAreaM49,fbsID4,timePointYears) %>% 
+#   summarise(unbalancedItem=toString(measuredItemSuaFbs)) %>% 
+#   ungroup() %>% 
+#   mutate(measuredItemFbsSua=paste0("S",fbsID4))
+# 
+# setDT(Item_with_unbalanced)
+
+
+balanceSUA<-data[measuredItemSuaFbs %in% primaryEl & measuredElementSuaFbs=="residual"]
+balanceSUA<-balanceSUA[measuredItemSuaFbs %!in% onlyCalories]
+
+balanceSUA[,balanced:=ifelse(abs(Value)<1000,TRUE,FALSE)]
+
+balanceSUA<-balanceSUA[, list(geographicAreaM49,timePointYears,measuredItemSuaFbs,balanced)]
+
+balanceSUA<-merge(
+  balanceSUA,
+  fbsTree,
+  by=c(p$itemVar),
+  allow.cartesian = TRUE,
+  all= TRUE
+)
+
+
+balanceSUA<-balanceSUA[,list(geographicAreaM49,timePointYears,parent=measuredItemSuaFbs,
+                             balanced,measuredItemFbsSua=fbsID4)]
+
+balanceSUA<-unique(balanceSUA,by=c(names(balanceSUA)))
+
+balanceSUA[,measuredItemFbsSua:=paste0("S",measuredItemFbsSua)]
+
 ### File containing imbalances greater that 1 MT----------------------
-fbs_residual_to_send<-fbs_residual[abs(imbalance_percentage)>=1]
+# fbs_residual_to_send<-fbs_residual[abs(imbalance_percentage)>=1]
+
+fbs_residual_to_send<-copy(fbs_residual)
+fbs_residual_to_send<-merge(
+  fbs_residual_to_send,
+  balanceSUA,
+  by=c(p$geoVar,p$yearVar,"measuredItemFbsSua"),
+  allow.cartesian = TRUE
+)
+
+fbs_residual_to_send<-merge(
+  fbs_residual_to_send,
+  Item_with_unbalanced,
+  by=c(p$geoVar,p$yearVar,"measuredItemFbsSua"),
+  allow.cartesian = TRUE,
+  all = TRUE
+)
+
+fbs_residual_to_send<-fbs_residual_to_send[abs(imbalance)>=1000 | !is.na(measuredItemSuaFbs)]
+
+fbs_residual_to_send[,unbalanced:=ifelse(balanced==FALSE & abs(imbalance)>1000,TRUE,FALSE)]
+
+# fbs_residual_to_send[balanced==FALSE & abs(imbalance)<1000,unbalanced:=NA]
+fbs_residual_to_send[,balanced:=NULL]
+
 fbs_residual_to_send<-nameData("suafbs", "fbs_balanced_", fbs_residual_to_send)
+
+
+
+LabelItem<-unique(
+  data[,list(measuredItemFbsSua=measuredItemSuaFbs)],by=c("measuredItemFbsSua")
+)
+LabelItem<-nameData("suafbs", "fbs_balanced_", LabelItem)
+
+standQTY<-merge(
+  standQTY,
+  LabelItem[,list(measuredItemChildCPC=measuredItemFbsSua,
+                  measuredItemChildCPC_name=measuredItemFbsSua_description)],
+  by=c("measuredItemChildCPC")
+)
+
+standQTY<-merge(
+  standQTY,
+  LabelItem[,list(measuredItemParentCPC=measuredItemFbsSua,
+                  measuredItemParentCPC_name=measuredItemFbsSua_description)],
+  by=c("measuredItemParentCPC")
+)
+
+standQTY<-merge(
+  standQTY,
+  fbsTree[,list(measuredItemParentCPC=measuredItemSuaFbs,
+                FBS_group=fbsID4)]
+)
+
+standQTY<-standQTY[,list(FBS_group,geographicAreaM49,timePointYears,measuredElementSuaFbs,
+                         measuredItemParentCPC,measuredItemParentCPC_name,
+                         measuredItemChildCPC,measuredItemChildCPC_name,Value,
+                         flagObservationStatus,flagMethod,extractionRate,share,weight,
+                         standard_child,Stand_Value)]
+
 
 #if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
 if(length(selectedGEOCode)==1){
   tmp_file_residual<- tempfile(pattern = paste0("FBS_IMBALANCES_", COUNTRY_NAME, "_"), fileext = '.csv')
+  tmp_file_standData<- tempfile(pattern = paste0("Stand_SUA_", COUNTRY_NAME, "_"), fileext = '.csv')
+  
 }else{
   tmp_file_residual<- tempfile(pattern = paste0("FBS_IMBALANCES_"), fileext = '.csv')
+  tmp_file_standData<- tempfile(pattern = paste0("Stand_SUA_"), fileext = '.csv')
+  
 }
+
+fbs_residual_to_send<-unique(fbs_residual_to_send, by=c(names(fbs_residual_to_send)))
 write.csv(fbs_residual_to_send, tmp_file_residual)
+write.csv(standQTY, tmp_file_standData)
+
 ### End File containing imbalances greater that 1 MT----------------------
 
 #File containing aggregated DES from FBS-----------------------
@@ -2627,7 +2721,7 @@ if (!CheckDebug()) {
              tmp_file_noFbsGroup,
              tmp_file_desSuaFbs,
              tmp_file_nonStandItemps,
-             duree
+             tmp_file_standData
     )
   )
 }
