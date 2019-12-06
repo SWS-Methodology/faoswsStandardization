@@ -2480,7 +2480,7 @@ popData<-popData[timePointYears %in% unique(fbs_balanced$timePointYears)]
 #correct process at FBS level
 
 Item_with_unbalanced<-data[measuredElementSuaFbs=="residual"]
-Item_with_unbalanced<-Item_with_unbalanced[,balanced:=ifelse(dplyr::near(abs(round(Value,0)),0),TRUE,FALSE)]
+Item_with_unbalanced<-Item_with_unbalanced[,balanced:=ifelse(abs(round(Value,0))<5000,TRUE,FALSE)]
 Item_with_unbalanced<-Item_with_unbalanced[balanced==FALSE]
 
 Item_with_unbalanced<-merge(
