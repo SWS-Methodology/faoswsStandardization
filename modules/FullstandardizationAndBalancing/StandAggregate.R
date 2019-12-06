@@ -2681,7 +2681,7 @@ balanceSUA[,measuredItemFbsSua:=paste0("S",measuredItemFbsSua)]
 ### File containing imbalances greater that 1 MT----------------------
 # fbs_residual_to_send<-fbs_residual[abs(imbalance_percentage)>=1]
 
-fbs_residual_to_send<-copy(fbs_residual)
+fbs_residual_to_send<-copy(fbs_balanced_bis[measuredElementSuaFbs=="5166" & abs(Value)>1000])
 fbs_residual_to_send<-merge(
   fbs_residual_to_send,
   balanceSUA,
@@ -2698,9 +2698,9 @@ fbs_residual_to_send<-merge(
   all = TRUE
 )
 
-fbs_residual_to_send<-fbs_residual_to_send[abs(imbalance)>=1000 | !is.na(measuredItemSuaFbs)]
+# fbs_residual_to_send<-fbs_residual_to_send[abs(imbalance)>=1000 | !is.na(measuredItemSuaFbs)]
 
-fbs_residual_to_send[,unbalanced:=ifelse(balanced==FALSE & abs(imbalance)>1000,TRUE,FALSE)]
+# fbs_residual_to_send[,unbalanced:=ifelse(balanced==FALSE & abs(imbalance)>1000,TRUE,FALSE)]
 
 # fbs_residual_to_send[balanced==FALSE & abs(imbalance)<1000,unbalanced:=NA]
 fbs_residual_to_send[,balanced:=NULL]
