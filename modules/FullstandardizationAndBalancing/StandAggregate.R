@@ -2521,15 +2521,26 @@ fbs_balanced_bis<-merge(
 
 fbsid4<-paste0("S",unique(fbsTree$fbsID4))
 fbs_balanced_bis[measuredItemFbsSua %!in% fbsid4,IsSUAbal:=FALSE]
+fbs_balanced_bis<-fbs_balanced_bis[!is.na(Value)]
 
-fbs_balanced_bis[measuredElementSuaFbs=="5023" & !is.na(imbalance),Value:=ifelse(IsSUAbal==TRUE,
-                                                                                 Value+imbalance,Value),
+fbs_balanced_bis[,update_balance:=FALSE]
+
+fbs_balanced_bis[measuredElementSuaFbs %in% c("5023") & !is.na(imbalance) & !is.na(Value),
+                 update_balance:=ifelse(IsSUAbal==TRUE & Value+imbalance >0,TRUE,FALSE),
+                 by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
+
+fbs_balanced_bis[measuredElementSuaFbs=="5023" ,
+                 Value:=ifelse(update_balance==TRUE ,Value+imbalance,Value),
+                 by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
+
+fbs_balanced_bis[measuredElementSuaFbs %in% c("5023","5166"),
+                 update_balance:=update_balance[measuredElementSuaFbs=="5023"],
                  by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
 
 fbs_balanced_bis<-fbs_balanced_bis[!is.na(Value)]
 
-fbs_balanced_bis[measuredElementSuaFbs=="5166" & !is.na(imbalance),Value:=ifelse(IsSUAbal==TRUE,
-                                                                                 0,Value),
+fbs_balanced_bis[measuredElementSuaFbs=="5166" ,
+                 Value:=ifelse(update_balance==TRUE ,0,Value),
                  by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
 
 fbs_balanced_bis<-fbs_balanced_bis[,names(fbs_balanced),with=FALSE]
@@ -2682,6 +2693,18 @@ balanceSUA[,measuredItemFbsSua:=paste0("S",measuredItemFbsSua)]
 # fbs_residual_to_send<-fbs_residual[abs(imbalance_percentage)>=1]
 
 fbs_residual_to_send<-copy(fbs_balanced_bis[measuredElementSuaFbs=="5166" & abs(Value)>1000])
+
+fbs_residual_to_send<-merge(
+  fbs_residual_to_send,
+  fbs_residual[,list(geographicAreaM49,timePointYears,measuredItemFbsSua,supply)],
+  by=c(p$geoVar,p$yearVar,"measuredItemFbsSua"),
+  all.x =TRUE
+)
+
+fbs_residual_to_send[,imbalance_percentage:=round((Value/supply)*100,0),
+                     by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")
+                     ]
+
 fbs_residual_to_send<-merge(
   fbs_residual_to_send,
   balanceSUA,
@@ -2689,6 +2712,8 @@ fbs_residual_to_send<-merge(
   allow.cartesian = TRUE,
   all.x =TRUE
 )
+
+
 
 fbs_residual_to_send<-merge(
   fbs_residual_to_send,
@@ -2872,7 +2897,8 @@ if (!CheckDebug()) {
     from = "do-not-reply@fao.org",
     to = swsContext.userEmail,
     subject = "Results from newBalancing plugin",
-    body = c("The FBS plugi have been run successfully!",
+    body = c("If all commodities of a tree (FBS item) are balanced at SUA level, then the 
+             FBS item is balanced by moving eventual residual to process.",
              tmp_file_des,
              tmp_file_residual,
              tmp_file_noFbsGroup,
