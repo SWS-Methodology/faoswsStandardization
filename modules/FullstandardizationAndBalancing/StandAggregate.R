@@ -970,12 +970,14 @@ data[measuredElementSuaFbs=="stock_change",measuredElementSuaFbs:="stockChange"]
 message("delete null elements")
 data=data[!is.na(measuredElementSuaFbs)]
 
-data_residual<-copy(data)
+data_residual<-data[measuredElementSuaFbs %!in% c("residual")]
 setnames(data_residual,"measuredItemSuaFbs" ,"measuredItemFbsSua")
 calculateImbalance(data=data_residual,keep_supply = FALSE,keep_utilizations = FALSE)
 
 data_residual[,`:=`(Value=imbalance,
                     measuredElementSuaFbs="residual",
+                    flagObservationStatus="I",
+                    flagMethod="i",
                     imbalance=NULL)]
 
 setnames(data_residual,"measuredItemFbsSua","measuredItemSuaFbs")
@@ -2005,7 +2007,7 @@ message("Beginning actual standardization process...")
 
  #
  for (i in seq_len(nrow(uniqueLevels))) {
-                  # i=4
+                   #i=4
   
   message(paste("Standardizing ",uniqueLevels$geographicAreaM49[i]," for the year ",uniqueLevels$timePointYears[i]))
   
@@ -2167,6 +2169,11 @@ standardization<-function(dataQTY=dataSubset,
   
   dataQTY_pprocessed[,params$elementVar:=params$foodProcCode]
   
+  #If the parent is a zerweight change the weight of the child to 0
+  # Issue find in Germany, child of molasses were standardized
+  dataQTY_pprocessed[get(params$parentVar) %in% zeroWeight,weight:=0]
+  
+  
   outDataQTY<-dataQTY_pprocessed[, list(
     Value = sum( Value*weight /get(params$extractVar)*get(params$shareVar), na.rm = TRUE)),
     by = c(params$yearVar, params$geoVar,params$elementVar, params$parentVar)]
@@ -2194,7 +2201,7 @@ standardization<-function(dataQTY=dataSubset,
   )
   
   outDataQTY[get(params$elementVar)==params$foodProcCode & get(params$parentVar) %in% OneItemFBS,
-                   Value:=Value.par] #ToDO: multiply by weight
+                   Value:=Value.par]
   
   outDataQTY[,Value.par:=NULL]
   #-------------------------
@@ -2212,7 +2219,8 @@ standardization<-function(dataQTY=dataSubset,
   #WEIGH correction
   dataQTY_other[get(params$childVar) %!in% nonStandChildren & standard_child==FALSE, weight:=0]
   dataQTY_other[get(params$childVar) %in% onlyCalories, weight:=0]
-  
+  dataQTY_other[get(params$parentVar) %in% zeroWeight[! zeroWeight %in% c("22120","22241.01")],
+               weight:=0]
   
   outDataQTY_other = dataQTY_other[, list(
     Value = sum( Value*weight /get(params$extractVar)*get(params$shareVar), na.rm = TRUE)),
@@ -2230,6 +2238,9 @@ standardization<-function(dataQTY=dataSubset,
   setnames(dataQTY_prod,params$childVar,params$itemVar)
   
   dataQTY_prod[,`:=`(Value.par=Value,Value=NULL)]
+  
+  dataQTY_prod[get(params$itemVar) %in% zeroWeight[! zeroWeight %in% c("22120","22241.01")],
+               Value.par:=0]
 
   dataQTY_prod<-unique(dataQTY_prod, by=colnames(dataQTY_prod))
   setnames(dataQTY_prod,params$itemVar,params$parentVar)
@@ -2242,10 +2253,12 @@ standardization<-function(dataQTY=dataSubset,
   )
   
   outDataQTY_other[get(params$elementVar)==params$productionCode,
-                   Value:=Value.par] #ToDO: multiply by weight
+                   Value:=Value.par] 
   
+  
+  #do not change the process of items that are alone
   outDataQTY_other[get(params$elementVar)==params$foodProcCode & get(params$parentVar) %in% OneItemFBS,
-                   Value:=Value.par] #ToDO: multiply by weight
+                   Value:=Value.par]
   
   outDataQTY_other[,Value.par:=NULL]
   
@@ -2450,8 +2463,7 @@ fbs_balanced[,code:=NULL]
 fbs_balanced[is.na(Value),flagObservationStatus:=NA]
 fbs_balanced[is.na(Value),flagMethod:=NA]
 
-message("saving FBS balanced...")
-SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = fbs_balanced, waitTimeout = 20000)
+
 
 
 popData<-
@@ -2465,6 +2477,140 @@ popData<-
 
 popData<-popData[timePointYears %in% unique(fbs_balanced$timePointYears)]
 
+#correct process at FBS level
+
+Item_with_unbalanced<-data[measuredElementSuaFbs=="residual"]
+Item_with_unbalanced<-Item_with_unbalanced[,balanced:=ifelse(abs(round(Value,0))<5000,TRUE,FALSE)]
+Item_with_unbalanced<-Item_with_unbalanced[balanced==FALSE]
+
+Item_with_unbalanced<-merge(
+  Item_with_unbalanced,
+  fbsTree,
+  by=c(p$itemVar),
+  allow.cartesian = TRUE,
+  all.x = TRUE
+)
+
+Item_with_unbalanced<-Item_with_unbalanced[!is.na(fbsID4) & (measuredItemSuaFbs %!in% onlyCalories),
+                                           list(geographicAreaM49,timePointYears,
+                                                measuredItemFbsSua=paste0("S",fbsID4),
+                                                cpc_unbalanced=measuredItemSuaFbs)
+                                           ]
+Item_with_unbalanced<-unique(Item_with_unbalanced,by=c(colnames(Item_with_unbalanced)))
+
+
+Item_with_unbalanced<-aggregate(
+  cpc_unbalanced ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
+  Item_with_unbalanced, paste0, collapse = "; ")
+
+setDT(Item_with_unbalanced)
+
+fbs_balanced_bis<-merge(
+  fbs_balanced,
+  Item_with_unbalanced,
+  by=c(p$geoVar,p$yearVar, "measuredItemFbsSua"),
+  all.x = TRUE
+)
+
+fbs_balanced_bis[,IsSUAbal:=ifelse(is.na(cpc_unbalanced),TRUE,FALSE)]
+
+fbs_balanced_bis<-merge(
+  fbs_balanced_bis,
+  fbs_residual[,list(geographicAreaM49,timePointYears,measuredItemFbsSua,imbalance=round(imbalance,0))]
+)
+
+fbsid4<-paste0("S",unique(fbsTree$fbsID4))
+fbs_balanced_bis[measuredItemFbsSua %!in% fbsid4,IsSUAbal:=FALSE]
+fbs_balanced_bis<-fbs_balanced_bis[!is.na(Value)]
+
+fbs_balanced_bis[,update_balance:=FALSE]
+
+fbs_balanced_bis[measuredElementSuaFbs %in% c("5023") & !is.na(imbalance) & !is.na(Value),
+                 update_balance:=ifelse(IsSUAbal==TRUE & Value+imbalance >0,TRUE,FALSE),
+                 by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
+
+fbs_balanced_bis[measuredElementSuaFbs=="5023" ,
+                 Value:=ifelse(update_balance==TRUE ,Value+imbalance,Value),
+                 by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
+
+fbs_balanced_bis[measuredElementSuaFbs %in% c("5023","5166"),
+                 update_balance:=update_balance[measuredElementSuaFbs=="5023"],
+                 by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
+
+fbs_balanced_bis<-fbs_balanced_bis[!is.na(Value)]
+
+fbs_balanced_bis[measuredElementSuaFbs=="5166" ,
+                 Value:=ifelse(update_balance==TRUE ,0,Value),
+                 by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
+
+fbs_balanced_bis<-fbs_balanced_bis[,names(fbs_balanced),with=FALSE]
+
+#correct other level
+
+fbstree_otherlev<-copy(fbsTree)
+
+fbstree_otherlev[,c("measuredItemSuaFbs","number_item"):=NULL]
+fbstree_otherlev<-unique(fbstree_otherlev)
+setnames(fbstree_otherlev,"fbsID4","measuredItemFbsSua")
+
+fbstree_otherlev[, measuredItemFbsSua :=paste0("S",measuredItemFbsSua)]
+fbstree_otherlev[, fbsID1 :=paste0("S",fbsID1)]
+fbstree_otherlev[, fbsID2 :=paste0("S",fbsID2)]
+fbstree_otherlev[, fbsID3 :=paste0("S",fbsID3)]
+
+fbs_other_level<-merge(
+  fbs_balanced_bis[measuredElementSuaFbs %in% c("5023","5166")],
+  
+  fbstree_otherlev,
+  by=c("measuredItemFbsSua"),
+  all.x = TRUE
+)
+
+
+
+# aggregate(fbs_other_level, by =list(p$yearVar,p$geoVar,p$elementVar, "fbsID3"), FUN=sum(Value))
+
+level_3 <- aggregate(
+  Value ~ geographicAreaM49+fbsID3 +timePointYears + measuredElementSuaFbs, 
+  fbs_other_level, sum, na.rm = TRUE)
+
+setnames(level_3,"fbsID3","measuredItemFbsSua")
+
+# level_2 <- aggregate(
+#   Value ~ geographicAreaM49+fbsID2 +timePointYears + measuredElementSuaFbs, 
+#   fbs_other_level, sum, na.rm = TRUE)
+# setnames(level_2,"fbsID2","measuredItemFbsSua")
+
+
+# level_1 <- aggregate(
+#   Value ~ geographicAreaM49+fbsID1 +timePointYears + measuredElementSuaFbs, 
+#   fbs_other_level, sum, na.rm = TRUE)
+# setnames(level_1,"fbsID1","measuredItemFbsSua")
+
+
+
+data_level<-rbind(level_3)
+setDT(data_level)
+data_level[,flagObservationStatus:="I"]
+data_level[,flagMethod:="s"]
+
+data_level<-data_level[,names(fbs_balanced_bis),with=FALSE]
+
+fbs_balanced_bis<-rbind(
+  fbs_balanced_bis[!data_level, on=c("geographicAreaM49","timePointYears","measuredItemFbsSua")],
+  data_level
+)
+
+
+
+
+
+# aggregate(
+#   measuredItemSuaFbs ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
+#   Item_with_unbalanced, paste0, collapse = "; ")
+
+message("saving FBS balanced...")
+SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = fbs_balanced_bis, waitTimeout = 20000)
 
 SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = popData, waitTimeout = 20000)
 
@@ -2513,17 +2659,14 @@ Item_with_unbalanced<-aggregate(
   measuredItemSuaFbs ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
           Item_with_unbalanced, paste0, collapse = "; ")
 
-# Item_with_unbalanced<-as.data.frame(Item_with_unbalanced)
-# Item_with_unbalanced<-Item_with_unbalanced %>% 
-#   group_by(geographicAreaM49,fbsID4,timePointYears) %>% 
-#   summarise(unbalancedItem=toString(measuredItemSuaFbs)) %>% 
-#   ungroup() %>% 
-#   mutate(measuredItemFbsSua=paste0("S",fbsID4))
+
+
 # 
-# setDT(Item_with_unbalanced)
 
+# check if the primary or proxy primary is balanced
+primProxiPrim<-unique(Utilization_Table[primary_item=="X" | proxy_primary=="X",get("cpc_code")])
 
-balanceSUA<-data[measuredItemSuaFbs %in% primaryEl & measuredElementSuaFbs=="residual"]
+balanceSUA<-data[measuredItemSuaFbs %in% primProxiPrim & measuredElementSuaFbs=="residual"]
 balanceSUA<-balanceSUA[measuredItemSuaFbs %!in% onlyCalories]
 
 balanceSUA[,balanced:=ifelse(abs(Value)<1000,TRUE,FALSE)]
@@ -2549,13 +2692,28 @@ balanceSUA[,measuredItemFbsSua:=paste0("S",measuredItemFbsSua)]
 ### File containing imbalances greater that 1 MT----------------------
 # fbs_residual_to_send<-fbs_residual[abs(imbalance_percentage)>=1]
 
-fbs_residual_to_send<-copy(fbs_residual)
+fbs_residual_to_send<-copy(fbs_balanced_bis[measuredElementSuaFbs=="5166" & abs(Value)>1000])
+
+fbs_residual_to_send<-merge(
+  fbs_residual_to_send,
+  fbs_residual[,list(geographicAreaM49,timePointYears,measuredItemFbsSua,supply)],
+  by=c(p$geoVar,p$yearVar,"measuredItemFbsSua"),
+  all.x =TRUE
+)
+
+fbs_residual_to_send[,imbalance_percentage:=round((Value/supply)*100,0),
+                     by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")
+                     ]
+
 fbs_residual_to_send<-merge(
   fbs_residual_to_send,
   balanceSUA,
   by=c(p$geoVar,p$yearVar,"measuredItemFbsSua"),
-  allow.cartesian = TRUE
+  allow.cartesian = TRUE,
+  all.x =TRUE
 )
+
+
 
 fbs_residual_to_send<-merge(
   fbs_residual_to_send,
@@ -2565,9 +2723,9 @@ fbs_residual_to_send<-merge(
   all = TRUE
 )
 
-fbs_residual_to_send<-fbs_residual_to_send[abs(imbalance)>=1000 | !is.na(measuredItemSuaFbs)]
+# fbs_residual_to_send<-fbs_residual_to_send[abs(imbalance)>=1000 | !is.na(measuredItemSuaFbs)]
 
-fbs_residual_to_send[,unbalanced:=ifelse(balanced==FALSE & abs(imbalance)>1000,TRUE,FALSE)]
+# fbs_residual_to_send[,unbalanced:=ifelse(balanced==FALSE & abs(imbalance)>1000,TRUE,FALSE)]
 
 # fbs_residual_to_send[balanced==FALSE & abs(imbalance)<1000,unbalanced:=NA]
 fbs_residual_to_send[,balanced:=NULL]
@@ -2600,6 +2758,30 @@ standQTY<-merge(
   fbsTree[,list(measuredItemParentCPC=measuredItemSuaFbs,
                 FBS_group=fbsID4)]
 )
+
+# extracting the dataset contains items of the commodity tree that are standardized outside the 
+#FBS group: this will be merged in the summary file containing FBS imbalances
+
+Items_outside_tree<-standQTY[measuredElementSuaFbs=="foodManufacturing" & Value>0,
+               list(geographicAreaM49,timePointYears,Child_outside_tree=measuredItemChildCPC,
+                    measuredItemFbsSua=paste0("S",FBS_group))]
+
+Items_outside_tree<-aggregate(
+  Child_outside_tree ~measuredItemFbsSua+ geographicAreaM49+timePointYears, 
+  Items_outside_tree, paste0, collapse = "; ")
+
+fbs_residual_to_send<-merge(
+  fbs_residual_to_send,
+  Items_outside_tree,
+  by=c("geographicAreaM49","timePointYears","measuredItemFbsSua"),
+  all.x = TRUE
+)
+
+#Consider only fbsID4 groups for the final summary file
+
+fbsID4_groups<-paste0("S",unique(fbsTree$fbsID4))
+fbs_residual_to_send<-fbs_residual_to_send[measuredItemFbsSua %in% fbsID4_groups]
+#-----
 
 standQTY<-standQTY[,list(FBS_group,geographicAreaM49,timePointYears,measuredElementSuaFbs,
                          measuredItemParentCPC,measuredItemParentCPC_name,
@@ -2715,13 +2897,14 @@ if (!CheckDebug()) {
     from = "do-not-reply@fao.org",
     to = swsContext.userEmail,
     subject = "Results from newBalancing plugin",
-    body = c("The FBS plugi have been run successfully!",
+    body = c("If all commodities of a tree (FBS item) are balanced at SUA level, then the 
+             FBS item is balanced by moving eventual residual to process.",
              tmp_file_des,
              tmp_file_residual,
              tmp_file_noFbsGroup,
              tmp_file_desSuaFbs,
-             tmp_file_nonStandItemps,
-             tmp_file_standData
+             tmp_file_nonStandItemps #,
+             #tmp_file_standData
     )
   )
 }
