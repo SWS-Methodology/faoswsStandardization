@@ -1803,7 +1803,12 @@ setcolorder(fbsTree,c("fbsID4", "measuredItemSuaFbs", "fbsID1", "fbsID2", "fbsID
 #some correction
 fbsTree<-fbsTree[measuredItemSuaFbs %in% c("34120","21932.02"),fbsID4:="2586"]
 
+
+
 treeFBSmerge<-NonStandardizedChidren(fbsTree = fbsTree,tree = tree,standParams = p)
+
+#Sumeda
+treeFBSmerge <- treeFBSmerge[is.na(standard_child), standard_child := FALSE]
 
 tree<-merge(
   tree,
@@ -2215,6 +2220,9 @@ standardization<-function(dataQTY=dataSubset,
   dataQTY_other<-unique(
     dataQTY_other,by=colnames(dataQTY)
   )
+  
+  
+  
   
   #WEIGH correction
   dataQTY_other[get(params$childVar) %!in% nonStandChildren & standard_child==FALSE, weight:=0]
