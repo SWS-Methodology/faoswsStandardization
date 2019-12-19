@@ -2117,6 +2117,69 @@ for (i in seq_len(nrow(uniqueLevels))) {
   # datasubset, 
   # datadessubset
   # function name : standardization
+  #approach to change here 2166 to 2206
+  #use findprocessinglevel function
+  
+  level <- findProcessingLevel(treeSubset, from = standParams$parentVar,
+                               to = standParams$childVar, aupusParam = standParams)
+  
+  tree_level<-merge(
+    
+    treeSubset,
+    level[,list(measuredItemChildCPC=measuredItemSuaFbs,processingLevel)],
+    by=c("measuredItemChildCPC")
+  )
+  
+  tree_level[,
+             processingLevel := max(processingLevel, na.rm = TRUE),
+             by = c("geographicAreaM49", "timePointYears",
+                    "measuredItemParentCPC", "measuredItemChildCPC")
+             ]
+  
+  tree_level<-tree_level[measuredItemChildCPC %in% unique(fbsTree$measuredItemSuaFbs) &
+                           measuredItemParentCPC %in% unique(fbsTree$measuredItemSuaFbs)]
+  
+  tree_level<-tree_level[measuredItemChildCPC %in% unique(dataSubset$measuredItemSuaFbs) &
+                           measuredItemParentCPC %in% unique(dataSubset$measuredItemSuaFbs)]
+  
+  for (lev in rev(unique(tree_level$processingLevel))) {
+    
+    #lev=3
+    
+    tree_loop <- tree_level[processingLevel == lev & standard_child==TRUE]
+    
+    setnames(tree_loop,"measuredItemChildCPC","measuredItemSuaFbs")
+    data_level<-merge(
+      tree_loop,
+      dataSubset[measuredElementSuaFbs=="production",c(names(dataSubset)),with=FALSE],
+      by=c("geographicAreaM49", "timePointYears","measuredItemSuaFbs")
+    )
+    
+    if(nrow(data_level)>0){
+      
+      procdata<-data_level[, list(
+        Value = sum( Value*weight /get(standParams$extractVar)*get(standParams$shareVar), na.rm = TRUE)),
+        by = c(standParams$yearVar, standParams$geoVar,standParams$elementVar, standParams$parentVar)]
+      
+      procdata[,measuredElementSuaFbs:=standParams$foodProcCode]
+      setnames(procdata,standParams$parentVar,"measuredItemSuaFbs")
+      setnames(procdata,"Value","Value_proc")
+      
+      dataSubset<-merge(
+        dataSubset,
+        procdata,
+        by=c("geographicAreaM49","measuredElementSuaFbs", "timePointYears","measuredItemSuaFbs"),
+        all.x = TRUE
+      )
+      
+      dataSubset[measuredElementSuaFbs==standParams$foodProcCode & !is.na(Value_proc), Value:=Value-Value_proc]
+      dataSubset[measuredElementSuaFbs==standParams$foodProcCode & Value<0, Value:=0]
+      dataSubset[,Value_proc:=NULL]
+    }
+    
+    #our things.....
+  }
+  ##################################################
   
   standardization<-function(dataQTY=dataSubset,
                             dataDES=dataDesSubset,
@@ -2124,6 +2187,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
                             params=standParams){
     
     #TO DO: quality controle with stopifnot
+    
     
     StandtreeQTY<-copy(standTree)
     StandtreeDES<-copy(standTree)
@@ -2165,48 +2229,51 @@ for (i in seq_len(nrow(uniqueLevels))) {
     
     
     
-    dataQTY_pprocessed<-dataQTY[standard_child==FALSE & get(params$elementVar)==c(params$productionCode)]
-    
-    dataQTY_pprocessed[,params$elementVar:=params$foodProcCode]
-    
-    #If the parent is a zerweight change the weight of the child to 0
-    # Issue find in Germany, child of molasses were standardized
-    dataQTY_pprocessed[get(params$parentVar) %in% zeroWeight,weight:=0]
-    
-    
-    outDataQTY<-dataQTY_pprocessed[, list(
-      Value = sum( Value*weight /get(params$extractVar)*get(params$shareVar), na.rm = TRUE)),
-      by = c(params$yearVar, params$geoVar,params$elementVar, params$parentVar)]
-    
-    #For commodities that are alone in their FBS group, we keep their proces as it is
-    dataQTY_procPar<-copy(dataQTY)
-    dataQTY_procPar<-dataQTY[,
-                             c(params$geoVar,params$childVar,
-                               params$elementVar,params$yearVar,"Value"),
-                             with=FALSE
-                             ] 
-    
-    setnames(dataQTY_procPar,params$childVar,params$itemVar)
-    
-    dataQTY_procPar[,`:=`(Value.par=Value,Value=NULL)]
-    
-    dataQTY_procPar<-unique(dataQTY_procPar, by=colnames(dataQTY_procPar))
-    setnames(dataQTY_procPar,params$itemVar,params$parentVar)
-    
-    outDataQTY<-merge(
-      outDataQTY,
-      dataQTY_procPar,
-      by=c(params$geoVar,params$parentVar,params$elementVar,params$yearVar),
-      all.x = TRUE
-    )
-    
-    outDataQTY[get(params$elementVar)==params$foodProcCode & get(params$parentVar) %in% OneItemFBS,
-               Value:=Value.par]
-    
-    outDataQTY[,Value.par:=NULL]
+    # dataQTY_pprocessed<-dataQTY[standard_child==FALSE & get(params$elementVar)==c(params$productionCode)]
+    # 
+    # dataQTY_pprocessed[,params$elementVar:=params$foodProcCode]
+    # 
+    # 
+    # 
+    # 
+    # #If the parent is a zerweight change the weight of the child to 0
+    # # Issue find in Germany, child of molasses were standardized
+    # dataQTY_pprocessed[get(params$parentVar) %in% zeroWeight,weight:=0]
+    # 
+    # 
+    # outDataQTY<-dataQTY_pprocessed[, list(
+    #   Value = sum( Value*weight /get(params$extractVar)*get(params$shareVar), na.rm = TRUE)),
+    #   by = c(params$yearVar, params$geoVar,params$elementVar, params$parentVar)]
+    # 
+    # #For commodities that are alone in their FBS group, we keep their proces as it is
+    # dataQTY_procPar<-copy(dataQTY)
+    # dataQTY_procPar<-dataQTY[,
+    #                          c(params$geoVar,params$childVar,
+    #                            params$elementVar,params$yearVar,"Value"),
+    #                          with=FALSE
+    #                          ] 
+    # 
+    # setnames(dataQTY_procPar,params$childVar,params$itemVar)
+    # 
+    # dataQTY_procPar[,`:=`(Value.par=Value,Value=NULL)]
+    # 
+    # dataQTY_procPar<-unique(dataQTY_procPar, by=colnames(dataQTY_procPar))
+    # setnames(dataQTY_procPar,params$itemVar,params$parentVar)
+    # 
+    # outDataQTY<-merge(
+    #   outDataQTY,
+    #   dataQTY_procPar,
+    #   by=c(params$geoVar,params$parentVar,params$elementVar,params$yearVar),
+    #   all.x = TRUE
+    # )
+    # 
+    # outDataQTY[get(params$elementVar)==params$foodProcCode & get(params$parentVar) %in% OneItemFBS,
+    #            Value:=Value.par]
+    # 
+    # outDataQTY[,Value.par:=NULL]
     #-------------------------
     
-    dataQTY_other<-dataQTY[ get(params$elementVar)!=params$foodProcCode]
+    dataQTY_other<-copy(dataQTY)
     
     dataQTY_other[get(params$childVar) %in% nonStandChildren,
                   standard_child:=FALSE]
@@ -2228,7 +2295,6 @@ for (i in seq_len(nrow(uniqueLevels))) {
     outDataQTY_other = dataQTY_other[, list(
       Value = sum( Value*weight /get(params$extractVar)*get(params$shareVar), na.rm = TRUE)),
       by = c(params$yearVar, params$geoVar,params$elementVar, params$parentVar)]
-    
     
     
     dataQTY_prod<-copy(dataSubset)
@@ -2265,10 +2331,10 @@ for (i in seq_len(nrow(uniqueLevels))) {
     
     outDataQTY_other[,Value.par:=NULL]
     
-    outDataQTY<-
-      outDataQTY[,
-                 c(params$geoVar,params$parentVar,params$elementVar,params$yearVar,"Value"),
-                 with=FALSE]
+    # outDataQTY<-
+    #   outDataQTY[,
+    #              c(params$geoVar,params$parentVar,params$elementVar,params$yearVar,"Value"),
+    #              with=FALSE]
     
     outDataQTY_other<-
       outDataQTY_other[,
@@ -2311,16 +2377,21 @@ for (i in seq_len(nrow(uniqueLevels))) {
       Value = sum( Value*get(params$shareVar), na.rm = TRUE)),
       by = c(params$yearVar, params$geoVar, params$parentVar,params$elementVar)]
     
-    outDataDes<-outDataDes[,c(colnames(outDataQTY)),with=FALSE]
+    outDataDes<-outDataDes[,c(colnames(outDataQTY_other)),with=FALSE]
     
-    out = rbind(outDataQTY,outDataQTY_other,outDataDes)
+    out = rbind( #outDataQTY,
+                outDataQTY_other,
+                outDataDes)
     
     setnames(out,params$parentVar,params$itemVar)
     
     
     
     #Standardized file
-    standardizeQty<-rbind(dataQTY_other,dataQTY_pprocessed)
+    standardizeQty<-rbind(dataQTY_other #,
+                          #dataQTY_pprocessed
+                          )
+    
     standardizeQty<-standardizeQty[,list(geographicAreaM49,timePointYears,measuredItemParentCPC,
                                          measuredItemChildCPC,measuredElementSuaFbs,
                                          Value,flagObservationStatus,flagMethod,extractionRate,share,
@@ -2783,7 +2854,7 @@ fbs_residual_to_send<-merge(
 #Consider only fbsID4 groups for the final summary file
 
 fbsID4_groups<-paste0("S",unique(fbsTree$fbsID4))
-fbs_residual_to_send<-fbs_residual_to_send[measuredItemFbsSua %in% fbsID4_groups]
+#fbs_residual_to_send<-fbs_residual_to_send[measuredItemFbsSua %in% fbsID4_groups]
 #-----
 
 standQTY<-standQTY[,list(FBS_group,geographicAreaM49,timePointYears,measuredElementSuaFbs,
