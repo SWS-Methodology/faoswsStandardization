@@ -282,7 +282,7 @@ if (nrow(tourData) > 0) {
 
   tourData <- tourData %>%
     dplyr::group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs) %>%
-    tidyr::complete(timePointYears=min(timePointYears):2017,nesting(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs))%>%
+    tidyr::complete(timePointYears=min(timePointYears):2018,nesting(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs))%>%
     dplyr::arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs,timePointYears) %>%
     tidyr::fill(Value,.direction="down") %>%
     tidyr::fill(flagObservationStatus,.direction="down") %>%
