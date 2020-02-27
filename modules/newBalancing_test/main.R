@@ -646,7 +646,7 @@ newBalancing <- function(data, Utilization_Table) {
         Protected == FALSE &
         !(data.table::between(Value, min_threshold, max_threshold, incbounds = FALSE) %in% FALSE) &
         !(measuredElementSuaFbs %chin%
-          c("production", "imports", "exports", "stockChange", "foodManufacturing")),
+          c("production", "imports", "exports", "stockChange", "foodManufacturing", "seed")),
       can_balance := TRUE
     ]
 
@@ -4780,9 +4780,9 @@ if (nrow(standData[small_imb == TRUE]) > 0) {
   standData[, can_balance := FALSE]
 
   # The following two instructions basically imply to assign the
-  # (small) imbalance with no limits (except food, among utilizations)
+  # (small) imbalance with no limits (except food and seed, among utilizations)
 
-  sel_vars <- c("production", "imports", "exports", "stockChange", "food")
+  sel_vars <- c("production", "imports", "exports", "stockChange", "food", "seed")
 
   standData[
     measuredElementSuaFbs %!in% sel_vars &
@@ -4803,7 +4803,7 @@ if (nrow(standData[small_imb == TRUE]) > 0) {
       Protected == FALSE &
       !(data.table::between(Value, min_threshold, max_threshold, incbounds = FALSE) %in% FALSE) &
       !(measuredElementSuaFbs %chin%
-        c("production", "imports", "exports", "stockChange", "foodManufacturing")),
+        c("production", "imports", "exports", "stockChange", "foodManufacturing", "seed")),
     can_balance := TRUE
   ]
 
