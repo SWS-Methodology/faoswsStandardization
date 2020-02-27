@@ -4528,6 +4528,7 @@ dbg_print("SHARES workbook, create")
 wb <- createWorkbook()
 addWorksheet(wb, "SHARES")
 style_protected <- createStyle(fgFill = "pink")
+style_formula <- createStyle(fgFill = "green")
 style_text <- createStyle(numFmt = "TEXT")
 style_comma <- createStyle(numFmt = "COMMA")
 writeData(wb, "SHARES", z_comp_shares)
@@ -4542,13 +4543,81 @@ for (i in c("exports", "imports", "production", "stockChange")) {
 }
 
 addStyle(wb, sheet = "SHARES", style_text, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(Parent|Child)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
-addStyle(wb, sheet = "SHARES", style_comma, rows = 1:nrow(z_comp_shares) + 1, cols = grep("^(production|imports|exports|stockChange|availability_parent|processed)$", names(z_comp_shares)), gridExpand = TRUE, stack = TRUE)
 
 addFilter(wb, "SHARES", row = 1, cols = 1:ncol(z_comp_shares))
 
-dbg_print(paste("SHARES workbook, save", getwd()))
+# Formulas
+pos <- lapply(colnames(z_comp_shares), function(x) letters[which(colnames(z_comp_shares) == x)])
+names(pos) <- colnames(z_comp_shares)
+
+sheet_rows   <- 1 + seq_len(nrow(z_comp_shares))
+frml_start <- which(colnames(z_comp_shares) == "Processed_parent") + 2
+
+z_comp_shares[, frml_prot_no_zw := computed_shares_send$Protected_production == TRUE & zero_weigth == FALSE]
+z_comp_shares[, frml_prot_no_zw_zero_updown := computed_shares_send$Protected_production == TRUE & zero_weigth == FALSE & dplyr::near(shareUpDown, 0)]
+z_comp_shares[, prot := computed_shares_send$Protected_production]
+z_comp_shares[, frml_n_prot_zero_updown := sum(prot == TRUE & dplyr::near(shareUpDown, 0) == TRUE), by = c("Parent", "year")]
+z_comp_shares[, prot := NULL]
+z_comp_shares[, frml_multi_parent := length(unique(Parent)) > 1, by = c("Child", "year")]
+z_comp_shares[, frml_any_prot_zero_updown := any(frml_prot_no_zw_zero_updown == TRUE), by = c("Parent", "year")]
+
+z_comp_shares[, frml_process_parent_num := paste0(pos$production, sheet_rows, "*", pos$shareDownUp, sheet_rows, "/", pos$extractionRate, sheet_rows)]
+z_comp_shares[, frml_process_parent_den := paste0(pos$shareUpDown, sheet_rows)]
+
+z_comp_shares[, frml_any_prot := any(frml_prot_no_zw == TRUE), by = c("Parent", "year")]
+
+z_comp_shares[, frml_process_parent := paste0(pos$availability, sheet_rows, "*", pos$Pshare, sheet_rows)]
+
+z_comp_shares[,
+  frml_process_parent :=
+    dplyr::case_when(
+      frml_any_prot_zero_updown == TRUE & frml_n_prot_zero_updown == 1 ~ paste(frml_process_parent[frml_prot_no_zw == TRUE], collapse = " + "),
+      frml_any_prot == TRUE             ~ paste("(", paste(frml_process_parent_num[frml_prot_no_zw == TRUE], collapse = " + "), ") / (", paste(frml_process_parent_den[frml_prot_no_zw == TRUE], collapse = " + "), ")"),
+      TRUE                              ~ frml_process_parent
+    ),
+    by = c("Parent", "year")
+]
+
+#z_comp_shares[, frml_process_parent := paste0(pos$availability, sheet_rows, "*", pos$Pshare, sheet_rows)]
+#z_comp_shares[frml_any_prot == TRUE, frml_process_parent := paste("(", paste(frml_process_parent_num[frml_prot_no_zw == TRUE], collapse = " + "), ") / (", paste(frml_process_parent_den[frml_prot_no_zw == TRUE], collapse = " + "), ")"), by = c("Parent", "year")]
+## XXX Here we should actually check that is protected AND zero Updown just for ONE
+#z_comp_shares[frml_any_prot_zero_updown == TRUE, frml_process_parent := paste(frml_process_parent[frml_prot_no_zw == TRUE], collapse = " + "), by = c("Parent", "year")]
+
+z_comp_shares[, frml_prod := paste0(letters[frml_start], sheet_rows, "*", pos$extractionRate, sheet_rows, "*", pos$shareUpDown, sheet_rows)]
+z_comp_shares[frml_multi_parent == TRUE, frml_prod := paste(frml_prod, collapse = " + "), by = c("Child", "year")]
+
+z_comp_shares[, frml_updown := paste0(pos$shareUpDown, sheet_rows)]
+z_comp_shares[, frml_check_updown := paste(frml_updown[zero_weigth == FALSE], collapse = " + "), by = c("Parent", "year")]
+
+z_comp_shares[, frml_downup := paste0(pos$shareDownUp, sheet_rows)]
+z_comp_shares[, frml_check_downup := paste(frml_downup[zero_weigth == FALSE], collapse = " + "), by = c("Child", "year")]
+
+frml_prod           <- z_comp_shares$frml_prod
+frml_process_parent <- z_comp_shares$frml_process_parent
+frml_check_updown   <- z_comp_shares$frml_check_updown
+frml_check_downup   <- z_comp_shares$frml_check_downup
+
+z_comp_shares[, names(z_comp_shares)[grepl("frml_", names(z_comp_shares))] := NULL]
+
+writeFormula(wb, sheet = "SHARES", x = frml_process_parent, startCol = frml_start + 0, startRow = 2)
+writeFormula(wb, sheet = "SHARES", x = frml_prod,           startCol = frml_start + 1, startRow = 2)
+writeFormula(wb, sheet = "SHARES", x = frml_check_updown,   startCol = frml_start + 2, startRow = 2)
+writeFormula(wb, sheet = "SHARES", x = frml_check_downup,   startCol = frml_start + 3, startRow = 2)
+
+writeData(wb, "SHARES", cbind("PROCESSED_PARENT", "PRODUCTION", "SUM UPdown", "SUM DOWNup"), startCol = frml_start, colNames = FALSE)
+addStyle(wb, sheet = "SHARES", style_formula, rows = 1, cols = frml_start:(frml_start + 3))
+
+addStyle(wb, sheet = "SHARES", style_comma, rows = 1:nrow(z_comp_shares) + 1, cols = c(grep("^(production|imports|exports|stockChange|availability|Processed_parent)$", names(z_comp_shares)), frml_start:(frml_start + 3)), gridExpand = TRUE, stack = TRUE)
+
+dbg_print(paste("SHARES workbook, save", getwd(), tmp_file_shares))
 
 saveWorkbook(wb, tmp_file_shares, overwrite = TRUE)
+
+send_mail(
+  from = "do-not-reply@fao.org",
+  to = swsContext.userEmail,
+  subject = "Results from SUA_bal_compilation plugin",
+  body = c("XXXXXXX", tmp_file_shares))
 
 
 ## 1 => year = 2014
