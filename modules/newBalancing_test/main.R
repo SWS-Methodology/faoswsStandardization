@@ -57,7 +57,7 @@ FIX_OUTLIERS <- TRUE
 
 FILL_EXTRACTION_RATES <- TRUE
 
-YEARS <- as.character(2000:2017)
+YEARS <- as.character(2000:2018)
 
 TMP_DIR <- file.path(tempdir(), USER)
 if (!file.exists(TMP_DIR)) dir.create(TMP_DIR, recursive = TRUE)
@@ -1047,7 +1047,7 @@ key <-
       list(
         geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
         measuredElementSuaFbs = Dimension(name = "measuredElement", keys = "511"), # 511 = Total population
-        timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2017))
+        timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2018))
       )
   )
 
@@ -1121,7 +1121,7 @@ flagValidTable[flagObservationStatus == 'I' & flagMethod == 'c', Protected := FA
 nutrientData <-
   getNutritiveFactors(
     measuredElement = "1001", # "1001" is code for calories per 100 grams
-    timePointYears = as.character(2014:2017),
+    timePointYears = as.character(2014:2018),
     geographicAreaM49 = COUNTRY
   )
 
@@ -1385,7 +1385,7 @@ all_opening_stocks[
 complete_all_opening <-
   CJ(
     geographicAreaM49 = unique(all_opening_stocks$geographicAreaM49),
-    timePointYears = as.character(min(all_opening_stocks$timePointYears):2017),
+    timePointYears = as.character(min(all_opening_stocks$timePointYears):2018),
     measuredItemFbsSua = unique(all_opening_stocks$measuredItemFbsSua)
   )
 
@@ -1431,7 +1431,7 @@ all_opening_stocks <- all_opening_stocks[!is.na(timePointYears)]
 opening_avail_all_years <-
   all_opening_stocks[
     !is.na(Value) & timePointYears >= 2014,
-    .SD[.N == (2017 - 2014 + 1)],
+    .SD[.N == (2018 - 2014 + 1)],
     measuredItemFbsSua
   ]
 
@@ -1440,7 +1440,7 @@ delta_avail_for_open_all_years <-
     measuredElementSuaFbs == "5071" &
       timePointYears >= 2014 &
       measuredItemFbsSua %chin% opening_avail_all_years$measuredItemFbsSua,
-    .SD[.N == (2017 - 2014 + 1)],
+    .SD[.N == (2018 - 2014 + 1)],
     measuredItemFbsSua
   ]
 
@@ -1515,7 +1515,7 @@ if (length(to_generate_by_ident) > 0) {
 
   delta_identity <-
     opening_avail_all_years[
-      timePointYears %in% 2014:2017,
+      timePointYears %in% 2014:2018,
       .(
         geographicAreaM49,
         measuredItemFbsSua,
@@ -1554,7 +1554,7 @@ data_for_opening <-
     ],
     data[
       measuredElementSuaFbs == '5071' &
-        timePointYears %in% 2014:2017 &
+        timePointYears %in% 2014:2018 &
         !is.na(Value),
       .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua,
         timePointYears, delta = Value)
@@ -2038,7 +2038,7 @@ data_tree[,
 data_tree[,
   proc_Median :=
     median(
-      Value[measuredElementSuaFbs == "foodManufacturing" & timePointYears %in% 2000:2017],
+      Value[measuredElementSuaFbs == "foodManufacturing" & timePointYears %in% 2000:2018],
       na.rm=TRUE
     ),
   by = c(p$parentVar, p$geoVar)
@@ -3668,7 +3668,7 @@ dbg_print("end of derived production loop")
 data_deriv <-
   data[
     measuredElementSuaFbs == 'production' &
-      timePointYears %in% 2014:2017,
+      timePointYears %in% 2014:2018,
     list(
       geographicAreaM49,
       measuredElementSuaFbs = "5510",
@@ -3684,7 +3684,7 @@ data_deriv <-
 data_processed <-
   data[
     measuredElementSuaFbs == 'foodManufacturing' &
-      timePointYears %in% 2014:2017,
+      timePointYears %in% 2014:2018,
     list(
       geographicAreaM49,
       measuredElementSuaFbs = "5023",
@@ -3701,7 +3701,7 @@ data_processed <-
 data_stock_to_save <-
   data[
     measuredElementSuaFbs == 'stockChange' &
-      timePointYears %in% 2014:2017 &
+      timePointYears %in% 2014:2018 &
       !is.na(Value),
     list(
       geographicAreaM49,
@@ -3824,7 +3824,7 @@ if (FIX_OUTLIERS == TRUE) {
 
   dout[
     Protected == FALSE &
-      timePointYears %in% 2014:2017 & # XXX: parameterise
+      timePointYears %in% 2014:2018 & # XXX: parameterise
       mean_ratio > 0 &
       abs(element_supply) > 0 &
       measuredElementSuaFbs %chin% c("feed", "seed", "loss", "industrial") &
@@ -3845,6 +3845,13 @@ if (FIX_OUTLIERS == TRUE) {
           measuredItemSuaFbs %chin% primaryProxyPrimary_items),
     impute := NA_real_
   ]
+
+  # Exclude feed as the first time it needs to be generated, without saving
+  # outliers to sua_unbalanced as they have E,e flag (which is protected...).
+  # In other words, feed has not been run yet if first time.
+  if (STOP_AFTER_DERIVED == TRUE) {
+    dout <- dout[measuredElementSuaFbs != "feed"]
+  }
 
   dout <-
     dout[
@@ -4619,6 +4626,7 @@ send_mail(
   subject = "Results from SUA_bal_compilation plugin",
   body = c("XXXXXXX", tmp_file_shares))
 
+#stop("HI!!!!!!!!!!")
 
 ## 1 => year = 2014
 i <- 1
@@ -5130,13 +5138,13 @@ if (CheckDebug()) {
           measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys_all),
           measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
           # Get from 2010, just for the SUA aggregation
-          timePointYears = Dimension(name = "timePointYears", keys = as.character(2010:2017))
+          timePointYears = Dimension(name = "timePointYears", keys = as.character(2010:2018))
         )
     )
 } else {
   key_all <- swsContext.datasets[[1]]
   
-  key_all@dimensions$timePointYears@keys <- as.character(2010:2017)
+  key_all@dimensions$timePointYears@keys <- as.character(2010:2018)
   key_all@dimensions$measuredItemFbsSua@keys <- itemKeys
   key_all@dimensions$measuredElementSuaFbs@keys <- elemKeys_all
   key_all@dimensions$geographicAreaM49@keys <- COUNTRY
@@ -5610,18 +5618,18 @@ style_cal_gt_100 <- createStyle(fgFill = "red")
 style_percent    <- createStyle(numFmt = "PERCENTAGE")
 style_mean_diff  <- createStyle(borderColour = "blue", borderStyle = "double", border = "TopBottomLeftRight")
 
-# All zeros in 2014-2017, that were not zeros in 2010-2013
+# All zeros in 2014-2016, that were not zeros in 2010-2013
 zeros <-
-  des_main[, .SD, .SDcols = as.character(2014:2017)] == 0 &
+  des_main[, .SD, .SDcols = as.character(2014:2018)] == 0 &
   des_main[, rowMeans(.SD), .SDcols = as.character(2010:2013)] > 0
 
-for (i in which(names(des_level_diff_cast) %in% 2011:2017)) {
+for (i in which(names(des_level_diff_cast) %in% 2011:2018)) {
   addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 10], style = style_cal_gt_10, gridExpand = TRUE)
   addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 20], style = style_cal_gt_20, gridExpand = TRUE)
   addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 50], style = style_cal_gt_50, gridExpand = TRUE)
   addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 100], style = style_cal_gt_100, gridExpand = TRUE)
 
-  if (names(des_level_diff_cast)[i] %in% 2014:2017) {
+  if (names(des_level_diff_cast)[i] %in% 2014:2018) {
     j <- names(des_level_diff_cast)[i]
     rows_with_zero <- zeros[, j]
     if (any(rows_with_zero == TRUE)) {
@@ -5636,15 +5644,15 @@ for (i in which(names(des_level_diff_cast) %in% 2011:2017)) {
 }
 
 high_variation_mean <-
-  abs(des_main[, rowMeans(.SD), .SDcols = as.character(2010:2013)] / des_main[, rowMeans(.SD), .SDcols = as.character(2014:2017)] - 1) > 0.30
+  abs(des_main[, rowMeans(.SD), .SDcols = as.character(2010:2013)] / des_main[, rowMeans(.SD), .SDcols = as.character(2014:2018)] - 1) > 0.30
 
 if (any(high_variation_mean == TRUE)) {
   high_variation_mean <- 1 + (1:nrow(des_main))[high_variation_mean]
-  addStyle(wb, sheet = "DES_MAIN", style_mean_diff, rows = high_variation_mean, cols = which(names(des_level_diff_cast) %in% 2014:2017), gridExpand = TRUE, stack = TRUE)
+  addStyle(wb, sheet = "DES_MAIN", style_mean_diff, rows = high_variation_mean, cols = which(names(des_level_diff_cast) %in% 2014:2018), gridExpand = TRUE, stack = TRUE)
 }
 
 
-addStyle(wb, sheet = "DES_MAIN_diff_perc", style_percent, rows = 1:nrow(des_level_diff_cast) + 1, cols = which(names(des_level_diff_cast) %in% 2011:2017), gridExpand = TRUE, stack = TRUE)
+addStyle(wb, sheet = "DES_MAIN_diff_perc", style_percent, rows = 1:nrow(des_level_diff_cast) + 1, cols = which(names(des_level_diff_cast) %in% 2011:2018), gridExpand = TRUE, stack = TRUE)
 
 setColWidths(wb, "DES_MAIN", 4, 40)
 setColWidths(wb, "DES_MAIN_diff", 4, 40)
@@ -5749,7 +5757,7 @@ if (exists("out")) {
           in the AVERAGE DES pre (year <= 2013) and post (year >= 2014)
 
       - DES_MAIN_ITEMS_*.xlsx = as DES_*.csv, but only with items that
-          accounted for nearly 90%% on average over 2014-2017
+          accounted for nearly 90%% on average over 2014-2018
 
       - DES_*.csv = calculation of DES (total and by items)
 
