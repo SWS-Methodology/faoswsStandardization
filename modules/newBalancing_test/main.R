@@ -4620,13 +4620,14 @@ dbg_print(paste("SHARES workbook, save", getwd(), tmp_file_shares))
 
 saveWorkbook(wb, tmp_file_shares, overwrite = TRUE)
 
-send_mail(
-  from = "do-not-reply@fao.org",
-  to = swsContext.userEmail,
-  subject = "Results from SUA_bal_compilation plugin",
-  body = c("XXXXXXX", tmp_file_shares))
-
-#stop("HI!!!!!!!!!!")
+# For testing purposes:
+#send_mail(
+#  from = "do-not-reply@fao.org",
+#  to = swsContext.userEmail,
+#  subject = "Results from SUA_bal_compilation plugin",
+#  body = c("XXXXXXX", tmp_file_shares))
+#
+##stop("HI!!!!!!!!!!")
 
 ## 1 => year = 2014
 i <- 1
@@ -5618,7 +5619,7 @@ style_cal_gt_100 <- createStyle(fgFill = "red")
 style_percent    <- createStyle(numFmt = "PERCENTAGE")
 style_mean_diff  <- createStyle(borderColour = "blue", borderStyle = "double", border = "TopBottomLeftRight")
 
-# All zeros in 2014-2016, that were not zeros in 2010-2013
+# All zeros in 2014-2018, that were not zeros in 2010-2013
 zeros <-
   des_main[, .SD, .SDcols = as.character(2014:2018)] == 0 &
   des_main[, rowMeans(.SD), .SDcols = as.character(2010:2013)] > 0
