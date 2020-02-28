@@ -2552,14 +2552,16 @@ if (nrow(data_shareUpDown_sws) == 0) {
                                on = c('geographicAreaM49', 
                                       'measuredItemParentCPC',
                                       'timePointYears')],
-      data_ShareUpDoawn_final[
+      unique(
+        data_ShareUpDoawn_final[
         new_connection[,c('geographicAreaM49', 
                           'measuredItemParentCPC', 
                           'timePointYears'),with=FALSE],
         on = c('geographicAreaM49', 
                'measuredItemParentCPC', 
                'timePointYears')
-      ],
+      ]
+      ),
       fill = TRUE
     )
   
