@@ -2536,7 +2536,7 @@ if (nrow(data_shareUpDown_sws) == 0) {
   data_ShareUpDoawn_to_use <-
     data_ShareUpDoawn_to_use[, colnames(data_ShareUpDoawn_final), with = FALSE]
   
-  data_ShareUpDoawn_final<-data_ShareUpDoawn_final[timePointYears %in% unique(data_ShareUpDoawn_to_use$timePointYears)]
+  data_ShareUpDoawn_final<-data_ShareUpDoawn_final[timePointYears %in% as.character(2014:2018)]
   
   #If a new connection parent-child is added, the shareUpDown of all the children are affected
   #So we overwrite the share of all the children of the parent in the new connection
