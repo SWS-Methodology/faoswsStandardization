@@ -1153,6 +1153,9 @@ dbg_print("download data")
 # LOAD
 data <- GetData(key)
 
+# Remove item that is not par of agriculture domain
+data <- data[measuredItemFbsSua != "F1223"]
+
 
 #################### FODDER CROPS ##########################################
 
