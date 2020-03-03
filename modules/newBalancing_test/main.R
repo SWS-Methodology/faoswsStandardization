@@ -1156,6 +1156,13 @@ data <- GetData(key)
 data <- data[measuredItemFbsSua != "F1223"]
 
 
+dbg_print("convert sugar")
+
+##############################################################
+######### SUGAR RAW CODES TO BE CONVERTED IN 2351F ###########
+##############################################################
+data <- convertSugarCodes_new(data)
+
 #################### FODDER CROPS ##########################################
 
 # TODO: create SWS datatable for this.
@@ -1650,14 +1657,6 @@ data[, name := NULL]
 data <- data[!is.na(measuredElementSuaFbs)]
 
 setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-
-dbg_print("convert sugar")
-
-# XXX
-##############################################################
-######### SUGAR RAW CODES TO BE CONVERTED IN 2351F ###########
-##############################################################
-data <- convertSugarCodes(data)
 
 
 ########## Remove feed if new element and negative imbalance is huge
