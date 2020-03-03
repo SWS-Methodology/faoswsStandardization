@@ -1118,12 +1118,25 @@ flagValidTable[flagObservationStatus == 'E' & flagMethod == 'e', Protected := FA
 # This will need to change in the next exercise.
 flagValidTable[flagObservationStatus == 'I' & flagMethod == 'c', Protected := FALSE]
 
+
+# Nutrients are:
+# 1001 Calories
+# 1003 Proteins
+# 1005 Fats
+nutrientCodes = c("1001", "1003", "1005")
+
 nutrientData <-
   getNutritiveFactors(
-    measuredElement = "1001", # "1001" is code for calories per 100 grams
+    measuredElement = nutrientCodes, 
     timePointYears = as.character(2014:2018),
     geographicAreaM49 = COUNTRY
   )
+
+nutrientData[measuredElement=="1001",measuredElement:="664"]
+
+nutrientData[measuredElement=="1003",measuredElement:="674"]
+
+nutrientData[measuredElement=="1005",measuredElement:="684"]
 
 if (CheckDebug()) {
   key <-
@@ -5082,7 +5095,7 @@ calories_per_capita <-
       measuredElementSuaFbs == '5141',
       list(
         geographicAreaM49,
-        measuredElementSuaFbs = "664",
+        #measuredElementSuaFbs = "664",
         measuredItemFbsSua,
         timePointYears,
         food = Value,
@@ -5095,11 +5108,13 @@ calories_per_capita <-
       list(
         geographicAreaM49,
         measuredItemFbsSua = measuredItemCPC,
+        measuredElementSuaFbs = measuredElement,
         timePointYears = timePointYearsSP,
-        calories = Value
+        nutrient = Value
       )
     ],
-    by = c('geographicAreaM49', 'timePointYears', 'measuredItemFbsSua')
+    by = c('geographicAreaM49', 'timePointYears', 'measuredItemFbsSua'),
+    allow.cartesian = TRUE
   )
 
 calories_per_capita <-
@@ -5109,11 +5124,30 @@ calories_per_capita <-
     by = c('geographicAreaM49', 'timePointYears')
   )
 
-calories_per_capita[, Value := food * calories / population / 365 * 10]
+calories_per_capita_total<-copy(calories_per_capita)
+
+calories_per_capita[, Value := food * nutrient / population / 365 * 10]
 
 calories_per_capita[, Protected := FALSE]
 
-calories_per_capita[, c("food", "calories", "population") := NULL]
+calories_per_capita[, c("food", "nutrient", "population") := NULL]
+
+calories_per_capita_total[, Value := food * nutrient/100]
+
+calories_per_capita_total[, Protected := FALSE]
+
+calories_per_capita_total[, c("food", "nutrient", "population") := NULL]
+
+calories_per_capita_total[measuredElementSuaFbs=="664",
+                          measuredElementSuaFbs:="261"]
+
+calories_per_capita_total[measuredElementSuaFbs=="674",
+                          measuredElementSuaFbs:="271"]
+
+calories_per_capita_total[measuredElementSuaFbs=="684",
+                          measuredElementSuaFbs:="281"]
+
+calories_per_capita<-rbind(calories_per_capita,calories_per_capita_total)
 
 standData <-
   rbind(
