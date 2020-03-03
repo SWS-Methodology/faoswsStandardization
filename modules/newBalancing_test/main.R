@@ -69,6 +69,10 @@ tmp_file_non_exist   <- file.path(TMP_DIR, paste0("NONEXISTENT_", COUNTRY, ".csv
 tmp_file_fix_shares  <- file.path(TMP_DIR, paste0("FIXED_PROC_SHARES_", COUNTRY, ".csv"))
 tmp_file_NegNetTrade <- file.path(TMP_DIR, paste0("NEG_NET_TRADE_", COUNTRY, ".csv"))
 
+# Always source files in R/ (useful for local runs).
+# Your WD should be in faoswsStandardization/
+sapply(dir("R", full.names = TRUE), source)
+
 
 p <- defaultStandardizationParameters()
 
@@ -90,11 +94,6 @@ tourist_cons_table <- ReadDatatable("keep_tourist_consumption")
 stopifnot(nrow(tourist_cons_table) > 0)
 
 TourismNoIndustrial <- tourist_cons_table[small == "X"]$tourist
-
-
-# Always source files in R/ (useful for local runs).
-# Your WD should be in faoswsStandardization/
-sapply(dir("R", full.names = TRUE), source)
 
 
 dbg_print("define functions")
