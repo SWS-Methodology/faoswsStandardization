@@ -2507,7 +2507,7 @@ setnames(
 
 setnames(shareUpDown_to_save, "shareUpDown", "Value")
 
-shareUpDown_to_save[, Value := round(Value, 3)]
+#shareUpDown_to_save[, Value := round(Value, 3)]
 
 sessionKey_shareUpDown <- swsContext.datasets[[3]]
 
@@ -3654,7 +3654,7 @@ setnames(
 
 shareUpDown_to_save <- shareUpDown_to_save[!is.na(Value)]
 
-shareUpDown_to_save[, Value := round(Value, 3)]
+#shareUpDown_to_save[, Value := round(Value, 3)]
 
 faosws::SaveData(
   domain = "suafbs",
