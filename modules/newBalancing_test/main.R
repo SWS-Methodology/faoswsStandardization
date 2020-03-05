@@ -5712,6 +5712,12 @@ write.csv(des_cast, tmp_file_des)
 
 ########## / DES calculation
 
+
+# Nutrients (except 664), are reuired only in last round (when saving)
+if (!(TRUE %in% swsContext.computationParams$save_nutrients)) {
+  standData <- standData[measuredElementSuaFbs %!in% c('261', '271', '281', '674', '684')]
+}
+
 out <- SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData, waitTimeout = 20000)
 
 if (exists("out")) {
