@@ -69,6 +69,10 @@ tmp_file_non_exist   <- file.path(TMP_DIR, paste0("NONEXISTENT_", COUNTRY, ".csv
 tmp_file_fix_shares  <- file.path(TMP_DIR, paste0("FIXED_PROC_SHARES_", COUNTRY, ".csv"))
 tmp_file_NegNetTrade <- file.path(TMP_DIR, paste0("NEG_NET_TRADE_", COUNTRY, ".csv"))
 
+# Always source files in R/ (useful for local runs).
+# Your WD should be in faoswsStandardization/
+sapply(dir("R", full.names = TRUE), source)
+
 
 p <- defaultStandardizationParameters()
 
@@ -90,11 +94,6 @@ tourist_cons_table <- ReadDatatable("keep_tourist_consumption")
 stopifnot(nrow(tourist_cons_table) > 0)
 
 TourismNoIndustrial <- tourist_cons_table[small == "X"]$tourist
-
-
-# Always source files in R/ (useful for local runs).
-# Your WD should be in faoswsStandardization/
-sapply(dir("R", full.names = TRUE), source)
 
 
 dbg_print("define functions")
@@ -1170,6 +1169,13 @@ data <- GetData(key)
 data <- data[measuredItemFbsSua != "F1223"]
 
 
+dbg_print("convert sugar")
+
+##############################################################
+######### SUGAR RAW CODES TO BE CONVERTED IN 2351F ###########
+##############################################################
+data <- convertSugarCodes_new(data)
+
 #################### FODDER CROPS ##########################################
 
 # TODO: create SWS datatable for this.
@@ -1664,14 +1670,6 @@ data[, name := NULL]
 data <- data[!is.na(measuredElementSuaFbs)]
 
 setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
-
-dbg_print("convert sugar")
-
-# XXX
-##############################################################
-######### SUGAR RAW CODES TO BE CONVERTED IN 2351F ###########
-##############################################################
-data <- convertSugarCodes(data)
 
 
 ########## Remove feed if new element and negative imbalance is huge
@@ -5776,6 +5774,12 @@ tmp_file_des <- file.path(TMP_DIR, paste0("DES_", COUNTRY, ".csv"))
 write.csv(des_cast, tmp_file_des)
 
 ########## / DES calculation
+
+
+# Nutrients (except 664), are reuired only in last round (when saving)
+if (!(TRUE %in% swsContext.computationParams$save_nutrients)) {
+  standData <- standData[measuredElementSuaFbs %!in% c('261', '271', '281', '674', '684')]
+}
 
 out <- SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData, waitTimeout = 20000)
 
