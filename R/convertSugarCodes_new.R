@@ -18,15 +18,22 @@
 convertSugarCodes_new <- function(data) {
   d <- copy(data)
 
-  stock_elem_lab <-
-    unique(d$measuredElementSuaFbs)[grep("5071|stock_change|stockChange", unique(d$measuredElementSuaFbs))]
-
   # Keep name as it can be measuredItemFbsSua or measuredItemFbsSua (why????)
   item_name <- names(d)[grepl("Item", names(d))]
 
   setnames(d, item_name, "item")
 
-  sugar <- d[item %in% c('23511.01', '23512', '2351f') & measuredElementSuaFbs != stock_elem_lab]
+  sugar <- d[item %in% c('23511.01', '23512', '2351f')]
+
+  stock_elem_lab <-
+    unique(d$measuredElementSuaFbs)[grep("5071|stock_change|stockChange", unique(d$measuredElementSuaFbs))]
+
+  if (length(stock_elem_lab) > 0) {
+    sugar <- sugar[measuredElementSuaFbs != stock_elem_lab]
+    sugar_stock <- sugar[measuredElementSuaFbs == stock_elem_lab]
+  } else {
+    sugar_stock <- d[0]
+  }
 
   if (nrow(sugar) == 0) {
     return(d)
@@ -46,12 +53,20 @@ convertSugarCodes_new <- function(data) {
 
   sugar[
     n > 0,
-    flag :=
-      ifelse(
-        "2351f" %in% item[Value == Value_max],
-        flagObservationStatus[Value == Value_max],
-        faoswsFlag::aggregateObservationFlag(flagObservationStatus[item != "2351f"])
-      ),
+    `:=`(
+      flag_obs =
+        ifelse(
+          "2351f" %in% item[Value == Value_max],
+          flagObservationStatus[Value == Value_max],
+          faoswsFlag::aggregateObservationFlag(flagObservationStatus[item != "2351f"])
+        ),
+      flag_meth =
+        ifelse(
+          "2351f" %in% item[Value == Value_max],
+          flagMethod[Value == Value_max],
+          's'
+        )
+    ),
       by = c('geographicAreaM49', 'measuredElementSuaFbs', 'timePointYears')
   ]
 
@@ -59,8 +74,8 @@ convertSugarCodes_new <- function(data) {
     sugar[,
       .(
         Value = max(Value[item == "2351f"], sum(Value[item %in% c('23511.01', '23512')])),
-        flagObservationStatus = unique(flag),
-        flagMethod = ifelse(.N > 1, 's', flagMethod),
+        flagObservationStatus = unique(flag_obs),
+        flagMethod = unique(flag_meth),
         item = '2351f'
       ),
       by = c('geographicAreaM49', 'measuredElementSuaFbs', 'timePointYears')
@@ -68,8 +83,9 @@ convertSugarCodes_new <- function(data) {
 
   res <-
     rbind(
-      d[!(item %in% c('23511.01', '23512', '2351f') & measuredElementSuaFbs != stock_elem_lab)],
-      sugar_summ
+      d[!(item %in% c('23511.01', '23512', '2351f'))],
+      sugar_summ,
+      sugar_stock
     )
 
   setnames(res, "item", item_name)
