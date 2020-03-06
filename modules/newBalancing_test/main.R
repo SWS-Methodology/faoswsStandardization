@@ -2393,7 +2393,7 @@ by=c("geographicAreaM49","measuredItemParentCPC")
 ]
 
 
-dataProcessingShare[,Prod:=Value[measuredElementSuaFbs=="production"],
+dataProcessingShare[,parent_qty_processed:=Value[measuredElementSuaFbs=="foodManufacturing"],
 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
 ]
 
@@ -2414,15 +2414,14 @@ dataProcessingShare[,NewLoss:=ifelse(is.na(loss_Median_before),TRUE,FALSE)]
 dataProcessingShare <-
   unique(
     dataProcessingShare[
-      measuredElementSuaFbs == "foodManufacturing",
+      measuredElementSuaFbs == "production",
       c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "Value",
-        "availability","RatioLoss","NewLoss","Prod"),
+        "availability","RatioLoss","NewLoss","parent_qty_processed"),
       with = FALSE
       ],
     by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "Value")
   )
- 
- setnames(dataProcessingShare, "Value", "parent_qty_processed")
+ setnames(dataProcessingShare, "Value", "Prod")
 
 # Processing share and ShareUpDown
 dataProcessingShare <-

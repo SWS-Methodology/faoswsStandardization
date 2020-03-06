@@ -116,7 +116,7 @@ areaKeys = selectedGEOCode
 ptm <- proc.time()
 #tree=getCommodityTreeNewMethod(areaKeys,yearVals)
 message("Downloading tree...")
-tree=getCommodityTreeNewMethod(areaKeys,as.character(2000:2017))
+tree=getCommodityTreeNewMethod(areaKeys,as.character(2000:2018))
 
 message((proc.time() - ptm)[3])
 
@@ -196,6 +196,9 @@ tree[Value==0,Value:=NA]
 # )
 #END FILL EXTRACTION RATE-------------
 
+  ############GLOBAL EXTRACTION RATE ###########################
+  
+  globalExtr=read.csv(file.path(R_SWS_SHARE_PATH, "standardization", "Global_Extraction_Rates.csv"))
 
 ##################################################################
 ##########################FUNCTIONS###############################
@@ -795,7 +798,7 @@ NonStandardizedChidren<-function(fbsTree,tree,standParams){
 ###########END FUNCTION--------------------------------------------
 #QUick way to have the exact shareDownUp
 #LoadShareUpDowm
-shareUpDownTree=getShareUpDownTree(areaKeys,as.character(2000:2017)) 
+shareUpDownTree=getShareUpDownTree(areaKeys,as.character(2000:2018)) 
 shareUpDownTree<-shareUpDownTree[!is.na(Value)]
 shareUpDownTree[,shareUpDown:=Value]
 shareUpDownTree[,Value:=NULL]
@@ -930,7 +933,7 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-  timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2017))))
+  timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2018))))
 
 # key = DatasetKey(domain = "suafbs", dataset = "sua_balanced", dimensions = list(
 #   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
@@ -1141,7 +1144,7 @@ data_tree[,
 data_tree[,
           proc_Median :=
             median(
-              Value[measuredElementSuaFbs == "foodManufacturing" & timePointYears %in% 2000:2017],
+              Value[measuredElementSuaFbs == "foodManufacturing" & timePointYears %in% 2000:2018],
               na.rm=TRUE
             ),
           by = c(p$parentVar, p$geoVar)
@@ -1842,7 +1845,7 @@ itemKeys = GetCodeList("agriculture", "aupus_ratio", "measuredItemCPC")[, code]
 nutrientCodes = c("1001", "1003", "1005")
 
 nutrientData = getNutritiveFactors(measuredElement = nutrientCodes,
-                                   timePointYears = as.character(2014:2017),
+                                   timePointYears = as.character(2014:2018),
                                    geographicAreaM49 = COUNTRY
                                    )
 setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
@@ -1881,7 +1884,7 @@ key <-
       list(
         geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
         measuredElementSuaFbs = Dimension(name = "measuredElement", keys = "511"), # 511 = Total population
-        timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2017))
+        timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2018))
       )
   )
 
@@ -2788,7 +2791,7 @@ fbs_residual_to_send<-merge(
 #Consider only fbsID4 groups for the final summary file
 
 fbsID4_groups<-paste0("S",unique(fbsTree$fbsID4))
-fbs_residual_to_send<-fbs_residual_to_send[measuredItemFbsSua %in% fbsID4_groups]
+#fbs_residual_to_send<-fbs_residual_to_send[measuredItemFbsSua %in% fbsID4_groups]
 #-----
 
 standQTY<-standQTY[,list(FBS_group,geographicAreaM49,timePointYears,measuredElementSuaFbs,
