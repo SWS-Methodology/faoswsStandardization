@@ -29,8 +29,8 @@ convertSugarCodes_new <- function(data) {
     unique(d$measuredElementSuaFbs)[grep("5071|stock_change|stockChange", unique(d$measuredElementSuaFbs))]
 
   if (length(stock_elem_lab) > 0) {
-    sugar <- sugar[measuredElementSuaFbs != stock_elem_lab]
     sugar_stock <- sugar[measuredElementSuaFbs == stock_elem_lab]
+    sugar <- sugar[measuredElementSuaFbs != stock_elem_lab]
   } else {
     sugar_stock <- d[0]
   }
