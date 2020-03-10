@@ -25,6 +25,8 @@ convertSugarCodes_new <- function(data) {
 
   sugar <- d[item %in% c('23511.01', '23512', '2351f')]
 
+  sugar <- sugar[order(geographicAreaM49, measuredElementSuaFbs, timePointYears, -item)]
+
   stock_elem_lab <-
     unique(d$measuredElementSuaFbs)[grep("5071|stock_change|stockChange", unique(d$measuredElementSuaFbs))]
 
@@ -64,7 +66,7 @@ convertSugarCodes_new <- function(data) {
         ifelse(
           "2351f" %in% item[Value == Value_max],
           flagMethod[Value == Value_max],
-          's'
+          ifelse(all(c('23511.01', '23512') %in% item), 's', flagMethod[item != "2351f"])
         )
     ),
       by = c('geographicAreaM49', 'measuredElementSuaFbs', 'timePointYears')
