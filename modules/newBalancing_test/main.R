@@ -2397,6 +2397,10 @@ dataProcessingShare[,parent_qty_processed:=Value[measuredElementSuaFbs=="foodMan
 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
 ]
 
+dataProcessingShare[,Prod:=Value[measuredElementSuaFbs=="production"],
+                    by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+                    ]
+
 dataProcessingShare[,RatioLoss:=SumLoss/SumProd]
 
 dataProcessingShare[,
@@ -2413,15 +2417,15 @@ dataProcessingShare[,NewLoss:=ifelse(is.na(loss_Median_before),TRUE,FALSE)]
 # dataset containing the processed quantity of parents
 dataProcessingShare <-
   unique(
-    dataProcessingShare[
-      measuredElementSuaFbs == "production",
-      c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "Value",
+    dataProcessingShare[,
+      c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "Prod",
         "availability","RatioLoss","NewLoss","parent_qty_processed"),
       with = FALSE
       ],
-    by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "Value")
+    by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "Prod",
+           "availability","RatioLoss","NewLoss","parent_qty_processed")
   )
- setnames(dataProcessingShare, "Value", "Prod")
+ #setnames(dataProcessingShare, "Value", "Prod")
 
 # Processing share and ShareUpDown
 dataProcessingShare <-
@@ -2439,6 +2443,10 @@ dataProcessingShare <-
 dataProcessingShare[timePointYears %in% 2014:2018, parent_qty_processed := NA_real_]
 
 #correction of Pshare to adjust prcessed in case of new Loss
+
+dataProcessingShare[is.na(RatioLoss),RatioLoss:=0]
+dataProcessingShare[is.na(Prod),Prod:=0]
+
 
 dataProcessingShare[,
   Pshare := ifelse(NewLoss==TRUE,(parent_qty_processed-RatioLoss*Prod) / availability,
