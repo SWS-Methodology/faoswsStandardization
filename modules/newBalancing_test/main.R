@@ -2729,6 +2729,8 @@ if (file.exists(shareDownUp_file)) {
       by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
     ][
       !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+    ][
+      timePointYears >= 2014
     ]
   
   if (nrow(shareDownUp_invalid) > 0) {
@@ -2823,6 +2825,8 @@ shareDownUp_invalid <-
     by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
   ][
     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+  ][
+    timePointYears >= 2014
   ]
 
 if (nrow(shareDownUp_invalid) > 0) {
