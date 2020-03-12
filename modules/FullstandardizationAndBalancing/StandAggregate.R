@@ -630,13 +630,7 @@ computeFbsAggregate = function(data, fbsTree, standParams){
                   by = c(standParams$elementVar, standParams$yearVar,
                          standParams$geoVar, "fbsID3")]
   
-  out[[3]] = data[ get(standParams$elementVar) %in% c(standParams$calories, 
-                                                     standParams$proteins,
-                                                     standParams$fats,
-                                                     "TotalCalories",
-                                                     "TotalProteins",
-                                                     "TotalFats"), 
-                  list(Value = sum(Value, na.rm = TRUE)),
+  out[[3]] = data[, list(Value = sum(Value, na.rm = TRUE)),
                   by = c(standParams$elementVar, standParams$yearVar,
                          standParams$geoVar, "fbsID2")]
   
@@ -2446,7 +2440,8 @@ setnames(fbs_balanced,"measuredItemSuaFbs","measuredItemFbsSua")
 
 fbs_residual<-copy(fbs_balanced)
 
-fbs_residual<-fbs_residual[measuredItemFbsSua %!in% c("S2901","S2903","S2941")]
+#fbs_residual<-fbs_residual[measuredItemFbsSua %!in% c("S2901","S2903","S2941")]
+fbs_residual<-fbs_residual[measuredItemFbsSua %!in% c("S2901")]
 calculateImbalance(data=fbs_residual,keep_supply = TRUE,keep_utilizations = FALSE)
 
 fbs_residual<-
@@ -2527,7 +2522,8 @@ fbs_balanced_bis[,IsSUAbal:=ifelse(is.na(cpc_unbalanced),TRUE,FALSE)]
 
 fbs_balanced_bis<-merge(
   fbs_balanced_bis,
-  fbs_residual[,list(geographicAreaM49,timePointYears,measuredItemFbsSua,imbalance=round(imbalance,0))]
+  fbs_residual[,list(geographicAreaM49,timePointYears,measuredItemFbsSua,imbalance=round(imbalance,0))],
+  all.x = TRUE
 )
 
 fbsid4<-paste0("S",unique(fbsTree$fbsID4))
@@ -2587,10 +2583,10 @@ level_3 <- aggregate(
 
 setnames(level_3,"fbsID3","measuredItemFbsSua")
 
-# level_2 <- aggregate(
-#   Value ~ geographicAreaM49+fbsID2 +timePointYears + measuredElementSuaFbs, 
-#   fbs_other_level, sum, na.rm = TRUE)
-# setnames(level_2,"fbsID2","measuredItemFbsSua")
+level_2 <- aggregate(
+  Value ~ geographicAreaM49+fbsID2 +timePointYears + measuredElementSuaFbs,
+  fbs_other_level, sum, na.rm = TRUE)
+setnames(level_2,"fbsID2","measuredItemFbsSua")
 
 
 # level_1 <- aggregate(
@@ -2600,15 +2596,17 @@ setnames(level_3,"fbsID3","measuredItemFbsSua")
 
 
 
-data_level<-rbind(level_3)
+data_level<-rbind(level_3,level_2)
 setDT(data_level)
 data_level[,flagObservationStatus:="I"]
 data_level[,flagMethod:="s"]
 
 data_level<-data_level[,names(fbs_balanced_bis),with=FALSE]
 
+
+#christian issue
 fbs_balanced_bis<-rbind(
-  fbs_balanced_bis[!data_level, on=c("geographicAreaM49","timePointYears","measuredItemFbsSua")],
+  fbs_balanced_bis[!data_level, on=c("geographicAreaM49","timePointYears","measuredItemFbsSua","measuredElementSuaFbs")],
   data_level
 )
 
@@ -2623,6 +2621,9 @@ fbs_balanced_bis<-rbind(
 message("saving FBS balanced...")
 SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = fbs_balanced_bis, waitTimeout = 20000)
 
+SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = popData, waitTimeout = 20000)
+
+popData[,measuredItemFbsSua:="S2901"]
 SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = popData, waitTimeout = 20000)
 
 
