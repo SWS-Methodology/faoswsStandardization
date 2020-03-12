@@ -1736,8 +1736,10 @@ if (nrow(new_feed) > 0) {
       Value := na.fill_(Value),
       by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
     ][,
-      .(Value = sum(Value) / sum(!is.na(Value)), timePointYears = 1),
+      .(Value = sum(Value) / sum(!is.na(Value) & !dplyr::near(Value, 0)), timePointYears = 1),
       by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+    ][
+      !is.nan(Value)
     ]
 
   calculateImbalance(
