@@ -37,6 +37,14 @@ convertSugarCodes_new <- function(data) {
     sugar_stock <- d[0]
   }
 
+  if ("residual" %in% sugar$measuredElementSuaFbs) {
+    sugar_resid <- sugar[measuredElementSuaFbs == "residual"]
+    sugar <- sugar[measuredElementSuaFbs != "residual"]
+  } else {
+    sugar_resid <- d[0]
+  }
+
+
   if (nrow(sugar) == 0) {
     return(d)
   }
@@ -87,7 +95,8 @@ convertSugarCodes_new <- function(data) {
     rbind(
       d[!(item %in% c('23511.01', '23512', '2351f'))],
       sugar_summ,
-      sugar_stock
+      sugar_stock,
+      sugar_resid
     )
 
   setnames(res, "item", item_name)
