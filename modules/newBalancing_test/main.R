@@ -2729,6 +2729,8 @@ if (file.exists(shareDownUp_file)) {
       by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
     ][
       !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+    ][
+      timePointYears >= 2014
     ]
   
   if (nrow(shareDownUp_invalid) > 0) {
@@ -2812,7 +2814,9 @@ if (nrow(shareDownUp_previous) > 0) {
   data_tree_final <- data_tree
   data_tree_final_save <- copy(data_tree_final)
   data_tree_final_save[, protect_share := FALSE]
+  write.csv(data_tree_final_save, shareDownUp_file, row.names = FALSE)
 }
+
 
 # Check on consistency of shareDownUp
 shareDownUp_invalid <-
@@ -2821,6 +2825,8 @@ shareDownUp_invalid <-
     by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
   ][
     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+  ][
+    timePointYears >= 2014
   ]
 
 if (nrow(shareDownUp_invalid) > 0) {
