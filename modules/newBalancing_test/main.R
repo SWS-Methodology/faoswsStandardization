@@ -1792,6 +1792,9 @@ if (nrow(new_feed) > 0) {
       ]
     )
 
+  new_feed_to_remove[, measuredElementSuaFbs := "feed"]
+  new_feed_to_remove[, remove_feed := TRUE]
+
   new_feed_dubious <-
     unique(
       new_data_avg[
@@ -1800,15 +1803,26 @@ if (nrow(new_feed) > 0) {
       ][order(x)][, x := NULL]
     )
 
-  new_feed_to_remove[, measuredElementSuaFbs := "feed"]
-
   data <-
+    merge(
+      data,
+      new_feed_to_remove,
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs"),
+      all.x = TRUE
+  )
+
+  feed_to_remove <-
     data[
-      !new_feed_to_remove,
-      on = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+      remove_feed == TRUE & Protected == FALSE
+    ][,
+      .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears)
     ]
 
-  if (nrow(new_feed_to_remove) > 0) {
+  data[, remove_feed := NULL]
+
+  data <- data[!feed_to_remove, on = names(feed_to_remove)]
+
+  if (nrow(feed_to_remove) > 0) {
     msg_new_feed_remove <- paste(new_feed_to_remove$measuredItemSuaFbs, collapse = ", ")
   }
 
