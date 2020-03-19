@@ -2485,31 +2485,43 @@ popData<-popData[timePointYears %in% unique(fbs_balanced$timePointYears)]
 
 #correct process at FBS level
 
-Item_with_unbalanced<-data[measuredElementSuaFbs=="residual"]
-Item_with_unbalanced<-Item_with_unbalanced[,balanced:=ifelse(abs(round(Value,0))<5000,TRUE,FALSE)]
-Item_with_unbalanced<-Item_with_unbalanced[balanced==FALSE]
+Item_with_unbalanced <- data[measuredElementSuaFbs == "residual"]
 
-Item_with_unbalanced<-merge(
-  Item_with_unbalanced,
-  fbsTree,
-  by=c(p$itemVar),
-  allow.cartesian = TRUE,
-  all.x = TRUE
-)
+Item_with_unbalanced <- Item_with_unbalanced[abs(round(Value,0)) > 5000]
 
-Item_with_unbalanced<-Item_with_unbalanced[!is.na(fbsID4) & (measuredItemSuaFbs %!in% onlyCalories),
-                                           list(geographicAreaM49,timePointYears,
-                                                measuredItemFbsSua=paste0("S",fbsID4),
-                                                cpc_unbalanced=measuredItemSuaFbs)
-                                           ]
-Item_with_unbalanced<-unique(Item_with_unbalanced,by=c(colnames(Item_with_unbalanced)))
+if (nrow(Item_with_unbalanced) > 0) {
+  Item_with_unbalanced<-merge(
+    Item_with_unbalanced,
+    fbsTree,
+    by=c(p$itemVar),
+    allow.cartesian = TRUE,
+    all.x = TRUE
+  )
+
+  Item_with_unbalanced<-Item_with_unbalanced[!is.na(fbsID4) & (measuredItemSuaFbs %!in% onlyCalories),
+                                             list(geographicAreaM49,timePointYears,
+                                                  measuredItemFbsSua=paste0("S",fbsID4),
+                                                  cpc_unbalanced=measuredItemSuaFbs)
+                                             ]
+  Item_with_unbalanced<-unique(Item_with_unbalanced,by=c(colnames(Item_with_unbalanced)))
 
 
-Item_with_unbalanced<-aggregate(
-  cpc_unbalanced ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
-  Item_with_unbalanced, paste0, collapse = "; ")
+  Item_with_unbalanced<-aggregate(
+    cpc_unbalanced ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
+    Item_with_unbalanced, paste0, collapse = "; ")
 
-setDT(Item_with_unbalanced)
+  setDT(Item_with_unbalanced)
+
+} else {
+  Item_with_unbalanced <-
+    data.table(
+      geographicAreaM49 = character(),
+      measuredItemFbsSua = character(),
+      timePointYears = character(),
+      measuredItemSuaFbs = character(),
+      cpc_unbalanced = logical()
+    )
+}
 
 fbs_balanced_bis<-merge(
   fbs_balanced,
@@ -2518,7 +2530,8 @@ fbs_balanced_bis<-merge(
   all.x = TRUE
 )
 
-fbs_balanced_bis[,IsSUAbal:=ifelse(is.na(cpc_unbalanced),TRUE,FALSE)]
+fbs_balanced_bis[, IsSUAbal := ifelse(is.na(cpc_unbalanced), TRUE, FALSE)]
+
 
 fbs_balanced_bis<-merge(
   fbs_balanced_bis,
@@ -2651,26 +2664,36 @@ Item_with_unbalanced<-
   data[measuredElementSuaFbs=="residual"][,
                                           balanced:=ifelse(abs(Value)<1000,TRUE,FALSE)][balanced==FALSE]
 
-Item_with_unbalanced<-merge(
-  Item_with_unbalanced,
-  fbsTree,
-  by=c(p$itemVar),
-  allow.cartesian = TRUE,
-  all.x = TRUE
-)
+if (nrow(Item_with_unbalanced) > 0) {
+  Item_with_unbalanced<-merge(
+    Item_with_unbalanced,
+    fbsTree,
+    by=c(p$itemVar),
+    allow.cartesian = TRUE,
+    all.x = TRUE
+  )
 
-Item_with_unbalanced<-Item_with_unbalanced[!is.na(fbsID4) & (measuredItemSuaFbs %!in% onlyCalories),
-                                           list(geographicAreaM49,timePointYears,
-                                                measuredItemFbsSua=paste0("S",fbsID4),
-                                                measuredItemSuaFbs)
-                                           ]
-Item_with_unbalanced<-unique(Item_with_unbalanced,by=c(colnames(Item_with_unbalanced)))
+  Item_with_unbalanced<-Item_with_unbalanced[!is.na(fbsID4) & (measuredItemSuaFbs %!in% onlyCalories),
+                                             list(geographicAreaM49,timePointYears,
+                                                  measuredItemFbsSua=paste0("S",fbsID4),
+                                                  measuredItemSuaFbs)
+                                             ]
+  Item_with_unbalanced<-unique(Item_with_unbalanced,by=c(colnames(Item_with_unbalanced)))
 
 
-Item_with_unbalanced<-aggregate(
-  measuredItemSuaFbs ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
-          Item_with_unbalanced, paste0, collapse = "; ")
+  Item_with_unbalanced<-aggregate(
+    measuredItemSuaFbs ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
+            Item_with_unbalanced, paste0, collapse = "; ")
 
+} else {
+  Item_with_unbalanced <-
+    data.table(
+      geographicAreaM49 = character(),
+      measuredItemFbsSua = character(),
+      timePointYears = character(),
+      measuredItemSuaFbs = character()
+    )
+}
 
 
 # 
@@ -2742,7 +2765,9 @@ fbs_residual_to_send<-merge(
 # fbs_residual_to_send[balanced==FALSE & abs(imbalance)<1000,unbalanced:=NA]
 fbs_residual_to_send[,balanced:=NULL]
 
-fbs_residual_to_send<-nameData("suafbs", "fbs_balanced_", fbs_residual_to_send)
+if (nrow(fbs_residual_to_send) > 9) {
+  fbs_residual_to_send<-nameData("suafbs", "fbs_balanced_", fbs_residual_to_send)
+}
 
 
 
