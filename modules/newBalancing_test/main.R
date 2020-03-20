@@ -1302,7 +1302,8 @@ opening_stocks_2014 <-
 opening_stocks_2014 <-
   opening_stocks_2014[
     non_null_prev_deltas,
-    on = c("geographicAreaM49", "measuredItemFbsSua")
+    on = c("geographicAreaM49", "measuredItemFbsSua"),
+    nomatch = 0
   ]
 
 original_opening_stocks <- data[measuredElementSuaFbs == "5113"]
