@@ -2505,12 +2505,6 @@ if (nrow(Item_with_unbalanced) > 0) {
                                              ]
   Item_with_unbalanced<-unique(Item_with_unbalanced,by=c(colnames(Item_with_unbalanced)))
 
-
-if (nrow(Item_with_unbalanced)>0) {
-  Item_with_unbalanced<-aggregate(
-    cpc_unbalanced ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
-    Item_with_unbalanced, paste0, collapse = "; ")
-
   setDT(Item_with_unbalanced)
 
 } else {
