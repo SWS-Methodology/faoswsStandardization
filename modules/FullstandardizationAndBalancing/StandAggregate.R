@@ -890,7 +890,7 @@ fbs_balancedData=fbs_balancedData[timePointYears%in%yearVals]
 fbs_balancedData[, Value := NA_real_]
 fbs_balancedData[, CONFIG$flags := NA_character_]
 
-# SaveData(CONFIG$domain, CONFIG$dataset , data = fbs_balancedData, waitTimeout = Inf)
+SaveData(CONFIG$domain, CONFIG$dataset , data = fbs_balancedData, waitTimeout = Inf)
 
 ##############################################################
 #################### SET KEYS FOR DATA #######################
@@ -2009,7 +2009,7 @@ message("Beginning actual standardization process...")
 
  #
  for (i in seq_len(nrow(uniqueLevels))) {
-                   #i=4
+                   #i=1
   
   message(paste("Standardizing ",uniqueLevels$geographicAreaM49[i]," for the year ",uniqueLevels$timePointYears[i]))
   
@@ -2505,9 +2505,11 @@ Item_with_unbalanced<-Item_with_unbalanced[!is.na(fbsID4) & (measuredItemSuaFbs 
 Item_with_unbalanced<-unique(Item_with_unbalanced,by=c(colnames(Item_with_unbalanced)))
 
 
-Item_with_unbalanced<-aggregate(
-  cpc_unbalanced ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
-  Item_with_unbalanced, paste0, collapse = "; ")
+if (nrow(Item_with_unbalanced)>0) {
+  Item_with_unbalanced<-aggregate(
+    cpc_unbalanced ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
+    Item_with_unbalanced, paste0, collapse = "; ")
+}
 
 setDT(Item_with_unbalanced)
 
