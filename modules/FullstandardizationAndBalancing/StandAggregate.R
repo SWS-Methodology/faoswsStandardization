@@ -890,7 +890,7 @@ fbs_balancedData=fbs_balancedData[timePointYears%in%yearVals]
 fbs_balancedData[, Value := NA_real_]
 fbs_balancedData[, CONFIG$flags := NA_character_]
 
-# SaveData(CONFIG$domain, CONFIG$dataset , data = fbs_balancedData, waitTimeout = Inf)
+SaveData(CONFIG$domain, CONFIG$dataset , data = fbs_balancedData, waitTimeout = Inf)
 
 ##############################################################
 #################### SET KEYS FOR DATA #######################
