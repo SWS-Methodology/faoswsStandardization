@@ -612,12 +612,12 @@ computeFbsAggregate = function(data, fbsTree, standParams){
   stopifnot(standParams$itemVar %in% colnames(fbsTree))
   stopifnot(paste0("fbsID", 1:4) %in% colnames(fbsTree))
   
-  fbsTree[measuredItemSuaFbs=="23670.01",fbsID4:=2542]
-  fbsTree[measuredItemSuaFbs=="23670.01",fbsID2:=2903]   
+  fbsTree[measuredItemSuaFbs=="23670.01",fbsID4:="2542"]
+  fbsTree[measuredItemSuaFbs=="23670.01",fbsID2:="2903"]   
   
   if(data[,unique(geographicAreaM49)]%in%c("72")){
-    fbsTree[measuredItemSuaFbs=="23670.01",fbsID4:=2543]
-    fbsTree[measuredItemSuaFbs=="23670.01",fbsID2:=2903]
+    fbsTree[measuredItemSuaFbs=="23670.01",fbsID4:="2543"]
+    fbsTree[measuredItemSuaFbs=="23670.01",fbsID2:="2903"]
   }
   data = merge(data, fbsTree, by = standParams$itemVar)
   out = list()
