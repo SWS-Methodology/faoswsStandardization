@@ -1058,6 +1058,9 @@ stopifnot(nrow(popSWS) > 0)
 
 popSWS[geographicAreaM49 == "156", geographicAreaM49 := "1248"]
 
+# Fix for missing regional official data (17%) in the country total
+popSWS[geographicAreaM49 == "368" & timePointYears %in% 2014:2018, Value := Value * 0.83]
+
 
 ############################ / POPULATION ##################################
 
