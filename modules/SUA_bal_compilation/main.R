@@ -20,7 +20,7 @@ R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
 if (CheckDebug()) {
   R_SWS_SHARE_PATH <- "//hqlprsws1.hq.un.fao.org/sws_r_share"
 
-  mydir <- "modules/newBalancing_test"
+  mydir <- "modules/SUA_bal_compilaton"
   
   SETTINGS <- faoswsModules::ReadSettings(file.path(mydir, "sws.yml"))
   
@@ -4138,7 +4138,7 @@ if (STOP_AFTER_DERIVED == TRUE) {
     }
 
   } else {
-    print("The newBalancing plugin had a problem when saving derived data.")
+    print("The SUA_bal_compilation plugin had a problem when saving derived data.")
   }
 
   stop("Plugin stopped after derived, as requested. This is fine.")
