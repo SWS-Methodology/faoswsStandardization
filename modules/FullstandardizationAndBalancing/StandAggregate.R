@@ -248,16 +248,18 @@ send_mail <- function(from = NA, to = NA, subject = NA,
                 # https://stackoverflow.com/questions/24725593/mime-type-for-serialized-r-objects
                 rds  = 'application/octet-stream'
               )
-            
+
             if (is.null(file_type)) {
               stop(paste(tolower(sub('.*\\.([^.]+)$', '\\1', basename(x))),
                          'is not a supported file type.'))
             } else {
-              return(sendmailR:::.file_attachment(x, basename(x), type = file_type))
-            }
-            
-            if (remove) {
-              unlink(x)
+              res <- sendmailR:::.file_attachment(x, basename(x), type = file_type)
+
+              if (remove == TRUE) {
+                unlink(x)
+              }
+
+              return(res)
             }
           } else {
             return(x)
