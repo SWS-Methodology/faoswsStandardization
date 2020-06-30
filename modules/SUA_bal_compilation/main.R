@@ -2683,7 +2683,7 @@ if (nrow(data_shareUpDown_sws) == 0) {
 data_ShareUpDoawn_final_invalid <-
   data_ShareUpDoawn_final[
     measuredItemChildCPC %!in% zeroWeight,
-    .(sum_shares = round(sum(shareUpDown, na.rm = TRUE)), 2),
+    .(sum_shares = round(sum(shareUpDown, na.rm = TRUE),2)),
     by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
   ][
     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
@@ -2751,7 +2751,7 @@ if (file.exists(shareDownUp_file)) {
   # Check on consistency of shareDownUp
   shareDownUp_invalid <-
     shareDownUp_previous[,
-      .(sum_shares = round(sum(shareDownUp)), 2),
+      .(sum_shares = round(sum(shareDownUp),2)),
       by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
     ][
       !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
@@ -2847,7 +2847,7 @@ if (nrow(shareDownUp_previous) > 0) {
 # Check on consistency of shareDownUp
 shareDownUp_invalid <-
   data_tree_final[,
-    .(sum_shares = round(sum(shareDownUp)), 2),
+    .(sum_shares = round(sum(shareDownUp),2)),
     by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
   ][
     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
