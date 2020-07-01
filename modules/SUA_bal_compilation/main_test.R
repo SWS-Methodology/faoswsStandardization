@@ -2620,10 +2620,12 @@ setnames(shareUpDown_to_save, "shareUpDown", "Value")
 sessionKey_shareUpDown <- swsContext.datasets[[3]]
 
 CONFIG <- GetDatasetConfig(sessionKey_shareUpDown@domain, sessionKey_shareUpDown@dataset)
-
+# taking updown shares from the session
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
 
 #saving ShareUpDown For the first time #all flage are (i,c) like production of derived
+#if the shares session is empty with now row we assign it from the scratch with new estimations for that country
+# else we take the session
 if (nrow(data_shareUpDown_sws) == 0) {
   faosws::SaveData(
     domain = "suafbs",
@@ -2676,12 +2678,14 @@ if (nrow(data_shareUpDown_sws) == 0) {
 }
 
 
+#check zero weight 
+
 #consistency check: sum of shareUpDown by parent should exceed 1.
 
 data_ShareUpDoawn_final_invalid <-
   data_ShareUpDoawn_final[
     measuredItemChildCPC %!in% zeroWeight,
-    .(sum_shares = round(sum(shareUpDown, na.rm = TRUE)), 2),
+    .(sum_shares = round(sum(shareUpDown, na.rm = TRUE),2)),
     by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
     ][
       !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
@@ -2749,7 +2753,7 @@ if (file.exists(shareDownUp_file)) {
   # Check on consistency of shareDownUp
   shareDownUp_invalid <-
     shareDownUp_previous[,
-                         .(sum_shares = round(sum(shareDownUp)), 2),
+                         .(sum_shares = round(sum(shareDownUp), 2)),
                          by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
                          ][
                            !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
@@ -2845,7 +2849,7 @@ if (nrow(shareDownUp_previous) > 0) {
 # Check on consistency of shareDownUp
 shareDownUp_invalid <-
   data_tree_final[,
-                  .(sum_shares = round(sum(shareDownUp)), 2),
+                  .(sum_shares = round(sum(shareDownUp), 2)),
                   by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
                   ][
                     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
@@ -3209,7 +3213,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c(p$geoVar, p$itemVar, p$yearVar)
       )
     
-    data_stocks[,stockCheck:=ifelse(Value+openingStocks>2*supply & supply>0,TRUE,FALSE)]
+    data_stocks[,stockCheck:=ifelse(sign(Value) == 1 & Value+openingStocks>2*supply & supply>0,TRUE,FALSE)]
     
     #create max_column: 
     data_stocks[, maxValue := supply-openingStocks] 
