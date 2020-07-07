@@ -3892,6 +3892,9 @@ if (length(primaryInvolvedDescendents) == 0) {
   }
 }
 
+data[measuredElementSuaFbs == "production" & dplyr::near(Value,0) & flagObservationStatus == "I" &
+     flagMethod == "c", `:=` (Value = NA, flagObservationStatus = NA, flagMethod = NA) ]
+
 setkey(data, NULL)
 
 computed_shares <- rbindlist(computed_shares)
