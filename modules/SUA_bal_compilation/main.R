@@ -139,6 +139,8 @@ dt_full_join <- function(x, y, by = NA) {
 }
 
 message("Line 140")
+#function used for countries which had stock data in the past (before 2014)
+#linearization taking into account the supply before 2013. 
 coeffs_stocks_mod <- function(x) {
   tmp <- lm(data = x[timePointYears <= 2013], supply_inc ~ supply_exc + trend)
 
@@ -5105,8 +5107,12 @@ calculateImbalance(standData)
 
 standData[
   supply > 0,
-  imbalance_percent := imbalance / supply * 100
+  imbalance_percent := round(imbalance / supply * 100,2)
 ]
+
+standData[, `:=` (imbalance = round(imbalance), utilizations = round(utilizations),
+                  supply = round(supply))
+  ]
 
 
 ######################### Save BAL for validation #######################
@@ -5193,7 +5199,7 @@ imbalances_to_send <-
       outside(imbalance, -100, 100) &
       timePointYears >= 2014,
     .(country = geographicAreaM49, year = timePointYears, measuredItemSuaFbs,
-      element = measuredElementSuaFbs, value = Value,
+      element = measuredElementSuaFbs, value = round(Value),
       flag = paste(flagObservationStatus, flagMethod, sep = ","))
   ]
 
