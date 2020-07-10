@@ -4070,7 +4070,7 @@ if (FIX_OUTLIERS == TRUE) {
 
   dout[
     timePointYears >= 2014 & (is.na(Meanold) | is.nan(Meanold) | is.infinite(Meanold)),
-    Meanold := mean(Meanold[timePointYears >= 2014], na.rm = TRUE),
+    Meanold := mean(Value[timePointYears >= 2014], na.rm = TRUE),
     by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
   ]
 
