@@ -517,6 +517,39 @@ key_unb <-
 
 data_suaunbal <- GetData(key_unb)
 
+#Do not overwrite protcted untilizations
+dataSUA<-copy(data_suaunbal)
+
+`%!in%`<-Negate(`%in%`)
+
+flagValidTable <- ReadDatatable("valid_flags")
+
+utilization_element<-setdiff(unique(dataSUA$measuredElementSuaFbs),c("5510","5610","5910","5071"))
+
+
+#create a variable that take TRUE if the utilization value from the domain is offcial
+official_utilization<-out %>% dplyr::filter(measuredElementSuaFbs %in% utilization_element) %>% 
+  dplyr::left_join(flagValidTable, by = c("flagObservationStatus", "flagMethod")) %>% 
+  dplyr::mutate(official_domain=ifelse(flagObservationStatus %in% c("", "T"),TRUE,FALSE)) %>% 
+  dplyr::select(geographicAreaM49,measuredElementSuaFbs,measuredItemFbsSua,
+                timePointYears,official_domain)
+
+
+#Contain SUA unbalance utilization which are official (manually inserted)
+protected_utilization<-dataSUA %>% dplyr::filter(measuredElementSuaFbs %in% utilization_element) %>%
+  dplyr::left_join(official_utilization,by = c("geographicAreaM49", "measuredElementSuaFbs", 
+                                               "measuredItemFbsSua", "timePointYears")) %>% 
+  dplyr::left_join(flagValidTable, by = c("flagObservationStatus", "flagMethod")) %>% 
+  dplyr::mutate(official=ifelse(flagObservationStatus %in% c("", "T"),TRUE,FALSE)) %>% 
+  dplyr::filter(official==TRUE & official_domain==FALSE) %>% 
+  dplyr::select(geographicAreaM49,measuredElementSuaFbs,measuredItemFbsSua,
+                timePointYears,Value,flagObservationStatus,flagMethod)
+
+
+out<-out %>% dplyr::anti_join(protected_utilization,
+                              by=c("geographicAreaM49","measuredElementSuaFbs",
+                                   "measuredItemFbsSua","timePointYears"))
+
 non_existing <-
   data_suaunbal[!out, on = c('geographicAreaM49', 'measuredElementSuaFbs', 'measuredItemFbsSua', 'timePointYears')]
 
