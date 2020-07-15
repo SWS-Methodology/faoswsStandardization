@@ -4069,13 +4069,13 @@ if (FIX_OUTLIERS == TRUE) {
 
   dout[
     timePointYears >= 2014 & (is.na(mean_ratio) | is.nan(mean_ratio) | is.infinite(mean_ratio)),
-    mean_ratio := mean(ratio[timePointYears >= 2014], na.rm = TRUE),
+    mean_ratio := median(ratio[timePointYears >= 2014], na.rm = TRUE),
     by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
   ]
 
   dout[
     timePointYears >= 2014 & (is.na(Meanold) | is.nan(Meanold) | is.infinite(Meanold)),
-    Meanold := mean(Meanold[timePointYears >= 2014], na.rm = TRUE),
+    Meanold := median(Value[timePointYears >= 2014], na.rm = TRUE),
     by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
   ]
 
@@ -5374,6 +5374,13 @@ calories_per_capita <-
     by = c('geographicAreaM49', 'timePointYears')
   )
 
+data_for_foodGrams<-calories_per_capita[measuredElementSuaFbs=="664"]
+data_for_foodGrams[,Value:=(food*1000000)/(365*population*1000)]
+data_for_foodGrams[, c("food", "nutrient", "population") := NULL]
+data_for_foodGrams[,measuredElementSuaFbs:="665"]
+data_for_foodGrams[, Protected := FALSE]
+
+
 calories_per_capita_total<-copy(calories_per_capita)
 
 calories_per_capita[, Value := food * nutrient / population / 365 * 10]
@@ -5397,7 +5404,7 @@ calories_per_capita_total[measuredElementSuaFbs=="674",
 calories_per_capita_total[measuredElementSuaFbs=="684",
                           measuredElementSuaFbs:="281"]
 
-calories_per_capita<-rbind(calories_per_capita,calories_per_capita_total)
+calories_per_capita<-rbind(calories_per_capita,calories_per_capita_total,data_for_foodGrams)
 
 standData <-
   rbind(

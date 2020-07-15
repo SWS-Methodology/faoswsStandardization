@@ -1,4 +1,3 @@
-
 #sapply(dir("R", full.names = TRUE), source)
  options(scipen=999)
 
@@ -198,7 +197,7 @@ tree[Value==0,Value:=NA]
 
   ############GLOBAL EXTRACTION RATE ###########################
   
-  globalExtr=read.csv(file.path(R_SWS_SHARE_PATH, "standardization", "Global_Extraction_Rates.csv"))
+  #globalExtr=read.csv(file.path(R_SWS_SHARE_PATH, "standardization", "Global_Extraction_Rates.csv"))
 
 ##################################################################
 ##########################FUNCTIONS###############################
@@ -2432,6 +2431,38 @@ fbs_standardized[is.na(Value),flagObservationStatus:=NA]
 fbs_standardized[is.na(Value),flagMethod:=NA]
 fbs_standardized<-fbs_standardized[measuredElementSuaFbs %!in% c("261","271","281")]
 
+#Food grams
+
+#ADD food supply (Grams/capita/day) in FBS standardized
+
+foodGram_data <-
+  dt_left_join(
+    # Food
+    fbs_standardized[
+      measuredElementSuaFbs == '5141',
+      list(
+        geographicAreaM49,
+        measuredItemFbsSua,
+        measuredElementSuaFbs,
+        timePointYears,
+        food = Value,
+        flagObservationStatus = "T",
+        flagMethod = "i"
+      )
+      ],
+    # Population
+    popSWS[, list(geographicAreaM49, timePointYears, population = Value)],
+    by = c('geographicAreaM49', 'timePointYears')
+  )
+
+foodGram_data[,Value:=(food*1000000)/(365*population*1000)]
+foodGram_data[,measuredElementSuaFbs:="665"]
+foodGram_data[, c("food", "population") := NULL]
+
+foodGram_data<-foodGram_data[,list(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears,Value,flagObservationStatus,flagMethod)]
+
+fbs_standardized<-rbind(fbs_standardized,foodGram_data)
+
 
 message("saving FBS standardized...")
 SaveData(domain = "suafbs", dataset = "fbs_standardized", data = fbs_standardized, waitTimeout = 20000)
@@ -2634,6 +2665,34 @@ fbs_balanced_bis<-rbind(
 )
 
 
+#ADD food supply (Grams/capita/day) in FBS balanced
+foodGram_data_fb <-
+  dt_left_join(
+    # Food
+    fbs_balanced_bis[
+      measuredElementSuaFbs == '5141',
+      list(
+        geographicAreaM49,
+        measuredItemFbsSua,
+        measuredElementSuaFbs,
+        timePointYears,
+        food = Value,
+        flagObservationStatus = "T",
+        flagMethod = "i"
+      )
+      ],
+    # Population
+    popSWS[, list(geographicAreaM49, timePointYears, population = Value)],
+    by = c('geographicAreaM49', 'timePointYears')
+  )
+
+foodGram_data_fb[,Value:=(food*1000000)/(365*population*1000)]
+foodGram_data_fb[,measuredElementSuaFbs:="665"]
+foodGram_data_fb[, c("food", "population") := NULL]
+
+foodGram_data_fb<-foodGram_data_fb[,list(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears,Value,flagObservationStatus,flagMethod)]
+
+fbs_balanced_bis<-rbind(fbs_balanced_bis,foodGram_data_fb)
 
 
 
