@@ -2740,6 +2740,45 @@ CONFIG <- GetDatasetConfig(sessionKey_shareDownUp@domain, sessionKey_shareDownUp
 
 data_shareDownUp_sws <- GetData(sessionKey_shareDownUp)
 
+########### set parents present in sws and not present in the estimated data to zero ###########
+
+data_tree_test <-
+  merge(
+    data.table(
+      geographicAreaM49 = unique(data_shareDownUp_sws$geographicAreaM49),
+      timePointYears = sort(unique(data_tree$timePointYears))
+    ),
+    unique(
+      data_shareDownUp_sws[,
+           list(geographicAreaM49, 
+                measuredItemParentCPC = measuredItemParentCPC_tree, 
+                measuredItemChildCPC = measuredItemChildCPC_tree)
+           ]
+    ),
+    by = "geographicAreaM49",
+    all = TRUE,
+    allow.cartesian = TRUE
+  )
+
+#not solved issue
+#diff_test <- data_tree[!data_tree_test, on = c("geographicAreaM49","measuredItemParentCPC",
+#                                              "measuredItemChildCPC","timePointYears")]
+
+missing_connections <- data_tree_test[!data_tree, on = c("geographicAreaM49","measuredItemParentCPC",
+                                               "measuredItemChildCPC","timePointYears")]
+
+missing_connections <- missing_connections[, shareDownUp := 0 ]
+
+missing_connections <- missing_connections[, list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
+                                        timePointYears,shareDownUp)]
+
+
+data_tree <- rbind(data_tree, missing_connections)
+
+### WE are here######
+
+
+
 if (nrow(data_shareDownUp_sws)!=0) {
   
   SHAREDOWNUP_LOADED <- TRUE
@@ -2896,6 +2935,27 @@ if (nrow(shareDownUp_invalid) > 0) {
 
 setnames(data_tree_final_save,c("measuredItemParentCPC","measuredItemChildCPC","shareDownUp"),
          c("measuredItemParentCPC_tree","measuredItemChildCPC_tree","Value"))
+
+
+# len_downUp <- nrow(data_tree_final_save)
+# 
+# i = 1
+# 
+# while(i < len_downUp){
+#     j = i + 500
+#     if(j > len_downUp){
+#       j = len_downUp
+#     }
+#     
+#     faosws::SaveData(
+#       domain = "suafbs",
+#       dataset = "down_up_share",
+#       data = data_tree_final_save[i:j,],
+#       waitTimeout = 20000
+#     )
+#   
+#     i = j + 1
+# }
 
 
 faosws::SaveData(
@@ -3221,6 +3281,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     
     data_stocks[flagObservationStatus=="E" & flagMethod=="f",Protected:=FALSE]
+    
     for(i in 2014:max(unique(as.numeric(data_stocks$timePointYears)))){
       
       data_stocks[,Value:=ifelse(timePointYears==i & stockCheck==TRUE & Protected==FALSE,stocks_checkVal,Value)]
@@ -3303,6 +3364,8 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c(p$geoVar, "measuredItemFbsSua", p$yearVar),
         all.x = TRUE
       )
+    
+    all_opening_stocks[, stockCheck:= dplyr::lag(stockCheck)]
     
     all_opening_stocks[
       measuredElementSuaFbs == "5113" &
