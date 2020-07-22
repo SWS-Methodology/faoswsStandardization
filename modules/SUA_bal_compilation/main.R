@@ -511,7 +511,7 @@ newBalancing <- function(data, Utilization_Table) {
   data[,
     food_resid :=
       # It's a food item & ...
-      (measuredItemSuaFbs %chin% Utilization_Table[food_item == 'X', cpc_code] |
+      (measuredItemSuaFbs %chin% Utilization_Table[food_item == 'X', cpc_code] &
       # food exists & ...
       # !is.na(Value[measuredElementSuaFbs == 'food']) &
       Food_Median > 0 & !is.na(Food_Median)) &
@@ -5443,6 +5443,14 @@ data_for_foodGrams[, c("food", "nutrient", "population") := NULL]
 data_for_foodGrams[,measuredElementSuaFbs:="665"]
 data_for_foodGrams[, Protected := FALSE]
 
+#Add population in SUA as an item
+
+data_pop<-popSWS[,measuredItemFbsSua:="F0001"]
+data_pop[,`:=`(Protected=TRUE,flagObservationStatus="T",flagMethod="c")]
+
+
+data_pop<-data_pop[timePointYears>=2014,list(geographicAreaM49,measuredItemFbsSua,timePointYears,flagObservationStatus,flagMethod,
+                                             measuredElementSuaFbs=measuredElement,Value,Protected)]
 
 calories_per_capita_total<-copy(calories_per_capita)
 
@@ -5467,7 +5475,7 @@ calories_per_capita_total[measuredElementSuaFbs=="674",
 calories_per_capita_total[measuredElementSuaFbs=="684",
                           measuredElementSuaFbs:="281"]
 
-calories_per_capita<-rbind(calories_per_capita,calories_per_capita_total,data_for_foodGrams)
+calories_per_capita<-rbind(calories_per_capita,calories_per_capita_total,data_for_foodGrams,data_pop)
 
 standData <-
   rbind(
