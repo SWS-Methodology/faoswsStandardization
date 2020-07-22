@@ -1716,30 +1716,30 @@ msg_new_feed_dubious <- "No other NEW items should be removed"
 
 if (nrow(new_feed) > 0) {
 
-  prev_data_avg <-
-    data[
-      new_feed, on = c("geographicAreaM49", "measuredItemSuaFbs")
-    ][
-      timePointYears >= 2010 & timePointYears <= 2013
-    ][
-      order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
-      Value := na.fill_(Value),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-    ][,
-      .(Value = sum(Value) / sum(!is.na(Value)), timePointYears = 0),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-    ]
+  # prev_data_avg <-
+  #   data[
+  #     new_feed, on = c("geographicAreaM49", "measuredItemSuaFbs")
+  #   ][
+  #     timePointYears >= 2010 & timePointYears <= 2013
+  #   ][
+  #     order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
+  #     Value := na.fill_(Value),
+  #     by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+  #   ][,
+  #     .(Value = sum(Value) / sum(!is.na(Value)), timePointYears = 0),
+  #     by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+  #   ]
+  # 
+  # calculateImbalance(prev_data_avg, supply_subtract = c("exports", "stockChange"))
 
-  calculateImbalance(prev_data_avg, supply_subtract = c("exports", "stockChange"))
-
-  prev_processed_avg <-
-    prev_data_avg[
-      supply > 0 &
-        utilizations > 0 &
-        measuredElementSuaFbs == "foodManufacturing" &
-        !is.na(Value),
-      .(geographicAreaM49, measuredItemSuaFbs, proc_ratio = Value / supply)
-    ]
+  # prev_processed_avg <-
+  #   prev_data_avg[
+  #     supply > 0 &
+  #       utilizations > 0 &
+  #       measuredElementSuaFbs == "foodManufacturing" &
+  #       !is.na(Value),
+  #     .(geographicAreaM49, measuredItemSuaFbs, proc_ratio = Value / supply)
+  #   ]
 
 
   new_data_avg <-
@@ -1747,7 +1747,7 @@ if (nrow(new_feed) > 0) {
       new_feed,
       on = c("geographicAreaM49", "measuredItemSuaFbs")
     ][
-      measuredElementSuaFbs != "foodManufacturing" & timePointYears >= 2014
+      # measuredElementSuaFbs != "foodManufacturing" & timePointYears >= 2014
     ][
       order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
       Value := na.fill_(Value),
@@ -1765,39 +1765,39 @@ if (nrow(new_feed) > 0) {
     supply_subtract = c("exports", "stockChange")
   )
 
-  new_data_supply <-
-    unique(
-      new_data_avg[,
-        c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears", "supply"),
-        with = FALSE
-      ]
-    )
+  # new_data_supply <-
+  #   unique(
+  #     new_data_avg[,
+  #       c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears", "supply"),
+  #       with = FALSE
+  #     ]
+  #   )
 
-  new_data_proc <-
-    dt_left_join(
-      new_data_supply,
-      prev_processed_avg,
-      by = c("geographicAreaM49", "measuredItemSuaFbs"),
-      nomatch = 0
-    )
+  # new_data_proc <-
+  #   dt_left_join(
+  #     new_data_supply,
+  #     prev_processed_avg,
+  #     by = c("geographicAreaM49", "measuredItemSuaFbs"),
+  #     nomatch = 0
+  #   )
+  # 
+  # new_data_proc <-
+  #   new_data_proc[
+  #     supply > 0,
+  #     .(geographicAreaM49, measuredItemSuaFbs,
+  #       measuredElementSuaFbs = "foodManufacturing",
+  #       Value = supply * proc_ratio, timePointYears = 1)
+  #   ]
+  # 
+  # new_data_avg[, c("supply", "imbalance") := NULL]
 
-  new_data_proc <-
-    new_data_proc[
-      supply > 0,
-      .(geographicAreaM49, measuredItemSuaFbs,
-        measuredElementSuaFbs = "foodManufacturing",
-        Value = supply * proc_ratio, timePointYears = 1)
-    ]
-
-  new_data_avg[, c("supply", "imbalance") := NULL]
-
-  new_data_avg <-
-    rbind(
-      new_data_avg,
-      new_data_proc
-    )
-
-  calculateImbalance(new_data_avg, supply_subtract = c("exports", "stockChange"))
+  # new_data_avg <-
+  #   rbind(
+  #     new_data_avg,
+  #     new_data_proc
+  #   )
+  # 
+  # calculateImbalance(new_data_avg, supply_subtract = c("exports", "stockChange"))
 
 
   new_feed_to_remove <-
