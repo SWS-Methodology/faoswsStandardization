@@ -2713,7 +2713,7 @@ if (nrow(data_ShareUpDoawn_final_invalid) > 0) {
     send_mail(
       from = "do-not-reply@fao.org",
       to = swsContext.userEmail,
-      subject = "Some shareDownUp are invalid",
+      subject = "Some shareUpDown are invalid",
       body = c(paste("There are some invalid shareUpDown (they do not sum to 1). See attachment and fix them in the SWS shareUpDown dataset"),
                file.path(paste0("ShareUpDown_toCorrect_", COUNTRY, ".csv")))
     )
