@@ -2741,11 +2741,11 @@ CONFIG <- GetDatasetConfig(sessionKey_shareDownUp@domain, sessionKey_shareDownUp
 data_shareDownUp_sws <- GetData(sessionKey_shareDownUp)
 
 ########### set parents present in sws and not present in the estimated data to zero ###########
-
+#unique(data_shareDownUp_sws$geographicAreaM49) created problem if the downup session start as empty changed with data_tree
 data_tree_test <-
   merge(
     data.table(
-      geographicAreaM49 = unique(data_shareDownUp_sws$geographicAreaM49),
+      geographicAreaM49 = unique(data_tree$geographicAreaM49),
       timePointYears = sort(unique(data_tree$timePointYears))
     ),
     unique(
@@ -3251,7 +3251,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     #Correcting stocks
     
     data_st<-copy(data)
-    
+
     data_st[,
             supply :=
               sum(
@@ -3263,8 +3263,8 @@ if (length(primaryInvolvedDescendents) == 0) {
             by = c(p$geoVar, p$yearVar, p$itemVar)
             ]
     data_st<-data_st[measuredElementSuaFbs=="stockChange",]
-    
-    
+
+
     data_stocks <-
       merge(
         data_st,
@@ -3272,36 +3272,36 @@ if (length(primaryInvolvedDescendents) == 0) {
                                  timePointYears,openingStocks=Value)],
         by = c(p$geoVar, p$itemVar, p$yearVar)
       )
-    
+
     data_stocks[,stockCheck:=ifelse(sign(Value) == 1 & Value+openingStocks>2*supply & supply>0,TRUE,FALSE)]
-    
-    #create max_column: 
-    data_stocks[, maxValue := supply-openingStocks] 
-    data_stocks[, stocks_checkVal := ifelse(stockCheck == T & sign(maxValue)==1, maxValue , 0)] 
-    
-    
+
+    #create max_column:
+    data_stocks[, maxValue := supply-openingStocks]
+    data_stocks[, stocks_checkVal := ifelse(stockCheck == T & sign(maxValue)==1, maxValue , 0)]
+
+
     data_stocks[flagObservationStatus=="E" & flagMethod=="f",Protected:=FALSE]
-    
+
     for(i in 2014:max(unique(as.numeric(data_stocks$timePointYears)))){
-      
+
       data_stocks[,Value:=ifelse(timePointYears==i & stockCheck==TRUE & Protected==FALSE,stocks_checkVal,Value)]
-      
-      data_stocks[order(geographicAreaM49,measuredItemSuaFbs, timePointYears),prev_stocks:=c(NA, Value[-.N]), 
+
+      data_stocks[order(geographicAreaM49,measuredItemSuaFbs, timePointYears),prev_stocks:=c(NA, Value[-.N]),
                   by= c(p$geoVar, p$itemVar)]
-      
-      data_stocks[order(geographicAreaM49,measuredItemSuaFbs, timePointYears),prev_opening:=c(NA, openingStocks[-.N]), 
+
+      data_stocks[order(geographicAreaM49,measuredItemSuaFbs, timePointYears),prev_opening:=c(NA, openingStocks[-.N]),
                   by= c(p$geoVar, p$itemVar)]
-      
-      
+
+
       if(i<max(unique(as.numeric(data_stocks$timePointYears)))){
-        
+
         data_stocks[,openingStocks:=ifelse(timePointYears==i+1 ,prev_opening+prev_stocks,openingStocks)]
-        
+
       }
-      
+
     }
-    
-    
+
+
     data <-
       merge(
         data,
@@ -3310,8 +3310,8 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c(p$geoVar,p$elementVar, p$itemVar, p$yearVar),
         all.x = TRUE
       )
-    
-    
+
+
     data[
       measuredElementSuaFbs == "stockChange" &
         Protected == FALSE &
@@ -3324,7 +3324,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         Protected = FALSE
       )
       ]
-    
+
     data[
       measuredElementSuaFbs == "stockChange" &
         flagObservationStatus=="E" &
@@ -3338,24 +3338,24 @@ if (length(primaryInvolvedDescendents) == 0) {
         Protected = FALSE
       )
       ]
-    
-    
-    
+
+
+
     data[,corr_stocks:=NULL]
-    data[,stockCheck:=NULL] 
-    
-    
+    data[,stockCheck:=NULL]
+
+
     stock_correction_send<-data[measuredElementSuaFbs == "stockChange" &
                                   flagObservationStatus=="E" &
                                   flagMethod=="n",]
-    
+
     write.csv(stock_correction_send,tmp_file_Stock_correction)
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
     all_opening_stocks <-
       merge(
         all_opening_stocks,
@@ -3364,9 +3364,9 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c(p$geoVar, "measuredItemFbsSua", p$yearVar),
         all.x = TRUE
       )
-    
+
     all_opening_stocks[, stockCheck:= dplyr::lag(stockCheck)]
-    
+
     all_opening_stocks[
       measuredElementSuaFbs == "5113" &
         Protected == FALSE &
@@ -3379,11 +3379,11 @@ if (length(primaryInvolvedDescendents) == 0) {
         Protected = FALSE
       )
       ]
-    
+
     all_opening_stocks[,corr_op_stocks:=NULL]
     all_opening_stocks[,stockCheck:=NULL]
-    
-    
+    # 
+    # 
     ############# / Create stocks, if missing ##################
     message("Line 3185")
     
