@@ -3541,7 +3541,11 @@ if (length(primaryInvolvedDescendents) == 0) {
       Number_childPro := sum(Protected == TRUE & shareUpDown > 0, na.rm = TRUE),
       by = c(p$parentVar, p$geoVar, p$yearVar)
     ]
-    
+    datamergeNew[ ,
+                  shareUpDown:=ifelse(Protected==TRUE,(production*shareDownUp/extractionRate)/sum(production[Protected==TRUE]*shareDownUp[Protected==TRUE]/extractionRate[Protected==TRUE],na.rm = TRUE)*
+                                        (1-sum(shareUpDown[Protected==FALSE],na.rm = TRUE)),shareUpDown),
+                  by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+                  ]
     # calculate the number of child of each parent where processed used to be send
     datamergeNew[,
       Number_child := sum(shareUpDown > 0, na.rm = TRUE),
