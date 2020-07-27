@@ -1716,30 +1716,30 @@ msg_new_feed_dubious <- "No other NEW items should be removed"
 
 if (nrow(new_feed) > 0) {
 
-  prev_data_avg <-
-    data[
-      new_feed, on = c("geographicAreaM49", "measuredItemSuaFbs")
-    ][
-      timePointYears >= 2010 & timePointYears <= 2013
-    ][
-      order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
-      Value := na.fill_(Value),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-    ][,
-      .(Value = sum(Value) / sum(!is.na(Value)), timePointYears = 0),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-    ]
+  # prev_data_avg <-
+  #   data[
+  #     new_feed, on = c("geographicAreaM49", "measuredItemSuaFbs")
+  #   ][
+  #     timePointYears >= 2010 & timePointYears <= 2013
+  #   ][
+  #     order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
+  #     Value := na.fill_(Value),
+  #     by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+  #   ][,
+  #     .(Value = sum(Value) / sum(!is.na(Value)), timePointYears = 0),
+  #     by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+  #   ]
+  # 
+  # calculateImbalance(prev_data_avg, supply_subtract = c("exports", "stockChange"))
 
-  calculateImbalance(prev_data_avg, supply_subtract = c("exports", "stockChange"))
-
-  prev_processed_avg <-
-    prev_data_avg[
-      supply > 0 &
-        utilizations > 0 &
-        measuredElementSuaFbs == "foodManufacturing" &
-        !is.na(Value),
-      .(geographicAreaM49, measuredItemSuaFbs, proc_ratio = Value / supply)
-    ]
+  # prev_processed_avg <-
+  #   prev_data_avg[
+  #     supply > 0 &
+  #       utilizations > 0 &
+  #       measuredElementSuaFbs == "foodManufacturing" &
+  #       !is.na(Value),
+  #     .(geographicAreaM49, measuredItemSuaFbs, proc_ratio = Value / supply)
+  #   ]
 
 
   new_data_avg <-
@@ -1747,7 +1747,7 @@ if (nrow(new_feed) > 0) {
       new_feed,
       on = c("geographicAreaM49", "measuredItemSuaFbs")
     ][
-      measuredElementSuaFbs != "foodManufacturing" & timePointYears >= 2014
+      # measuredElementSuaFbs != "foodManufacturing" & timePointYears >= 2014
     ][
       order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
       Value := na.fill_(Value),
@@ -1765,39 +1765,39 @@ if (nrow(new_feed) > 0) {
     supply_subtract = c("exports", "stockChange")
   )
 
-  new_data_supply <-
-    unique(
-      new_data_avg[,
-        c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears", "supply"),
-        with = FALSE
-      ]
-    )
+  # new_data_supply <-
+  #   unique(
+  #     new_data_avg[,
+  #       c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears", "supply"),
+  #       with = FALSE
+  #     ]
+  #   )
 
-  new_data_proc <-
-    dt_left_join(
-      new_data_supply,
-      prev_processed_avg,
-      by = c("geographicAreaM49", "measuredItemSuaFbs"),
-      nomatch = 0
-    )
+  # new_data_proc <-
+  #   dt_left_join(
+  #     new_data_supply,
+  #     prev_processed_avg,
+  #     by = c("geographicAreaM49", "measuredItemSuaFbs"),
+  #     nomatch = 0
+  #   )
+  # 
+  # new_data_proc <-
+  #   new_data_proc[
+  #     supply > 0,
+  #     .(geographicAreaM49, measuredItemSuaFbs,
+  #       measuredElementSuaFbs = "foodManufacturing",
+  #       Value = supply * proc_ratio, timePointYears = 1)
+  #   ]
+  # 
+  # new_data_avg[, c("supply", "imbalance") := NULL]
 
-  new_data_proc <-
-    new_data_proc[
-      supply > 0,
-      .(geographicAreaM49, measuredItemSuaFbs,
-        measuredElementSuaFbs = "foodManufacturing",
-        Value = supply * proc_ratio, timePointYears = 1)
-    ]
-
-  new_data_avg[, c("supply", "imbalance") := NULL]
-
-  new_data_avg <-
-    rbind(
-      new_data_avg,
-      new_data_proc
-    )
-
-  calculateImbalance(new_data_avg, supply_subtract = c("exports", "stockChange"))
+  # new_data_avg <-
+  #   rbind(
+  #     new_data_avg,
+  #     new_data_proc
+  #   )
+  # 
+  # calculateImbalance(new_data_avg, supply_subtract = c("exports", "stockChange"))
 
 
   new_feed_to_remove <-
@@ -2713,7 +2713,7 @@ if (nrow(data_ShareUpDoawn_final_invalid) > 0) {
     send_mail(
       from = "do-not-reply@fao.org",
       to = swsContext.userEmail,
-      subject = "Some shareDownUp are invalid",
+      subject = "Some shareUpDown are invalid",
       body = c(paste("There are some invalid shareUpDown (they do not sum to 1). See attachment and fix them in the SWS shareUpDown dataset"),
                file.path(paste0("ShareUpDown_toCorrect_", COUNTRY, ".csv")))
     )
@@ -2741,11 +2741,11 @@ CONFIG <- GetDatasetConfig(sessionKey_shareDownUp@domain, sessionKey_shareDownUp
 data_shareDownUp_sws <- GetData(sessionKey_shareDownUp)
 
 ########### set parents present in sws and not present in the estimated data to zero ###########
-
+#unique(data_shareDownUp_sws$geographicAreaM49) created problem if the downup session start as empty changed with data_tree
 data_tree_test <-
   merge(
     data.table(
-      geographicAreaM49 = unique(data_shareDownUp_sws$geographicAreaM49),
+      geographicAreaM49 = unique(data_tree$geographicAreaM49),
       timePointYears = sort(unique(data_tree$timePointYears))
     ),
     unique(
@@ -3251,7 +3251,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     #Correcting stocks
     
     data_st<-copy(data)
-    
+
     data_st[,
             supply :=
               sum(
@@ -3263,8 +3263,8 @@ if (length(primaryInvolvedDescendents) == 0) {
             by = c(p$geoVar, p$yearVar, p$itemVar)
             ]
     data_st<-data_st[measuredElementSuaFbs=="stockChange",]
-    
-    
+
+
     data_stocks <-
       merge(
         data_st,
@@ -3272,36 +3272,36 @@ if (length(primaryInvolvedDescendents) == 0) {
                                  timePointYears,openingStocks=Value)],
         by = c(p$geoVar, p$itemVar, p$yearVar)
       )
-    
+
     data_stocks[,stockCheck:=ifelse(sign(Value) == 1 & Value+openingStocks>2*supply & supply>0,TRUE,FALSE)]
-    
-    #create max_column: 
-    data_stocks[, maxValue := supply-openingStocks] 
-    data_stocks[, stocks_checkVal := ifelse(stockCheck == T & sign(maxValue)==1, maxValue , 0)] 
-    
-    
+
+    #create max_column:
+    data_stocks[, maxValue := supply-openingStocks]
+    data_stocks[, stocks_checkVal := ifelse(stockCheck == T & sign(maxValue)==1, maxValue , 0)]
+
+
     data_stocks[flagObservationStatus=="E" & flagMethod=="f",Protected:=FALSE]
-    
+
     for(i in 2014:max(unique(as.numeric(data_stocks$timePointYears)))){
-      
+
       data_stocks[,Value:=ifelse(timePointYears==i & stockCheck==TRUE & Protected==FALSE,stocks_checkVal,Value)]
-      
-      data_stocks[order(geographicAreaM49,measuredItemSuaFbs, timePointYears),prev_stocks:=c(NA, Value[-.N]), 
+
+      data_stocks[order(geographicAreaM49,measuredItemSuaFbs, timePointYears),prev_stocks:=c(NA, Value[-.N]),
                   by= c(p$geoVar, p$itemVar)]
-      
-      data_stocks[order(geographicAreaM49,measuredItemSuaFbs, timePointYears),prev_opening:=c(NA, openingStocks[-.N]), 
+
+      data_stocks[order(geographicAreaM49,measuredItemSuaFbs, timePointYears),prev_opening:=c(NA, openingStocks[-.N]),
                   by= c(p$geoVar, p$itemVar)]
-      
-      
+
+
       if(i<max(unique(as.numeric(data_stocks$timePointYears)))){
-        
+
         data_stocks[,openingStocks:=ifelse(timePointYears==i+1 ,prev_opening+prev_stocks,openingStocks)]
-        
+
       }
-      
+
     }
-    
-    
+
+
     data <-
       merge(
         data,
@@ -3310,8 +3310,8 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c(p$geoVar,p$elementVar, p$itemVar, p$yearVar),
         all.x = TRUE
       )
-    
-    
+
+
     data[
       measuredElementSuaFbs == "stockChange" &
         Protected == FALSE &
@@ -3324,7 +3324,7 @@ if (length(primaryInvolvedDescendents) == 0) {
         Protected = FALSE
       )
       ]
-    
+
     data[
       measuredElementSuaFbs == "stockChange" &
         flagObservationStatus=="E" &
@@ -3338,24 +3338,24 @@ if (length(primaryInvolvedDescendents) == 0) {
         Protected = FALSE
       )
       ]
-    
-    
-    
+
+
+
     data[,corr_stocks:=NULL]
-    data[,stockCheck:=NULL] 
-    
-    
+    data[,stockCheck:=NULL]
+
+
     stock_correction_send<-data[measuredElementSuaFbs == "stockChange" &
                                   flagObservationStatus=="E" &
                                   flagMethod=="n",]
-    
+
     write.csv(stock_correction_send,tmp_file_Stock_correction)
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
     all_opening_stocks <-
       merge(
         all_opening_stocks,
@@ -3364,9 +3364,9 @@ if (length(primaryInvolvedDescendents) == 0) {
         by = c(p$geoVar, "measuredItemFbsSua", p$yearVar),
         all.x = TRUE
       )
-    
+
     all_opening_stocks[, stockCheck:= dplyr::lag(stockCheck)]
-    
+
     all_opening_stocks[
       measuredElementSuaFbs == "5113" &
         Protected == FALSE &
@@ -3379,11 +3379,11 @@ if (length(primaryInvolvedDescendents) == 0) {
         Protected = FALSE
       )
       ]
-    
+
     all_opening_stocks[,corr_op_stocks:=NULL]
     all_opening_stocks[,stockCheck:=NULL]
-    
-    
+    # 
+    # 
     ############# / Create stocks, if missing ##################
     message("Line 3185")
     
