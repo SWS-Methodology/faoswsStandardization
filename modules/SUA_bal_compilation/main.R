@@ -4203,7 +4203,7 @@ if (FIX_OUTLIERS == TRUE) {
         Value = Value_imputed,
         flagObservationStatus = "E",
         flagMethod = "e",
-        Protected = TRUE)
+        Protected = FALSE)
       ]
 
     data_outliers <-
