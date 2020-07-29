@@ -86,6 +86,19 @@ p$createIntermetiateFile <- "TRUE"
 p$protected <- "Protected"
 p$official <- "Official"
 
+
+## CLEAN sua_balanced
+message("wipe sua_balanced session")
+sessionKey_suabal = swsContext.datasets[[1]]
+CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
+datatoClean=GetData(sessionKey_suabal)
+datatoClean=datatoClean[timePointYears%in%2014:2018]
+datatoClean[, Value := NA_real_]
+datatoClean[, CONFIG$flags := NA_character_]
+SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
+
+
+
 shareDownUp_file <-
   file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_", COUNTRY, ".csv"))
 
@@ -2448,7 +2461,20 @@ dataProcessingShare[,
                     by = c(p$parentVar, p$geoVar)
                     ]
 
-dataProcessingShare[,NewLoss:=ifelse(is.na(loss_Median_before),TRUE,FALSE)]
+dataProcessingShare[,NewLoss:=ifelse(is.na(loss_Median_before) & !is.na(RatioLoss),TRUE,FALSE)]
+
+# dataProcessingShare[,
+#                     NewLoss :=
+#        # have  loss for 2014-2018 & ...
+#        !is.na(RatioLoss)&
+#           # does not have past losses &
+#        is.na(loss_Median_before) &
+#        # ... loss,process and tourist are the only utilization
+#        all(is.na(Value[!(measuredElementSuaFbs %chin%
+#                            c('loss', 'production', 'imports',
+#                              'exports', 'stockChange','foodManufacturing', 'tourist'))])),
+#      by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
+#      ]
 
 # dataset containing the processed quantity of parents
 dataProcessingShare <-
@@ -2484,9 +2510,15 @@ dataProcessingShare[is.na(RatioLoss),RatioLoss:=0]
 dataProcessingShare[is.na(Prod),Prod:=0]
 
 
+# dataProcessingShare[,
+#   Pshare := ifelse(NewLoss==TRUE,(parent_qty_processed-RatioLoss*Prod) / availability,
+#                    parent_qty_processed / availability),
+#   by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
+# ]
+
+
 dataProcessingShare[,
-  Pshare := ifelse(NewLoss==TRUE,(parent_qty_processed-RatioLoss*Prod) / availability,
-                   parent_qty_processed / availability),
+  Pshare := parent_qty_processed / availability,
   by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
 ]
 
@@ -2511,10 +2543,18 @@ dataProcessingShare[, Pshare_avr := NULL]
 data_Pshare <-
   dataProcessingShare[,
     c("geographicAreaM49", "timePointYears", "measuredItemParentCPC",
-      "parent_qty_processed", "Pshare"),
+      "parent_qty_processed", "Pshare","NewLoss"),
     with = FALSE
   ]
 
+data_Pshare<-merge(
+  data_Pshare,
+  
+  data[measuredElementSuaFbs=="loss",list(geographicAreaM49,timePointYears,measuredItemParentCPC=measuredItemSuaFbs,Loss=Value)],
+  
+  by=c(p$geoVar,p$parentVar,p$yearVar),
+  all.x = TRUE
+)
 
 # calculating shareUpdown for each child
 data_ShareUpDoawn <-
@@ -3507,7 +3547,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     datamergeNew <-
       datamergeNew[,
-        c("geographicAreaM49", "measuredItemParentCPC", "availability", "Pshare",
+        c("geographicAreaM49", "measuredItemParentCPC", "availability", "Pshare","NewLoss","Loss",
           "measuredItemChildCPC", "timePointYears", "extractionRate",
           "processingLevel", "shareDownUp", "shareUpDown", "production",
           "Protected", "flagObservationStatus", "flagMethod", "Official", "manual"),
@@ -3554,7 +3594,7 @@ if (length(primaryInvolvedDescendents) == 0) {
 
     # we estimate processed quantity for parent
     # based on the historique trend of processed percentage
-    datamergeNew[, Processed := Pshare * availability] 
+    datamergeNew[, Processed := ifelse(NewLoss==TRUE,Pshare * (availability-Loss),Pshare * availability)] 
     
     # However, we may have cases where some production of child commodities are official
     
