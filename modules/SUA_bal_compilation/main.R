@@ -87,15 +87,6 @@ p$protected <- "Protected"
 p$official <- "Official"
 
 
-## CLEAN sua_balanced
-message("wipe sua_balanced session")
-sessionKey_suabal = swsContext.datasets[[1]]
-CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
-datatoClean=GetData(sessionKey_suabal)
-datatoClean=datatoClean[timePointYears%in%2014:2018]
-datatoClean[, Value := NA_real_]
-datatoClean[, CONFIG$flags := NA_character_]
-SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
 
 
 
@@ -4396,6 +4387,15 @@ if (STOP_AFTER_DERIVED == TRUE) {
 }
 
 
+## CLEAN sua_balanced
+message("wipe sua_balanced session")
+sessionKey_suabal = swsContext.datasets[[1]]
+CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
+datatoClean=GetData(sessionKey_suabal)
+datatoClean=datatoClean[timePointYears%in%2014:2018]
+datatoClean[, Value := NA_real_]
+datatoClean[, CONFIG$flags := NA_character_]
+SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
 
 
 computed_shares_send <- rbindlist(computed_shares_send, fill = TRUE)
