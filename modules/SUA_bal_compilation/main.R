@@ -2715,9 +2715,9 @@ if (nrow(data_shareUpDown_sws) == 0) {
                                       'timePointYears')],
       unique(
         data_ShareUpDoawn_final[
-        new_connection[,c('geographicAreaM49', 
+        unique(new_connection[,c('geographicAreaM49', 
                           'measuredItemParentCPC', 
-                          'timePointYears'),with=FALSE],
+                          'timePointYears'),with=FALSE]),
         on = c('geographicAreaM49', 
                'measuredItemParentCPC', 
                'timePointYears')
@@ -2727,7 +2727,6 @@ if (nrow(data_shareUpDown_sws) == 0) {
     )
   
 }
-
 
 #consistency check: sum of shareUpDown by parent should exceed 1.
 message("Line 2690")
