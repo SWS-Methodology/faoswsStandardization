@@ -2426,12 +2426,15 @@ dataProcessingShare[,SumLoss:=sum(
   by=c("geographicAreaM49","measuredItemParentCPC")
   ]
 
+dataProcessingShare[SumLoss == 0, SumLoss := NA_real_]
+
 dataProcessingShare[,SumProd:=sum(
   Value[measuredElementSuaFbs=="production" & timePointYears %in% 2014:2018],na.rm = TRUE
 ),
 by=c("geographicAreaM49","measuredItemParentCPC")
 ]
 
+dataProcessingShare[SumProd == 0, SumProd := NA_real_]
 
 dataProcessingShare[,parent_qty_processed:=Value[measuredElementSuaFbs=="foodManufacturing"],
 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
