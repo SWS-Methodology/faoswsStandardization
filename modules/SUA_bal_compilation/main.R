@@ -3575,19 +3575,23 @@ if (length(primaryInvolvedDescendents) == 0) {
       by = c(p$parentVar, p$geoVar, p$yearVar)
     ]
     
+    #Update of the share up down
+    
+    datamergeNew[,Protect_bis:=Protected==TRUE & shareDownUp>0]
     
     datamergeNew[ ,
-                 AllProotected:=sum(shareUpDown[Protected==TRUE],na.rm = TRUE),
+                 AllProotected:=sum(shareUpDown[Protect_bis==TRUE],na.rm = TRUE),
                  by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
                  ]
-    
-    #Update of the share up down
+  
     datamergeNew[ ,
-                  shareUpDown:=ifelse(Protected==TRUE & AllProotected!=1,(production*shareDownUp/extractionRate)/sum(production[Protected==TRUE]*shareDownUp[Protected==TRUE]/extractionRate[Protected==TRUE],na.rm = TRUE)*
-                                        (1-sum(shareUpDown[Protected==FALSE],na.rm = TRUE)),shareUpDown),
+                  shareUpDown:=ifelse(Protect_bis==TRUE & AllProotected!=1,(production*shareDownUp/extractionRate)/sum(production[Protect_bis==TRUE]*shareDownUp[Protect_bis==TRUE]/extractionRate[Protect_bis==TRUE],na.rm = TRUE)*
+                                        (1-sum(shareUpDown[Protect_bis==FALSE],na.rm = TRUE)),shareUpDown),
                   by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
                   ]
     datamergeNew[,AllProotected:=NULL]
+    datamergeNew[,Protect_bis:=NULL]
+    
     # calculate the number of child of each parent where processed used to be send
     datamergeNew[,
       Number_child := sum(shareUpDown > 0, na.rm = TRUE),
@@ -3597,6 +3601,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     # we estimate processed quantity for parent
     # based on the historique trend of processed percentage
     datamergeNew[, Processed := ifelse(NewLoss==TRUE,Pshare * (availability-ifelse(is.na(Loss),0,Loss)),Pshare * availability)] 
+    datamergeNew[Processed<0,Processed:=0]
     
     # However, we may have cases where some production of child commodities are official
     
