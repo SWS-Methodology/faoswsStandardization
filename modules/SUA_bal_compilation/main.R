@@ -924,7 +924,7 @@ if (FILL_EXTRACTION_RATES == TRUE) {
 # XXX: connections removed here that should not exist in
 # the commodity tree (so, they should be fixed there)
 tree[
-  timePointYears >= 2014 &
+  # timePointYears >= 2014 &
     ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
       #cheese from whole cow milk cannot come from skim mulk of cow
     (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01")),
@@ -2670,6 +2670,12 @@ CONFIG <- GetDatasetConfig(sessionKey_shareUpDown@domain, sessionKey_shareUpDown
 
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
 
+
+#Clear Share for connection that have been cut
+
+data_shareUpDown_sws[measuredItemParentCPC_tree == "22110.02" & measuredItemChildCPC_tree == "22251.01",
+                        `:=`(Value=0)]
+                        
 #saving ShareUpDown For the first time #all flage are (i,c) like production of derived
 if (nrow(data_shareUpDown_sws) == 0) {
   faosws::SaveData(
@@ -4035,6 +4041,23 @@ faosws::SaveData(
   data = shareUpDown_to_save,
   waitTimeout = 20000
 )
+
+#overwrite connection thqt have been cut connection if they were saved in the past
+data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
+
+removed_connection<-data_shareUpDown_sws[(measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22212") |
+                                           #cheese from whole cow milk cannot come from skim mulk of cow
+                                           (measuredItemParentCPC_tree == "22110.02" & measuredItemChildCPC_tree == "22251.01")]
+if (nrow(removed_connection)>0) {
+  
+  removed_connection[,`:=`(Value=NA_real_,flagObservationStatus=NA_character_,flagMethod=NA_character_)]
+  faosws::SaveData(
+    domain = "suafbs",
+    dataset = "up_down_share",
+    data = removed_connection,
+    waitTimeout = 20000
+  )
+}
 
 
 dbg_print("end of derived production loop")
