@@ -924,7 +924,7 @@ if (FILL_EXTRACTION_RATES == TRUE) {
 # XXX: connections removed here that should not exist in
 # the commodity tree (so, they should be fixed there)
 tree[
-  # timePointYears >= 2014 &
+  timePointYears >= 2014 &
     ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
       #cheese from whole cow milk cannot come from skim mulk of cow
     (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01")),
@@ -2426,15 +2426,12 @@ dataProcessingShare[,SumLoss:=sum(
   by=c("geographicAreaM49","measuredItemParentCPC")
   ]
 
-dataProcessingShare[SumLoss == 0, SumLoss := NA_real_]
-
 dataProcessingShare[,SumProd:=sum(
   Value[measuredElementSuaFbs=="production" & timePointYears %in% 2014:2018],na.rm = TRUE
 ),
 by=c("geographicAreaM49","measuredItemParentCPC")
 ]
 
-dataProcessingShare[SumProd == 0, SumProd := NA_real_]
 
 dataProcessingShare[,parent_qty_processed:=Value[measuredElementSuaFbs=="foodManufacturing"],
 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
@@ -2670,12 +2667,6 @@ CONFIG <- GetDatasetConfig(sessionKey_shareUpDown@domain, sessionKey_shareUpDown
 
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
 
-
-#Clear Share for connection that have been cut
-
-data_shareUpDown_sws[measuredItemParentCPC_tree == "22110.02" & measuredItemChildCPC_tree == "22251.01",
-                        `:=`(Value=0)]
-                        
 #saving ShareUpDown For the first time #all flage are (i,c) like production of derived
 if (nrow(data_shareUpDown_sws) == 0) {
   faosws::SaveData(
@@ -3315,7 +3306,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     data_stocks[,stockCheck:=ifelse(sign(Value) == 1 & Value+openingStocks>2*supply & supply>0,TRUE,FALSE)]
 
     #create max_column:
-    data_stocks[, maxValue := supply-openingStocks]
+    data_stocks[, maxValue := 2*supply-openingStocks]
     data_stocks[, stocks_checkVal := ifelse(stockCheck == T & sign(maxValue)==1, maxValue , 0)]
 
 
@@ -3581,23 +3572,19 @@ if (length(primaryInvolvedDescendents) == 0) {
       by = c(p$parentVar, p$geoVar, p$yearVar)
     ]
     
-    #Update of the share up down
-    
-    datamergeNew[,Protect_bis:=Protected==TRUE & shareDownUp>0]
     
     datamergeNew[ ,
-                 AllProotected:=sum(shareUpDown[Protect_bis==TRUE],na.rm = TRUE),
+                 AllProotected:=sum(shareUpDown[Protected==TRUE],na.rm = TRUE),
                  by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
                  ]
-  
+    
+    #Update of the share up down
     datamergeNew[ ,
-                  shareUpDown:=ifelse(Protect_bis==TRUE & AllProotected!=1,(production*shareDownUp/extractionRate)/sum(production[Protect_bis==TRUE]*shareDownUp[Protect_bis==TRUE]/extractionRate[Protect_bis==TRUE],na.rm = TRUE)*
-                                        (1-sum(shareUpDown[Protect_bis==FALSE],na.rm = TRUE)),shareUpDown),
+                  shareUpDown:=ifelse(Protected==TRUE & AllProotected!=1,(production*shareDownUp/extractionRate)/sum(production[Protected==TRUE]*shareDownUp[Protected==TRUE]/extractionRate[Protected==TRUE],na.rm = TRUE)*
+                                        (1-sum(shareUpDown[Protected==FALSE],na.rm = TRUE)),shareUpDown),
                   by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
                   ]
     datamergeNew[,AllProotected:=NULL]
-    datamergeNew[,Protect_bis:=NULL]
-    
     # calculate the number of child of each parent where processed used to be send
     datamergeNew[,
       Number_child := sum(shareUpDown > 0, na.rm = TRUE),
@@ -3607,7 +3594,6 @@ if (length(primaryInvolvedDescendents) == 0) {
     # we estimate processed quantity for parent
     # based on the historique trend of processed percentage
     datamergeNew[, Processed := ifelse(NewLoss==TRUE,Pshare * (availability-ifelse(is.na(Loss),0,Loss)),Pshare * availability)] 
-    datamergeNew[Processed<0,Processed:=0]
     
     # However, we may have cases where some production of child commodities are official
     
@@ -4041,23 +4027,6 @@ faosws::SaveData(
   data = shareUpDown_to_save,
   waitTimeout = 20000
 )
-
-#overwrite connection thqt have been cut connection if they were saved in the past
-data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
-
-removed_connection<-data_shareUpDown_sws[(measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22212") |
-                                           #cheese from whole cow milk cannot come from skim mulk of cow
-                                           (measuredItemParentCPC_tree == "22110.02" & measuredItemChildCPC_tree == "22251.01")]
-if (nrow(removed_connection)>0) {
-  
-  removed_connection[,`:=`(Value=NA_real_,flagObservationStatus=NA_character_,flagMethod=NA_character_)]
-  faosws::SaveData(
-    domain = "suafbs",
-    dataset = "up_down_share",
-    data = removed_connection,
-    waitTimeout = 20000
-  )
-}
 
 
 dbg_print("end of derived production loop")
@@ -6185,24 +6154,26 @@ if (exists("out")) {
       ##############       Flags       ##############
       ###############################################
 
-      E,-: Balancing: utilization modified
+      E,-: Balancing: utilization modified OR Processed created down up using official data
       E,b: Final balancing (industrial, Feed)
       E,c: Balancing: production modified to compensate net trade
       E,e: Outlier replaced
-      E,h: Balancing: imbalance to food, given food is only utilization
-      E,i: Food processing generated
-      E,n: Balancing of small imbalances
+      E,h: Balancing: imbalance to food, given food is only utilization -Food Residual
+      E,i: Food processed generated, using availability
+      E,n: Balancing of small imbalances OR Stock variation corrected for over accumulation(to change)
       E,s: Balancing: stocks modified
-      E,u: Stocks variation generated
+      E,u: Stocks variation generated by the model OR updated opening stocks
       I,c: Derived production generated
       I,e: Module imputation
-      I,i: Residual item (identity); stocks as 20%% of supply in 2013
+      I,i: Residual item (identity) OR stocks as 20% of supply in 2013
       I,-: Opening stocks as cumulated stocks variations 1961-2013
       M,q: Cases for which flags were not set (should never happen)
-      T,c: Opening stocks updated
       T,i: Calories per capita created
-      T,p: USDA stocks data
+      T,p: Oilworld stocks data
+      T,h: USDA stocks data
 
+      
+    
       ###############################################
       ##############       Files       ##############
       ###############################################
