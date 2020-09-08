@@ -515,7 +515,7 @@ newBalancing <- function(data, Utilization_Table) {
   data[,
     food_resid :=
       # It's a food item & ...
-      (measuredItemSuaFbs %chin% Utilization_Table[food_item == 'X', cpc_code] &
+      (measuredItemSuaFbs %chin% Utilization_Table[food_item == 'X', cpc_code] |
       # food exists & ...
       # !is.na(Value[measuredElementSuaFbs == 'food']) &
       Food_Median > 0 & !is.na(Food_Median)) &
@@ -525,6 +525,33 @@ newBalancing <- function(data, Utilization_Table) {
                             'exports', 'stockChange','foodManufacturing', 'tourist'))])),
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
+  
+  # 0143	Cottonseed
+  # 01442	Mustard seed
+  # 01443	Rapeseed or colza seed
+  # 01446	Safflower seed
+  # 01449.90	Other oil seeds, n.e.
+  # 01491.02	Palm kernels
+  # 01801	Sugar beet
+  # 01802	Sugar cane
+  # 01809	Other sugar crops n.e.
+  
+  
+  special_list<-c("0143","01442","01443","01446","01449.90","01491.02","01801","01802","01809")
+  
+  data[measuredItemSuaFbs %chin% special_list,
+       food_resid :=
+         # It's a food item & ...
+         (measuredItemSuaFbs %chin% Utilization_Table[food_item == 'X', cpc_code] &
+            # food exists & ...
+            # !is.na(Value[measuredElementSuaFbs == 'food']) &
+            Food_Median > 0 & !is.na(Food_Median)) &
+         # ... is the only utilization
+         all(is.na(Value[!(measuredElementSuaFbs %chin%
+                             c('loss', 'food', 'production', 'imports',
+                               'exports', 'stockChange','foodManufacturing', 'tourist'))])),
+       by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+       ]
   
   # Checking if the commodity has past value before assigning the residual
   # imbalance at the end of the balancing procees
@@ -924,7 +951,7 @@ if (FILL_EXTRACTION_RATES == TRUE) {
 # XXX: connections removed here that should not exist in
 # the commodity tree (so, they should be fixed there)
 tree[
-  # timePointYears >= 2014 &
+  #timePointYears >= 2014 &
     ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
       #cheese from whole cow milk cannot come from skim mulk of cow
     (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01")),
@@ -1148,6 +1175,22 @@ nutrientData <-
     timePointYears = as.character(2014:2018),
     geographicAreaM49 = COUNTRY
   )
+
+######### CREAM SWEDEN 
+
+nutrientData[geographicAreaM49=="752" & measuredItemCPC=="22120"& measuredElement=="1001",Value:=195]
+nutrientData[geographicAreaM49=="752" & measuredItemCPC=="22120"& measuredElement=="1003",Value:=3]
+nutrientData[geographicAreaM49=="752" & measuredItemCPC=="22120"& measuredElement=="1005",Value:=19]
+
+### MILK SWEDEN
+nutrientData[geographicAreaM49%in%c("756","300","250","372","276")& measuredItemCPC=="22251.01"& measuredElement=="1001",Value:=387]
+nutrientData[geographicAreaM49%in%c("756","300","250","372","276")& measuredItemCPC=="22251.01"& measuredElement=="1003",Value:=26]
+nutrientData[geographicAreaM49%in%c("756","300","250","372","276")& measuredItemCPC=="22251.01"& measuredElement=="1005",Value:=30]
+
+nutrientData[geographicAreaM49=="300"& measuredItemCPC=="22253"& measuredElement=="1001",Value:=310]
+nutrientData[geographicAreaM49=="300"& measuredItemCPC=="22253"& measuredElement=="1003",Value:=23]
+nutrientData[geographicAreaM49=="300"& measuredItemCPC=="22253"& measuredElement=="1005",Value:=23]
+
 
 nutrientData[measuredElement=="1001",measuredElement:="664"]
 
@@ -2088,6 +2131,8 @@ data_tree[,
   by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar)
 ]
 
+data_tree[availability<0,availability:=0]
+
 # used to chack if a parent has processed as utilization
 data_tree[,
   proc_Median :=
@@ -2426,15 +2471,12 @@ dataProcessingShare[,SumLoss:=sum(
   by=c("geographicAreaM49","measuredItemParentCPC")
   ]
 
-dataProcessingShare[SumLoss == 0, SumLoss := NA_real_]
-
 dataProcessingShare[,SumProd:=sum(
   Value[measuredElementSuaFbs=="production" & timePointYears %in% 2014:2018],na.rm = TRUE
 ),
 by=c("geographicAreaM49","measuredItemParentCPC")
 ]
 
-dataProcessingShare[SumProd == 0, SumProd := NA_real_]
 
 dataProcessingShare[,parent_qty_processed:=Value[measuredElementSuaFbs=="foodManufacturing"],
 by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
@@ -2670,12 +2712,17 @@ CONFIG <- GetDatasetConfig(sessionKey_shareUpDown@domain, sessionKey_shareUpDown
 
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
 
+data_shareUpDown_sws[
+  #timePointYears >= 2014 &
+  ((measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22212") |
+     #cheese from whole cow milk cannot come from skim mulk of cow
+     (measuredItemParentCPC_tree == "22110.02" & measuredItemChildCPC_tree == "22251.01")),
+    Value := 0
+  
+  ]
 
-#Clear Share for connection that have been cut
 
-data_shareUpDown_sws[measuredItemParentCPC_tree == "22110.02" & measuredItemChildCPC_tree == "22251.01",
-                        `:=`(Value=0)]
-                        
+
 #saving ShareUpDown For the first time #all flage are (i,c) like production of derived
 if (nrow(data_shareUpDown_sws) == 0) {
   faosws::SaveData(
@@ -4033,6 +4080,8 @@ setnames(
 
 shareUpDown_to_save <- shareUpDown_to_save[!is.na(Value)]
 
+data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
+
 #shareUpDown_to_save[, Value := round(Value, 3)]
 
 faosws::SaveData(
@@ -4042,23 +4091,22 @@ faosws::SaveData(
   waitTimeout = 20000
 )
 
-#overwrite connection thqt have been cut connection if they were saved in the past
-data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
 
-removed_connection<-data_shareUpDown_sws[(measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22212") |
+remove_connection<-data_shareUpDown_sws[((measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22212") |
                                            #cheese from whole cow milk cannot come from skim mulk of cow
-                                           (measuredItemParentCPC_tree == "22110.02" & measuredItemChildCPC_tree == "22251.01")]
-if (nrow(removed_connection)>0) {
+                                           (measuredItemParentCPC_tree == "22110.02" & measuredItemChildCPC_tree == "22251.01"))]
+
+
+if (nrow(remove_connection)>0){
   
-  removed_connection[,`:=`(Value=NA_real_,flagObservationStatus=NA_character_,flagMethod=NA_character_)]
+  remove_connection[,`:=`(Value = NA, flagObservationStatus = NA, flagMethod = NA)]
   faosws::SaveData(
     domain = "suafbs",
     dataset = "up_down_share",
-    data = removed_connection,
+    data = remove_connection,
     waitTimeout = 20000
   )
 }
-
 
 dbg_print("end of derived production loop")
 
