@@ -99,7 +99,7 @@ tourist_cons_table <- ReadDatatable("keep_tourist_consumption")
 stopifnot(nrow(tourist_cons_table) > 0)
 
 TourismNoIndustrial <- tourist_cons_table[small == "X"]$tourist
-
+NonSmallIslands<-tourist_cons_table[small != "X"]$tourist
 
 dbg_print("define functions")
 
@@ -668,6 +668,59 @@ newBalancing <- function(data, Utilization_Table) {
       flagMethod = "h"
     )
   ]
+  
+  if (COUNTRY %in% TourismNoIndustrial) {
+    data[measuredElementSuaFbs == "tourist", Protected := FALSE]
+    
+    adj_tour_ind <-
+      data.table::dcast(
+        data[
+          measuredItemSuaFbs %chin% Utilization_Table[food_item == "X"]$cpc_code &
+            measuredElementSuaFbs %chin% c("industrial", "tourist")
+          ],
+        geographicAreaM49 + timePointYears + measuredItemSuaFbs ~ measuredElementSuaFbs,
+        value.var = "Value"
+      )
+    
+    adj_tour_ind <- adj_tour_ind[industrial > 0]
+    
+    adj_tour_ind[, new_tourist := industrial]
+    adj_tour_ind[!is.na(tourist), new_tourist := tourist + industrial]
+    
+    adj_tour_ind[, c("industrial", "tourist") := NULL]
+    
+    by_vars <- c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+    
+    data <- dt_left_join(data, adj_tour_ind, by = by_vars)
+    
+    data[
+      measuredElementSuaFbs %in% c("industrial", "tourist"),
+      any_protected := any(Protected == TRUE),
+      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+      ]
+    
+    data[
+      !is.na(new_tourist) & measuredElementSuaFbs == "tourist" & any_protected == FALSE,
+      `:=`(
+        Value = new_tourist,
+        flagObservationStatus = "E",
+        flagMethod = "e"
+      )
+      ]
+    
+    data[
+      !is.na(new_tourist) & measuredElementSuaFbs == "industrial" & any_protected == FALSE,
+      `:=`(
+        Value = 0,
+        flagObservationStatus = "E",
+        flagMethod = "e"
+      )
+      ]
+    
+    data[, c("any_protected", "new_tourist") := NULL]
+    data[measuredElementSuaFbs == "tourist", Protected := TRUE]
+    
+  }
 
   for (j in 1:10) {
 
@@ -740,6 +793,10 @@ newBalancing <- function(data, Utilization_Table) {
   calculateImbalance(data)
   
   # Assign the residual imbalance to industrial if the conditions are met
+  data[geographicAreaM49 %in% TourismNoIndustrial & measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code],
+       industrial_resid == FALSE
+       ]
+  
   data[
     Protected == FALSE &
       industrial_resid == TRUE &
@@ -757,55 +814,6 @@ newBalancing <- function(data, Utilization_Table) {
     )
   ]
   
-  if (COUNTRY %in% TourismNoIndustrial) {
-
-    adj_tour_ind <-
-      data.table::dcast(
-        data[
-          measuredItemSuaFbs %chin% Utilization_Table[food_item == "X"]$cpc_code &
-          measuredElementSuaFbs %chin% c("industrial", "tourist")
-        ],
-        geographicAreaM49 + timePointYears + measuredItemSuaFbs ~ measuredElementSuaFbs,
-        value.var = "Value"
-      )
-
-    adj_tour_ind <- adj_tour_ind[industrial > 0]
-
-    adj_tour_ind[, new_tourist := industrial]
-    adj_tour_ind[!is.na(tourist), new_tourist := tourist + industrial]
-
-    adj_tour_ind[, c("industrial", "tourist") := NULL]
-
-    by_vars <- c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
-
-    data <- dt_left_join(data, adj_tour_ind, by = by_vars)
-
-    data[
-      measuredElementSuaFbs %in% c("industrial", "tourist"),
-      any_protected := any(Protected == TRUE),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
-    ]
-
-    data[
-      !is.na(new_tourist) & measuredElementSuaFbs == "tourist" & any_protected == FALSE,
-      `:=`(
-        Value = new_tourist,
-        flagObservationStatus = "E",
-        flagMethod = "e"
-      )
-    ]
-
-    data[
-      !is.na(new_tourist) & measuredElementSuaFbs == "industrial" & any_protected == FALSE,
-      `:=`(
-        Value = 0,
-        flagObservationStatus = "E",
-        flagMethod = "e"
-      )
-    ]
-
-    data[, c("any_protected", "new_tourist") := NULL]
-  }
 
   calculateImbalance(data)
   
@@ -4071,7 +4079,8 @@ setnames(
   c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree", "Value")
 )
 
-shareUpDown_to_save <- shareUpDown_to_save[!is.na(Value)]
+# shareUpDown_to_save <- shareUpDown_to_save[!is.na(Value)]
+shareUpDown_to_save[is.na(Value),Value:=0]
 
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
 
@@ -4335,13 +4344,13 @@ dbg_print("end outliers")
 
 dbg_print("Fix tourism/industrial")
 
-data[, Protected_orig := Protected]
-data[flagObservationStatus == "E" & flagMethod == "e", Protected := TRUE]
+# data[, Protected_orig := Protected]
+# data[flagObservationStatus == "E" & flagMethod == "e", Protected := TRUE]
 
 # In the past, industrial contained what is now tourism =>
 # remove tourism from industrial.
 # XXX: it seems (actually, is) slow.
-if (COUNTRY %in% TourismNoIndustrial) {
+if (COUNTRY %in% NonSmallIslands) {
   ind_tour_tab <-
     data[
       measuredItemSuaFbs %chin% Utilization_Table[food_item == "X"]$cpc_code &
@@ -4365,8 +4374,8 @@ if (COUNTRY %in% TourismNoIndustrial) {
     ind_tour_tab[,
       .(
         indNoTour =
-          Value[measuredElementSuaFbs == "industrial"] -
-            Value[measuredElementSuaFbs == "tourist"]
+          ifelse(sign(Value[measuredElementSuaFbs == "tourist"])==1,Value[measuredElementSuaFbs == "industrial"] -
+                   Value[measuredElementSuaFbs == "tourist"],Value[measuredElementSuaFbs == "industrial"])
       ),
       by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
     ]
@@ -4395,8 +4404,8 @@ if (COUNTRY %in% TourismNoIndustrial) {
   data[, indNoTour := NULL]
 }
 
-data[, Protected := Protected_orig]
-data[, Protected_orig := NULL]
+# data[, Protected := Protected_orig]
+# data[, Protected_orig := NULL]
 
 ##################### / INDUSTRIAL-TOURISM ###############################
 
