@@ -4079,7 +4079,8 @@ setnames(
   c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree", "Value")
 )
 
-shareUpDown_to_save <- shareUpDown_to_save[!is.na(Value)]
+# shareUpDown_to_save <- shareUpDown_to_save[!is.na(Value)]
+shareUpDown_to_save[is.na(Value),Value:=0]
 
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
 
