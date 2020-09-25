@@ -3650,7 +3650,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     datamergeNew[, Processed := ifelse(NewLoss==TRUE,Pshare * (availability-ifelse(is.na(Loss),0,Loss)),Pshare * availability)] 
     
     # However, we may have cases where some production of child commodities are official
-    
+    datamergeNew[sign(Processed) == -1, Processed := 0]
     # case1: some child production are official but not all
     # in this case we update the shareUpDown of the child commodities for which the production is official
     # if the sum of their ShareUpdown is greater than 1, we update processed using the official production of those
