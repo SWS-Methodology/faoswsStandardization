@@ -698,7 +698,7 @@ newBalancing <- function(data, Utilization_Table) {
     adj_tour_ind <- adj_tour_ind[industrial > 0]
     
     adj_tour_ind[, new_tourist := industrial]
-    adj_tour_ind[!is.na(tourist), new_tourist := tourist + industrial]
+    adj_tour_ind[!is.na(tourist), new_tourist :=industrial]
     
     adj_tour_ind[, c("industrial", "tourist") := NULL]
     
