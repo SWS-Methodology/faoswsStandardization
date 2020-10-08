@@ -549,7 +549,10 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
          "huge problems when multiplying, and should be fixed.")
   #cyclic parent-child relation bring infinit loop
   
-  edges<-edges[!(get(parentName)=="21529.03" & get(childName)=="21523")]
+  if (COUNTRY %!in% "470"){
+    edges<-edges[!(get(parentName)=="21529.03" & get(childName)=="21523")]
+  }
+ 
 
   ## Test for loops
   # findProcessingLevel(edgeData = edges, from = parentName,
@@ -562,11 +565,11 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
   targetNodes = setdiff(edges[[parentName]], edges[[childName]])
   targetNodes=unique(c(targetNodes,nonstand))
   
-  edgesCopy = copy(edges[, c(parentName, childName, extractionName,p$shareVar,weight,standard_child,
+  edgesCopy = copy(edges[, c(parentName, childName, extractionName,p$shareVar,weight,standard_child,"som",
                              keyCols), with = FALSE])
  
-  setnames(edgesCopy, c(parentName, childName, extractionName,p$shareVar,weight,standard_child),
-           c("newParent", parentName, "extractionMult","share.parent","weight.Parent","standard_child.parent"))
+  setnames(edgesCopy, c(parentName, childName, extractionName,p$shareVar,weight,standard_child,"som"),
+           c("newParent", parentName, "extractionMult","share.parent","weight.Parent","standard_child.parent","som.parrent"))
   finalEdges = edges[get(parentName) %in% targetNodes, ]
   currEdges = edges[!get(parentName) %in% targetNodes, ]
   
@@ -591,7 +594,9 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
     currEdges[,c(standard_child):=ifelse(standard_child.parent==TRUE & standard_child==TRUE,
                                          TRUE,FALSE)]
     
-    currEdges[, c("newParent", "extractionMult","share.parent","weight.Parent","standard_child.parent") := NULL]
+    currEdges[,c(weight):=ifelse(som.parrent==1 & standard_child.parent==FALSE,0,weight)]
+    
+    currEdges[, c("newParent", "extractionMult","share.parent","weight.Parent","standard_child.parent","som.parrent") := NULL]
     
     finalEdges = rbind(finalEdges, currEdges[get(parentName) %in% targetNodes, ])
     currEdges = currEdges[!get(parentName) %in% targetNodes, ]
@@ -2182,6 +2187,9 @@ standardization<-function(dataQTY=dataSubset,
   #If the parent is a zerweight change the weight of the child to 0
   # Issue find in Germany, child of molasses were standardized
   dataQTY_pprocessed[get(params$parentVar) %in% zeroWeight,weight:=0]
+  # dataQTY_pprocessed[get(params$parentVar) %in% "0111" & 
+                       # get(params$childVar) %in% "24310.01",weight:=0]
+  
   
   
   outDataQTY<-dataQTY_pprocessed[, list(
@@ -2390,7 +2398,7 @@ codes <- tibble::tribble(
   "5016", "loss",
   "5510", "production",
   "5525", "seed",
-  "5071", "stockChange",
+  "5071", "stock",
   "664", "calories",
   "674", "proteins",
   "684", "fats",
