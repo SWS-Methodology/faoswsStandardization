@@ -32,6 +32,19 @@ if (CheckDebug()) {
 
 COUNTRY <- as.character(swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys)
 
+COUNTRY_suaunbal <- as.character(swsContext.datasets[[2]]@dimensions$geographicAreaM49@keys)
+
+COUNTRY_shareup <- as.character(swsContext.datasets[[3]]@dimensions$geographicAreaM49@keys)
+
+COUNTRY_sharedown <- as.character(swsContext.datasets[[4]]@dimensions$geographicAreaM49@keys)
+
+if(sum(COUNTRY == c(COUNTRY_suaunbal,COUNTRY_sharedown,COUNTRY_shareup)) < 3){
+  dbg_print("Session countries are not identical")
+  print(paste0("Session countries are not identical"))
+  stop("Session countries are not identical")
+  
+}
+
 COUNTRY_NAME <-
   nameData(
     "suafbs", "sua_unbalanced",
