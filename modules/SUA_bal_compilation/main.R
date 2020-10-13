@@ -976,7 +976,7 @@ tree[
     ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
       #cheese from whole cow milk cannot come from skim mulk of cow
     (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01") |
-      (measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22251.02")
+      (measuredItemParentCPC == "02211" & measuredItemChildCPC == "22251.02")
     ),
   `:=`(
     Value = NA,
