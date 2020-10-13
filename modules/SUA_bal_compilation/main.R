@@ -962,7 +962,9 @@ tree[
   #timePointYears >= 2014 &
     ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
       #cheese from whole cow milk cannot come from skim mulk of cow
-    (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01")),
+    (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01") |
+      (measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22251.02")
+    ),
   `:=`(
     Value = NA,
     flagObservationStatus = "M",
@@ -3640,8 +3642,10 @@ if (length(primaryInvolvedDescendents) == 0) {
                  by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
                  ]
     
+    datamergeNew[is.na(shareUpDown),shareUpDown:=0]
+    
     #Update of the share up down
-    datamergeNew[ ,
+    datamergeNew[extractionRate>0 ,
                   shareUpDown:=ifelse(Protected==TRUE & AllProotected!=1,(production*shareDownUp/extractionRate)/sum(production[Protected==TRUE]*shareDownUp[Protected==TRUE]/extractionRate[Protected==TRUE],na.rm = TRUE)*
                                         (1-sum(shareUpDown[Protected==FALSE],na.rm = TRUE)),shareUpDown),
                   by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
@@ -4096,7 +4100,8 @@ faosws::SaveData(
 
 remove_connection<-data_shareUpDown_sws[((measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22212") |
                                            #cheese from whole cow milk cannot come from skim mulk of cow
-                                           (measuredItemParentCPC_tree == "22110.02" & measuredItemChildCPC_tree == "22251.01"))]
+                                           (measuredItemParentCPC_tree == "22110.02" & measuredItemChildCPC_tree == "22251.01") |
+                                           (measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22251.02"))]
 
 
 if (nrow(remove_connection)>0){
