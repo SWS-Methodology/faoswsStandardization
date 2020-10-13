@@ -32,6 +32,19 @@ if (CheckDebug()) {
 
 COUNTRY <- as.character(swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys)
 
+COUNTRY_suaunbal <- as.character(swsContext.datasets[[2]]@dimensions$geographicAreaM49@keys)
+
+COUNTRY_shareup <- as.character(swsContext.datasets[[3]]@dimensions$geographicAreaM49@keys)
+
+COUNTRY_sharedown <- as.character(swsContext.datasets[[4]]@dimensions$geographicAreaM49@keys)
+
+if(sum(COUNTRY == c(COUNTRY_suaunbal,COUNTRY_sharedown,COUNTRY_shareup)) < 3){
+  dbg_print("Session countries are not identical")
+  print(paste0("Session countries are not identical"))
+  stop("Session countries are not identical")
+  
+}
+
 COUNTRY_NAME <-
   nameData(
     "suafbs", "sua_unbalanced",
@@ -685,7 +698,7 @@ newBalancing <- function(data, Utilization_Table) {
     adj_tour_ind <- adj_tour_ind[industrial > 0]
     
     adj_tour_ind[, new_tourist := industrial]
-    adj_tour_ind[!is.na(tourist), new_tourist := tourist + industrial]
+    adj_tour_ind[!is.na(tourist), new_tourist :=industrial]
     
     adj_tour_ind[, c("industrial", "tourist") := NULL]
     
@@ -3662,7 +3675,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     datamergeNew[, Processed := ifelse(NewLoss==TRUE,Pshare * (availability-ifelse(is.na(Loss),0,Loss)),Pshare * availability)] 
     
     # However, we may have cases where some production of child commodities are official
-    
+    datamergeNew[sign(Processed) == -1, Processed := 0]
     # case1: some child production are official but not all
     # in this case we update the shareUpDown of the child commodities for which the production is official
     # if the sum of their ShareUpdown is greater than 1, we update processed using the official production of those
