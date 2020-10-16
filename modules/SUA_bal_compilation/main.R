@@ -807,7 +807,7 @@ newBalancing <- function(data, Utilization_Table) {
   
   # Assign the residual imbalance to industrial if the conditions are met
   data[geographicAreaM49 %in% TourismNoIndustrial & measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code],
-       industrial_resid == FALSE
+       industrial_resid := FALSE
        ]
   
   data[
