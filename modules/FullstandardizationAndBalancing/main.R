@@ -1,4 +1,7 @@
+#sapply(dir("R", full.names = TRUE), source)
+ options(scipen=999)
 
+ commence<-Sys.time()
 ## load the library
 library(faosws)
 library(faoswsUtil)
@@ -69,6 +72,12 @@ if(CheckDebug()){
 }
 
 message("Getting parameters/datasets...")
+COUNTRY <- as.character(swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys)
+
+COUNTRY_NAME <-
+  nameData(
+    "suafbs", "sua_unbalanced",
+    data.table(geographicAreaM49 = COUNTRY))$geographicAreaM49_description
 
 # start and end year for standardization come from user parameters
 startYear = swsContext.computationParams$startYear
@@ -80,9 +89,9 @@ outlierMail = swsContext.computationParams$checks
 
 ##  Get data configuration and session
 sessionKey_fbsBal = swsContext.datasets[[1]]
-sessionKey_suaUnb = swsContext.datasets[[2]]
-sessionKey_suabal = swsContext.datasets[[3]]
-sessionKey_fbsStand = swsContext.datasets[[4]]
+#sessionKey_suaUnb = swsContext.datasets[[2]]
+sessionKey_suabal = swsContext.datasets[[2]]
+sessionKey_fbsStand = swsContext.datasets[[3]]
 
 
 sessionCountries =
@@ -97,21 +106,705 @@ selectedGEOCode =
          "session" = sessionCountries,
          "all" = geoKeys)
 areaKeys = selectedGEOCode
+
+
 ##############################################################
 ############ DOWNLOAD AND VALIDATE TREE ######################
 ##############################################################
 
 ptm <- proc.time()
-tree=getCommodityTreeNewMethod(areaKeys,yearVals)
+#tree=getCommodityTreeNewMethod(areaKeys,yearVals)
+message("Downloading tree...")
+tree=getCommodityTreeNewMethod(areaKeys,as.character(2000:2018))
+
 message((proc.time() - ptm)[3])
 
+# Exception: high share conmfirmed by official data
+
+tree_exceptions <- tree[geographicAreaM49 == "392" & measuredItemParentCPC == "0141" & measuredItemChildCPC == "23995.01"]
+
+if (nrow(tree_exceptions) > 0) {
+  tree <- tree[!(geographicAreaM49 == "392" & measuredItemParentCPC == "0141" & measuredItemChildCPC == "23995.01")]
+}
+
 validateTree(tree)
+
+if (nrow(tree_exceptions) > 0) {
+  tree <- rbind(tree, tree_exceptions)
+  rm(tree_exceptions)
+}
+
 
 # NA ExtractionRates are recorded in the sws dataset as 0
 # for the standardization, we nee them to be treated as NA
 # therefore here we are re-changing it
 
 tree[Value==0,Value:=NA]
+
+#fILL EXTRACTION RATE---------------------
+  expanded_tree <-
+    merge(
+      data.table(
+        expand.grid(
+        geographicAreaM49 = unique(tree$geographicAreaM49),
+        timePointYears = sort(unique(tree$timePointYears))
+      )),
+      unique(tree[, .(geographicAreaM49, measuredElementSuaFbs,
+                      measuredItemParentCPC, measuredItemChildCPC)]),
+      by = "geographicAreaM49",
+      all = TRUE,
+      allow.cartesian = TRUE
+    )
+  
+  tree <- tree[expanded_tree, on = colnames(expanded_tree)]
+  
+  # flags for carry forward/backward
+  tree[is.na(Value), c("flagObservationStatus", "flagMethod") := list("E", "t")]
+  
+  tree <-
+    tree[!is.na(Value)][
+      tree,
+      on = c("geographicAreaM49", "measuredElementSuaFbs",
+             "measuredItemParentCPC", "measuredItemChildCPC",
+             "timePointYears"),
+      roll = -Inf
+      ]
+  
+  tree <-
+    tree[!is.na(Value)][
+      tree,
+      on = c("geographicAreaM49", "measuredElementSuaFbs",
+             "measuredItemParentCPC", "measuredItemChildCPC",
+             "timePointYears"),
+      roll = Inf
+      ]
+  
+  # keep orig flags
+  tree[, flagObservationStatus := i.i.flagObservationStatus]
+  tree[, flagMethod := i.i.flagMethod]
+  
+  tree[, names(tree)[grep("^i\\.", names(tree))] := NULL]
+
+# saveRDS(
+#   tree[
+#     !is.na(Value) & measuredElementSuaFbs == "extractionRate",
+#     -grepl("measuredElementSuaFbs", names(tree)),
+#     with = FALSE
+#     ],
+#   file.path(R_SWS_SHARE_PATH, "FBS_validation", COUNTRY, "tree.rds")
+# )
+#END FILL EXTRACTION RATE-------------
+
+  ############GLOBAL EXTRACTION RATE ###########################
+  
+  #globalExtr=read.csv(file.path(R_SWS_SHARE_PATH, "standardization", "Global_Extraction_Rates.csv"))
+
+##################################################################
+##########################FUNCTIONS###############################
+#################################################################
+  
+send_mail <- function(from = NA, to = NA, subject = NA,
+                      body = NA, remove = FALSE) {
+  
+  if (missing(from)) from <- 'no-reply@fao.org'
+  
+  if (missing(to)) {
+    if (exists('swsContext.userEmail')) {
+      to <- swsContext.userEmail
+    }
+  }
+  
+  if (is.null(to)) {
+    stop('No valid email in `to` parameter.')
+  }
+  
+  if (missing(subject)) stop('Missing `subject`.')
+  
+  if (missing(body)) stop('Missing `body`.')
+  
+  if (length(body) > 1) {
+    body <-
+      sapply(
+        body,
+        function(x) {
+          if (file.exists(x)) {
+            # https://en.wikipedia.org/wiki/Media_type 
+            file_type <-
+              switch(
+                tolower(sub('.*\\.([^.]+)$', '\\1', basename(x))),
+                txt  = 'text/plain',
+                csv  = 'text/csv',
+                png  = 'image/png',
+                jpeg = 'image/jpeg',
+                jpg  = 'image/jpeg',
+                gif  = 'image/gif',
+                xls  = 'application/vnd.ms-excel',
+                xlsx = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                doc  = 'application/msword',
+                docx = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                pdf  = 'application/pdf',
+                zip  = 'application/zip',
+                # https://stackoverflow.com/questions/24725593/mime-type-for-serialized-r-objects
+                rds  = 'application/octet-stream'
+              )
+
+            if (is.null(file_type)) {
+              stop(paste(tolower(sub('.*\\.([^.]+)$', '\\1', basename(x))),
+                         'is not a supported file type.'))
+            } else {
+              res <- sendmailR:::.file_attachment(x, basename(x), type = file_type)
+
+              if (remove == TRUE) {
+                unlink(x)
+              }
+
+              return(res)
+            }
+          } else {
+            return(x)
+          }
+        }
+      )
+  } else if (!is.character(body)) {
+    stop('`body` should be either a string or a list.')
+  }
+  
+  sendmailR::sendmail(from, to, subject, as.list(body))
+}
+
+calculateImbalance <- function(data,
+                               supply_add = c("production", "imports"),
+                               supply_subtract = c("exports", "stockChange"),
+                               supply_all = union(supply_add, supply_subtract),
+                               item_name = "measuredItemFbsSua",
+                               bygroup = c("geographicAreaM49", "timePointYears", item_name),
+                               keep_supply = TRUE,
+                               keep_utilizations = TRUE) {
+  
+  stopifnot(is.data.table(data))
+  
+  data[measuredElementSuaFbs %!in% c("residual","TotalCalories","TotalProteins",
+                                     "TotalFats","calories","proteins","fats"),
+       `:=`(
+         supply =
+           sum(Value[measuredElementSuaFbs %chin% supply_add],
+               - Value[measuredElementSuaFbs %chin% supply_subtract],
+               na.rm = TRUE),
+         # All elements that are NOT supply elements
+         utilizations =
+           sum(Value[!(measuredElementSuaFbs %chin% supply_all)],
+               na.rm = TRUE)
+       ),
+       by = bygroup
+       ][,
+         imbalance := supply - utilizations
+         ]
+  
+  if (keep_supply == FALSE) {
+    data[, supply := NULL]
+  }
+  
+  if (keep_utilizations == FALSE) {
+    data[, utilizations := NULL]
+  }
+  
+}
+
+
+RemainingToProcessedParent <- function(data) {
+  data[, 
+       parent_already_processed :=
+         ifelse(
+           is.na(parent_qty_processed),
+           parent_qty_processed,
+           sum(processed_to_child / extractionRate, na.rm = TRUE)
+         ),
+       by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+       ]
+  
+  data[, remaining_processed_parent := round(parent_qty_processed - parent_already_processed)]
+  
+  data[remaining_processed_parent < 0, remaining_processed_parent := 0]
+  
+  data[,
+       only_child_left :=
+         sum(is.na(processed_to_child)) == 1 &
+         is.na(processed_to_child) &
+         !is.na(production_of_child) &
+         !is.na(parent_qty_processed) &
+         production_of_child > 0,
+       by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+       ]
+  
+  data[
+    only_child_left == TRUE,
+    processed_to_child := remaining_processed_parent * extractionRate
+    ]
+  
+  data[,
+       parent_already_processed :=
+         ifelse(
+           is.na(parent_qty_processed),
+           parent_qty_processed,
+           sum(processed_to_child / extractionRate, na.rm = TRUE)
+         ),
+       by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+       ]
+  
+  data[, remaining_processed_parent := round(parent_qty_processed - parent_already_processed)]
+  
+  data[remaining_processed_parent < 0, remaining_processed_parent := 0]
+  
+  return(data)
+}
+
+
+RemainingProdChildToAssign <- function(data) {
+  
+  data[,
+       available_processed_child := sum(processed_to_child, na.rm = TRUE),
+       by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")
+       ]
+  
+  data[, remaining_to_process_child := round(production_of_child - available_processed_child)]
+  
+  data[remaining_to_process_child < 0, remaining_to_process_child := 0]
+  
+  data[,
+       only_parent_left :=
+         sum(is.na(processed_to_child)) == 1 &
+         is.na(processed_to_child) &
+         !is.na(parent_qty_processed) &
+         parent_qty_processed >= 0
+       ]
+  
+  data[only_parent_left==TRUE,processed_to_child:=ifelse(only_parent_left==TRUE,remaining_to_process_child,processed_to_child)]
+  
+  data[,
+       available_processed_child := sum(processed_to_child, na.rm = TRUE),
+       by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")
+       ]
+  
+  data[, remaining_to_process_child := round(production_of_child - available_processed_child)]
+  
+  data[remaining_to_process_child < 0, remaining_to_process_child := 0]
+  
+  return(data)
+}
+
+# Replacement for merge(x, y, by = VARS, all.x = TRUE) that do not set keys
+# By default it behaves as dplyr::left_join(). If nomatch = 0, non-matching
+# rows will not be returned
+dt_left_join <- function(x, y, by = NA, allow.cartesian = FALSE,
+                         nomatch = NA) {
+  if (anyNA(by)) {
+    stop("'by' is required")
+  }
+  
+  if (any(!is.data.table(x), !is.data.table(y))) {
+    stop("'x' and 'y' should be data.tables")
+  }
+  
+  res <- y[x, on = by, allow.cartesian = allow.cartesian, nomatch = nomatch]
+  
+  setcolorder(res, c(names(x), setdiff(names(y), names(x))))
+  
+  res
+}
+
+
+standardizeTree = function(data, tree, elements, standParams,zeroWeight=c(),
+                           sugarHack = TRUE){
+  
+  ## Assign parameters
+  geoVar = standParams$geoVar
+  yearVar = standParams$yearVar
+  itemVar = standParams$itemVar
+  elementPrefix = standParams$elementPrefix
+  childVar = standParams$childVar
+  parentVar = standParams$parentVar
+  extractVar = standParams$extractVar
+  shareVar = standParams$shareVar
+  protected = standParams$protected
+  
+  ## Data Quality Checks
+  stopifnot(is(data, "data.table"))
+  stopifnot(is(tree, "data.table"))
+  stopifnot(c(geoVar, yearVar, itemVar, paste0(elementPrefix, elements)) %in%
+              colnames(data))
+  stopifnot(c(geoVar, yearVar, childVar, parentVar, extractVar, shareVar)
+            %in% colnames(tree))
+  if(!all(sapply(data[, paste0(elementPrefix, c(elements)), with = FALSE],
+                 is.numeric))){
+    stop("Some of the elements passed are not numeric!")
+  }
+  if(!"target" %in% colnames(tree)){
+    tree[, target := "B"]
+  }
+  stopifnot(all(tree[, target] %in% c("B", "T", "F")))
+  if(!"standDev" %in% colnames(tree)){
+    returnStandDev = FALSE
+    tree[, standDev := 0]
+  } else {
+    returnStandDev = TRUE
+  }
+  stopifnot(all(tree[, standDev] >= 0))
+  
+  elements = paste0(elementPrefix, elements)
+  
+  ## Restructure the data for easier standardization
+  standardizationData = data.table::melt.data.table(
+    data = data, measure.vars = elements,
+    id.vars = c(geoVar, yearVar, itemVar,protected),
+    variable.name = "measuredElement", value.name = "Value")
+  standardizationData[, measuredElement :=
+                        gsub(elementPrefix, "", measuredElement)]
+  
+  ## To ensure commodities are standardized up multiple levels, we have to
+  ## collapse the tree (otherwise if A -> B -> C in the tree, C may be
+  ## standardized only to B and not to A, as desired).
+  standKey = standParams$mergeKey[standParams$mergeKey != standParams$itemVar]
+  if(dim(tree)[1]!=0){
+    tree = collapseEdges(edges = tree, parentName = standParams$parentVar,
+                         childName = standParams$childVar,
+                         extractionName = standParams$extractVar,
+                         keyCols = standKey)
+    
+    ## Merge the tree with the node data
+    tree[, c(parentVar, childVar, yearVar, geoVar) :=
+           list(as.character(get(parentVar)), as.character(get(childVar)),
+                as.character(get(yearVar)), as.character(get(geoVar)))]
+  }
+  setnames(standardizationData, itemVar, childVar)
+  standardizationData[, c(childVar, yearVar, geoVar) :=
+                        list(as.character(get(childVar)),
+                             as.character(get(yearVar)),
+                             as.character(get(geoVar)))]
+  
+  ## To deal with joint byproducts
+  
+  standardizationData = merge(standardizationData, tree,
+                              by = c(yearVar, geoVar, childVar),
+                              all.x = TRUE, allow.cartesian = TRUE)
+  
+  ##' If an element is not a child in the tree, then "standardize" it to
+  ##' itself with a rate of 1 and a share of 1.
+  standardizationData[is.na(get(parentVar)),
+                      c(parentVar, extractVar, shareVar) :=
+                        list(get(childVar), 1, 1)]
+  
+  
+  standardizationData[,weight:=1]
+  standardizationData[measuredItemChildCPC %in% zeroWeight , weight:=0]
+  
+  ## Standardizing backwards is easy: we just take the value, divide by the 
+  ## extraction rate, and multiply by the shares.  However, we don't 
+  ## standardize the production element (because production of flour is 
+  ## derived from the production of wheat already).  We standardize everything
+  ## backwards, and then edges marked as forwards (i.e. target == "F") get
+  ## standardized down.
+  
+  # Extraction rates of zero will cause us to divide by zero, so we must
+  # remove them
+  extract0 <- standardizationData[abs(get(extractVar)) < .Machine$double.eps ^ .5]
+  if(nrow(extract0) > 0){
+    # Check for tricky floating point issues, but checking if equal to 0
+    warning(sprintf("Extraction rates of 0 present in commodity codes: {%s} in country {%s}.
+                    Ignoring all extraction rates of 0 in backwards standardization",
+                    paste0(unique(extract0[, get(parentVar)]), collapse = ", "), unique(extract0[, get(geoVar)])))
+    standardizationData[abs(get(extractVar)) < .Machine$double.eps^.5, Value := NA]
+  }
+  output = standardizationData[, list(
+    Value = sum( Value  *    weight   /get(extractVar)*get(shareVar), na.rm = TRUE)),
+    by = c(yearVar, geoVar,
+           "measuredElement", parentVar)]
+  
+  forwardEdges = tree[target == "F", ]
+  
+  ## Reshape to put back into the same shape as the passed data
+  setnames(output, parentVar, itemVar)
+  output[, measuredElement := paste0(elementPrefix,
+                                     measuredElement)]
+  form = as.formula(paste(yearVar, "+", geoVar, "+", itemVar, "~ measuredElement"))
+  output = dcast.data.table(data = output, formula = form, value.var = "Value",
+                            fun.aggregate = mean, na.rm = TRUE)
+  return(output)
+}
+
+
+#TO DO: move this function bellow to the R folder and commit in github
+
+collapseEdges_NEW = function(edges, parentName = "parentID",
+                             childName = "childID",
+                             extractionName = "extractionRate",
+                             keyCols = c("timePointYearsSP", "geographicAreaFS"),
+                             notStandChild,weight="weight",standard_child="standard_child"){
+  
+  ## Data quality checks
+  stopifnot(is(edges, "data.table"))
+  stopifnot(c(parentName, childName, extractionName) %in% colnames(edges))
+  if(max(edges[[extractionName]][edges[[extractionName]] < Inf]) > 100)
+    stop("Extraction rates larger than 100 indicate they are probably ",
+         "expressed in different units than on [0,1].  This will cause ",
+         "huge problems when multiplying, and should be fixed.")
+  #cyclic parent-child relation bring infinit loop
+  
+  if (COUNTRY %!in% "470"){
+    edges<-edges[!(get(parentName)=="21529.03" & get(childName)=="21523")]
+  }
+ 
+
+  ## Test for loops
+  # findProcessingLevel(edgeData = edges, from = parentName,
+  #                     to = childName)
+  
+  nonstand<-edges[get(parentName) %in% notStandChild] 
+  
+  nonstand<-nonstand[,get(parentName)]
+  
+  targetNodes = setdiff(edges[[parentName]], edges[[childName]])
+  targetNodes=unique(c(targetNodes,nonstand))
+  
+  edgesCopy = copy(edges[, c(parentName, childName, extractionName,p$shareVar,weight,standard_child,"som",
+                             keyCols), with = FALSE])
+ 
+  setnames(edgesCopy, c(parentName, childName, extractionName,p$shareVar,weight,standard_child,"som"),
+           c("newParent", parentName, "extractionMult","share.parent","weight.Parent","standard_child.parent","som.parrent"))
+  finalEdges = edges[get(parentName) %in% targetNodes, ]
+  currEdges = edges[!get(parentName) %in% targetNodes, ]
+  
+  while(nrow(currEdges) > 0){
+    currEdges = merge(currEdges, edgesCopy, by = c(parentName, keyCols),
+                      all.x = TRUE, allow.cartesian = TRUE)
+    ## Update edges table with new parents/extraction rates.  For edges that
+    ## didn't get changed, we keep the old parent name and extraction rate.
+    
+    currEdges[, c(p$shareVar) := get(p$shareVar) *(share.parent/sum(share.parent,na.rm = TRUE)),
+              by=c(p$geoVar,p$yearVar,childName,parentName)
+              ]
+    
+    currEdges[, c(parentName) := ifelse(is.na(newParent), get(parentName),
+                                        newParent)]
+    currEdges[, c(extractionName) := get(extractionName) *
+                ifelse(is.na(extractionMult), 1, extractionMult)]
+    
+
+     # currEdges[,c(weight):=ifelse(!is.na(weight.Parent),weight.Parent,get(weight))]
+    currEdges[,c(weight):=ifelse(weight.Parent==0,weight.Parent,weight)]
+    currEdges[,c(standard_child):=ifelse(standard_child.parent==TRUE & standard_child==TRUE,
+                                         TRUE,FALSE)]
+    
+    currEdges[,c(weight):=ifelse(som.parrent==1 & standard_child.parent==FALSE,0,weight)]
+    
+    currEdges[, c("newParent", "extractionMult","share.parent","weight.Parent","standard_child.parent","som.parrent") := NULL]
+    
+    finalEdges = rbind(finalEdges, currEdges[get(parentName) %in% targetNodes, ])
+    currEdges = currEdges[!get(parentName) %in% targetNodes, ]
+  }
+
+  finalEdges = unique(finalEdges,by=colnames(finalEdges))
+  
+  # finalEdges[,standard_child:=ifelse(get(childName) %in% notStandChild,FALSE,TRUE)]
+  
+  finalEdges = unique(finalEdges,by=colnames(finalEdges))
+  
+  return(finalEdges)
+}
+
+
+computeFbsAggregate = function(data, fbsTree, standParams){
+  ## Data Quality Checks
+  stopifnot(standParams$itemVar %in% colnames(data))
+  stopifnot(standParams$itemVar %in% colnames(fbsTree))
+  stopifnot(paste0("fbsID", 1:4) %in% colnames(fbsTree))
+  
+  fbsTree[measuredItemSuaFbs=="23670.01",fbsID4:="2542"]
+  fbsTree[measuredItemSuaFbs=="23670.01",fbsID2:="2903"]   
+  
+  if(data[,unique(geographicAreaM49)]%in%c("72")){
+    fbsTree[measuredItemSuaFbs=="23670.01",fbsID4:="2543"]
+    fbsTree[measuredItemSuaFbs=="23670.01",fbsID2:="2903"]
+  }
+  data = merge(data, fbsTree, by = standParams$itemVar)
+  out = list()
+  
+  out[[1]] = data[,list(Value = sum(Value, na.rm = TRUE)),
+                  by = c(standParams$elementVar, standParams$yearVar,
+                         standParams$geoVar, "fbsID4")]
+  
+  out[[2]] = data[, list(Value = sum(Value, na.rm = TRUE)),
+                  by = c(standParams$elementVar, standParams$yearVar,
+                         standParams$geoVar, "fbsID3")]
+  
+  out[[3]] = data[, list(Value = sum(Value, na.rm = TRUE)),
+                  by = c(standParams$elementVar, standParams$yearVar,
+                         standParams$geoVar, "fbsID2")]
+  
+  out[[4]] = data[get(standParams$elementVar) %in% c(standParams$calories, 
+                                                     standParams$proteins,
+                                                     standParams$fats,
+                                                     "TotalCalories",
+                                                     "TotalProteins",
+                                                     "TotalFats"), 
+                  list(Value = sum(Value, na.rm = TRUE)),
+                  by = c(standParams$elementVar, standParams$yearVar,
+                         standParams$geoVar, "fbsID1")]
+  return(out)
+}
+
+
+getShareUpDownTree = function(geographicAreaM49 = NULL, timePointYears = NULL){
+  
+  treeelemKeys = c("5431")
+  treeitemPKeys = GetCodeList(domain = "suafbs", dataset = "up_down_share", "measuredItemParentCPC_tree")
+  treeitemPKeys = treeitemPKeys[, code]
+  
+  treeitemCKeys = GetCodeList(domain = "suafbs", dataset = "up_down_share", "measuredItemChildCPC_tree")
+  treeitemCKeys = treeitemCKeys[, code]
+  
+  treekey = faosws::DatasetKey(domain = "suafbs", dataset = "up_down_share", dimensions = list(
+    geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = geographicAreaM49),
+    measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = treeelemKeys),
+    measuredItemParentCPC = Dimension(name = "measuredItemParentCPC_tree", keys = treeitemPKeys),
+    measuredItemChildCPC = Dimension(name = "measuredItemChildCPC_tree", keys = treeitemCKeys),
+    timePointYears = Dimension(name = "timePointYears", keys = timePointYears)
+  ))
+  
+  ## Extract the specific tree
+  
+  ShareUpDownTree = faosws::GetData(treekey,omitna = FALSE)
+  
+  
+  ShareUpDownTree[measuredElementSuaFbs=="5431",measuredElementSuaFbs:="shareUpDown"]
+  
+  message("ShareUpDownTree correctly downloaded")
+  
+  setnames(ShareUpDownTree,c("measuredItemParentCPC_tree","measuredItemChildCPC_tree"),
+           c("measuredItemParentCPC","measuredItemChildCPC"))
+  
+  return(ShareUpDownTree)  
+  
+}
+
+#Function that allow to compute the list of child commodities that
+#should not be standardized (because they are not in the same fbstree than their parent)
+
+NonStandardizedChidren<-function(fbsTree,tree,standParams){
+  
+  ## Data Quality Checks
+  stopifnot(standParams$parentVar %in% colnames(tree))
+  stopifnot(standParams$childVar %in% colnames(tree))
+  stopifnot(standParams$itemVar %in% colnames(fbsTree))
+  stopifnot(paste0("fbsID", 1:4) %in% colnames(fbsTree))
+  
+  
+  fbstreebis<-copy(fbsTree)
+  
+  #FSB group of parents
+  setnames(fbstreebis,"measuredItemSuaFbs",standParams$parentVar)
+  
+  treeFBSmerge<-merge(
+    tree,
+    fbstreebis,
+    by=c(standParams$parentVar),
+    allow.cartesian = TRUE,
+    all.x = TRUE
+  )
+
+  setnames(treeFBSmerge,"fbsID4","fbsID4_parent")
+  treeFBSmerge[,`:=`(fbsID3=NULL,fbsID2=NULL,fbsID1=NULL)]
+  
+  
+  #FSB group of child commdities
+  setnames(fbstreebis,standParams$parentVar,standParams$childVar)
+  treeFBSmerge<-merge(
+    treeFBSmerge,
+    fbstreebis,
+    by=c(standParams$childVar),
+    allow.cartesian = TRUE,
+    all.x = TRUE
+  )
+
+  setnames(treeFBSmerge,"fbsID4","fbsID4_child")
+  treeFBSmerge[,`:=`(fbsID3=NULL,fbsID2=NULL,fbsID1=NULL)]
+  
+  #this variable takes TRUE if the child should be standardized ( have the same 
+  #FBS tree than the parent)
+  treeFBSmerge[,standard_child:=ifelse(fbsID4_parent==fbsID4_child,TRUE,FALSE)]
+  
+  #tree[is.na(standard_child),standard_child:=FALSE]
+  treeFBSmerge<-#unique(
+    treeFBSmerge[,list(geographicAreaM49,timePointYears,measuredItemParentCPC,measuredItemChildCPC,standard_child)]
+    #by=c("measuredItemChildCPC","standard_child")
+  #)
+  treefbs<-unique(treeFBSmerge, by=c(colnames(treeFBSmerge)))
+  #there some cases where the multiparent child commodity have 2 parents and is in the FBS
+  #group than only 1 parent. In that case it is comnsidered as standardized (even if for the other parent it will be false)
+  #it is the case starch of potaote that has 2 parent: potaote ans sweet potatoe but is the same FBS group than potatoe
+  # 
+  # treeFBSmerge[,som:=sum(standard_child,na.rm = TRUE),
+  #           by=c("measuredItemChildCPC")] 
+  # 
+  # #keep only child commodities that should not be standardized 
+  # treeFBSmerge<-treeFBSmerge[som==0 & !is.na(standard_child)]
+  # treeFBSmerge[,som:=NULL]
+  
+  # output<-treeFBSmerge #[,get(p$childVar)]
+  
+  return(treeFBSmerge)
+}
+
+
+# rollavg() is a rolling average function that uses computed averages
+# to generate new values if there are missing values (and FOCB/LOCF).
+# I.e.:
+# vec <- c(NA, 2, 3, 2.5, 4, 3, NA, NA, NA)
+#
+#> RcppRoll::roll_mean(myvec, 3, fill = 'extend', align = 'right')
+#[1]       NA       NA       NA 2.500000 3.166667 3.166667       NA       NA       NA 
+#
+#> rollavg(myvec)
+#[1] 2.000000 2.000000 3.000000 2.500000 4.000000 3.000000 3.166667 3.388889 3.185185
+
+# rollavg <- function(x, order = 3) {
+#   # order should be > 2
+#   stopifnot(order >= 3)
+#   
+#   non_missing <- sum(!is.na(x))
+#   
+#   # For cases that have just two non-missing observations
+#   order <- ifelse(order > 2 & non_missing == 2, 2, order)
+#   
+#   if (non_missing == 1) {
+#     x[is.na(x)] <- na.omit(x)[1]
+#   } else if (non_missing >= order) {
+#     n <- 1
+#     while(any(is.na(x)) & n <= 10) { # 10 is max tries
+#       movav <- suppressWarnings(RcppRoll::roll_mean(x, order, fill = 'extend', align = 'right'))
+#       movav <- data.table::shift(movav)
+#       x[is.na(x)] <- movav[is.na(x)]
+#       n <- n + 1
+#     }
+#     
+#     x <- zoo::na.fill(x, 'extend')
+#   }
+#   
+#   return(x)
+# }
+
+`%!in%` = Negate(`%in%`)
+
+
+###########END FUNCTION--------------------------------------------
+#QUick way to have the exact shareDownUp
+#LoadShareUpDowm
+shareUpDownTree=getShareUpDownTree(areaKeys,as.character(2000:2018)) 
+shareUpDownTree<-shareUpDownTree[!is.na(Value)]
+shareUpDownTree[,shareUpDown:=Value]
+shareUpDownTree[,Value:=NULL]
+shareUpDownTree[,flagObservationStatus:=NULL]
+shareUpDownTree[,flagMethod:=NULL]
+
 
 ##############################################################
 ################### MARK OILS COMMODITY ######################
@@ -140,6 +833,7 @@ tree[,checkFlags:=paste0("(",flagObservationStatus,",",flagMethod,")")]
 
 tree[measuredElementSuaFbs=="share"&(checkFlags=="(E,f)"|oil==TRUE),keep:=TRUE]
 tree[measuredElementSuaFbs=="share"&is.na(keep),Value:=NA]
+tree<-tree[timePointYears %in% yearVals,]
 
 tree[,checkFlags:=NULL]
 tree[,oil:=NULL]
@@ -170,52 +864,39 @@ params$residualCode = "residual"
 params$createIntermetiateFile= "TRUE"
 params$protected = "Protected"
 params$official = "Official"
+params$calories = "calories"
+params$proteins = "proteins"
+params$fats = "fats"
+
 
 ##############################################################
 ######## CLEAN ALL SESSION TO BE USED IN THE PROCESS #########
 ##############################################################
+## CLEAN fbs_standardized
+message("wipe fbs_standardized session")
 
-if(!CheckDebug()){
-  ## CLEAN sua_balanced
-  message("wipe sua_balanced session")
-  CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
-  
-  datatoClean=GetData(sessionKey_suabal)
-  
-  datatoClean=datatoClean[timePointYears%in%yearVals]
-  
-  datatoClean[, Value := NA_real_]
-  datatoClean[, CONFIG$flags := NA_character_]
-  
-  SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
-  
-  
-  ## CLEAN fbs_standardized
-  message("wipe fbs_standardized session")
-  
-  CONFIG <- GetDatasetConfig(sessionKey_fbsStand@domain, sessionKey_fbsStand@dataset)
-  
-  datatoClean=GetData(sessionKey_fbsStand)
-  datatoClean=datatoClean[timePointYears%in%yearVals]
-  
-  datatoClean[, Value := NA_real_]
-  datatoClean[, CONFIG$flags := NA_character_]
-  
-  SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
-  
-  ## CLEAN fbs_balanced
-  message("wipe fbs_balanced session")
-  
-  CONFIG <- GetDatasetConfig(sessionKey_fbsBal@domain, sessionKey_fbsBal@dataset)
-  
-  datatoClean=GetData(sessionKey_fbsBal)
-  datatoClean=datatoClean[timePointYears%in%yearVals]
-  
-  datatoClean[, Value := NA_real_]
-  datatoClean[, CONFIG$flags := NA_character_]
-  
-  SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
-}
+CONFIG <- GetDatasetConfig(sessionKey_fbsStand@domain, sessionKey_fbsStand@dataset)
+
+fbs_standardized=GetData(sessionKey_fbsStand)
+fbs_standardized=fbs_standardized[timePointYears%in%yearVals]
+
+fbs_standardized[, Value := NA_real_]
+fbs_standardized[, CONFIG$flags := NA_character_]
+
+SaveData(CONFIG$domain, CONFIG$dataset , data = fbs_standardized, waitTimeout = Inf)
+
+## CLEAN fbs_balanced
+message("wipe fbs_balanced session")
+
+CONFIG <- GetDatasetConfig(sessionKey_fbsBal@domain, sessionKey_fbsBal@dataset)
+
+fbs_balancedData=GetData(sessionKey_fbsBal)
+fbs_balancedData=fbs_balancedData[timePointYears%in%yearVals]
+
+fbs_balancedData[, Value := NA_real_]
+fbs_balancedData[, CONFIG$flags := NA_character_]
+
+SaveData(CONFIG$domain, CONFIG$dataset , data = fbs_balancedData, waitTimeout = Inf)
 
 ##############################################################
 #################### SET KEYS FOR DATA #######################
@@ -237,26 +918,34 @@ elemKeys=c("5510", "5610", "5071", "5023", "5910", "5016",
 # 5166 Food [t]
 # 5141 Food Supply (/capita/day) [Kcal]
 
-desKeys = c("664","674","684")
+#desKeys = c("664","674","684")
+desKeys = c("664") #TODO GENERATE FATES AND PROTEINS IN THE sua balanced
 
 # 664 Food Supply (Kcal/caput/day) [kcal]
 # 674 Protein Supply quantity (g/caput/day) [g]
 # 684 Fat supply quantity (g/caput/day) [g]
 
-itemKeys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", "measuredItemFbsSua")
+itemKeys = GetCodeList(domain = "suafbs", dataset = "sua_balanced", "measuredItemFbsSua")
+
 itemKeys = itemKeys[, code]
 
 key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = list(
   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-  timePointYears = Dimension(name = "timePointYears", keys = yearVals)))
+  timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2018))))
 
-key2 = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = list(
-  geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
-  measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = c("5071","5165")),
-  measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-  timePointYears = Dimension(name = "timePointYears", keys = paste(c(2000:2016),sep="")))) # TODO: parameterise
+# key = DatasetKey(domain = "suafbs", dataset = "sua_balanced", dimensions = list(
+#   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+#   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
+#   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
+#   timePointYears = Dimension(name = "timePointYears", keys = yearVals)))
+# 
+# keyDes = DatasetKey(domain = "suafbs", dataset = "sua_balanced", dimensions = list(
+#   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
+#   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = desKeys),
+#   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
+#   timePointYears = Dimension(name = "timePointYears", keys = yearVals)))
 
 
 ##############################################################
@@ -264,62 +953,784 @@ key2 = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = li
 ##############################################################
 
 message("Reading SUA data...")
+#get sua bal Data
+CONFIG <- GetDatasetConfig(sessionKey_suabal@domain, sessionKey_suabal@dataset)
+SuabalData=GetData(sessionKey_suabal)
+SuabalData=SuabalData[timePointYears%in%yearVals]
 
-data = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
-                           elementCol = "measuredElementSuaFbs")
-
-
-#################################################################################################SUMEDA MODIFICATION- Adding the element stock change for stockcommodities where is not presented in sua unbalanced. 
-
-
-Utilization_Table = ReadDatatable("utilization_table_2018")
-Stock_Items = dplyr::filter(Utilization_Table,!is.na(stock))
-Stock_Items$classification_stock = "Stock_Item"
-Stock_Items = dplyr::select_(Stock_Items,"cpc_code","classification_stock")
-Stock_Items <- data.table(Stock_Items)
-Stock_Items <- unique(Stock_Items$cpc_code)
+# SuabalData=SuabalData[geographicAreaM49 %in% c("360")]
 
 
+setnames(SuabalData,"measuredItemFbsSua",params$itemVar)
 
-dataStock <- data[measuredElementSuaFbs == "stock_change" & measuredItemFbsSua %in% Stock_Items]
-
-Stock_Items_Nonex<-Stock_Items[!Stock_Items %in% (unique(dataStock$measuredItemFbsSua))]
-
-
-
-
-data_with_stock <- expand.grid(measuredElementSuaFbs = "stock_change", geographicAreaM49 = unique(data$geographicAreaM49),
-                               measuredItemFbsSua = Stock_Items_Nonex, timePointYears = c(2014:2016), flagObservationStatus = "I", # TODO: parameterise
-                               flagMethod = "e" )
-
-data_with_stock=data.table(data_with_stock)
-
-data_with_stock[, measuredElementSuaFbs := as.character(measuredElementSuaFbs)]
-data_with_stock[, geographicAreaM49 := as.character(geographicAreaM49)]
-data_with_stock[, measuredItemFbsSua := as.character(measuredItemFbsSua)]
-data_with_stock[, timePointYears := as.character(timePointYears)]
-
-data_with_stock[, Value := NA]
-data <- rbind(data,data_with_stock)
-
-
-
-
-##################################################################################################### Sumeda's modification ends
-
-
-data2 = elementCodesToNames(data = GetData(key2), itemCol = "measuredItemFbsSua",
-                            elementCol = "measuredElementSuaFbs")
-message("convert element codes into element names")
+#Sua balanced quantitise
+data=SuabalData[get(params$elementVar) %in% elemKeys,]
+data=elementCodesToNames(data,standParams = params)
 
 data[measuredElementSuaFbs=="foodmanufacturing",measuredElementSuaFbs:="foodManufacturing"]
-setnames(data, "measuredItemFbsSua", "measuredItemSuaFbs")
 data[measuredElementSuaFbs=="stock_change",measuredElementSuaFbs:="stockChange"]
-data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
-
+#data[measuredElementSuaFbs=="stock",measuredElementSuaFbs:="stockChange"]
 message("delete null elements")
-
 data=data[!is.na(measuredElementSuaFbs)]
+
+data_residual<-data[measuredElementSuaFbs %!in% c("residual")]
+setnames(data_residual,"measuredItemSuaFbs" ,"measuredItemFbsSua")
+calculateImbalance(data=data_residual,keep_supply = FALSE,keep_utilizations = FALSE)
+
+data_residual[,`:=`(Value=imbalance,
+                    measuredElementSuaFbs="residual",
+                    flagObservationStatus="I",
+                    flagMethod="i",
+                    imbalance=NULL)]
+
+setnames(data_residual,"measuredItemFbsSua","measuredItemSuaFbs")
+
+data_residual<-unique(data_residual, by=colnames(data))
+
+data<-rbind(data[measuredElementSuaFbs %!in% c("residual")],data_residual)
+
+#Sua balanced DES
+# dataDes<-SuabalData[get(params$elementVar) %in% desKeys]
+# dataDes[get(params$elementVar)=="664",params$elementVar:=params$calories]
+
+message("load SUA unbal data...")
+
+# dataSuaUn = elementCodesToNames(data = GetData(key), itemCol = "measuredItemFbsSua",
+#                                 elementCol = "measuredElementSuaFbs")
+
+
+#########SHARE DOWNUP   ----------------------------------------------
+
+############################nEW WAY TO GENERATE SHAREDOWN UP--------------------------------------
+message("derivation of shareDownUp")
+
+p<-params
+############# ShareDownUp ----------------------------------------
+
+#this table will be used to assign to zeroweight comodities 
+#the processed quantities of their coproduct
+coproduct_table <- ReadDatatable('zeroweight_coproducts')
+zeroWeight=ReadDatatable("zero_weight")[,item_code]
+
+
+stopifnot(nrow(coproduct_table) > 0)
+
+# Can't do anything if this information if missing, so remove these cases
+coproduct_table <- coproduct_table[!is.na(branch)]
+
+### XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+### XXX removing these cases as '22242.01' appears as zero-weight XXXX
+### XXX for main product = '22110.04'                             XXXX
+### XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+coproduct_table <- coproduct_table[branch != '22242.01 + 22110.04']
+
+coproduct_table <- coproduct_table[, .(measured_item_child_cpc, branch)]
+
+coproduct_for_sharedownup <- copy(coproduct_table)
+
+coproduct_for_sharedownup_easy <- coproduct_for_sharedownup[!grepl('\\+|or', branch)]
+
+coproduct_for_sharedownup_plus <- coproduct_for_sharedownup[grepl('\\+', branch)]
+
+coproduct_for_sharedownup_plus <-
+  rbind(
+    tidyr::separate(
+      coproduct_for_sharedownup_plus,
+      branch,
+      into = c('main1', 'main2'),
+      remove = FALSE,
+      sep = ' *\\+ *')[, .(measured_item_child_cpc, branch= main1)],
+    tidyr::separate(
+      coproduct_for_sharedownup_plus,
+      branch,
+      into = c('main1', 'main2'),
+      remove = FALSE,
+      sep = ' *\\+ *')[, .(measured_item_child_cpc,branch = main2)]
+  )
+
+coproduct_for_sharedownup_plus <- unique(coproduct_for_sharedownup_plus)
+
+
+coproduct_for_sharedownup_or <- coproduct_for_sharedownup[grepl('or', branch)]
+
+coproduct_for_sharedownup_or <-
+  rbind(
+    #coproduct_table_or,
+    tidyr::separate(
+      coproduct_for_sharedownup_or,
+      branch,
+      into = c('main1', 'main2'),
+      remove = FALSE,
+      sep = ' *or *')[, .(measured_item_child_cpc, branch= main1)],
+    tidyr::separate(
+      coproduct_for_sharedownup_or,
+      branch,
+      into = c('main1', 'main2'),
+      remove = FALSE,
+      sep = ' *or *')[, .(measured_item_child_cpc,branch = main2)]
+  )
+
+coproduct_for_sharedownup_or <- unique(coproduct_for_sharedownup_or)
+
+coproduct_for_sharedownup <-
+  rbind(
+    coproduct_for_sharedownup_easy,
+    coproduct_for_sharedownup_plus,
+    coproduct_for_sharedownup_or
+  )
+
+# tree<-tree[geographicAreaM49=="360" & timePointYears>2013]
+
+#Using the whole tree not by level
+ExtrRate <-
+  tree[
+    !is.na(Value) &
+      measuredElementSuaFbs == 'extractionRate'
+    ][,
+      .(
+        measuredItemParentCPC,
+        geographicAreaM49,
+        measuredItemChildCPC,
+        timePointYears,
+        extractionRate = Value
+      )
+      ]
+
+# We include utilizations to identify if proceseed if the only utilization
+data_tree <-
+  data[
+    measuredElementSuaFbs %chin%
+      c('production', 'imports', 'exports',
+        'stockChange', 'foodManufacturing', 'loss',
+        'food', 'industrial', 'feed', 'seed')
+    ]
+
+
+#subset the tree accordingly to parents and child present in the SUA data
+
+# ExtrRate <-
+#   ExtrRate[
+#     measuredItemChildCPC %chin% data_tree$measuredItemSuaFbs &
+#       measuredItemParentCPC %chin% data_tree$measuredItemSuaFbs
+#     ]
+
+
+setnames(data_tree, "measuredItemSuaFbs", "measuredItemParentCPC")
+
+data_tree <-
+  merge(
+    data_tree,
+    ExtrRate,
+    by = c(p$parentVar, p$geoVar, p$yearVar),
+    allow.cartesian = TRUE,
+    all.y = TRUE
+  )
+
+data_tree <- as.data.table(data_tree)
+
+# the availability for parent that have one child and only processed as utilization will 
+# be entirely assigned to processed for that its unique child even for 2014 onwards
+data_tree[,
+          availability :=
+            sum(
+              Value[get(p$elementVar) %in% c(p$productionCode, p$importCode)],
+              - Value[get(p$elementVar) %in% c(p$exportCode, "stockChange")],
+              na.rm = TRUE
+            ),
+          by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar)
+          ]
+
+# used to chack if a parent has processed as utilization
+data_tree[,
+          proc_Median :=
+            median(
+              Value[measuredElementSuaFbs == "foodManufacturing" & timePointYears %in% 2000:2018],
+              na.rm=TRUE
+            ),
+          by = c(p$parentVar, p$geoVar)
+          ]
+
+# boolean variable taking TRUE if the parent has only processed as utilization 
+data_tree[,
+          unique_proc :=
+            proc_Median > 0 &
+            !is.na(proc_Median) &
+            # ... is the only utilization
+            all(is.na(Value[!(measuredElementSuaFbs %chin%
+                                c('production', 'imports', 'exports',
+                                  'stockChange','foodManufacturing'))])),
+          by = c(p$parentVar, p$geoVar, p$yearVar)
+          ]
+
+sel_vars <-
+  c("measuredItemParentCPC", "geographicAreaM49", "timePointYears",
+    "measuredElementSuaFbs", "flagObservationStatus", "flagMethod",
+    "Value", "measuredItemChildCPC", "extractionRate"
+    )
+
+data_tree<-
+  unique(
+    data_tree[, c(sel_vars, "availability", "unique_proc"), with = FALSE],
+    by = sel_vars
+  )
+
+
+# dataset to calculate the number of parent of each child and the number of children of each parent
+# including zeroweight commodities
+sel_vars <- c("geographicAreaM49", "measuredItemParentCPC",
+              "measuredItemChildCPC","timePointYears")
+data_count <- unique(data_tree[, sel_vars, with = FALSE], by = sel_vars)
+
+#Caculate the number of parent of each child
+data_count[,
+           number_of_parent := .N,
+           by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")
+           ]
+
+# calculate the number of children of each parent
+# we exclude zeroweight to avoid doublecounting of children (processing)
+data_count[measuredItemChildCPC %!in% zeroWeight,
+           number_of_children := uniqueN(measuredItemChildCPC),
+           by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+           ]
+
+data_tree <-
+  dt_left_join(
+    data_tree,
+    data_count,
+    by = c(p$parentVar, p$childVar, p$geoVar, p$yearVar),
+    allow.cartesian = TRUE
+  )
+
+# dataset containing the processed quantity of parents
+food_proc <-
+  unique(
+    data_tree[
+      measuredElementSuaFbs == "foodManufacturing",
+      c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "Value"),
+      with = FALSE
+      ],
+    by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "Value")
+  )
+
+setnames(food_proc, "Value", "parent_qty_processed")
+
+# avoid recaculation of shareDownUp from 2014 onwards
+# food_proc[timePointYears > 2013, parent_qty_processed := NA_real_]
+
+data_tree <-
+  dt_left_join(
+    data_tree,
+    food_proc,
+    by = c(p$parentVar, p$geoVar, p$yearVar),
+    allow.cartesian = TRUE
+  )
+
+sel_vars <- 
+  c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC",
+    "timePointYears", "extractionRate", "parent_qty_processed", "number_of_parent", "number_of_children")
+
+data_tree <-
+  unique(
+    data_tree[, c(sel_vars, "availability", "unique_proc"), with = FALSE],
+    by = sel_vars
+  )
+
+
+# dataset containing the production of child commodities
+dataprodchild <- data[measuredElementSuaFbs %chin% c('production')]
+
+setnames(dataprodchild, "measuredItemSuaFbs", "measuredItemChildCPC")
+
+dataprodchild <-
+  unique(
+    dataprodchild[,
+                  c("geographicAreaM49", "measuredItemChildCPC",
+                    "timePointYears", "Value", "flagObservationStatus",
+                    "flagMethod"),
+                  with = FALSE
+                  ]
+  )
+
+setnames(dataprodchild, "Value", "production_of_child")
+
+
+# to avoid resestimation based on estimated data (processed and production of child) from 2014 onwards
+# dataprodchild[timePointYears > 2013, production_of_child := NA_real_]
+
+data_tree <-
+  dt_left_join(
+    data_tree,
+    dataprodchild,
+    by = c(p$geoVar, p$childVar, p$yearVar)
+  )
+
+# ShareDownups for zeroweights are calculated  separately
+# to avoid double counting when agregating processed quantities of parent
+
+# dataset containing informations of zeroweight commodities
+data_zeroweight <- data_tree[measuredItemChildCPC %chin% zeroWeight]
+
+# import data for coproduct relation
+zw_coproduct <-
+  coproduct_for_sharedownup[,
+                            .(zeroweight = measured_item_child_cpc, measuredItemChildCPC = branch)
+                            ]
+
+zw_coproduct <- unique(zw_coproduct, by = c("measuredItemChildCPC", "zeroweight"))
+
+# We subset the zeroweight coproduct reference table by taking only zeroweights and their coproduct
+# that are childcommodities in the tree of the country
+zw_coproduct <-
+  zw_coproduct[
+    measuredItemChildCPC %chin% data_tree$measuredItemChildCPC &
+      zeroweight %chin% data_tree$measuredItemChildCPC
+    ]
+
+
+# Computing information for non zeroweight commodities
+data_tree <- data_tree[measuredItemChildCPC %!in% zeroWeight]
+
+# this dataset will be used when creating processing share and shareUpdown
+dataComplete <- copy(data_tree)
+
+# Quantity of parent destined to the production of the given child (only for child with one parent for the moment)
+data_tree[, processed_to_child := ifelse(number_of_parent == 1, production_of_child, NA_real_)]
+
+# if a parent has one child, all the production of the child comes from that parent
+data_tree[
+  number_of_children == 1,
+  processed_to_child := parent_qty_processed * extractionRate,
+  processed_to_child
+  ]
+
+data_tree[production_of_child == 0, processed_to_child := 0]
+
+# assigning the entired availability to processed for parent having only processed as utilization
+data_tree[
+  number_of_children == 1 & unique_proc == TRUE,
+  processed_to_child := availability * extractionRate
+  ]
+
+
+# mirror assignment for imputing processed quantity for multple parent children
+# 5 loop is sufficient to deal with all the cases
+
+for (k in 1:5) {
+  data_tree <- RemainingToProcessedParent(data_tree)
+  data_tree <- RemainingProdChildToAssign(data_tree)
+}
+
+data_tree <- RemainingToProcessedParent(data_tree)
+
+# proportional allocation of the remaing production of multiple parent children
+data_tree[,
+          processed_to_child :=
+            ifelse(
+              number_of_parent > 1 & is.na(processed_to_child),
+              (remaining_to_process_child * is.na(processed_to_child) * remaining_processed_parent) / sum((remaining_processed_parent * is.na(processed_to_child)), na.rm = TRUE),
+              processed_to_child),
+          by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")
+          ]
+
+# Update of remaining production to assing ( should be zero for 2000:2013)
+data_tree[,
+          parent_already_processed :=
+            ifelse(
+              is.na(parent_qty_processed),
+              parent_qty_processed,
+              sum(processed_to_child / extractionRate,na.rm = TRUE)
+            ),
+          by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")
+          ]
+
+data_tree[, remaining_processed_parent := round(parent_qty_processed - parent_already_processed)]
+
+data_tree[
+  remaining_processed_parent < 0,
+  remaining_processed_parent := 0
+  ]
+
+
+# Impute processed quantity for 2014 onwards using 3 years average
+# (this only to imput shareDownUp)
+# data_tree <-
+#   data_tree[
+#     order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears),
+#     processed_to_child_avg := rollavg(processed_to_child, order = 3),
+#     by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")
+#     ]
+# 
+# setkey(data_tree, NULL)
+# 
+# data_tree[timePointYears > 2013 & is.na(processed_to_child), processed_to_child := processed_to_child_avg]
+
+
+# Back to zeroweight cases(we assign to zeroweights the processed quantity of their coproduct(already calculated))
+
+zw_coproduct_bis <-
+  merge(
+    data_tree,
+    zw_coproduct,
+    by = "measuredItemChildCPC",
+    allow.cartesian = TRUE,
+    all.y = TRUE
+  )
+
+zw_coproduct_bis[,
+                 `:=`(
+                   measuredItemChildCPC = zeroweight,
+                   processed_to_child = processed_to_child / extractionRate
+                 )
+                 ]
+
+sel_vars <- 
+  c("geographicAreaM49", "measuredItemParentCPC",
+    "measuredItemChildCPC", "timePointYears")
+
+zw_coproduct_bis <-
+  zw_coproduct_bis[, c(sel_vars, "processed_to_child"), with = FALSE]
+
+# Correction to milk tree issue ( zeroweight can be associated with 2 main products from the same parent)
+# example: butter of cow milk
+zw_coproduct_bis[,
+                 processed_to_child := sum(processed_to_child, na.rm = TRUE),
+                 by = sel_vars 
+                 ]
+
+zw_coproduct_bis <-
+  unique(zw_coproduct_bis, by = colnames(zw_coproduct_bis))
+
+data_zeroweight <-
+  dt_left_join(data_zeroweight, zw_coproduct_bis, by = sel_vars)
+
+data_zeroweight[,
+                processed_to_child := processed_to_child * extractionRate
+                ]
+
+sel_vars <-
+  c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC",
+    "timePointYears", "number_of_parent", "parent_qty_processed",
+    "production_of_child", "processed_to_child")
+
+data_zeroweight <- data_zeroweight[, sel_vars, with = FALSE]
+
+data_tree <- data_tree[, sel_vars, with = FALSE]
+
+#combining zeroweight and non zero weight commodities
+data_tree <- rbind(data_tree, data_zeroweight)
+
+
+#Correction 
+
+#calculate ShareDownUp
+data_tree[,
+          shareDownUp := processed_to_child / sum(processed_to_child, na.rm = TRUE),
+          by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")
+          ]
+
+#some corrections...
+
+data_tree[is.na(shareDownUp) & number_of_parent == 1, shareDownUp := 1]
+
+# data_tree[
+#   (production_of_child == 0 | is.na(production_of_child)) &
+#     measuredItemChildCPC %!in% zeroWeight &
+#     timePointYears < 2014,
+#   shareDownUp := 0
+#   ]
+# 
+# data_tree[
+#   (parent_qty_processed == 0 | is.na(parent_qty_processed)) &
+#     timePointYears < 2014,
+#   shareDownUp :=0
+#   ]
+
+data_tree[is.na(shareDownUp), shareDownUp := 0]
+data_tree[,share:=shareDownUp]
+
+data_tree <-
+  unique(
+    data_tree[geographicAreaM49 %!in% unique(shareUpDownTree$geographicAreaM49),
+              c("geographicAreaM49", "measuredItemParentCPC",
+                "measuredItemChildCPC", "timePointYears", "share"),
+              with = FALSE         ]
+  )
+
+# data_tree<-rbind(data_tree_f1,data_tree_f2)
+setDT(data_tree)
+
+
+# calculating shareUpdown for each child
+data_ShareUpDoawn <-
+  dataComplete[,
+               c("geographicAreaM49", "timePointYears", "measuredItemParentCPC",
+                 "availability", "parent_qty_processed", "measuredItemChildCPC",
+                 "extractionRate", "production_of_child", "number_of_children",
+                 "number_of_parent"),
+               with = FALSE
+               ]
+
+data_ShareUpDoawn <-
+  unique(
+    data_ShareUpDoawn,
+    by = colnames(data_ShareUpDoawn)
+  )
+
+data_ShareUpDoawn <- merge(
+  data_ShareUpDoawn,
+  data_tree,
+  by = c("geographicAreaM49", "measuredItemParentCPC",
+         "measuredItemChildCPC", "timePointYears"),
+  all = TRUE
+)
+
+setnames(data_ShareUpDoawn,"share","shareDownUp")
+data_ShareUpDoawn <- data_ShareUpDoawn[measuredItemChildCPC %!in% zeroWeight]
+data_ShareUpDoawn[, shareUpDown := NA_real_]
+
+data_ShareUpDoawn[
+  !is.na(parent_qty_processed) & extractionRate>0,
+  shareUpDown := (production_of_child / extractionRate) * shareDownUp / sum(production_of_child / extractionRate * shareDownUp, na.rm = TRUE),
+  by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
+  ]
+
+data_ShareUpDoawn[is.nan(shareUpDown), shareUpDown := NA_real_]
+
+data_ShareUpDoawn[, shareUpDown:=ifelse(
+        number_of_parent==1,
+        shareUpDown / sum(shareUpDown[number_of_parent==1], na.rm = TRUE) *
+          (1 - sum(shareUpDown[number_of_parent==1], na.rm = TRUE)),
+        shareUpDown
+                                       ),
+      by = c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+      ]
+  
+# data_ShareUpDoawn <-
+#   data_ShareUpDoawn[
+#     order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears),
+#     shareUpDown_avg := rollavg(shareUpDown, order = 3),
+#     by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")
+#     ]
+# 
+# setkey(data_ShareUpDoawn, NULL)
+# 
+# data_ShareUpDoawn[timePointYears > 2013, shareUpDown := shareUpDown_avg]
+# 
+# data_ShareUpDoawn[, shareUpDown_avg := NULL]
+# 
+# data_ShareUpDoawn[
+#   timePointYears > 2013,
+#   shareUpDown := shareUpDown / sum(shareUpDown, na.rm = TRUE),
+#   by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
+#   ]
+
+sel_vars <-
+  c("geographicAreaM49", "measuredItemParentCPC",
+    "measuredItemChildCPC", "timePointYears", "shareUpDown")
+
+data_ShareUpDoawn_final <- data_ShareUpDoawn[, sel_vars, with = FALSE]
+
+shareUpDown_zeroweight <-
+  merge(
+    data_ShareUpDoawn_final,
+    zw_coproduct,
+    by = "measuredItemChildCPC",
+    allow.cartesian = TRUE,
+    all.y = TRUE
+  )
+
+shareUpDown_zeroweight[, measuredItemChildCPC := zeroweight]
+
+shareUpDown_zeroweight <- shareUpDown_zeroweight[, sel_vars, with = FALSE]
+
+# Correction to milk tree issue ( zeroweight can be associated with 2 main products from the same parent)
+# example: butter of cow milk
+shareUpDown_zeroweight<-
+  shareUpDown_zeroweight[,
+                         shareUpDown := sum(shareUpDown, na.rm = TRUE),
+                         by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", "timePointYears")
+                         ]
+
+shareUpDown_zeroweight <-
+  unique(
+    shareUpDown_zeroweight,
+    by = colnames(shareUpDown_zeroweight)
+  )
+
+# /correction
+
+
+data_ShareUpDoawn_final <- rbind(data_ShareUpDoawn_final, shareUpDown_zeroweight)
+
+# some correction
+data_ShareUpDoawn_final[is.na(shareUpDown), shareUpDown := 0]
+data_ShareUpDoawn_final[!is.na(shareUpDown), flagObservationStatus := "I"]
+data_ShareUpDoawn_final[!is.na(shareUpDown), flagMethod := "c"]
+
+# setnames(data_ShareUpDoawn_final,"measuredItemChildCPC","measuredElementSuaFbs")
+data_ShareUpDoawn_final[,measuredElementSuaFbs:="shareUpDown"]
+data_ShareUpDoawn_final[,flagObservationStatus:=NULL]
+data_ShareUpDoawn_final[,flagMethod:=NULL]
+
+data_ShareUpDoawn_final<-data_ShareUpDoawn_final[,colnames(shareUpDownTree),with=FALSE]
+
+ data_ShareUpDoawn_final<-unique(data_ShareUpDoawn_final,by=colnames(shareUpDownTree),with=FALSE)
+
+ shareUpDownTree<-rbind(
+  shareUpDownTree,
+  data_ShareUpDoawn_final[!shareUpDownTree, on=c("geographicAreaM49")]
+  
+)
+
+######END NEW WAY TO GENERATE SHAREDOWNUP-------------------------------------------------
+ 
+ 
+ 
+ 
+ message("Calculating shareDownUps...")
+ 
+ 
+ #Using the whole tree not by level
+ 
+ 
+ # if (nrow(shareUpDownTree)>0){
+   
+   ExtrRate <-
+     tree[
+       !is.na(Value) &
+         measuredElementSuaFbs == 'extractionRate' &
+         geographicAreaM49 %in% unique(shareUpDownTree$geographicAreaM49)
+       ][,
+         list(
+           measuredItemParentCPC,
+           geographicAreaM49,
+           measuredItemChildCPC,
+           timePointYears,
+           extractionRate = Value
+         )
+         ]
+   
+   
+   data_tree <- data[measuredElementSuaFbs %chin% c('foodManufacturing') &
+                       geographicAreaM49 %in% unique(shareUpDownTree$geographicAreaM49)]
+   
+   # setnames(data_tree, "measuredItemFbsSua", "measuredItemParentCPC")
+   
+   data_tree <-
+     merge(
+       data_tree[,list(geographicAreaM49,timePointYears,
+                       ProcessedParent=Value,
+                       measuredItemParentCPC=measuredItemSuaFbs)],
+       ExtrRate,
+       by = c(params$parentVar, params$geoVar, params$yearVar),
+       allow.cartesian = TRUE,
+       all.y = TRUE
+     )
+   
+   data_tree<-as.data.table(data_tree)
+   
+   #dataset to calculate the number of parent of each child and the number of children of each parent
+   #including zeroweight commodities
+   data_count<-unique(
+     data_tree[,
+               .(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,timePointYears)],
+     by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears")
+   )
+   
+   #Caculate the number of parent of each child
+   data_count[,number_of_parent:=.N,
+              by=c("geographicAreaM49","measuredItemChildCPC","timePointYears")
+              ]
+   
+   # #calculate the number of children of each parent
+   data_count[measuredItemChildCPC %!in% zeroWeight,number_of_children:=uniqueN(measuredItemChildCPC),
+              by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
+              ]
+   
+   data_tree<-merge(
+     data_tree,
+     data_count,
+     by = c(params$parentVar,params$childVar, params$geoVar, params$yearVar),
+     allow.cartesian = TRUE,
+     all.x = TRUE
+   )
+   
+   
+   data_tree<-data_tree[,list(geographicAreaM49,measuredItemParentCPC,measuredItemChildCPC,
+                              timePointYears,extractionRate,ProcessedParent,
+                              number_of_parent,number_of_children)]
+   
+   data_tree<-unique(data_tree,by=c(colnames(data_tree)))
+   
+   
+   #dataset containing the production of child commodities
+   # dataprodchild <- dataSuaUn[measuredElementSuaFbs %chin% c('production')]
+   dataprodchild <- data[measuredElementSuaFbs %chin% c('production') &
+                           geographicAreaM49 %chin% unique(shareUpDownTree$geographicAreaM49)]
+   
+   # setnames(dataprodchild, "measuredItemFbsSua", "measuredItemChildCPC")
+   setnames(dataprodchild, "measuredItemSuaFbs", "measuredItemChildCPC")
+   
+   
+   dataprodchild<-
+     unique(
+       dataprodchild[,list(geographicAreaM49,measuredItemChildCPC,
+                           timePointYears,Value,flagObservationStatus, flagMethod)],
+       by=c("geographicAreaM49","measuredItemChildCPC","timePointYears",
+            "Value","flagObservationStatus","flagMethod")
+     )
+   setnames(dataprodchild, "Value", "production_of_child")
+   
+   
+   data_tree<-merge(
+     data_tree,
+     dataprodchild,
+     by=c(params$geoVar,params$childVar,params$yearVar),
+     all.x = TRUE
+   )
+   
+   
+   data_tree<-merge(
+     data_tree,
+     shareUpDownTree,
+     by=c(params$geoVar,params$parentVar, params$childVar,params$yearVar),
+     all.x = TRUE
+   )
+   
+   data_tree<-data_tree[timePointYears>2013]
+   
+   
+   data_tree[,shareDownUp:=(ProcessedParent*shareUpDown*extractionRate)/
+               sum(ProcessedParent*shareUpDown*extractionRate,na.rm = TRUE),
+             by=c(params$geoVar,params$childVar,params$yearVar)
+             ]
+   data_tree[is.na(shareDownUp) & number_of_parent==1,shareDownUp:=1]
+   data_tree[is.na(shareDownUp),shareDownUp:=0]
+   
+   data_tree[,share:=shareDownUp]
+   data_tree[,shareDownUp:=NULL]
+   data_tree<-unique(
+     data_tree[,
+               list(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears, share)
+               ],
+     by=c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC", "timePointYears", "share")
+     
+   )
+   
+   setDT(data_tree)
+ #   
+ # } else {
+ #   
+ #   data_tree_f1 <-
+ #     data.table(
+ #       geographicAreaM49 = character(),
+ #       timePointYears = character(),
+ #       measuredItemParentCPC = character(),
+ #       measuredItemChildCPC = character(),
+ #       share = numeric()
+ #     )
+ # }
 
 ##############################################################
 ######### SUGAR RAW CODES TO BE CONVERTED IN 2351F ###########
@@ -330,16 +1741,7 @@ data=convertSugarCodes(data)
 ############### CREATE THE COLUMN "OFFICIAL" #################
 ##############################################################
 flagValidTable = ReadDatatable("valid_flags")
-Feed_Items = dplyr::filter(Utilization_Table,feed_desc%in%c("Potential Feed","FeedOnly"))
-Feed_Items = dplyr::rename(Feed_Items,classification_feed= feed_desc)
-Feed_Items = dplyr::select_(Feed_Items,"cpc_code","classification_feed")
-Stock_Items = dplyr::filter(Utilization_Table,!is.na(stock))
-Stock_Items$classification_stock = "Stock_Item"
-Stock_Items = dplyr::select_(Stock_Items,"cpc_code","classification_stock")
-Feed_Items$classification_feed = "feedOnly"
-Fruit_Veg_Food = ReadDatatable("food_items_fruit_veg")
 
-# Feed_Items = dplyr::filter(Feed_Items,classification=="feedOnly",!is.na(classification))
 data=left_join(data,flagValidTable,by=c("flagObservationStatus","flagMethod"))%>%
   data.table
 
@@ -352,6 +1754,10 @@ data[flagObservationStatus%in%c("","T"),Protected:=TRUE]
 # files. These intermediate steps will come without flag and the flag
 # will be merged with this original data object
 dataFlags = copy(data)
+
+
+
+
 
 ##############################################################
 # For DERIVED select only the protected and the estimation 
@@ -368,128 +1774,8 @@ data[!(get(params$protected)=="TRUE"|(flagObservationStatus=="I"&flagMethod%in%c
      &get(params$elementVar)==params$productionCode
      &!(get(params$itemVar) %in% primaryEl),Value:=NA]
 
-##############################################################
-##################   RECALCULATE SHARE   #####################
-##########   FOR COMMODITIES MANUALLY ENTERED   ##############
-##############################################################
 
 p=params
-
-### Compute availability and SHARE  
-
-data[, availability := sum(ifelse(is.na(Value), 0, Value) *
-                             ifelse(get(p$elementVar) == p$productionCode, 1,
-                                    ifelse(get(p$elementVar) == p$importCode, 1,
-                                           ifelse(get(p$elementVar) == p$exportCode, -1,
-                                                  ifelse(get(p$elementVar) == p$stockCode, 0,
-                                                         ifelse(get(p$elementVar) == p$foodCode, 0,
-                                                                ifelse(get(p$elementVar) == p$foodProcCode, 0,
-                                                                       ifelse(get(p$elementVar) == p$feedCode, 0,
-                                                                              ifelse(get(p$elementVar) == p$wasteCode, 0,
-                                                                                     ifelse(get(p$elementVar) == p$seedCode, 0,
-                                                                                            ifelse(get(p$elementVar) == p$industrialCode, 0,
-                                                                                                   ifelse(get(p$elementVar) == p$touristCode, 0,
-                                                                                                          ifelse(get(p$elementVar) == p$residualCode, 0, 0))))))))))))),
-     by = c(p$mergeKey)]
-
-
-
-mergeToTree = data[, list(availability = mean(availability)),
-                   by = c(p$itemVar)]
-setnames(mergeToTree, p$itemVar, p$parentVar)
-plotTree = copy(tree)
-
-tree2=copy(plotTree)
-
-tree2shares=tree[measuredElementSuaFbs=="share"]
-tree2shares[,share:=Value]
-tree2shares[,c("measuredElementSuaFbs","Value"):=NULL]
-
-tree2exRa=tree[measuredElementSuaFbs=="extractionRate"]
-tree2exRa[,extractionRate:=Value]
-tree2exRa[,c("measuredElementSuaFbs","Value"):=NULL]
-
-
-tree2=data.table(left_join(tree2shares,tree2exRa[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-                                                    "timePointYears","extractionRate"),with=FALSE],
-                           by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears")))
-
-tree2=tree2[!is.na(extractionRate)]
-tree2 = merge(tree2, mergeToTree, by = p$parentVar, all.x = TRUE)
-
-
-#### SHAREs 1 
-# share are the proportion of availability of each parent
-# on the total availability by child
-# Function checkShareValue() checks the validity of the shares,
-# change wrong values
-# return a severity table 
-# and the values to be saved back in the session of the TRee
-
-tree2[,checkFlags:=paste0("(",flagObservationStatus,",",flagMethod,")")]
-
-tree2[,availability.child:=availability*get(p$extractVar)]
-
-tree2[,shareSum:=sum(share),by=c("measuredItemChildCPC", "timePointYears")]
-
-# Create eventual Errors HEre for testing the checkshares function 
-
-uniqueShares2change = tree2[checkFlags=="(E,f)"&(round(shareSum,3)!=1|is.na(shareSum)), .N, by = c("measuredItemChildCPC", "timePointYears")]
-uniqueShares2change[, N := NULL]
-
-
-tree2[,newShare:=NA]
-tree2[,severity:=NA]
-tree2[,message:=NA]
-tree2[,newShare:=as.numeric(newShare)]
-tree2[,severity:=as.integer(severity)]
-tree2[,message:=as.character(message)]
-
-tree2change = vector(mode = "list", length = nrow(uniqueShares2change))
-
-for (i in seq_len(nrow(uniqueShares2change))) {
-  filter = uniqueShares2change[i, ]
-  tree2Subset = tree2[filter, , on = c("measuredItemChildCPC", "timePointYears")]
-  
-  tree2change[[i]] = checkShareValue(tree2Subset)
-  
-}
-
-tree2change = rbindlist(tree2change)
-
-tree2merge=copy(tree2change)
-
-# Before sending it via email, change flags
-
-if(dim(tree2merge)[1]>0){
-  tree2merge[checkFlags!="(E,f)",flagObservationStatus:="I"]
-  tree2merge[checkFlags!="(E,f)",flagMethod:="i"]
-  tree2merge[,c("checkFlags","availability.child","shareSum","availability","extractionRate"):=NULL]
-}
-
-sendMail4shares(tree2merge)
-
-# IF SHARES ARE VALID ( and Tree2change does not exists), The " tree" is the one to use 
-# onwards
-# nothing has to be done in this case
-# IF THERE IS A tree2change, after it has been sent, it has to be integrated in the tree
-# before going on
-
-if(dim(tree2merge)[1]>0){
-  setnames(tree2merge,"share","Value")
-  tree2merge[,c("severity","message"):=NULL]
-  tree2merge[,measuredElementSuaFbs:="share"]
-  setcolorder(tree2merge,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
-                           "measuredItemChildCPC", "timePointYears", "Value", "flagObservationStatus", 
-                           "flagMethod"))
-  uniquecomb = tree2merge[, .N, by = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
-                                       "measuredItemChildCPC", "timePointYears")]
-  uniquecomb[,N := NULL]
-  
-  tree=rbind(tree[!uniquecomb, ,on=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
-                                     "measuredItemChildCPC", "timePointYears")],tree2merge)
-  
-}
 
 
 ##############################################################
@@ -503,44 +1789,47 @@ tree=data.table(dcast(tree,geographicAreaM49 + measuredItemParentCPC + measuredI
 tree=tree[!is.na(extractionRate)]
 tree=tree[!is.na(measuredItemChildCPC)]
 
-## Update tree by setting some edges to "F"
-FPCommodities <- c( "01499.06", "01921.01")
-# These commodities are forwards processed instead of backwards processed:
-#        code             description type
-# 3: 01499.06      Kapokseed in shell CRNP
-# 4: 01921.01   Seed cotton, unginned CRPR  
+tree=tree[,share:=NULL]
 
-tree[, target := ifelse(measuredItemParentCPC %in% FPCommodities,
-                        "F", "B")]
+tree<-merge(
+  tree,
+  data_tree,
+  by=c(params$geoVar,params$parentVar,params$childVar,params$yearVar)
+)
 
-# MERGE the TREE with the item Map fpr future manipulation
+message("Download fbsTree from SWS...")
+fbsTree=ReadDatatable("fbs_tree")
+fbsTree=data.table(fbsTree)
+setnames(fbsTree,colnames(fbsTree),c( "fbsID1", "fbsID2", "fbsID3","fbsID4", "measuredItemSuaFbs"))
+setcolorder(fbsTree,c("fbsID4", "measuredItemSuaFbs", "fbsID1", "fbsID2", "fbsID3"))
 
-itemMap = GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
-itemMap = itemMap[, c("code", "type"), with = FALSE]
-setnames(itemMap, "code", "measuredItemSuaFbs")
-data = merge(data, itemMap, by = "measuredItemSuaFbs")
-setnames(itemMap, "measuredItemSuaFbs", "measuredItemParentCPC")
-tree = merge(tree, itemMap, by = "measuredItemParentCPC")
+#some correction
+fbsTree<-fbsTree[measuredItemSuaFbs %in% c("34120","21932.02"),fbsID4:="2586"]
 
-## Remove missing elements
+
+
+treeFBSmerge<-NonStandardizedChidren(fbsTree = fbsTree,tree = tree,standParams = p)
+
+#Sumeda
+treeFBSmerge <- treeFBSmerge[is.na(standard_child), standard_child := FALSE]
+
+tree<-merge(
+  tree,
+  treeFBSmerge,
+  by=c(params$geoVar,params$parentVar,params$childVar,params$yearVar)
+)
+
+tree<-tree[timePointYears %in% yearVals,]
+
 data = data[!is.na(measuredElementSuaFbs), ]
 data=data[,c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49", 
              "timePointYears", "Value", "flagObservationStatus", "flagMethod", 
-             "Valid", "Protected", "Official", "type"),with=FALSE]
+             "Valid", "Protected", "Official"),with=FALSE]
+
 
 #######################################################
-# save the initial data locally for future reports
-if(CheckDebug()){
-  dir.create(paste0(PARAMS$debugFolder,"/Batch_",batchnumber), showWarnings = FALSE,recursive=TRUE)
-}
-if(CheckDebug()){
-  initialSua = data
-  save(initialSua,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_01_InitialSua_BeforeCB.RData"))
-}
-#######################################################
-data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Official","Protected","type","flagObservationStatus","flagMethod"))]
+data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Official","Protected","flagObservationStatus","flagMethod"))]
 # data=data[,mget(c("measuredItemSuaFbs","measuredElementSuaFbs", "geographicAreaM49", "timePointYears","Value","Official","Protected","type"))]
-
 
 #############################################################
 ##########    LOAD NUTRIENT DATA AND CORRECT    #############
@@ -556,7 +1845,9 @@ itemKeys = GetCodeList("agriculture", "aupus_ratio", "measuredItemCPC")[, code]
 nutrientCodes = c("1001", "1003", "1005")
 
 nutrientData = getNutritiveFactors(measuredElement = nutrientCodes,
-                                   timePointYears = yearVals)
+                                   timePointYears = as.character(2014:2018),
+                                   geographicAreaM49 = COUNTRY
+                                   )
 setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
          c("measuredItemSuaFbs", "timePointYears"))
 
@@ -577,95 +1868,130 @@ nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElemen
 nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElement=="1003",Value:=23]
 nutrientData[geographicAreaM49=="300"&measuredItemSuaFbs=="22253"&measuredElement=="1005",Value:=23]
 
+setnames(nutrientData,"measuredElement","measuredElementSuaFbs")
+nutrientData[get(params$elementVar)=="1001",params$elementVar:=params$calories]
+nutrientData[get(params$elementVar)=="1003",params$elementVar:=params$proteins]
+nutrientData[get(params$elementVar)=="1005",params$elementVar:=params$fats]
+
+
+############################ POPULATION #####################################
+
+key <-
+  DatasetKey(
+    domain = "population",
+    dataset = "population_unpd",
+    dimensions =
+      list(
+        geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
+        measuredElementSuaFbs = Dimension(name = "measuredElement", keys = "511"), # 511 = Total population
+        timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2018))
+      )
+  )
+
+
+popSWS <- GetData(key)
+
+stopifnot(nrow(popSWS) > 0)
+
+popSWS[geographicAreaM49 == "156", geographicAreaM49 := "1248"]
+
+# Fix for missing regional official data in the country total
+# Source: DEMOGRAPHIC SURVEY, Kurdistan Region of Iraq, July 2018, IOM UN Migration
+# ("the KRI population at 5,122,747 individuals and the overall Iraqi
+# population at 36,004,552 individuals", pag.14; it implies 14.22805%)
+# https://iraq.unfpa.org/sites/default/files/pub-pdf/KRSO%20IOM%20UNFPA%20Demographic%20Survey%20Kurdistan%20Region%20of%20Iraq_0.pdf
+popSWS[geographicAreaM49 == "368" & timePointYears %in% 2014:2018, Value := Value * 0.8577195]
+
+
+############################ / POPULATION ##################################
+
+
+# # Calculate calories
+
+calories_per_capita <-
+  merge(
+    # Food
+    data[
+      measuredElementSuaFbs == "food",
+      list(
+        geographicAreaM49,
+        # measuredElementSuaFbs = "664",
+        measuredItemSuaFbs,
+        timePointYears,
+        food = Value #,
+        # flagObservationStatus = "T",
+        # flagMethod = "i"
+      )
+      ],
+    # Calories
+    nutrientData[,
+                 list(
+                   geographicAreaM49,
+                   measuredItemSuaFbs, #= measuredItemCPC,
+                   timePointYears, #= timePointYearsSP,
+                   measuredElementSuaFbs,
+                   nutrient = Value
+                 )
+                 ],
+    by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs'),
+    all.x = TRUE,
+    allow.cartesian = TRUE
+  )
+# 
+calories_per_capita <-
+  merge(
+    calories_per_capita,
+    popSWS[, list(geographicAreaM49, timePointYears, population = Value)],
+    by = c('geographicAreaM49', 'timePointYears'),
+    all.x = TRUE
+  )
+
+
+#calories_per_capita[, Protected := FALSE]
+calories_per_capita[, flagObservationStatus := "T"]
+calories_per_capita[, flagMethod := "I"]
+
+calories_per_capita_total<-copy(calories_per_capita)
+
+
+calories_per_capita[, Value := food * nutrient / population / 365 * 10]
+
+calories_per_capita[, c("food", "nutrient", "population") := NULL]
+
+# calories_per_capita_total<-copy(calories_per_capita)
+
+calories_per_capita_total[, Value := food * nutrient/100]
+calories_per_capita_total[, c("food", "nutrient", "population") := NULL]
+
+
+calories_per_capita_total[measuredElementSuaFbs=="calories",
+                          measuredElementSuaFbs:="TotalCalories"]
+
+calories_per_capita_total[measuredElementSuaFbs=="proteins",
+                          measuredElementSuaFbs:="TotalProteins"]
+
+calories_per_capita_total[measuredElementSuaFbs=="fats",
+                          measuredElementSuaFbs:="TotalFats"]
+
+
+
+dataDes<-rbind(calories_per_capita,calories_per_capita_total)
 #################################################################
 #################################################################
 #################################################################
 message("Download Utilization Table from SWS...")
 
-# utilizationTable=ReadDatatable("utilization_table")
-utilizationTable=ReadDatatable("utilization_table_percent")
+#utilizationTable=ReadDatatable("utilization_table")
+Utilization_Table <- ReadDatatable("utilization_table_2018")
 
-utilizationTable=data.table(utilizationTable)
-
-# setnames(utilizationTable,colnames(utilizationTable),c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", 
-#                                                        "rank", "rankInv"))
-
-setnames(utilizationTable,colnames(utilizationTable),c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", 
-                                                       "percent","rank", "rankInv"))
+DerivedItem <- Utilization_Table[derived == 'X', get("cpc_code")]
 
 message("Download zero Weight from SWS...")
 
 zeroWeight=ReadDatatable("zero_weight")[,item_code]
-# zeroWeight=data.table(zeroWeight)
 
-message("Download cutItems from SWS...")
-
-cutItems=ReadDatatable("cut_items2")[,cpc_code]
-# cutItems=data.table(cutItems)
-
-message("Download fbsTree from SWS...")
-fbsTree=ReadDatatable("fbs_tree")
-fbsTree=data.table(fbsTree)
-setnames(fbsTree,colnames(fbsTree),c( "fbsID1", "fbsID2", "fbsID3","fbsID4", "measuredItemSuaFbs"))
-setcolorder(fbsTree,c("fbsID4", "measuredItemSuaFbs", "fbsID1", "fbsID2", "fbsID3"))
 
 message("Defining vectorized standardization function...")
-
-standardizationVectorized = function(data, tree, nutrientData,batchnumber,
-                                     utilizationTable,cutItems,fbsTree){
-  
-  # record if output is being sunk and at what level
-  sinkNumber <- sink.number()
-  # Prevent sink staying open if function is terminated prematurely (such as
-  # in debugging of functions in standardization)
-  on.exit(while (sink.number() > sinkNumber) sink())
-  
-  if (nrow(data) == 0) {
-    message("No rows in data, nothing to do")
-    return(data)
-  }
-  
-  # If printCodes is length 0, neither the .md files nor plots are created
-  # If it has a non-zero value, those are the codes which will have file outputs
-  
-  printCodes = character()
-  
-  # printCodes = c("01701")
-  # printCodes = getChildren(commodityTree = tree,
-  # parentColname = params$parentVar,
-  # childColname = params$childVar,
-  # topNodes = printCodes)
-  
-  
-  if(CheckDebug()){ 
-    dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/", SUB_FOLDER, "/standardization/")
-               , showWarnings = FALSE,recursive = TRUE
-    )
-    sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER,"/", SUB_FOLDER, "/standardization/",
-                data$timePointYears[1], "_",
-                data$geographicAreaM49[1], "_sample_test.md"),
-         split = TRUE)
-  }else{
-    dir.create(paste0(R_SWS_SHARE_PATH, "/", SWS_USER, "/standardization/")
-               , showWarnings = FALSE,recursive = TRUE
-    )
-    sink(paste0(R_SWS_SHARE_PATH, "/", SWS_USER,"/standardization/",
-                data$timePointYears[1], "_",
-                data$geographicAreaM49[1], "_sample_test.md"),
-         split = TRUE)
-    
-  }
-  
-  out = standardizationWrapper_NW(data = data, tree = tree, fbsTree = fbsTree, 
-                               standParams = params, printCodes = printCodes,
-                               nutrientData = nutrientData,
-                               debugFile = params$createIntermetiateFile
-                               ,batchnumber = batchnumber,
-                               utilizationTable = utilizationTable,
-                               cutItems=cutItems)
-
-  return(out)
-}
 
 ## Split data based on the two factors we need to loop over
 uniqueLevels = data[, .N, by = c("geographicAreaM49", "timePointYears")]
@@ -682,514 +2008,1020 @@ aggFun = function(x) {
 }
 
 standData = vector(mode = "list", length = nrow(uniqueLevels))
+standData0 = vector(mode = "list", length = nrow(uniqueLevels))
+standQTY=vector(mode = "list", length = nrow(uniqueLevels))
+NonStanditemChild = vector(mode = "list", length = nrow(uniqueLevels))
 
-# Create Local Temporary File for Intermediate Savings
-if(CheckDebug()){
-  basedir=getwd()
-}else{
-  basedir <- tempfile()
-}
+onlyCalories<-c("39120.01","23140.01","23220.02","39130.01","39120.02","39120.03",
+                "23120.02","23140.06","39120.04","39130.02",	"39120.05","39120.06",
+                "39120.07","39120.08","39120.09","39120.10","39120.11","39120.12","39120.13",
+                "23180","23999.02","23540","39120.14","22130.01","22290","22270","23993.01")
 
-if(params$createIntermetiateFile){
-  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
-    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))
-  }
-  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))){
-    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))
-  }
-  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))){
-    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))
-  }
-  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))){
-    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))
-  }
-  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv"))){
-    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv"))
-  }  
-  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
-    file.remove(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))
-  }
-}
-
-
+#########STANDARDIZATION AND AGGREGATION-----------------------------------
 message("Beginning actual standardization process...")
 
-data2 = as.data.frame(data2)
-data2 = dplyr::rename(data2,measuredItemSuaFbs=measuredItemFbsSua)
-data2$Value[data2$Value==0] = NA
-data2_Stock = data2 %>%
-  dplyr::filter(measuredElementSuaFbs=="stock_change") %>%
-  group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
-  dplyr::summarise(Median_Value_Stock = median(abs(Value),na.rm=TRUE)) %>%
-  ungroup()
-
-data2_Stock = as.data.frame(data2_Stock)
-data2_Stock = dplyr::select_(data2_Stock,"geographicAreaM49","measuredItemSuaFbs","Median_Value_Stock")
-
-data2_Industrial = data2 %>%
-  dplyr::filter(measuredElementSuaFbs=="industrial") %>%
-  group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs)%>%
-  dplyr::summarise(Median_Value_Industrial = median(abs(Value),na.rm=TRUE)) %>%
-  ungroup() 
-
-data2_Industrial = as.data.frame(data2_Industrial)
-data2_Industrial = dplyr::select_(data2_Industrial,"geographicAreaM49","measuredItemSuaFbs","Median_Value_Industrial")
-rm(data2)
-data = as.data.frame(data)
-data = left_join(data,Feed_Items,by=c("measuredItemSuaFbs"="cpc_code"))
-data = left_join(data,Fruit_Veg_Food,by=c("measuredItemSuaFbs"="cpc"))
-data = left_join(data,Stock_Items,by=c("measuredItemSuaFbs"="cpc_code"))
-data = left_join(data,data2_Stock,by=c("geographicAreaM49","measuredItemSuaFbs"))
-data = left_join(data,data2_Industrial,by=c("geographicAreaM49","measuredItemSuaFbs"))
-data$food_classification[is.na(data$food_classification)] = "NonVegFruitFood"
-data$classification_feed[is.na(data$classification_feed)] = "NonFeedOnly"
-data$classification_stock[is.na(data$classification_stock)] = "NonStock"
-data=ungroup(data)
-data = as.data.table(data)
-
-##  Run all the standardization and balancig for combination of country/year
-ptm <- proc.time()
-for (i in seq_len(nrow(uniqueLevels))) {
+ #
+ for (i in seq_len(nrow(uniqueLevels))) {
+                   #i=4
+  
+  message(paste("Standardizing ",uniqueLevels$geographicAreaM49[i]," for the year ",uniqueLevels$timePointYears[i]))
+  
   filter = uniqueLevels[i, ]
   dataSubset = data[filter, , on = c("geographicAreaM49", "timePointYears")]
+  dataDesSubset = dataDes[filter, , on = c("geographicAreaM49", "timePointYears")]
   treeSubset = tree[filter, , on = c("geographicAreaM49", "timePointYears")]
   treeSubset[, c("geographicAreaM49", "timePointYears") := NULL]
-  subNutrientData = nutrientData[filter, , on = c("geographicAreaM49",
-                                                  "timePointYears")]
-  subNutrientData = dcast(measuredItemSuaFbs ~ measuredElement,
-                          data = subNutrientData, value.var = "Value",
-                          fun.agg = aggFun)
-  setnames(subNutrientData, nutrientCodes,
-           c("Calories", "Proteins", "Fats"))
-  utilizationTableSubset = utilizationTable[get(params$geoVar)==as.character(uniqueLevels[i,1,with=FALSE])]
   
-  standData[[i]] = standardizationVectorized(data = dataSubset,
-                                             tree = treeSubset,
-                                             nutrientData = subNutrientData,
-                                             batchnumber = batchnumber,
-                                             utilizationTable = utilizationTableSubset,
-                                             fbsTree=fbsTree
+  # there some cases where the multiparent child commodity have 2 parents and is in the FBS
+  # group than only 1 parent. In that case it is comnsidered as standardized (even if for the other parent it will be false)
+  # it is the case starch of potaote that has 2 parent: potaote ans sweet potatoe but is the same FBS group than potatoe
+
+  nonStandChildren<-treeSubset[,som:=sum(standard_child,na.rm = TRUE),
+            by=c("measuredItemChildCPC")]
+  
+  nonStandChildren<-unique(
+    nonStandChildren[,list(measuredItemChildCPC,som,standard_child)],
+    by=c("measuredItemChildCPC","som","standard_child")
+  )
+
+  #keep only child commodities that should not be standardized
+  nonStandChildren<-nonStandChildren[som==0 & !is.na(standard_child)]
+  nonStandChildren[,som:=NULL]
+  
+  nonStandChildren<-nonStandChildren [,get(p$childVar)]
+  
+  #cottonseet is not a promary in the tree but is the only commodity in the FBS group Cottonseed
+  nonStandChildren<-c(nonStandChildren,"0143")
+  
+  # nonStandChildren<-NonStandardizedChidren(fbsTree = fbsTree,tree = treeSubset,standParams = p)
+  #************************************
+  #child items that are not standardized
+  
+  #Items being alone in FBS groups
+  OneItemFBS<-fbsTree[,number_item:=.N,
+                      by=c("fbsID4")][number_item==1,get("measuredItemSuaFbs")]
+  
+  #Palm oil issue(indonesia)
+  OneItemFBS<-c(OneItemFBS,"2165")
+  
+  
+  parentNod<-setdiff(treeSubset[,get(p$parentVar)],treeSubset[,get(p$childVar)])
+  parentNod<-c(parentNod,nonStandChildren)
+  
+  NonStandItems<-dataSubset[get(p$itemVar) %!in% parentNod & 
+                         get(p$itemVar) %in% DerivedItem &
+                         get(p$itemVar) %!in% treeSubset[,get(p$childVar)] &
+                           get(p$itemVar) %in% fbsTree[,get(p$itemVar)] & 
+                           abs(Value)>1]
+  
+  NonStandItems<-unique(NonStandItems[,get(p$itemVar)])
+  
+  NonStanditemChild[[i]]=as.data.table(cbind(geographicAreaM49=dataSubset$geographicAreaM49[1],
+                                             measuredItemSuaFbs=NonStandItems,
+                                             timePointYears=dataSubset$timePointYears[1]))
+  
+  #message("Download cut Items from SWS...")
+  #cutItems=ReadDatatable("cut_items2")[,cpc_code]
+  
+  treeSubset[,weight:=1]
+  treeSubset[measuredItemChildCPC %in% zeroWeight , weight:=0]
+  treeSubset[measuredItemChildCPC %in% onlyCalories , weight:=0]
+  
+  #**************************************
+  #data<-dataSubset
+  #tree<-treeSubset
+  standParams<-p
+  sugarHack<-FALSE
+  specificTree<-FALSE
+  #cut<-cutItems
+  #additiveElements<-nutrientElements
+  keyCols = standParams$mergeKey[standParams$mergeKey != standParams$itemVar]
+  if(!specificTree){
+    if(nrow(dataSubset[, .N, by = c(standParams$geoVar, standParams$yearVar)]) > 1)
+      stop("If not using a specificTree, there should only be one ",
+           "country and year!")
+    keyCols = keyCols[!keyCols %in% c(standParams$geoVar, standParams$yearVar)]
+    treeSubset[, c(standParams$yearVar) := dataSubset[, get(standParams$yearVar)][1]]
+    treeSubset[, c(standParams$geoVar) := dataSubset[, get(standParams$geoVar)][1]]
+  }
+  if(dim(treeSubset)[1]!=0){
+    
+    
+    standTree = collapseEdges_NEW(edges = treeSubset, keyCols = keyCols,
+                              parentName = standParams$parentVar,
+                              childName = standParams$childVar,
+                              extractionName = standParams$extractVar,notStandChild = nonStandChildren)
+    standTree[,weight:=1]
+    standTree[measuredItemChildCPC %in% zeroWeight , weight:=0]
+    standTree[measuredItemParentCPC %in% zeroWeight , weight:=0]
+  }else{
+    standTree = treeSubset
+  }
+
+  #new to standardize quantity
+  dataTest<-copy(dataSubset) 
+  
+  standKey = standParams$mergeKey[standParams$mergeKey != standParams$itemVar]
+  treeTest = collapseEdges_NEW(edges = treeSubset, parentName = standParams$parentVar,
+                           childName = standParams$childVar,
+                           extractionName = standParams$extractVar,
+                           keyCols = standKey, notStandChild = nonStandChildren)
+  
+#build a function that take:
+      # treesubset, 
+      # datasubset, 
+      # datadessubset
+# function name : standardization
+  
+standardization<-function(dataQTY=dataSubset,
+                          dataDES=dataDesSubset,
+                          standTree=treeTest,
+                          params=standParams){
+  
+  #TO DO: quality controle with stopifnot
+  
+  StandtreeQTY<-copy(standTree)
+  StandtreeDES<-copy(standTree)
+  
+  ## Merge the tree with the node data
+  StandtreeQTY[, c(params$parentVar, params$childVar, params$yearVar, params$geoVar) :=
+             list(as.character(get(params$parentVar)), as.character(get(params$childVar)),
+                  as.character(get(params$yearVar)), as.character(get(params$geoVar)))] 
+  
+  #correction of some weight (in principale this should be done in the SUA caluclation)
+  # StandtreeQTY[get(params$childVar)=="22241.01",weight:=1] #Butter of cow milk
+  # StandtreeQTY[get(params$childVar)=="22120",weight:=1]  #Cream fresh  
+  
+  setnames(dataQTY, params$itemVar, params$childVar)
+  
+  dataQTY <-merge(
+    dataQTY, 
+    StandtreeQTY,
+    by = c(params$yearVar, params$geoVar, params$childVar),
+    all.x = TRUE, 
+    allow.cartesian = TRUE
+    )
+  
+  dataQTY[is.na(get(params$parentVar)) & get(params$childVar) %!in% zeroWeight,
+           c(params$parentVar, params$extractVar, params$shareVar,"weight") :=
+             list(get(params$childVar), 1, 1,1)]
+  
+  #zeroweight that are not in the tree shoulg have weight 0 so thet they will not be standardized
+  # case of bran of pulse(paraguay)
+  
+  dataQTY[is.na(get(params$parentVar)) & get(params$childVar) %in% zeroWeight,
+          c(params$parentVar, params$extractVar, params$shareVar,"weight") :=
+            list(get(params$childVar), 1, 1,0)]
+  
+  dataQTY[get(params$childVar) %in% onlyCalories, weight:=0]
+  #Cut this connection for Korea
+  dataQTY[get(params$childVar)=="24230.01", share:=0]
+  
+  
+  
+  
+  dataQTY_pprocessed<-dataQTY[standard_child==FALSE & get(params$elementVar)==c(params$productionCode)]
+  
+  dataQTY_pprocessed[,params$elementVar:=params$foodProcCode]
+  
+  #If the parent is a zerweight change the weight of the child to 0
+  # Issue find in Germany, child of molasses were standardized
+  dataQTY_pprocessed[get(params$parentVar) %in% zeroWeight,weight:=0]
+  # dataQTY_pprocessed[get(params$parentVar) %in% "0111" & 
+                       # get(params$childVar) %in% "24310.01",weight:=0]
+  
+  
+  
+  outDataQTY<-dataQTY_pprocessed[, list(
+    Value = sum( Value*weight /get(params$extractVar)*get(params$shareVar), na.rm = TRUE)),
+    by = c(params$yearVar, params$geoVar,params$elementVar, params$parentVar)]
+  
+  #For commodities that are alone in their FBS group, we keep their proces as it is
+  dataQTY_procPar<-copy(dataQTY)
+  dataQTY_procPar<-dataQTY[,
+                           c(params$geoVar,params$childVar,
+                             params$elementVar,params$yearVar,"Value"),
+                           with=FALSE
+                           ] 
+  
+  setnames(dataQTY_procPar,params$childVar,params$itemVar)
+  
+  dataQTY_procPar[,`:=`(Value.par=Value,Value=NULL)]
+  
+  dataQTY_procPar<-unique(dataQTY_procPar, by=colnames(dataQTY_procPar))
+  setnames(dataQTY_procPar,params$itemVar,params$parentVar)
+  
+  outDataQTY<-merge(
+    outDataQTY,
+    dataQTY_procPar,
+    by=c(params$geoVar,params$parentVar,params$elementVar,params$yearVar),
+    all.x = TRUE
   )
   
-  standData[[i]] <- rbindlist(standData[[i]])
+  outDataQTY[get(params$elementVar)==params$foodProcCode & get(params$parentVar) %in% OneItemFBS,
+                   Value:=Value.par]
+  
+  outDataQTY[,Value.par:=NULL]
+  #-------------------------
+  
+  dataQTY_other<-dataQTY[ get(params$elementVar)!=params$foodProcCode]
+  
+  dataQTY_other[get(params$childVar) %in% nonStandChildren, #TO DO: add nonStandChildren to the arguments
+            c(params$parentVar, params$extractVar, params$shareVar,"weight") :=
+              list(get(params$childVar), 1, 1,1)]
+  
+  dataQTY_other<-unique(
+    dataQTY_other,by=colnames(dataQTY)
+  )
+  
+  
+  
+  
+  #WEIGH correction
+  dataQTY_other[get(params$childVar) %!in% nonStandChildren & standard_child==FALSE, weight:=0]
+  dataQTY_other[get(params$childVar) %in% onlyCalories, weight:=0]
+  dataQTY_other[get(params$parentVar) %in% zeroWeight[! zeroWeight %in% c("22120","22241.01")],
+               weight:=0]
+  
+  outDataQTY_other = dataQTY_other[, list(
+    Value = sum( Value*weight /get(params$extractVar)*get(params$shareVar), na.rm = TRUE)),
+    by = c(params$yearVar, params$geoVar,params$elementVar, params$parentVar)]
+  
+  
+  
+  dataQTY_prod<-copy(dataSubset)
+  dataQTY_prod<-dataQTY[,
+                        c(params$geoVar,params$childVar,
+                          params$elementVar,params$yearVar,"Value"),
+                        with=FALSE
+                        ] 
+  
+  setnames(dataQTY_prod,params$childVar,params$itemVar)
+  
+  dataQTY_prod[,`:=`(Value.par=Value,Value=NULL)]
+  
+  dataQTY_prod[get(params$itemVar) %in% zeroWeight[! zeroWeight %in% c("22120","22241.01")],
+               Value.par:=0]
+
+  dataQTY_prod<-unique(dataQTY_prod, by=colnames(dataQTY_prod))
+  setnames(dataQTY_prod,params$itemVar,params$parentVar)
+  
+  outDataQTY_other<-merge(
+    outDataQTY_other,
+    dataQTY_prod,
+    by=c(params$geoVar,params$parentVar,params$elementVar,params$yearVar),
+    all.x = TRUE
+  )
+  
+  outDataQTY_other[get(params$elementVar)==params$productionCode,
+                   Value:=Value.par] 
+  
+  
+  #do not change the process of items that are alone
+  outDataQTY_other[get(params$elementVar)==params$foodProcCode & get(params$parentVar) %in% OneItemFBS,
+                   Value:=Value.par]
+  
+  outDataQTY_other[,Value.par:=NULL]
+  
+  outDataQTY<-
+    outDataQTY[,
+               c(params$geoVar,params$parentVar,params$elementVar,params$yearVar,"Value"),
+                         with=FALSE]
+  
+  outDataQTY_other<-
+    outDataQTY_other[,
+                     c(params$geoVar,params$parentVar,params$elementVar,params$yearVar,"Value"),
+                     with=FALSE
+                     ]
+  #DES AGGREGATION
+  
+  ## Merge the tree with the node data
+  StandtreeDES[, c(params$parentVar, params$childVar, params$yearVar, params$geoVar) :=
+             list(as.character(get(params$parentVar)), as.character(get(params$childVar)),
+                  as.character(get(params$yearVar)), as.character(get(params$geoVar)))]
+  
+  setnames(dataDES, params$itemVar, params$childVar)
+  
+  dataDES<-merge(dataDES, StandtreeDES,
+                   by = c(params$yearVar, params$geoVar, params$childVar),
+                   all.x = TRUE, allow.cartesian = TRUE)
+  
+  dataDES[is.na(get(params$parentVar)) | get(params$childVar)%in% nonStandChildren,
+           c(params$parentVar, params$extractVar, params$shareVar) :=
+             list(get(params$childVar), 1, 1)]
+  
+  dataDES[,missedDES:=mean(Value,na.rm = TRUE)>0 & sum(share,na.rm = TRUE)==0,
+           by = c(params$yearVar, params$geoVar, params$childVar,params$elementVar)
+           ]
+  
+  dataDES[get(params$childVar) %in% nonStandChildren | missedDES==TRUE,
+           `:=`(measuredItemParentCPC=measuredItemChildCPC,share=1,
+                standard_child=FALSE)]
+  
+  dataDES[,weight:=1]
+  dataDES[,params$extractVar:=1]
+  
+  dataDES<-unique(
+    dataDES,by=names(dataDES)
+  )
+  
+  outDataDes = dataDES[, list(
+    Value = sum( Value*get(params$shareVar), na.rm = TRUE)),
+    by = c(params$yearVar, params$geoVar, params$parentVar,params$elementVar)]
+  
+  outDataDes<-outDataDes[,c(colnames(outDataQTY)),with=FALSE]
+  
+  out = rbind(outDataQTY,outDataQTY_other,outDataDes)
+  
+  setnames(out,params$parentVar,params$itemVar)
+  
+  
+  
+  #Standardized file
+  standardizeQty<-rbind(dataQTY_other,dataQTY_pprocessed)
+  standardizeQty<-standardizeQty[,list(geographicAreaM49,timePointYears,measuredItemParentCPC,
+                                       measuredItemChildCPC,measuredElementSuaFbs,
+                                       Value,flagObservationStatus,flagMethod,extractionRate,share,
+                                       standard_child,weight,Stand_Value=Value/extractionRate*share*weight)]
+  
+  output<-list(fbs=out,stand=standardizeQty)
+  
+  return(output)
+}
+
+output=standardization(dataSubset,dataDesSubset,treeTest,standParams)
+out=output$fbs
+
+  standData0[[i]] <- out
+  standQTY[[i]] <- output$stand
+  
+  # STEP 7: Aggregate to FBS Level
+  if(is.null(fbsTree)){
+    # If no FBS tree, just return SUA-level results
+    outOut=dataSubset
+  } else {
+    outOut = computeFbsAggregate(data =out , fbsTree = fbsTree,
+                                 standParams = p)
+  }
+  standData[[i]] <- rbindlist(outOut)
   names(standData[[i]])[grep("^fbsID", names(standData[[i]]))] <- params$itemVar
-  standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))] 
+  standData[[i]][,(params$itemVar):= paste0("S", get(params$itemVar))]
   
 }
 
+##############ITEMS THAT ARE NOT STANDARDIZED##################################################
+standQTY<-rbindlist(standQTY)
+NonStanditemChild<-rbindlist(NonStanditemChild)
+NonStanditemChild<-unique(NonStanditemChild[,list(geographicAreaM49,measuredItemSuaFbs)], by=c(p$geoVar,p$itemVar))
+setnames(NonStanditemChild,"measuredItemSuaFbs","measuredItemFbsSua")
+NonStanditemChild<-nameData("suafbs", "sua_balanced", NonStanditemChild)
 
-message((proc.time() - ptm)[3])
-
-message("Combining standardized data...")
-standData = rbindlist(standData)
-
-
-
-##  Save the StandData LOCALLY
-if(CheckDebug()){
-  save(standData,file=paste0(PARAMS$temporaryStandData,"/standDatabatch",batchnumber,".RData"))
-}
-
-###################################
-## AFTER SUA FILLING 1 (No intermediate saving)
-if(CheckDebug()){
-  ptm <- proc.time()
-  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"))){
-    AfterSuaFilling1 = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.csv"),
-                                  header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-                                                                   "timePointYears","Value","flagObservationStatus","flagMethod"),
-                                  colClasses = c("character","character","character","character","character","character","character"))
-    AfterSuaFilling1 = data.table(AfterSuaFilling1)
-    message((proc.time() - ptm)[3])
-    
-    # Save these data LOCALLY
-    if(CheckDebug()){
-      save(AfterSuaFilling1,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_00a_AfterSuaFilling1.RData"))
-    }
-  }
-}
-###################################
-
-
-###################################
-## AFTER FOOD PROCESSING (No intermediate saving)
-if(CheckDebug()){
-  ptm <- proc.time()
-  if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"))){
-    AfterFoodProc = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.csv"),
-                               header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-                                                                "timePointYears","Value","flagObservationStatus","flagMethod"),
-                               colClasses = c("character","character","character","character","character","character","character"))
-    AfterFoodProc = data.table(AfterFoodProc)
-    message((proc.time() - ptm)[3])
-    
-    # Save these data LOCALLY
-    if(CheckDebug()){
-      save(AfterFoodProc,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_00b_AfterFoodProc.RData"))
-    }
-  }
-}
-
-###################################
-## NOT BALANCED DERIVED COMMODITIES (to be sent by mail)
-
-print(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv"))
-print(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv")))
-
-
-if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv"))){
-  NOT_BAL_DER = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.csv"),
-                           header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-                                                            "timePointYears","Value","flagObservationStatus","flagMethod"),
-                           colClasses = c("character","character","character","character","character","character","character"))
-  NotBalDer2send = data.table(NOT_BAL_DER)
-  
-  message=(paste0( length(NotBalDer2send[,unique(measuredItemFbsSua)])," Derived commodities have NOT been balanced"))
-  
-  setnames(NotBalDer2send,"measuredItemFbsSua","measuredItemSuaFbs")
-  
-  NotBalDer2send[,Value:=round(as.numeric(Value),4)]
-  NotBalDer2send[,measuredItemSuaFbs:=paste0("'",measuredItemSuaFbs)]
-  
-  
-  NotBalDer2send[,imbalance := sum(ifelse(is.na(Value), 0, Value) *
-                                     ifelse(get(p$elementVar) == p$productionCode, 1,
-                                            ifelse(get(p$elementVar) == p$importCode, 1,
-                                                   ifelse(get(p$elementVar) == p$exportCode, -1,
-                                                          ifelse(get(p$elementVar) == p$stockCode, -1,
-                                                                 ifelse(get(p$elementVar) == p$foodCode, -1,
-                                                                        ifelse(get(p$elementVar) == p$foodProcCode, -1,
-                                                                               ifelse(get(p$elementVar) == p$feedCode, -1,
-                                                                                      ifelse(get(p$elementVar) == p$wasteCode, -1,
-                                                                                             ifelse(get(p$elementVar) == p$seedCode, -1,
-                                                                                                    ifelse(get(p$elementVar) == p$industrialCode, -1,
-                                                                                                           ifelse(get(p$elementVar) == p$touristCode, -1,
-                                                                                                                  ifelse(get(p$elementVar) == p$residualCode, -1, 
-                                                                                                                         NA))))))))))))),
-                 by = c(p$mergeKey)]
-  
-  NotBalDer2send[,c("flagObservationStatus","flagMethod"):=NULL]
-  
-  # Save these data LOCALLY
-  if(CheckDebug()){
-    save(NOT_BAL_DER,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_04_NotBalancedDerived.RData"))
-  }else{
-    # or send them by email
-    if(dim(NotBalDer2send)[1]>0){
-      bodyNotBalanced= paste("The Email contains a list of DERIVED commodities where where was not possible to Balance the POSITIVE imbalance",
-                             "Consider to make a manual balance or leave imbalanced",
-                             sep='\n')  
-    }
-  }
-  sendMailAttachment(NotBalDer2send,"NotBalancedDERIVED",bodyNotBalanced)
+#if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
+if(length(selectedGEOCode)==1){
+  tmp_file_nonStandItemps<- tempfile(pattern = paste0("NON_STANDARDIZED_ITEMS_", COUNTRY_NAME,
+                                                      "_"), fileext = '.csv')
 }else{
-  message("no Derived Impossible to Balance")
+  tmp_file_nonStandItemps<- tempfile(pattern = paste0("NON_STANDARDIZED_ITEMS_",
+                                                      "_"), fileext = '.csv')}
+write.csv(NonStanditemChild, tmp_file_nonStandItemps)
+############################################################################################
+
+# XXX fix this
+codes <- tibble::tribble(
+  ~code,  ~name,
+  "5910", "exports",
+  "5520", "feed",
+  "5141", "food",
+  "5023", "foodManufacturing",
+  "5610", "imports",
+  "5165", "industrial",
+  "5016", "loss",
+  "5510", "production",
+  "5525", "seed",
+  "5071", "stock",
+  "664", "calories",
+  "674", "proteins",
+  "684", "fats",
+  "5166", "residual",
+  "5164", "tourist",
+  "261", "TotalCalories",
+  "271", "TotalProteins",
+  "281", "TotalFats"
+)
+
+setDT(codes)
+
+#####sSAVING FBS STANDARDIZED#########################################----------------------------
+fbs_standardized<-rbindlist(standData0)
+fbs_standardized[,`:=`(flagObservationStatus="I",
+                       flagMethod="s")]
+setnames(fbs_standardized,"measuredItemSuaFbs","measuredItemFbsSua")
+setDT(fbs_standardized)
+
+
+
+fbsstand_residual<-copy(fbs_standardized)
+
+calculateImbalance(data=fbsstand_residual,keep_supply = FALSE,keep_utilizations = FALSE)
+
+fbsstand_residual[,`:=`(Value=imbalance,
+                    measuredElementSuaFbs="residual",
+                    imbalance=NULL)]
+fbsstand_residual<-unique(fbsstand_residual, by=colnames(fbsstand_residual))
+
+fbs_standardized<-rbind(fbs_standardized[measuredElementSuaFbs %!in% c("residual")],fbs_standardized)
+
+
+fbs_standardized <- fbs_standardized[codes, on = c('measuredElementSuaFbs' = 'name')]
+fbs_standardized[,measuredElementSuaFbs:=code]
+fbs_standardized[,code:=NULL]
+fbs_standardized[is.na(Value),flagObservationStatus:=NA]
+fbs_standardized[is.na(Value),flagMethod:=NA]
+fbs_standardized<-fbs_standardized[measuredElementSuaFbs %!in% c("261","271","281")]
+
+#Food grams
+
+#ADD food supply (Grams/capita/day) in FBS standardized
+
+foodGram_data <-
+  dt_left_join(
+    # Food
+    fbs_standardized[
+      measuredElementSuaFbs == '5141',
+      list(
+        geographicAreaM49,
+        measuredItemFbsSua,
+        measuredElementSuaFbs,
+        timePointYears,
+        food = Value,
+        flagObservationStatus = "T",
+        flagMethod = "i"
+      )
+      ],
+    # Population
+    popSWS[, list(geographicAreaM49, timePointYears, population = Value)],
+    by = c('geographicAreaM49', 'timePointYears')
+  )
+
+foodGram_data[,Value:=(food*1000000)/(365*population*1000)]
+foodGram_data[,measuredElementSuaFbs:="665"]
+foodGram_data[, c("food", "population") := NULL]
+
+foodGram_data<-foodGram_data[,list(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears,Value,flagObservationStatus,flagMethod)]
+
+fbs_standardized<-rbind(fbs_standardized,foodGram_data)
+
+
+message("saving FBS standardized...")
+SaveData(domain = "suafbs", dataset = "fbs_standardized", data = fbs_standardized, waitTimeout = 20000)
+
+#end fns standardized-------------------------------------------------------------
+
+########SAVING FBS BALANCED#################################################-------------------
+
+fbs_balanced<-rbindlist(standData)
+fbs_balanced[,`:=`(flagObservationStatus="I",
+                   flagMethod="s")]
+setnames(fbs_balanced,"measuredItemSuaFbs","measuredItemFbsSua")
+
+#calculate imbalance for fbs and put it the residual and othe ruses
+
+fbs_residual<-copy(fbs_balanced)
+
+#fbs_residual<-fbs_residual[measuredItemFbsSua %!in% c("S2901","S2903","S2941")]
+fbs_residual<-fbs_residual[measuredItemFbsSua %!in% c("S2901")]
+calculateImbalance(data=fbs_residual,keep_supply = TRUE,keep_utilizations = FALSE)
+
+fbs_residual<-
+  fbs_residual[!is.na(imbalance),list(geographicAreaM49,timePointYears,
+                                        measuredItemFbsSua,supply,imbalance)]
+fbs_residual<-unique(fbs_residual,by=c(colnames(fbs_residual)))
+fbs_residual[,imbalance_percentage:=round(imbalance/supply*100,2)]
+
+
+
+fbs_residual1<-copy(fbs_balanced)
+calculateImbalance(data=fbs_residual1,keep_supply = FALSE,keep_utilizations = FALSE)
+
+fbs_residual1[,`:=`(Value=imbalance,
+                   measuredElementSuaFbs="residual",
+                   imbalance=NULL)]
+fbs_residual1<-unique(fbs_residual1, by=colnames(fbs_residual1))
+
+fbs_balanced<-rbind(fbs_balanced[measuredElementSuaFbs %!in% c("residual")],fbs_residual1)
+
+
+fbs_balanced <- fbs_balanced[codes, on = c('measuredElementSuaFbs' = 'name')]
+fbs_balanced[,measuredElementSuaFbs:=code]
+fbs_balanced[,code:=NULL]
+fbs_balanced[is.na(Value),flagObservationStatus:=NA]
+fbs_balanced[is.na(Value),flagMethod:=NA]
+
+
+
+
+popData<-
+  popSWS[,list(geographicAreaM49,
+                     timePointYears,
+                     measuredElementSuaFbs=measuredElement,
+                     measuredItemFbsSua="S2501",
+                     Value,
+                     flagObservationStatus,
+                     flagMethod)]
+
+popData<-popData[timePointYears %in% unique(fbs_balanced$timePointYears)]
+
+#correct process at FBS level
+
+Item_with_unbalanced <- data[measuredElementSuaFbs == "residual"]
+
+Item_with_unbalanced <- Item_with_unbalanced[abs(round(Value,0)) > 5000]
+
+Item_with_unbalanced<-merge(
+  Item_with_unbalanced,
+  fbsTree,
+  by=c(p$itemVar),
+  allow.cartesian = TRUE,
+  all.x = TRUE
+)
+
+Item_with_unbalanced<-Item_with_unbalanced[!is.na(fbsID4) & (measuredItemSuaFbs %!in% onlyCalories),
+                                           list(geographicAreaM49,timePointYears,
+                                                measuredItemFbsSua=paste0("S",fbsID4),
+                                                cpc_unbalanced=measuredItemSuaFbs)
+                                           ]
+
+Item_with_unbalanced<-unique(Item_with_unbalanced,by=c(colnames(Item_with_unbalanced)))
+
+if (nrow(Item_with_unbalanced) > 0) {
+
+  Item_with_unbalanced<-aggregate(
+    cpc_unbalanced ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
+    Item_with_unbalanced, paste0, collapse = "; ")
+
+  setDT(Item_with_unbalanced)
+
+} else {
+  Item_with_unbalanced <-
+    data.table(
+      geographicAreaM49 = character(),
+      measuredItemFbsSua = character(),
+      timePointYears = character(),
+      measuredItemSuaFbs = character(),
+      cpc_unbalanced = logical()
+    )
 }
-###################################################
+
+fbs_balanced_bis<-merge(
+  fbs_balanced,
+  Item_with_unbalanced,
+  by=c(p$geoVar,p$yearVar, "measuredItemFbsSua"),
+  all.x = TRUE
+)
+
+fbs_balanced_bis[, IsSUAbal := ifelse(is.na(cpc_unbalanced), TRUE, FALSE)]
 
 
-###################################
-## FORCED COMMODITIES IN THE SUA FILLING PROCESS (to be sent by mail)
+fbs_balanced_bis<-merge(
+  fbs_balanced_bis,
+  fbs_residual[,list(geographicAreaM49,timePointYears,measuredItemFbsSua,imbalance=round(imbalance,0))],
+  all.x = TRUE
+)
 
-print(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))
-print(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv")))
+fbsid4<-paste0("S",unique(fbsTree$fbsID4))
+fbs_balanced_bis[measuredItemFbsSua %!in% fbsid4,IsSUAbal:=FALSE]
+fbs_balanced_bis<-fbs_balanced_bis[!is.na(Value)]
+
+fbs_balanced_bis[,update_balance:=FALSE]
+
+fbs_balanced_bis[measuredElementSuaFbs %in% c("5023") & !is.na(imbalance) & !is.na(Value),
+                 update_balance:=ifelse(IsSUAbal==TRUE & Value+imbalance >0,TRUE,FALSE),
+                 by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
+
+fbs_balanced_bis[measuredElementSuaFbs=="5023" ,
+                 Value:=ifelse(update_balance==TRUE ,Value+imbalance,Value),
+                 by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
+
+fbs_balanced_bis[measuredElementSuaFbs %in% c("5023","5166"),
+                 update_balance:=update_balance[measuredElementSuaFbs=="5023"],
+                 by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
+
+fbs_balanced_bis<-fbs_balanced_bis[!is.na(Value)]
+
+fbs_balanced_bis[measuredElementSuaFbs=="5166" ,
+                 Value:=ifelse(update_balance==TRUE ,0,Value),
+                 by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")]
+
+fbs_balanced_bis<-fbs_balanced_bis[,names(fbs_balanced),with=FALSE]
+
+#correct other level
+
+fbstree_otherlev<-copy(fbsTree)
+
+fbstree_otherlev[,c("measuredItemSuaFbs","number_item"):=NULL]
+fbstree_otherlev<-unique(fbstree_otherlev)
+setnames(fbstree_otherlev,"fbsID4","measuredItemFbsSua")
+
+fbstree_otherlev[, measuredItemFbsSua :=paste0("S",measuredItemFbsSua)]
+fbstree_otherlev[, fbsID1 :=paste0("S",fbsID1)]
+fbstree_otherlev[, fbsID2 :=paste0("S",fbsID2)]
+fbstree_otherlev[, fbsID3 :=paste0("S",fbsID3)]
+
+fbs_other_level<-merge(
+  fbs_balanced_bis[measuredElementSuaFbs %in% c("5023","5166")],
+  
+  fbstree_otherlev,
+  by=c("measuredItemFbsSua"),
+  all.x = TRUE
+)
 
 
-if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"))){
-  FORCED_PROD = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.csv"),
-                           header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua",
-                                                            "timePointYears","Value"),
-                           colClasses = c("character","character","character","character","character"))
-  FORCED_PROD = data.table(FORCED_PROD)
-  message=(paste0( length(FORCED_PROD[,unique(measuredItemFbsSua)])," commodities have a FORCED Official Production"))
+
+# aggregate(fbs_other_level, by =list(p$yearVar,p$geoVar,p$elementVar, "fbsID3"), FUN=sum(Value))
+
+level_3 <- aggregate(
+  Value ~ geographicAreaM49+fbsID3 +timePointYears + measuredElementSuaFbs, 
+  fbs_other_level, sum, na.rm = TRUE)
+
+setnames(level_3,"fbsID3","measuredItemFbsSua")
+
+level_2 <- aggregate(
+  Value ~ geographicAreaM49+fbsID2 +timePointYears + measuredElementSuaFbs,
+  fbs_other_level, sum, na.rm = TRUE)
+setnames(level_2,"fbsID2","measuredItemFbsSua")
+
+
+# level_1 <- aggregate(
+#   Value ~ geographicAreaM49+fbsID1 +timePointYears + measuredElementSuaFbs, 
+#   fbs_other_level, sum, na.rm = TRUE)
+# setnames(level_1,"fbsID1","measuredItemFbsSua")
+
+
+
+data_level<-rbind(level_3,level_2)
+setDT(data_level)
+data_level[,flagObservationStatus:="I"]
+data_level[,flagMethod:="s"]
+
+data_level<-data_level[,names(fbs_balanced_bis),with=FALSE]
+
+
+#christian issue
+fbs_balanced_bis<-rbind(
+  fbs_balanced_bis[!data_level, on=c("geographicAreaM49","timePointYears","measuredItemFbsSua","measuredElementSuaFbs")],
+  data_level
+)
+
+
+#ADD food supply (Grams/capita/day) in FBS balanced
+foodGram_data_fb <-
+  dt_left_join(
+    # Food
+    fbs_balanced_bis[
+      measuredElementSuaFbs == '5141',
+      list(
+        geographicAreaM49,
+        measuredItemFbsSua,
+        measuredElementSuaFbs,
+        timePointYears,
+        food = Value,
+        flagObservationStatus = "T",
+        flagMethod = "i"
+      )
+      ],
+    # Population
+    popSWS[, list(geographicAreaM49, timePointYears, population = Value)],
+    by = c('geographicAreaM49', 'timePointYears')
+  )
+
+foodGram_data_fb[,Value:=(food*1000000)/(365*population*1000)]
+foodGram_data_fb[,measuredElementSuaFbs:="665"]
+foodGram_data_fb[, c("food", "population") := NULL]
+
+foodGram_data_fb<-foodGram_data_fb[,list(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears,Value,flagObservationStatus,flagMethod)]
+
+fbs_balanced_bis<-rbind(fbs_balanced_bis,foodGram_data_fb)
+
+
+
+# aggregate(
+#   measuredItemSuaFbs ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
+#   Item_with_unbalanced, paste0, collapse = "; ")
+
+message("saving FBS balanced...")
+SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = fbs_balanced_bis, waitTimeout = 20000)
+
+SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = popData, waitTimeout = 20000)
+
+popData[,measuredItemFbsSua:="S2901"]
+SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = popData, waitTimeout = 20000)
+
+
+
+#end fbs balanced---------------------------------------
+
+######################
+
+
+# data_residual<-copy(data)
+# setnames(data_residual,"measuredItemSuaFbs" ,"measuredItemFbsSua")
+# calculateImbalance(data=data_residual,keep_supply = FALSE,keep_utilizations = FALSE)
+# 
+# data_residual[,`:=`(Value=imbalance,
+#                     measuredElementSuaFbs="residual",
+#                     imbalance=NULL)]
+# 
+# setnames(data_residual,"measuredItemFbsSua","measuredItemSuaFbs")
+# 
+# data_residual<-unique(data_residual, by=colnames(data))
+# 
+# data<-rbind(data[measuredElementSuaFbs %!in% c("residual")],data_residual)
+
+Item_with_unbalanced<-
+  data[measuredElementSuaFbs=="residual"][,
+                                          balanced:=ifelse(abs(Value)<1000,TRUE,FALSE)][balanced==FALSE]
+
+Item_with_unbalanced<-merge(
+  Item_with_unbalanced,
+  fbsTree,
+  by=c(p$itemVar),
+  allow.cartesian = TRUE,
+  all.x = TRUE
+)
+
+Item_with_unbalanced<-Item_with_unbalanced[!is.na(fbsID4) & (measuredItemSuaFbs %!in% onlyCalories),
+                                           list(geographicAreaM49,timePointYears,
+                                                measuredItemFbsSua=paste0("S",fbsID4),
+                                                measuredItemSuaFbs)
+                                           ]
+Item_with_unbalanced<-unique(Item_with_unbalanced,by=c(colnames(Item_with_unbalanced)))
+
+if (nrow(Item_with_unbalanced) > 0) {
+  Item_with_unbalanced<-aggregate(
+    measuredItemSuaFbs ~ geographicAreaM49+measuredItemFbsSua+timePointYears, 
+            Item_with_unbalanced, paste0, collapse = "; ")
+
+  setDT(Item_with_unbalanced)
+
+} else {
+  Item_with_unbalanced <-
+    data.table(
+      geographicAreaM49 = character(),
+      measuredItemFbsSua = character(),
+      timePointYears = character(),
+      measuredItemSuaFbs = character()
+    )
+}
+
+
+# 
+
+# check if the primary or proxy primary is balanced
+primProxiPrim<-unique(Utilization_Table[primary_item=="X" | proxy_primary=="X",get("cpc_code")])
+
+balanceSUA<-data[measuredItemSuaFbs %in% primProxiPrim & measuredElementSuaFbs=="residual"]
+balanceSUA<-balanceSUA[measuredItemSuaFbs %!in% onlyCalories]
+
+balanceSUA[,balanced:=ifelse(abs(Value)<1000,TRUE,FALSE)]
+
+balanceSUA<-balanceSUA[, list(geographicAreaM49,timePointYears,measuredItemSuaFbs,balanced)]
+
+balanceSUA<-merge(
+  balanceSUA,
+  fbsTree,
+  by=c(p$itemVar),
+  allow.cartesian = TRUE,
+  all= TRUE
+)
+
+
+balanceSUA<-balanceSUA[,list(geographicAreaM49,timePointYears,parent=measuredItemSuaFbs,
+                             balanced,measuredItemFbsSua=fbsID4)]
+
+balanceSUA<-unique(balanceSUA,by=c(names(balanceSUA)))
+
+balanceSUA[,measuredItemFbsSua:=paste0("S",measuredItemFbsSua)]
+
+### File containing imbalances greater that 1 MT----------------------
+# fbs_residual_to_send<-fbs_residual[abs(imbalance_percentage)>=1]
+
+fbs_residual_to_send<-copy(fbs_balanced_bis[measuredElementSuaFbs=="5166" & abs(Value)>1000])
+
+fbs_residual_to_send<-merge(
+  fbs_residual_to_send,
+  fbs_residual[,list(geographicAreaM49,timePointYears,measuredItemFbsSua,supply)],
+  by=c(p$geoVar,p$yearVar,"measuredItemFbsSua"),
+  all.x =TRUE
+)
+
+fbs_residual_to_send[,imbalance_percentage:=round((Value/supply)*100,0),
+                     by=c(p$geoVar,p$yearVar,"measuredItemFbsSua")
+                     ]
+
+fbs_residual_to_send<-merge(
+  fbs_residual_to_send,
+  balanceSUA,
+  by=c(p$geoVar,p$yearVar,"measuredItemFbsSua"),
+  allow.cartesian = TRUE,
+  all.x =TRUE
+)
+
+
+
+fbs_residual_to_send<-merge(
+  fbs_residual_to_send,
+  Item_with_unbalanced,
+  by=c(p$geoVar,p$yearVar,"measuredItemFbsSua"),
+  allow.cartesian = TRUE,
+  all = TRUE
+)
+
+# fbs_residual_to_send<-fbs_residual_to_send[abs(imbalance)>=1000 | !is.na(measuredItemSuaFbs)]
+
+# fbs_residual_to_send[,unbalanced:=ifelse(balanced==FALSE & abs(imbalance)>1000,TRUE,FALSE)]
+
+# fbs_residual_to_send[balanced==FALSE & abs(imbalance)<1000,unbalanced:=NA]
+fbs_residual_to_send[,balanced:=NULL]
+
+if (nrow(fbs_residual_to_send) > 9) {
+  fbs_residual_to_send<-nameData("suafbs", "fbs_balanced_", fbs_residual_to_send)
+}
+
+
+
+LabelItem<-unique(
+  data[,list(measuredItemFbsSua=measuredItemSuaFbs)],by=c("measuredItemFbsSua")
+)
+LabelItem<-nameData("suafbs", "fbs_balanced_", LabelItem)
+
+standQTY<-merge(
+  standQTY,
+  LabelItem[,list(measuredItemChildCPC=measuredItemFbsSua,
+                  measuredItemChildCPC_name=measuredItemFbsSua_description)],
+  by=c("measuredItemChildCPC")
+)
+
+standQTY<-merge(
+  standQTY,
+  LabelItem[,list(measuredItemParentCPC=measuredItemFbsSua,
+                  measuredItemParentCPC_name=measuredItemFbsSua_description)],
+  by=c("measuredItemParentCPC")
+)
+
+standQTY<-merge(
+  standQTY,
+  fbsTree[,list(measuredItemParentCPC=measuredItemSuaFbs,
+                FBS_group=fbsID4)]
+)
+
+# extracting the dataset contains items of the commodity tree that are standardized outside the 
+#FBS group: this will be merged in the summary file containing FBS imbalances
+
+Items_outside_tree<-standQTY[measuredElementSuaFbs=="foodManufacturing" & Value>0,
+               list(geographicAreaM49,timePointYears,Child_outside_tree=measuredItemChildCPC,
+                    measuredItemFbsSua=paste0("S",FBS_group))]
+
+Items_outside_tree<-aggregate(
+  Child_outside_tree ~measuredItemFbsSua+ geographicAreaM49+timePointYears, 
+  Items_outside_tree, paste0, collapse = "; ")
+
+fbs_residual_to_send<-merge(
+  fbs_residual_to_send,
+  Items_outside_tree,
+  by=c("geographicAreaM49","timePointYears","measuredItemFbsSua"),
+  all.x = TRUE
+)
+
+#Consider only fbsID4 groups for the final summary file
+
+fbsID4_groups<-paste0("S",unique(fbsTree$fbsID4))
+#fbs_residual_to_send<-fbs_residual_to_send[measuredItemFbsSua %in% fbsID4_groups]
+#-----
+
+standQTY<-standQTY[,list(FBS_group,geographicAreaM49,timePointYears,measuredElementSuaFbs,
+                         measuredItemParentCPC,measuredItemParentCPC_name,
+                         measuredItemChildCPC,measuredItemChildCPC_name,Value,
+                         flagObservationStatus,flagMethod,extractionRate,share,weight,
+                         standard_child,Stand_Value)]
+
+
+#if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
+if(length(selectedGEOCode)==1){
+  tmp_file_residual<- tempfile(pattern = paste0("FBS_IMBALANCES_", COUNTRY_NAME, "_"), fileext = '.csv')
+  tmp_file_standData<- tempfile(pattern = paste0("Stand_SUA_", COUNTRY_NAME, "_"), fileext = '.csv')
   
-  
-  setnames(FORCED_PROD,"measuredItemFbsSua","measuredItemSuaFbs")
-  setnames(dataFlags,"Value","ValueOld")
-  setnames(FORCED_PROD,"Value","ValueForced")
-  
-  ForcedProd2send=data.table(left_join(FORCED_PROD[,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs",
-                                                      "timePointYears","ValueForced"),with=FALSE],dataFlags,by=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs",
-                                                                                                                 "timePointYears")))
-  
-  # ForcedProd2send[measuredElementSuaFbs!=params$productionCode,ValueForced:="-"]
-  ForcedProd2send[,ValueForced:=round(as.numeric(ValueForced),0)]
-  ForcedProd2send[,ValueOld:=round(as.numeric(ValueOld),0)]
-  ForcedProd2send[,measuredItemSuaFbs:=paste0("'",measuredItemSuaFbs)]
-  
-  # Save these data LOCALLY
-  if(CheckDebug()){
-    save(FORCED_PROD,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_10_ForcedProduction.RData"))
-  }else{
-    # or send them by email
-    if(dim(ForcedProd2send)[1]>0){
-      sendMail4forced(ForcedProd2send)
-    }
-  }
 }else{
-  message("no Forced Production")
+  tmp_file_residual<- tempfile(pattern = paste0("FBS_IMBALANCES_"), fileext = '.csv')
+  tmp_file_standData<- tempfile(pattern = paste0("Stand_SUA_"), fileext = '.csv')
+  
 }
 
-###################################
+fbs_residual_to_send<-unique(fbs_residual_to_send, by=c(names(fbs_residual_to_send)))
+write.csv(fbs_residual_to_send, tmp_file_residual)
+write.csv(standQTY, tmp_file_standData)
 
-###################################
-### FIRST INTERMEDIATE SAVE
-message("save first intermediate file")
-ptm <- proc.time()
-print(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv")))
+### End File containing imbalances greater that 1 MT----------------------
 
-if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"))){
-  AfterSuaFilling = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.csv"),
-                               header=FALSE,sep=";",col.names=c("geographicAreaM49","measuredItemFbsSua",
-                                                                "timePointYears","Value","flagObservationStatus","flagMethod", "measuredElementSuaFbs"),
-                               colClasses = c("character","character","character","character","character","character","character"))
-  AfterSuaFilling = data.table(AfterSuaFilling)
-  AfterSuaFilling = AfterSuaFilling[measuredElementSuaFbs%in%c(elemKeys,"664")]
-  # AfterSuaFilling = AfterSuaFilling[,Value:=round(as.numeric(Value),0)]
-  
-  ## As per Team B/C request (TOMASZ) I'm saving back only the DES (684)
-  
-  SaveData(domain = "suafbs", dataset = "sua_balanced", data = AfterSuaFilling, waitTimeout = 20000)
-  message((proc.time() - ptm)[3])
-  
-  # Save these data LOCALLY
-  if(CheckDebug()){
-    save(AfterSuaFilling,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_02_AfterSuaFilling_BeforeST.RData"))
-  }
-}
-###################################
-## IMBALANCE ANALYSIS SAVE 3
-### SECOND INTERMEDIATE SAVE
-message("save second intermediate file")
-ptm <- proc.time()
-if(file.exists(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"))){
-  
-  AfterST_BeforeFBSbal = read.table(paste0(basedir,"/debugFile/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.csv"),
-                                    header=FALSE,sep=";",col.names=c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", 
-                                                                     "timePointYears","Value","flagObservationStatus","flagMethod"),
-                                    colClasses = c("character","character","character","character","character","character","character"))
-  AfterST_BeforeFBSbal = data.table(AfterST_BeforeFBSbal)
-  
-  AfterST_BeforeFBSbal=AfterST_BeforeFBSbal[measuredElementSuaFbs%in%c(elemKeys,"664")]
-  SaveData(domain = "suafbs", dataset = "fbs_standardized", data = AfterST_BeforeFBSbal, waitTimeout = 20000)
-  message((proc.time() - ptm)[3])
-  
-  # Save these data LOCALLY
-  if(CheckDebug()){
-    save(AfterST_BeforeFBSbal,file=paste0(PARAMS$debugFolder,"/Batch_",batchnumber,"/B",batchnumber,"_03_AfterST_BeforeFBSbal.RData"))
-  }
-}
+#File containing aggregated DES from FBS-----------------------
+fbs_des_to_send<-fbs_balanced[measuredElementSuaFbs=="664"]
+fbs_des_to_send<-nameData("suafbs", "fbs_balanced_", fbs_des_to_send)
+fbs_des_to_send <-
+  dcast(
+    fbs_des_to_send,
+    geographicAreaM49_description + measuredElementSuaFbs_description+measuredItemFbsSua_description ~ timePointYears,
+    fun.aggregate = sum,
+    value.var = "Value"
+  )
 
-
-
-
-
-# Remove all intermediate Files Create in Temp Folder
-if(!CheckDebug()){
-  unlink(basedir)
+#if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
+if(length(selectedGEOCode)==1){
+  tmp_file_des<- tempfile(pattern = paste0("FBS_DES_", COUNTRY_NAME, "_"), fileext = '.csv')
 }else{
-  unlink(paste0(basedir,"/debugFile/Batch_",batchnumber))
+  tmp_file_des<- tempfile(pattern = paste0("FBS_DES_"), fileext = '.csv')
+}
+write.csv(fbs_des_to_send, tmp_file_des)
+#End File containing aggregated DES from FBS-----------------------
+
+#DES comparison: SUA and FBS-----------------
+DEssua<-dataDes[measuredElementSuaFbs=="calories",]
+DEssua<-DEssua[,
+       list(Value=sum(Value,na.rm = TRUE)),
+       by=c("geographicAreaM49","measuredElementSuaFbs","timePointYears")
+       ]
+
+DEssua<-nameData("suafbs", "sua_balanced", DEssua)
+DEssua[,measuredItemFbsSua_description:="DES from SUA_bal"]
+
+DEssua <-
+  dcast(
+    DEssua,
+    geographicAreaM49_description + measuredElementSuaFbs_description+measuredItemFbsSua_description ~ timePointYears,
+    fun.aggregate = sum,
+    value.var = "Value"
+  )
+
+setDT(DEssua)
+DEssua[,`measuredElementSuaFbs_description`:="Food supply (/capita/day) [kcal]"]
+
+setDT(fbs_des_to_send)
+DesFBS<-fbs_des_to_send[measuredItemFbsSua_description=="GRAND TOTAL - DEMAND"]
+DesFBS[,measuredItemFbsSua_description:="DES from FBS"]
+ComparativeDES<-rbind(DEssua,DesFBS)
+
+#if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
+if(length(selectedGEOCode)==1){
+  tmp_file_desSuaFbs<- tempfile(pattern = paste0("DES_SUA_vs_FBS_", COUNTRY_NAME, "_"), fileext = '.csv')
+}else{
+  tmp_file_desSuaFbs<- tempfile(pattern = paste0("DES_SUA_vs_FBS_"), fileext = '.csv')
+}
+write.csv(ComparativeDES, tmp_file_desSuaFbs)
+#End DES comparison: SUA and FBS-----------------
+
+#Items with DES and without FBS group----------------------
+DESItems_noFBSGroup<-dataDes[measuredItemSuaFbs %!in% fbsTree[,get(p$itemVar)] & Value>0,]
+DESItems_noFBSGroup[,measuredElementSuaFbs:="664"]
+DESItems_noFBSGroup<-nameData("suafbs", "sua_balanced", DESItems_noFBSGroup)
+
+if(nrow(DESItems_noFBSGroup)>0){
+  
+  DESItems_noFBSGroup <-
+    dcast(
+      DESItems_noFBSGroup,
+      geographicAreaM49_description + measuredElementSuaFbs_description+measuredItemSuaFbs ~ timePointYears,
+      fun.aggregate = sum,
+      value.var = "Value"
+    )
 }
 
-if(outlierMail=="Yes"){
-  ################### balancing check
-  stanData2<-AfterST_BeforeFBSbal
-  ########################################## CHECK IMBALANCE
-  stanData2[, imbalance := sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
-                                 ifelse(measuredElementSuaFbs == "5510", 1,
-                                        ifelse(measuredElementSuaFbs == "5610", 1,
-                                               ifelse(measuredElementSuaFbs == "5910", -1,
-                                                      ifelse(measuredElementSuaFbs == "5071", -1,
-                                                             ifelse(measuredElementSuaFbs == "5141", -1,
-                                                                    ifelse(measuredElementSuaFbs == "5023", -1,
-                                                                           ifelse(measuredElementSuaFbs == "5520", -1,
-                                                                                  ifelse(measuredElementSuaFbs == "5016", -1,
-                                                                                         ifelse(measuredElementSuaFbs == "5525", -1,
-                                                                                                ifelse(measuredElementSuaFbs == "5165", -1,
-                                                                                                       ifelse(measuredElementSuaFbs == "5164", -1,
-                                                                                                              ifelse(measuredElementSuaFbs == "5166", -1,0))))))))))))),
-            by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
-  
-  
-  #
-  
-  stanData2[, perc.imbalance := imbalance/sum(ifelse(is.na(Value), 0, as.numeric(Value)) *
-                                                ifelse(measuredElementSuaFbs == 5510, 1,
-                                                       ifelse(measuredElementSuaFbs == 5610, 1,
-                                                              ifelse(measuredElementSuaFbs == 5910, -1,
-                                                                     ifelse(measuredElementSuaFbs == 5071, -1,
-                                                                            ifelse(measuredElementSuaFbs == 5141, 0,
-                                                                                   ifelse(measuredElementSuaFbs == 5023, 0,
-                                                                                          ifelse(measuredElementSuaFbs == 5520, 0,
-                                                                                                 ifelse(measuredElementSuaFbs == 5016, 0,
-                                                                                                        ifelse(measuredElementSuaFbs == 5525, 0,
-                                                                                                               ifelse(measuredElementSuaFbs == 5165, 0,
-                                                                                                                      ifelse(measuredElementSuaFbs == 5164, 0,
-                                                                                                                             ifelse(measuredElementSuaFbs == 5166, 0,0))))))))))))),
-            by =c("geographicAreaM49","measuredItemFbsSua", "timePointYears") ]
-  
-  
-  imbalances=copy(stanData2)
-  setkeyv(imbalances,c('geographicAreaM49','measuredItemFbsSua','timePointYears'))
-  imbalancesToSend <- subset(unique(imbalances), select = c('geographicAreaM49','measuredItemFbsSua','timePointYears','imbalance', 'perc.imbalance'))
-  
-  imbalancesToSend <- subset(imbalancesToSend, abs(perc.imbalance)>0.2 & abs(imbalance)>10000)
-  imbalancesToSend<-nameData("suafbs","fbs_standardized",imbalancesToSend)
-  bodyImbalances= paste("The Email contains a list of imbalances exceeding 20% of supply, for total amounts higher than 10 thousand tonnes",
-                        sep='\n')
-  
-  sendMailAttachment(imbalancesToSend,"Imbalances",bodyImbalances)
-  
+#if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
+if(length(selectedGEOCode)==1){
+  tmp_file_noFbsGroup<- tempfile(pattern = paste0("ITEMS_NO_FBSGROUP_", COUNTRY_NAME, "_"), fileext = '.csv')
+}else{
+  tmp_file_noFbsGroup<- tempfile(pattern = paste0("ITEMS_NO_FBSGROUP_"), fileext = '.csv')
 }
-#
 
-# ###################################
-# # TREE TO BE RESAVED
-# 
-# ###  Merge the Tree with the new Values
-# 
-# tree=tree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","extractionRate","share"),with=FALSE]
-# 
-# tree2melt=melt(tree,id.vars = c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears"),
-#                variable.name = "measuredElementSuaFbs",value.name = "Value")
-# 
-# tree2beReExported2=tree2beReExported[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs","flagObservationStatus","flagMethod"),with=FALSE]
-# # newTree=data.table(left_join(tree2beReExported2,tree2melt,by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC","timePointYears","measuredElementSuaFbs")))
-# 
-# newTree=merge(tree2beReExported2,tree2melt,
-#               by=c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-#                    "timePointYears","measuredElementSuaFbs"),all = TRUE)
-# 
-# ###  Change Flags of Recalculated Shares in the Commodity Tree
-# # Combination not to be touched are 
-# 
-# newTree[measuredElementSuaFbs=="share"&(measuredItemParentCPC%in%oilFatsCPC|measuredItemChildCPC%in%oilFatsCPC),flagFix:=T]
-# newTree[flagObservationStatus=="E"&flagMethod=="f",flagFix:=T]
-# # Flags to be assigned are those of the Shares which have been calculated during the Standardization
-# newTree[measuredElementSuaFbs=="share"&is.na(flagFix),flagObservationStatus:="I"]
-# newTree[measuredElementSuaFbs=="share"&is.na(flagFix),flagMethod:="i"]
-# 
-# tree2saveBack=newTree[,c("geographicAreaM49","measuredItemParentCPC","measuredItemChildCPC",
-#                          "timePointYears","measuredElementSuaFbs","flagObservationStatus",
-#                          "flagMethod","Value"),with=FALSE]
-# 
-# ### Before Saving Bach NA have to be changed to zero 
-# tree2saveBack[is.na(Value),Value:=0]
-# 
-# 
-# 
-# tree2saveBack[measuredElementSuaFbs=="extractionRate",measuredElementSuaFbs:="5423",]
-# tree2saveBack[measuredElementSuaFbs=="share",measuredElementSuaFbs:="5431"]
-# tree2saveBack[,measuredElementSuaFbs:=as.character(measuredElementSuaFbs)]
-# setcolorder(tree2saveBack,c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemParentCPC", 
-#                             "measuredItemChildCPC", "timePointYears", "Value", "flagObservationStatus", 
-#                             "flagMethod"))
-# 
-# setnames(tree2saveBack,c("measuredItemParentCPC","measuredItemChildCPC"),c("measuredItemParentCPC_tree","measuredItemChildCPC_tree"))
-# 
-# 
-# message("Save Commodity tree...")
-# 
-# ptm <- proc.time()
-# SaveData(domain = "suafbs", dataset = "ess_fbs_commodity_tree2", data = tree2saveBack, waitTimeout = 20000)
-# message((proc.time() - ptm)[3])
-# 
-# 
-# 
-# ###################################
-### FINAL SAVE
-fbs_sua_conversion2 <- data.table(measuredElementSuaFbs=c("Calories", "Fats", "Proteins","DESfoodSupply_kCd","proteinSupplyQt_gCd","fatSupplyQt_gCd", "exports", "feed", "food",
-                                                          "foodManufacturing", "imports", "loss", "production",
-                                                          "seed", "stockChange", "residual","industrial", "tourist"),
-                                  code=c("261", "281", "271","664","674","684","5910", "5520", "5141",
-                                         "5023", "5610", "5016", "5510",
-                                         "5525", "5071", "5166","5165", "5164"))
+write.csv(DESItems_noFBSGroup, tmp_file_noFbsGroup)
+#End Items with DES and without FBS group----------------------
 
+fin<-Sys.time()
 
-standData = merge(standData, fbs_sua_conversion2, by = "measuredElementSuaFbs")
-standData[,`:=`(measuredElementSuaFbs = NULL)]
-setnames(standData, "code", "measuredElementSuaFbs")
+duree<-fin-commence
 
-## Assign flags: I for imputed (as we're estimating/standardizing) and s for
-## "sum" (aggregate)
-standData[, flagObservationStatus := "I"]
-standData[, flagMethod := "s"]
-
-setcolorder(standData, c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears",
-                         "Value", "flagObservationStatus", "flagMethod"))
-
-# Remove NA Values
-standData <- standData[!is.na(Value),]
-standData=standData[measuredElementSuaFbs%in%c(elemKeys,"664","674","684")]
-
-areaKeys=areaKeys
-if("1248"%in%areaKeys){
-  areaKeys=c(areaKeys,"156")
+if (!CheckDebug()) {
+  send_mail(
+    from = "do-not-reply@fao.org",
+    to = swsContext.userEmail,
+    subject = "Results from newBalancing plugin",
+    body = c("If all commodities of a tree (FBS item) are balanced at SUA level, then the 
+             FBS item is balanced by moving eventual residual to process.",
+             tmp_file_des,
+             tmp_file_residual,
+             tmp_file_noFbsGroup,
+             tmp_file_desSuaFbs,
+             tmp_file_nonStandItemps #,
+             #tmp_file_standData
+    )
+  )
 }
-elemKeys="511"
-key = DatasetKey(domain = "population", dataset = "population_unpd", dimensions = list(
-  geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
-  measuredElementSuaFbs = Dimension(name = "measuredElement", keys = elemKeys),
-  timePointYears = Dimension(name = "timePointYears", keys = as.character(yearVals))
-))
 
-popSWS=GetData(key)
-popSWS[geographicAreaM49=="156",geographicAreaM49:="1248"]
-popSWS[,measuredItemSuaFbs:="S2901"]
-
-setnames(popSWS,"measuredElement","measuredElementSuaFbs")
-setcolorder(popSWS,colnames(standData))
-
-standData=data.table(rbind(standData,popSWS))
-standData=standData[!(measuredItemSuaFbs%in%c("S2901")& !(measuredElementSuaFbs%in%c("664","674","684","511")))]
-standData=standData[!(measuredItemSuaFbs%in%c("2903","2941")& !(measuredElementSuaFbs%in%c("664","674","684")))]
-
-##############  detects outliers at fbs group level and sends mail
-
-if(outlierMail=="Yes"){
-  
-  balData = subset(standData, measuredElementSuaFbs %in% c("664"))
-  
-  balData = balData[,perc.change:= 100*(Value/shift(Value, type="lead")-1), by=c("geographicAreaM49","measuredItemSuaFbs")]
-  
-  
-  balData = subset(balData, (shift(Value, type="lead")>5 | Value>5) & abs(perc.change)>10 & timePointYears>2013)
-  
-  balData=balData[order(Value,perc.change,timePointYears,decreasing = T)]
-  
-  #balData=nameData("suafbs","fbs_balanced_",balData)
-  
-  bodyFBSGroupOutliers= paste("The Email contains a list of items where the caloric intakes increases more than 10% in abslolute value at FBS group level.",
-                              "Consider it as a list of items where to start the validation.",
-                              sep='\n')
-  
-  sendMailAttachment(balData,"FBS_BAL_Outliers",bodyFBSGroupOutliers)
-  
-} 
-############################
-
-message("Attempting to save standardized data...")
-
-setnames(standData, "measuredItemSuaFbs", "measuredItemFbsSua")
-
-
-
-
-ptm <- proc.time()
-out = SaveData(domain = "suafbs", dataset = "fbs_balanced_", data = standData, waitTimeout = 2000000)
-cat(out$inserted + out$ignored, " observations written and problems with ",
-    out$discarded, sep = "")
-paste0(out$inserted + out$ignored, " observations written and problems with ",
-       out$discarded)
-message((proc.time() - ptm)[3])
-
-###################################
-## Initiate email
-from = "sws@fao.org"
-to = swsContext.userEmail
-subject = "Full Standardization and Balancing completed"
-body = "The plug-in has saved the data in your sessions"
-
-if(!CheckDebug()){sendmailR::sendmail(from = from, to = to, subject = subject, msg = body)}
-paste0("Email sent to ", swsContext.userEmail)
-
+print("Done! Please, check you email")
