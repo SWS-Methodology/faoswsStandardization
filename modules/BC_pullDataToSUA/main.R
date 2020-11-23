@@ -479,7 +479,8 @@ Industrial$flagMethod = "e"
 out = rbind(agData, stockData,foodData, lossData, tourData,Industrial) #tradeData
 }
 if((nrow(indData)==0)|(nrow(tourData)==0)){
-out = rbind(agData, stockData,foodData, lossData, tourData,indData) #tradeData
+out = rbind(agData, stockData,foodData, lossData, tourData,indData)#tradeData
+
 }
 
 ## filter production data for back compilation (Delete all derived production that are not Official or semi-official)
@@ -539,7 +540,7 @@ key_unb <-
   )
 
 data_suaunbal <- GetData(key_unb)
-
+tradeData <- subset(data_suaunbal,measuredElementSuaFbs %in% c("5910","5610") )
 # data_suaunbal[measuredElementSuaFbs == "5071" & flagObservationStatus == "T" & flagMethod == "h", ]
 
 #Do not overwrite protcted untilizations
@@ -584,7 +585,7 @@ out2<-out %>% dplyr::anti_join(protected_utilization,
                               by=c("geographicAreaM49","measuredElementSuaFbs",
                                    "measuredItemFbsSua","timePointYears"))
 
-out<-rbind(out1,out2)
+out<-rbind(out1,out2,tradeData)
 
 non_existing <-
   data_suaunbal[!out, on = c('geographicAreaM49', 'measuredElementSuaFbs', 'measuredItemFbsSua', 'timePointYears')]
