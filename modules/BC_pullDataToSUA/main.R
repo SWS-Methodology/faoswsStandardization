@@ -187,7 +187,7 @@ indData[measuredElement == "5153", measuredElement := "5165"]
 setnames(indData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
-  setkey(indData, measuredItemSuaFbs)
+setkey(indData, measuredItemSuaFbs)
 
 
 ################################################
@@ -258,25 +258,25 @@ TourGeoKeys <- tourist_cons_table$tourist
 tourData <- data.table()
 
 if (selectedGEOCode %in% TourGeoKeys) {
-
+  
   TourGeoKeys <- TourGeoKeys[TourGeoKeys==selectedGEOCode]
-
+  
   TourGeoDim <- Dimension(name = "geographicAreaM49", TourGeoKeys)
-
+  
   message("Pulling data from Tourist")
-
+  
   eleTourDim <- Dimension(name = "tourismElement",
-                         keys = touristCode)
+                          keys = touristCode)
   tourKey <- DatasetKey(domain = "tourism", dataset = "tourismprod",
-                       dimensions = list(
-                         geographicAreaM49 = TourGeoDim,
-                         tourismElement = eleTourDim,
-                         measuredItemCPC = itemDim,
-                         timePointYears = timeDim)
+                        dimensions = list(
+                          geographicAreaM49 = TourGeoDim,
+                          tourismElement = eleTourDim,
+                          measuredItemCPC = itemDim,
+                          timePointYears = timeDim)
   )
-
+  
   tourData <- GetData(tourKey)
-
+  
   tourData[, `:=`(tourismElement = suaTouristCode,
                   Value = Value * touristConversionFactor)]
   setnames(tourData, c("tourismElement", "measuredItemCPC"),
@@ -284,13 +284,13 @@ if (selectedGEOCode %in% TourGeoKeys) {
 }
 
 if (nrow(tourData) > 0) {
-
+  
   tourData <- as.data.frame(tourData)
-
+  
   tourData <- unique(tourData)
-
+  
   tourData$timePointYears <- as.integer(tourData$timePointYears)
-
+  
   tourData <- tourData %>%
     dplyr::group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs) %>%
     tidyr::complete(timePointYears=min(timePointYears):2018,nesting(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs))%>%
@@ -300,9 +300,9 @@ if (nrow(tourData) > 0) {
     tidyr::fill(flagMethod,.direction="down") %>%
     dplyr::ungroup() %>%
     dplyr::arrange(geographicAreaM49,measuredItemSuaFbs,timePointYears)
-
+  
   tourData$timePointYears <- as.character(tourData$timePointYears)
-
+  
   tourData <- as.data.table(tourData)
 }
 
@@ -459,28 +459,27 @@ if (nrow(tourData) > 0) {
 
 message("Merging data files together and saving")
 if((nrow(indData)>0)&(nrow(tourData)>0)){
-Tourism_Industrial = rbind(tourData,indData)
-Tourism_Industrial = as.data.frame(Tourism_Industrial)
-Tourism_Industrial = dplyr::select(Tourism_Industrial,-flagObservationStatus,-flagMethod)
-Tourism_Industrial = tidyr::spread(Tourism_Industrial,measuredElementSuaFbs,Value)
-Tourism_Industrial$`5164`[is.na(Tourism_Industrial$`5164`)] = 0
-Tourism_Industrial = Tourism_Industrial %>%
-  dplyr::rowwise() %>%
-  dplyr::mutate(`5165` = `5165` - `5164`) %>%
-  dplyr::ungroup()
-Tourism_Industrial$`5165`[Tourism_Industrial$`5165`<0&!is.na(Tourism_Industrial$`5165`)] = 0
-Tourism_Industrial = tidyr::gather(Tourism_Industrial,measuredElementSuaFbs,Value,-c(geographicAreaM49,
-                                                                              measuredItemSuaFbs,
-                                                                              timePointYears))
-Industrial = dplyr::filter(Tourism_Industrial,measuredElementSuaFbs=="5165")
-Industrial = as.data.table(Industrial)
-Industrial$flagObservationStatus = "I"
-Industrial$flagMethod = "e"
-out = rbind(agData, stockData,foodData, lossData, tourData,Industrial) #tradeData
+  Tourism_Industrial = rbind(tourData,indData)
+  Tourism_Industrial = as.data.frame(Tourism_Industrial)
+  Tourism_Industrial = dplyr::select(Tourism_Industrial,-flagObservationStatus,-flagMethod)
+  Tourism_Industrial = tidyr::spread(Tourism_Industrial,measuredElementSuaFbs,Value)
+  Tourism_Industrial$`5164`[is.na(Tourism_Industrial$`5164`)] = 0
+  Tourism_Industrial = Tourism_Industrial %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(`5165` = `5165` - `5164`) %>%
+    dplyr::ungroup()
+  Tourism_Industrial$`5165`[Tourism_Industrial$`5165`<0&!is.na(Tourism_Industrial$`5165`)] = 0
+  Tourism_Industrial = tidyr::gather(Tourism_Industrial,measuredElementSuaFbs,Value,-c(geographicAreaM49,
+                                                                                       measuredItemSuaFbs,
+                                                                                       timePointYears))
+  Industrial = dplyr::filter(Tourism_Industrial,measuredElementSuaFbs=="5165")
+  Industrial = as.data.table(Industrial)
+  Industrial$flagObservationStatus = "I"
+  Industrial$flagMethod = "e"
+  out = rbind(agData, stockData,foodData, lossData, tourData,Industrial) #tradeData
 }
 if((nrow(indData)==0)|(nrow(tourData)==0)){
-out = rbind(agData, stockData,foodData, lossData, tourData,indData)#tradeData
-
+  out = rbind(agData, stockData,foodData, lossData, tourData,indData) #tradeData
 }
 
 ## filter production data for back compilation (Delete all derived production that are not Official or semi-official)
@@ -540,6 +539,8 @@ key_unb <-
   )
 
 data_suaunbal <- GetData(key_unb)
+
+# save the trade data to merge back into output
 tradeData <- subset(data_suaunbal,measuredElementSuaFbs %in% c("5910","5610") )
 # data_suaunbal[measuredElementSuaFbs == "5071" & flagObservationStatus == "T" & flagMethod == "h", ]
 
@@ -577,15 +578,15 @@ protected_utilization<-dataSUA %>% dplyr::filter(measuredElementSuaFbs %in% util
 
 #Official data in SUA but not in domain
 out1<-protected_utilization %>% dplyr::anti_join(out,
-                              by=c("geographicAreaM49","measuredElementSuaFbs",
-                                   "measuredItemFbsSua","timePointYears"))
+                                                 by=c("geographicAreaM49","measuredElementSuaFbs",
+                                                      "measuredItemFbsSua","timePointYears"))
 
 
 out2<-out %>% dplyr::anti_join(protected_utilization,
-                              by=c("geographicAreaM49","measuredElementSuaFbs",
-                                   "measuredItemFbsSua","timePointYears"))
+                               by=c("geographicAreaM49","measuredElementSuaFbs",
+                                    "measuredItemFbsSua","timePointYears"))
 
-out<-rbind(out1,out2,tradeData)
+out<-rbind(out1,out2, tradeData)
 
 non_existing <-
   data_suaunbal[!out, on = c('geographicAreaM49', 'measuredElementSuaFbs', 'measuredItemFbsSua', 'timePointYears')]
@@ -619,4 +620,3 @@ body = "The plug-in has saved the SUAs in your session"
 
 sendmailR::sendmail(from = from, to = to, subject = subject, msg = body)
 paste0("Email sent to ", swsContext.userEmail)
-
