@@ -36,6 +36,10 @@ library(sendmailR)
 library(dtplyr)
 library(tidyr)
 
+
+# negate in function
+`%!in%`<-Negate(`%in%`)
+
 oldProductionCode = "51"
 foodCode = "5141"
 importCode = "5610"
@@ -60,7 +64,7 @@ if(CheckDebug()){
   message("Not on server, so setting up environment...")
   
   library(faoswsModules)
-  SETT <- ReadSettings("modules/pullDataToSUA/sws.yml")
+  SETT <- ReadSettings("modules/BC_pullDataToSUA/sws.yml")
   
   #R_SWS_SHARE_PATH <- SETT[["share"]]  
   ## Get SWS Parameters
@@ -165,6 +169,9 @@ indEleDim = Dimension(name = "measuredElement",
 
 geoDim = Dimension(name = "geographicAreaM49", keys = selectedGEOCode)
 
+# Get pre 2012 years with older code ("Other use") (harmonization, however, not same concept and definition)
+# Old methodology: industrial was a residual, now its flat data
+indEleDim@keys = c("5165", "5153")
 indKey = DatasetKey(domain = "agriculture", dataset = "aproduction",
                     dimensions = list(
                       geographicAreaM49 = geoDim,
@@ -173,10 +180,14 @@ indKey = DatasetKey(domain = "agriculture", dataset = "aproduction",
                       timePointYears = timeDim)
 )
 indData = GetData(indKey)
+
+indData = indData[!(measuredElement == "5153" & timePointYears > 2011), ]
+# overwrite old element key with new one
+indData[measuredElement == "5153", measuredElement := "5165"]
 setnames(indData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
-
+  setkey(indData, measuredItemSuaFbs)
 
 
 ################################################
@@ -421,24 +432,26 @@ if (nrow(tourData) > 0) {
 
 ### TRADE DATA FROM SINGLE SOURCE
 
-message("Pulling data from Trade")
 
-eleTradeDim = Dimension(name = "measuredElementTrade",
-                        keys = c(importCode, exportCode))
-#tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")), waitTimeout = 2000000)
-
-timeTradeDim = Dimension(name = "timePointYears", keys = as.character(yearVals))
-
-tradeKey = DatasetKey(
-  domain = "trade", dataset = "total_trade_cpc_m49",
-  dimensions = list(geographicAreaM49 = geoDim,
-                    measuredElementTrade = eleTradeDim,
-                    measuredItemCPC = itemDim,
-                    timePointYears = timeTradeDim)
-)
-tradeData = GetData(tradeKey)
-setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
-         c("measuredElementSuaFbs", "measuredItemSuaFbs"))
+## TRADE IS NOT PULLED FOR THE BACK COMPILATION
+# message("Pulling data from Trade")
+# 
+# eleTradeDim = Dimension(name = "measuredElementTrade",
+#                         keys = c(importCode, exportCode))
+# #tradeItems <- na.omit(sub("^0+", "", cpc2fcl(unique(itemKeys), returnFirst = TRUE, version = "latest")), waitTimeout = 2000000)
+# 
+# timeTradeDim = Dimension(name = "timePointYears", keys = as.character(yearVals))
+# 
+# tradeKey = DatasetKey(
+#   domain = "trade", dataset = "total_trade_cpc_m49",
+#   dimensions = list(geographicAreaM49 = geoDim,
+#                     measuredElementTrade = eleTradeDim,
+#                     measuredItemCPC = itemDim,
+#                     timePointYears = timeTradeDim)
+# )
+# tradeData = GetData(tradeKey)
+# setnames(tradeData, c("measuredElementTrade", "measuredItemCPC"),
+#          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
 ################################################
 #####       Merging data files together    #####
@@ -463,11 +476,21 @@ Industrial = dplyr::filter(Tourism_Industrial,measuredElementSuaFbs=="5165")
 Industrial = as.data.table(Industrial)
 Industrial$flagObservationStatus = "I"
 Industrial$flagMethod = "e"
-out = rbind(agData, stockData,foodData, lossData, tradeData, tourData,Industrial)
+out = rbind(agData, stockData,foodData, lossData, tourData,Industrial) #tradeData
 }
 if((nrow(indData)==0)|(nrow(tourData)==0)){
-out = rbind(agData, stockData,foodData, lossData, tradeData, tourData,indData)
+out = rbind(agData, stockData,foodData, lossData, tourData,indData) #tradeData
 }
+
+## filter production data for back compilation (Delete all derived production that are not Official or semi-official)
+utilizationTable = ReadDatatable("utilization_table_2018")
+derived = utilizationTable[proxy_primary == "X" | derived == "X", cpc_code]
+
+DerivedProductionToExclude = out[measuredElementSuaFbs == "5510" & measuredElementSuaFbs %in% derived & flagObservationStatus %!in% c("", "T"),  ]
+out = out[!DerivedProductionToExclude, on = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears")]
+
+# Alternatively
+# out[!(measuredElementSuaFbs == "5510" & measuredElementSuaFbs %in% derived & flagObservationStatus %!in% c("", "T")),  ]
 
 # NOTE: on 20190911 the removal of items below was commented out after
 # discussion with TF about cases where food for important items was
@@ -483,7 +506,7 @@ out = rbind(agData, stockData,foodData, lossData, tradeData, tourData,indData)
 ###        &measuredElementSuaFbs=="5141"
 ###        ,Value:=NA]
 
-# only for Japan, delete also Food of Rice Milled.
+# only for Japan, delete also Food of Rice Milled. 
 out[geographicAreaM49=="392"&measuredElementSuaFbs=="5141"&measuredItemSuaFbs=="23161.02",Value:=0]
 
 #### The previous step has been inserted here and removed from the standardization in order
@@ -511,23 +534,27 @@ key_unb <-
                     keys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", 'measuredItemFbsSua')$code),
         timePointYears =
           Dimension(name = "timePointYears",
-                    keys = unique(out$timePointYears))
+                    keys = c(unique(out$timePointYears)))
       )
   )
 
 data_suaunbal <- GetData(key_unb)
 
+# data_suaunbal[measuredElementSuaFbs == "5071" & flagObservationStatus == "T" & flagMethod == "h", ]
+
 #Do not overwrite protcted untilizations
 dataSUA<-copy(data_suaunbal)
 
-`%!in%`<-Negate(`%in%`)
+# To be tested: Consistency of USDA sources (i.e. countries should have consistent sock data if available and not switch back and forth)
+
 
 flagValidTable <- ReadDatatable("valid_flags")
 
+# utilization for which we do not overwrite offical data 
 utilization_element<-setdiff(unique(dataSUA$measuredElementSuaFbs),c("5610","5910","5071","5113"))
 
 
-#create a variable that take TRUE if the utilization value from the domain is offcial
+#create a variable that take TRUE if the utilization value from the domain is official
 official_utilization<-out %>% dplyr::filter(measuredElementSuaFbs %in% utilization_element) %>% 
   dplyr::left_join(flagValidTable, by = c("flagObservationStatus", "flagMethod")) %>% 
   dplyr::mutate(official_domain=ifelse(flagObservationStatus %in% c("", "T"),TRUE,FALSE)) %>% 
