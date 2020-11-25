@@ -20,7 +20,7 @@ R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
 if (CheckDebug()) {
   R_SWS_SHARE_PATH <- "//hqlprsws1.hq.un.fao.org/sws_r_share"
 
-  mydir <- "modules/SUA_bal_compilation"
+  mydir <- "modules/BC_SUA_bal_compilation"
   
   SETTINGS <- faoswsModules::ReadSettings(file.path(mydir, "sws.yml"))
   
@@ -71,6 +71,12 @@ FIX_OUTLIERS <- TRUE
 FILL_EXTRACTION_RATES <- TRUE
 
 YEARS <- as.character(2000:2018)
+
+# Define query related timePointYears
+startYear = 2010
+endYear = 2013
+
+refYear = 2014:2018  
 
 TMP_DIR <- file.path(tempdir(), USER)
 if (!file.exists(TMP_DIR)) dir.create(TMP_DIR, recursive = TRUE)
@@ -167,7 +173,7 @@ coeffs_stocks_mod <- function(x) {
 # This function will recalculate opening stocks from the first
 # observation. Always.
 update_opening_stocks <- function(x) {
-  x <- x[order(geographicAreaM49, measuredItemSuaFbs, timePointYears)]
+  x <- x[order(geographicAreaM49, measuredItemSuaFbs, -timePointYears)] # reversed order for backward compilation
 
   groups <- unique(x[, c("geographicAreaM49", "measuredItemSuaFbs"), with = FALSE])
 
@@ -181,7 +187,7 @@ update_opening_stocks <- function(x) {
         if (z$delta[j-1] < 0 & abs(z$delta[j-1]) > z$new_opening[j-1]) {
           z$delta[j-1] <- - z$new_opening[j-1]
         }
-        z$new_opening[j] <- z$new_opening[j-1] + z$delta[j-1]
+        z$new_opening[j] <- z$new_opening[j-1] - z$delta[j-1]
       }
       # negative delta cannot be more than opening
       if (z$delta[j] < 0 & abs(z$delta[j]) > z$new_opening[j]) {
@@ -872,8 +878,8 @@ message("Line 816")
 
 dbg_print("download tree")
 
-tree <- getCommodityTreeNewMethod(COUNTRY, YEARS)
-
+# tree <- getCommodityTreeNewMethod(COUNTRY, YEARS)
+tree <- getCommodityTreeNewMethod(COUNTRY, as.character(2000:endYear))
 stopifnot(nrow(tree) > 0)
 
 tree <- tree[geographicAreaM49 %chin% COUNTRY]
@@ -918,7 +924,7 @@ tree[Value == 0 & !(flagObservationStatus == "E" & flagMethod == "f"), Value := 
 tree_to_send <- tree[is.na(Value) & measuredElementSuaFbs=="extractionRate"]
 message("Line 864")
 
-if (FILL_EXTRACTION_RATES == TRUE) {
+#if (FILL_EXTRACTION_RATES == TRUE) {
 
   expanded_tree <-
     merge(
@@ -966,7 +972,7 @@ if (FILL_EXTRACTION_RATES == TRUE) {
   tree[, flagMethod := i.i.flagMethod]
 
   tree[, names(tree)[grep("^i\\.", names(tree))] := NULL]
-}
+# }
 
 
 # XXX: connections removed here that should not exist in
@@ -976,7 +982,8 @@ tree[
     ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
       #cheese from whole cow milk cannot come from skim mulk of cow
     (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01") |
-      (measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22251.02")
+      # WE DELETED _tree of the variable name
+      (measuredItemParentCPC == "02211" & measuredItemChildCPC == "22251.02")
     ),
   `:=`(
     Value = NA,
@@ -988,7 +995,7 @@ tree[
 #correction of milk tree for Czechia TO DO: generalize for the next round
 
 tree[
-  timePointYears >= 2014 & geographicAreaM49=="203" &
+   geographicAreaM49=="203" &
   
   #“whole milk powder”  from whole cow milk cannot come from skim mulk of cow
     ((measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22211") |
@@ -1107,7 +1114,7 @@ key <-
       list(
         geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
         measuredElementSuaFbs = Dimension(name = "measuredElement", keys = "511"), # 511 = Total population
-        timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2018))
+        timePointYears = Dimension(name = "timePointYears", keys = YEARS)
       )
   )
 
@@ -1195,7 +1202,7 @@ nutrientCodes = c("1001", "1003", "1005")
 nutrientData <-
   getNutritiveFactors(
     measuredElement = nutrientCodes, 
-    timePointYears = as.character(2014:2018),
+    timePointYears = as.character(startYear:endYear),
     geographicAreaM49 = COUNTRY
   )
 
@@ -1361,7 +1368,7 @@ message("Line 1286")
 non_null_prev_deltas <-
   unique(
     data[
-      measuredElementSuaFbs == "5071" & timePointYears %in% 2009:2013
+      measuredElementSuaFbs == "5071" & timePointYears %in% refYear
     ][,
       .SD[sum(!dplyr::near(Value, 0)) > 0],
       by = c("geographicAreaM49", "measuredItemFbsSua")
@@ -1383,7 +1390,7 @@ opening_stocks_2014 <-
     )
   ]
 
-# Keep only those for which recent variations are available
+# Keep only those for which recent variations are available (for back compilation: stocks make sense if we have stocks in 2014-2018)
 opening_stocks_2014 <-
   opening_stocks_2014[
     non_null_prev_deltas,
@@ -1439,61 +1446,65 @@ all_opening_stocks[
 ]
 
 
+### For back-compilation we make use of the fully validated 2014 stocks. No need to make up stocks if not available
+
 # Now, for all remaining stockable items, we create opening
 # stocks in 2014 as 20% of supply in 2013
 
-remaining_opening_stocks <-
-  data[
-    timePointYears == "2013" &
-      measuredItemFbsSua %chin%
-        setdiff(
-          stockable_items,
-          all_opening_stocks$measuredItemFbsSua
-        )
-  ][,
-    .(
-      opening_20 =
-        sum(
-          Value[measuredElementSuaFbs %chin% c("5510", "5610")],
-          - Value[measuredElementSuaFbs == "5910"],
-          na.rm = TRUE
-        ) * 0.2,
-      timePointYears = "2014"
-    ),
-    by = c("geographicAreaM49", "measuredItemFbsSua")
-  ]
+# remaining_opening_stocks <-
+#   data[
+#     timePointYears == "2013" &
+#       measuredItemFbsSua %chin%
+#         setdiff(
+#           stockable_items,
+#           all_opening_stocks$measuredItemFbsSua
+#         )
+#   ][,
+#     .(
+#       opening_20 =
+#         sum(
+#           Value[measuredElementSuaFbs %chin% c("5510", "5610")],
+#           - Value[measuredElementSuaFbs == "5910"],
+#           na.rm = TRUE
+#         ) * 0.2,
+#       timePointYears = "2014"
+#     ),
+#     by = c("geographicAreaM49", "measuredItemFbsSua")
+#   ]
 
-remaining_opening_stocks[opening_20 < 0, opening_20 := 0]
+# remaining_opening_stocks[opening_20 < 0, opening_20 := 0]
 
-all_opening_stocks <-
-  merge(
-    all_opening_stocks,
-    remaining_opening_stocks,
-    by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
-    all = TRUE
-  )
+# all_opening_stocks <-
+#   merge(
+#     all_opening_stocks,
+#     remaining_opening_stocks,
+#     by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+#     all = TRUE
+#   )
+
+
 
 all_opening_stocks <- all_opening_stocks[!is.na(timePointYears)]
 
-all_opening_stocks[
-  !Protected %in% TRUE & is.na(Value) & !is.na(opening_20),
-  `:=`(
-    Value = opening_20,
-    flagObservationStatus = "I",
-    flagMethod = "i",
-    # We protect these, in any case, because they should not
-    # be overwritten, even if not (semi) official or expert
-    Protected = TRUE
-  )
-][,
-  opening_20 := NULL
-]
+# all_opening_stocks[
+#   !Protected %in% TRUE & is.na(Value) & !is.na(opening_20),
+#   `:=`(
+#     Value = opening_20,
+#     flagObservationStatus = "I",
+#     flagMethod = "i",
+#     # We protect these, in any case, because they should not
+#     # be overwritten, even if not (semi) official or expert
+#     Protected = TRUE
+#   )
+# ][,
+#   opening_20 := NULL
+# ]
 
 
 complete_all_opening <-
   CJ(
     geographicAreaM49 = unique(all_opening_stocks$geographicAreaM49),
-    timePointYears = as.character(min(all_opening_stocks$timePointYears):2018),
+    timePointYears = as.character(min(all_opening_stocks$timePointYears):min(refYear)),
     measuredItemFbsSua = unique(all_opening_stocks$measuredItemFbsSua)
   )
 
@@ -1536,19 +1547,20 @@ all_opening_stocks <- all_opening_stocks[!is.na(timePointYears)]
 # Generate stocks variations for items for which opening
 # exists for ALL years and variations don't exist
 
+## Changed for back compilation
 opening_avail_all_years <-
   all_opening_stocks[
-    !is.na(Value) & timePointYears >= 2014,
-    .SD[.N == (2018 - 2014 + 1)],
+    !is.na(Value) & timePointYears < 2014,
+    .SD[.N == (endYear - startYear + 1)],
     measuredItemFbsSua
   ]
 
 delta_avail_for_open_all_years <-
   data[
     measuredElementSuaFbs == "5071" &
-      timePointYears >= 2014 &
+      timePointYears < 2014 &
       measuredItemFbsSua %chin% opening_avail_all_years$measuredItemFbsSua,
-    .SD[.N == (2018 - 2014 + 1)],
+    .SD[.N == (endYear - startYear + 1)],
     measuredItemFbsSua
   ]
 
@@ -1623,7 +1635,7 @@ if (length(to_generate_by_ident) > 0) {
 
   delta_identity <-
     opening_avail_all_years[
-      timePointYears %in% 2014:2018,
+      timePointYears %in% as.character(startYear:endYear), # changed for back compilation
       .(
         geographicAreaM49,
         measuredItemFbsSua,
@@ -1662,7 +1674,7 @@ data_for_opening <-
     ],
     data[
       measuredElementSuaFbs == '5071' &
-        timePointYears %in% 2014:2018 &
+        timePointYears %in% as.character(startYear:(endYear +1)) & # changed years for back compilation 
         !is.na(Value),
       .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua,
         timePointYears, delta = Value)
@@ -1672,7 +1684,7 @@ data_for_opening <-
 
 data_for_opening[is.na(delta), delta := 0]
 
-data_for_opening <- data_for_opening[timePointYears >= 2014]
+data_for_opening <- data_for_opening[timePointYears <= endYear+1] # changed for back compilation (note: 2014 needs to be in there!!)
 
 data_for_opening <- update_opening_stocks(data_for_opening)
 
@@ -1737,6 +1749,7 @@ codes <- as.data.table(tibble::tribble(
   "5071", "stockChange"
 ))
 
+# switch from element codes to element names
 data <- dt_left_join(data, codes, by = "measuredElementSuaFbs")
 
 data[, measuredElementSuaFbs := name]
@@ -1767,156 +1780,158 @@ message("Line 1686")
 # remove the NEW feed item if the NEGATIVE imbalance obtained by including
 # it is more than 50% of supply (e.g., -72%).
 
-new_feed <-
-  data[
-    measuredElementSuaFbs == "feed",
-    .(
-      pre = sum(!is.na(Value[timePointYears <= 2013])),
-      post = sum(!is.na(Value[timePointYears >= 2014]))
-    ),
-    by = c("geographicAreaM49", "measuredItemSuaFbs")
-  ][
-    pre == 0 & post > 0
-  ][,
-    c("pre", "post") := NULL
-  ]
+# THIS PART IS NOT NEEDED FOR BACK COMPILATION, because nef feed are already generated in the 2014-2018
+# new_feed <-
+#   data[
+#     measuredElementSuaFbs == "feed",
+#     .(
+#       pre = sum(!is.na(Value[timePointYears %in% 2010:2013])),
+#       post = sum(!is.na(Value[timePointYears >= 2014]))
+#     ),
+#     by = c("geographicAreaM49", "measuredItemSuaFbs")
+#   ][
+#     # pre == 0 & post > 0
+#     pre > 0 & post == 0 # turned around for back compilation
+#   ][,
+#     c("pre", "post") := NULL
+#   ]
 
-msg_new_feed_remove <- "No NEW feed removed"
-msg_new_feed_dubious <- "No other NEW items should be removed"
+# msg_new_feed_remove <- "No NEW feed removed"
+# msg_new_feed_dubious <- "No other NEW items should be removed"
 
-if (nrow(new_feed) > 0) {
-
-  # prev_data_avg <-
-  #   data[
-  #     new_feed, on = c("geographicAreaM49", "measuredItemSuaFbs")
-  #   ][
-  #     timePointYears >= 2010 & timePointYears <= 2013
-  #   ][
-  #     order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
-  #     Value := na.fill_(Value),
-  #     by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-  #   ][,
-  #     .(Value = sum(Value) / sum(!is.na(Value)), timePointYears = 0),
-  #     by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-  #   ]
-  # 
-  # calculateImbalance(prev_data_avg, supply_subtract = c("exports", "stockChange"))
-
-  # prev_processed_avg <-
-  #   prev_data_avg[
-  #     supply > 0 &
-  #       utilizations > 0 &
-  #       measuredElementSuaFbs == "foodManufacturing" &
-  #       !is.na(Value),
-  #     .(geographicAreaM49, measuredItemSuaFbs, proc_ratio = Value / supply)
-  #   ]
-
-
-  new_data_avg <-
-    data[
-      new_feed,
-      on = c("geographicAreaM49", "measuredItemSuaFbs")
-    ][
-      # measuredElementSuaFbs != "foodManufacturing" & timePointYears >= 2014
-    ][
-      order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
-      Value := na.fill_(Value),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-    ][,
-      .(Value = sum(Value) / sum(!is.na(Value) & !dplyr::near(Value, 0)), timePointYears = 1),
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
-    ][
-      !is.nan(Value)
-    ]
-
-  calculateImbalance(
-    new_data_avg,
-    keep_utilizations = FALSE,
-    supply_subtract = c("exports", "stockChange")
-  )
-
-  # new_data_supply <-
-  #   unique(
-  #     new_data_avg[,
-  #       c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears", "supply"),
-  #       with = FALSE
-  #     ]
-  #   )
-
-  # new_data_proc <-
-  #   dt_left_join(
-  #     new_data_supply,
-  #     prev_processed_avg,
-  #     by = c("geographicAreaM49", "measuredItemSuaFbs"),
-  #     nomatch = 0
-  #   )
-  # 
-  # new_data_proc <-
-  #   new_data_proc[
-  #     supply > 0,
-  #     .(geographicAreaM49, measuredItemSuaFbs,
-  #       measuredElementSuaFbs = "foodManufacturing",
-  #       Value = supply * proc_ratio, timePointYears = 1)
-  #   ]
-  # 
-  # new_data_avg[, c("supply", "imbalance") := NULL]
-
-  # new_data_avg <-
-  #   rbind(
-  #     new_data_avg,
-  #     new_data_proc
-  #   )
-  # 
-  # calculateImbalance(new_data_avg, supply_subtract = c("exports", "stockChange"))
-
-
-  new_feed_to_remove <-
-    unique(
-      new_data_avg[
-        imbalance / supply <= -0.3,
-        c("geographicAreaM49", "measuredItemSuaFbs"),
-        with = FALSE
-      ]
-    )
-
-  new_feed_to_remove[, measuredElementSuaFbs := "feed"]
-  new_feed_to_remove[, remove_feed := TRUE]
-
-  new_feed_dubious <-
-    unique(
-      new_data_avg[
-        imbalance / supply > -0.3 & imbalance / supply <= -0.05,
-        .(geographicAreaM49, measuredItemSuaFbs, x = imbalance / supply)
-      ][order(x)][, x := NULL]
-    )
-
-  data <-
-    merge(
-      data,
-      new_feed_to_remove,
-      by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs"),
-      all.x = TRUE
-  )
-
-  feed_to_remove <-
-    data[
-      remove_feed == TRUE & Protected == FALSE
-    ][,
-      .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears)
-    ]
-
-  data[, remove_feed := NULL]
-
-  data <- data[!feed_to_remove, on = names(feed_to_remove)]
-
-  if (nrow(feed_to_remove) > 0) {
-    msg_new_feed_remove <- paste(new_feed_to_remove$measuredItemSuaFbs, collapse = ", ")
-  }
-
-  if (nrow(new_feed_dubious) > 0) {
-    msg_new_feed_dubious <- paste(new_feed_dubious$measuredItemSuaFbs, collapse = ", ")
-  }
-}
+#  if (nrow(new_feed) > 0) {
+# 
+#   # prev_data_avg <-
+#   #   data[
+#   #     new_feed, on = c("geographicAreaM49", "measuredItemSuaFbs")
+#   #   ][
+#   #     timePointYears >= 2010 & timePointYears <= 2013
+#   #   ][
+#   #     order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
+#   #     Value := na.fill_(Value),
+#   #     by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+#   #   ][,
+#   #     .(Value = sum(Value) / sum(!is.na(Value)), timePointYears = 0),
+#   #     by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+#   #   ]
+#   # 
+#   # calculateImbalance(prev_data_avg, supply_subtract = c("exports", "stockChange"))
+# 
+#   # prev_processed_avg <-
+#   #   prev_data_avg[
+#   #     supply > 0 &
+#   #       utilizations > 0 &
+#   #       measuredElementSuaFbs == "foodManufacturing" &
+#   #       !is.na(Value),
+#   #     .(geographicAreaM49, measuredItemSuaFbs, proc_ratio = Value / supply)
+#   #   ]
+# 
+# 
+#   new_data_avg <-
+#     data[
+#       new_feed,
+#       on = c("geographicAreaM49", "measuredItemSuaFbs")
+#     ][
+#       # measuredElementSuaFbs != "foodManufacturing" & timePointYears >= 2014
+#     ][
+#       order(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears),
+#       Value := na.fill_(Value),
+#       by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+#     ][,
+#       .(Value = sum(Value) / sum(!is.na(Value) & !dplyr::near(Value, 0)), timePointYears = 1),
+#       by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs")
+#     ][
+#       !is.nan(Value)
+#     ]
+# 
+#   # calculateImbalance(
+#   #   new_data_avg,
+#   #   keep_utilizations = FALSE,
+#   #   supply_subtract = c("exports", "stockChange")
+#   # )
+# 
+#   # new_data_supply <-
+#   #   unique(
+#   #     new_data_avg[,
+#   #       c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears", "supply"),
+#   #       with = FALSE
+#   #     ]
+#   #   )
+# 
+#   # new_data_proc <-
+#   #   dt_left_join(
+#   #     new_data_supply,
+#   #     prev_processed_avg,
+#   #     by = c("geographicAreaM49", "measuredItemSuaFbs"),
+#   #     nomatch = 0
+#   #   )
+#   # 
+#   # new_data_proc <-
+#   #   new_data_proc[
+#   #     supply > 0,
+#   #     .(geographicAreaM49, measuredItemSuaFbs,
+#   #       measuredElementSuaFbs = "foodManufacturing",
+#   #       Value = supply * proc_ratio, timePointYears = 1)
+#   #   ]
+#   # 
+#   # new_data_avg[, c("supply", "imbalance") := NULL]
+# 
+#   # new_data_avg <-
+#   #   rbind(
+#   #     new_data_avg,
+#   #     new_data_proc
+#   #   )
+#   # 
+#   # calculateImbalance(new_data_avg, supply_subtract = c("exports", "stockChange"))
+# 
+# 
+#   new_feed_to_remove <-
+#     unique(
+#       new_data_avg[
+#         imbalance / supply <= -0.3,
+#         c("geographicAreaM49", "measuredItemSuaFbs"),
+#         with = FALSE
+#       ]
+#     )
+# 
+#   new_feed_to_remove[, measuredElementSuaFbs := "feed"]
+#   new_feed_to_remove[, remove_feed := TRUE]
+# 
+#   new_feed_dubious <-
+#     unique(
+#       new_data_avg[
+#         imbalance / supply > -0.3 & imbalance / supply <= -0.05,
+#         .(geographicAreaM49, measuredItemSuaFbs, x = imbalance / supply)
+#       ][order(x)][, x := NULL]
+#     )
+# 
+#   data <-
+#     merge(
+#       data,
+#       new_feed_to_remove,
+#       by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs"),
+#       all.x = TRUE
+#   )
+# 
+#   feed_to_remove <-
+#     data[
+#       remove_feed == TRUE & Protected == FALSE
+#     ][,
+#       .(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, timePointYears)
+#     ]
+# 
+#   data[, remove_feed := NULL]
+# 
+#   data <- data[!feed_to_remove, on = names(feed_to_remove)]
+# 
+#   if (nrow(feed_to_remove) > 0) {
+#     msg_new_feed_remove <- paste(new_feed_to_remove$measuredItemSuaFbs, collapse = ", ")
+#   }
+# 
+#   if (nrow(new_feed_dubious) > 0) {
+#     msg_new_feed_dubious <- paste(new_feed_dubious$measuredItemSuaFbs, collapse = ", ")
+#   }
+# }
 
 
 ########## / Remove feed if new element and negative imbalance is huge
