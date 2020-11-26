@@ -293,7 +293,7 @@ if (nrow(tourData) > 0) {
   
   tourData <- tourData %>%
     dplyr::group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs) %>%
-    tidyr::complete(timePointYears=min(timePointYears):2018,nesting(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs))%>%
+    tidyr::complete(timePointYears=min(timePointYears):endYear,nesting(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs))%>%
     dplyr::arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs,timePointYears) %>%
     tidyr::fill(Value,.direction="down") %>%
     tidyr::fill(flagObservationStatus,.direction="down") %>%
@@ -486,7 +486,7 @@ if((nrow(indData)==0)|(nrow(tourData)==0)){
 utilizationTable = ReadDatatable("utilization_table_2018")
 derived = utilizationTable[proxy_primary == "X" | derived == "X", cpc_code]
 
-DerivedProductionToExclude = out[measuredElementSuaFbs == "5510" & measuredElementSuaFbs %in% derived & flagObservationStatus %!in% c("", "T"),  ]
+DerivedProductionToExclude = out[measuredElementSuaFbs == "5510" & measuredItemSuaFbs %in% derived & flagObservationStatus %!in% c("", "T") ,  ]
 out = out[!DerivedProductionToExclude, on = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears")]
 
 # Alternatively
@@ -600,6 +600,7 @@ if (nrow(non_existing) > 0) {
 
 # / Wipe cells
 
+out = out[timePointYears %in% as.character(startYear:endYear), ]
 
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
 
