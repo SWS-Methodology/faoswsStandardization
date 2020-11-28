@@ -4596,8 +4596,12 @@ if (nrow(data_ind_tour) > 0) {
 }
 
 if (exists("data_outliers")) {
-  setnames(data_outliers, c("measuredItemSuaFbs", "measuredElementSuaFbs"), c("measuredItemFbsSua", "name"))
-
+  
+  #  commented for back compilation because for some reason measuredItemFBSSua is already present. Probably due to 
+  #  some change in the code before
+  # setnames(data_outliers, c("measuredItemSuaFbs", "measuredElementSuaFbs"), c("measuredItemFbsSua", "name"))
+  setnames(data_outliers, c("measuredElementSuaFbs"), c("name"))
+  
   data_outliers <- dt_left_join(data_outliers, codes, by = "name")
 
   data_outliers <- data_outliers[, names(data_to_save_unbalanced), with = FALSE]
@@ -6358,6 +6362,11 @@ out <- SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData, w
 
 if (exists("out")) {
 
+  
+  ## UNTIL FEED IS BROUGHT ON BOARD IN BACK COMPILATION
+  
+  msg_new_feed_remove = "No food currently implemented"
+  msg_new_feed_dubious = "---"
   body_message <-
     sprintf(
       "Plugin completed in %1.2f minutes.
@@ -6477,8 +6486,8 @@ if (exists("out")) {
       THRESHOLD_METHOD,
       FILL_EXTRACTION_RATES,
       sub('/work/SWS_R_Share/', '', shareDownUp_file),
-      msg_new_feed_remove,
-      msg_new_feed_dubious
+       msg_new_feed_remove, 
+       msg_new_feed_dubious 
     )
 
   if (!CheckDebug()) {
