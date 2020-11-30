@@ -181,17 +181,27 @@ update_opening_stocks <- function(x) {
 
   for (i in seq_len(nrow(groups))) {
     z <- x[groups[i], on = c("geographicAreaM49", "measuredItemSuaFbs")]
+    #z <- z[order(geographicAreaM49, measuredItemSuaFbs, -timePointYears)]
     if (nrow(z) > 1) {
       for (j in seq_len(nrow(z))[-1]) {
+
         # negative delta cannot be more than opening
-        if (z$delta[j-1] < 0 & abs(z$delta[j-1]) > z$new_opening[j-1]) {
-          z$delta[j-1] <- - z$new_opening[j-1]
-        }
-        z$new_opening[j] <- z$new_opening[j-1] - z$delta[j-1]
+        
+        # two ifelse commented for bc
+        # if (z$delta[j] < 0 & abs(z$delta[j]) > z$new_opening[j]) {
+        #   z$delta[j] <- - z$new_opening[j]
+        # }
+        
       }
       # negative delta cannot be more than opening
-      if (z$delta[j] < 0 & abs(z$delta[j]) > z$new_opening[j]) {
-        z$delta[j] <- - z$new_opening[j]
+      # if (z$delta[j] < 0 & abs(z$delta[j]) > z$new_opening[j]) {
+      #   z$delta[j] <- - z$new_opening[j]
+      # }
+      if(z$new_opening[j-1] - z$delta[j] > 0){
+        z$new_opening[j] = z$new_opening[j-1] - z$delta[j]
+      }else{
+      z$delta[j] = z$new_opening[j-1]
+      z$new_opening[j] = 0
       }
     }
     res[[i]] <- z
@@ -4524,7 +4534,7 @@ Opening2014 = opening_stocks_to_save[measuredElementSuaFbs == "5113" & timePoint
 FirstMerge = merge(Variation2013, Opening2013, by = c("geographicAreaM49", "measuredItemSuaFbs"))
 
 StockCheck = merge(FirstMerge, Opening2014, by = c("geographicAreaM49", "measuredItemSuaFbs"))
-StockCheck[, ConsistencyCheck := dplyr::near(opening2013 + variation2013, opening2014) ]
+StockCheck[, ConsistencyCheck := dplyr::near(round(opening2013 + variation2013), round(opening2014)) ]
 
 StockCheckProblems = StockCheck[ConsistencyCheck == FALSE, ]
 setnames(StockCheckProblems, "measuredItemSuaFbs", "measuredItemFbsSua")
