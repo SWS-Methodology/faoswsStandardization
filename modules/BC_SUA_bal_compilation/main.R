@@ -4458,7 +4458,7 @@ if (FIX_OUTLIERS == TRUE) {
   # Exclude feed as the first time it needs to be generated, without saving
   # outliers to sua_unbalanced as they have E,e flag (which is protected...).
   # In other words, feed has not been run yet if first time.
-  STOP_AFTER_DERIVED = FALSE
+  #STOP_AFTER_DERIVED = FALSE
   
   if (STOP_AFTER_DERIVED == TRUE) {
     dout <- dout[measuredElementSuaFbs != "feed"]
@@ -4599,8 +4599,8 @@ if (exists("data_outliers")) {
   
   #  commented for back compilation because for some reason measuredItemFBSSua is already present. Probably due to 
   #  some change in the code before
-  # setnames(data_outliers, c("measuredItemSuaFbs", "measuredElementSuaFbs"), c("measuredItemFbsSua", "name"))
-  setnames(data_outliers, c("measuredElementSuaFbs"), c("name"))
+   setnames(data_outliers, c("measuredItemSuaFbs", "measuredElementSuaFbs"), c("measuredItemFbsSua", "name"))
+  #setnames(data_outliers, c("measuredElementSuaFbs"), c("name"))
   
   data_outliers <- dt_left_join(data_outliers, codes, by = "name")
 
@@ -5752,7 +5752,7 @@ data_pop<-popSWS[,measuredItemFbsSua:="F0001"]
 data_pop[,`:=`(Protected=TRUE,flagObservationStatus="T",flagMethod="c")]
 
 
-data_pop<-data_pop[timePointYears>=2014,list(geographicAreaM49,measuredItemFbsSua,timePointYears,flagObservationStatus,flagMethod,
+data_pop<-data_pop[timePointYears %in% as.character(startYear:endYear),list(geographicAreaM49,measuredItemFbsSua,timePointYears,flagObservationStatus,flagMethod,
                                              measuredElementSuaFbs=measuredElement,Value,Protected)]
 
 calories_per_capita_total<-copy(calories_per_capita)
@@ -5798,7 +5798,7 @@ elemKeys_all <- c(elemKeys, "664")
 # Get ALL data from SUA BALANCED, do an anti-join, set to NA whatever was not
 # generated here so to clean the session on unbalanced of non-existing cells
 
-if (CheckDebug()) { # tried to adjust for back compilation to pull, but why does it pull only for years after 2014???
+if (CheckDebug()) {
   key_all <-
     DatasetKey(
       domain = "suafbs",
@@ -5809,13 +5809,13 @@ if (CheckDebug()) { # tried to adjust for back compilation to pull, but why does
           measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys_all),
           measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
           # Get from 2010, just for the SUA aggregation
-          timePointYears = Dimension(name = "timePointYears", keys = as.character(2010:2018))
+          timePointYears = Dimension(name = "timePointYears", keys = YEARS)
         )
     )
 } else {
   key_all <- swsContext.datasets[[1]]
 
-  key_all@dimensions$timePointYears@keys <- as.character(2010:2018)
+  key_all@dimensions$timePointYears@keys <- YEARS
   key_all@dimensions$measuredItemFbsSua@keys <- itemKeys
   key_all@dimensions$measuredElementSuaFbs@keys <- elemKeys_all
   key_all@dimensions$geographicAreaM49@keys <- COUNTRY
@@ -5828,20 +5828,20 @@ data_suabal <- GetData(key_all)
 
 combined_calories <-
   rbind(
-    data_suabal[measuredElementSuaFbs == "664" & timePointYears %in% as.character(startYear:endYear)],
+    data_suabal[measuredElementSuaFbs == "664" & timePointYears %!in% as.character(startYear:endYear)],
     calories_per_capita[, names(data_suabal), with = FALSE]
   )
 
 combined_calories <-
   combined_calories[order(geographicAreaM49, measuredItemFbsSua, timePointYears)]
 
-
+### Change for the back compilation what is Historical value
 # Historical value for back compilation is 2014-2018 period
 combined_calories <-
   combined_calories[,
     `:=`(
       perc.change = (Value / shift(Value) - 1) * 100,
-      Historical_value_2010_2013 = mean(Value[timePointYears %in% refYear], na.rm = TRUE)
+      Reference_value_2014_2018 = mean(Value[timePointYears %in% refYear], na.rm = TRUE)
     ),
     by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
   ]
@@ -5933,7 +5933,7 @@ if (nrow(new_sua_bal) > 0) {
   new_sua_bal <-
     new_sua_bal[,
       .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs,
-        timePointYears, Historical_value_2010_2013 = Meanold, outlier = "OUTLIER")
+        timePointYears, Reference_value_2014_2018 = Meanold, outlier = "OUTLIER")
     ]
 
   sel_vars <-
@@ -5956,7 +5956,7 @@ if (nrow(new_sua_bal) > 0) {
   out_elems_items[is.na(outlier), outlier := ""]
 
   out_elems_items[,
-    Historical_value_2010_2013 := unique(na.omit(Historical_value_2010_2013)),
+                  Reference_value_2014_2018 := unique(na.omit(Reference_value_2014_2018)),
     c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
   ]
 
@@ -5973,14 +5973,14 @@ if (nrow(new_sua_bal) > 0) {
                      measuredItemFbsSua, timePointYears, Value,
                      flagObservationStatus, flagMethod,
                      perc.change = NA_real_,
-                     Historical_value_2010_2013 = NA_real_, outlier)]
+                     Reference_value_2014_2018 = NA_real_, outlier)]
 }
 
 out_elems_items <- rbind(combined_calories, out_elems_items, fill = TRUE)
 
 out_elems_items[, Value := round(Value, 2)]
 out_elems_items[, perc.change := round(perc.change, 2)]
-out_elems_items[, Historical_value_2010_2013 := round(Historical_value_2010_2013, 2)]
+out_elems_items[, Reference_value_2014_2018 := round(Reference_value_2014_2018, 2)]
 
 
 tmp_file_outliers <- file.path(TMP_DIR, paste0("OUTLIERS_", COUNTRY, ".csv"))
@@ -6113,11 +6113,13 @@ ggsave(tmp_file_plot_main_des_items, plot = plot_main_des_items)
 ##### / Plot of main DES
 
 # PRE AND POST REVERTED FOR BACK COMPILATION
+#  post = refYear period
+# pre  is query period (plots are adjusted)
 ##### Plot of main diff avg DES
 des_main_diff_avg <-
   des[
     measuredItemFbsSua != "S2901",
-    .(pre = mean(Value[timePointYears %in% refYear]), post = mean(Value[timePointYears %in% as.character(startYear:endYear)])),
+    .(post = mean(Value[timePointYears %in% refYear]), pre = mean(Value[timePointYears %in% as.character(startYear:endYear)])),
     by = c("geographicAreaM49", "measuredItemFbsSua")
   ]
 
@@ -6296,6 +6298,7 @@ style_percent    <- createStyle(numFmt = "PERCENTAGE")
 style_mean_diff  <- createStyle(borderColour = "blue", borderStyle = "double", border = "TopBottomLeftRight")
 
 # All zeros in 2014-2018, that were not zeros in 2010-2013
+# For BC: All zeros in <=2013, that were not zeros in 2014-2018
 zeros <-
   des_main[, .SD, .SDcols = as.character(startYear:endYear)] == 0 &
   des_main[, rowMeans(.SD), .SDcols = as.character(refYear)] > 0
@@ -6365,7 +6368,7 @@ if (exists("out")) {
   
   ## UNTIL FEED IS BROUGHT ON BOARD IN BACK COMPILATION
   
-  msg_new_feed_remove = "No food currently implemented"
+  msg_new_feed_remove = "No additional feed items currently implemented"
   msg_new_feed_dubious = "---"
   body_message <-
     sprintf(
@@ -6550,4 +6553,15 @@ if (exists("out")) {
   print("The SUA_bal_compilation plugin had a problem when saving data.")
 
 }
+
+
+## TODO for back compilation:
+
+# implement stock condition to have 2013 and 2014 aligned
+# keep cumulative stock in pullData and take the shares as session data and clear 2010-2013
+
+# revisit the stock implementation (with christian)
+
+# start testing (China, India, Indonesia,...)
+
 
