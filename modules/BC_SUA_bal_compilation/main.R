@@ -4515,7 +4515,27 @@ dbg_print("end outliers")
 
 ####################### / OUTLIERS #################################
 
+#######################  STOCK CHECk (BC) #################################
 
+Variation2013 = data[measuredElementSuaFbs == "stockChange" & timePointYears == "2013", .(geographicAreaM49, measuredItemSuaFbs, variation2013 = Value, FlagVariation = paste0("(", flagObservationStatus, ",", flagMethod, ")"))]
+Opening2013 = opening_stocks_to_save[measuredElementSuaFbs == "5113" & timePointYears == "2013", .(geographicAreaM49, measuredItemSuaFbs= measuredItemFbsSua, opening2013 = Value, FlagOpening2013 = paste0("(", flagObservationStatus, ",", flagMethod, ")"))]
+Opening2014 = opening_stocks_to_save[measuredElementSuaFbs == "5113" & timePointYears == "2014", .(geographicAreaM49, measuredItemSuaFbs= measuredItemFbsSua, opening2014 = Value, FlagOpening2014 = paste0("(", flagObservationStatus, ",", flagMethod, ")"))]
+
+FirstMerge = merge(Variation2013, Opening2013, by = c("geographicAreaM49", "measuredItemSuaFbs"))
+
+StockCheck = merge(FirstMerge, Opening2014, by = c("geographicAreaM49", "measuredItemSuaFbs"))
+StockCheck[, ConsistencyCheck := dplyr::near(opening2013 + variation2013, opening2014) ]
+
+StockCheckProblems = StockCheck[ConsistencyCheck == FALSE, ]
+setnames(StockCheckProblems, "measuredItemSuaFbs", "measuredItemFbsSua")
+StockCheckProblems = nameData("suafbs", "sua_unbalanced", StockCheckProblems)
+
+StocksMismatch <- file.path(TMP_DIR, paste0("STOCKMISMATCH", COUNTRY, ".csv"))
+
+write.csv(StockCheckProblems, StocksMismatch)
+
+
+#######################  STOCK CHECk (BC) #################################
 
 ##################### INDUSTRIAL-TOURISM ###############################
 
@@ -6527,6 +6547,7 @@ if (exists("out")) {
                tmp_file_new,
                tmp_file_fix_shares,
                tmp_file_NegNetTrade,
+               StocksMismatch,
                tmp_file_Stock_correction
               )
     )
@@ -6578,4 +6599,6 @@ if (exists("out")) {
 
 # start testing (China, India, Indonesia,...)
 
+# Stock mechanism
 
+# 
