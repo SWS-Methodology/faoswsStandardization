@@ -3173,7 +3173,15 @@ BC_dataForProc = BC_dataForProc[timePointYears %in% as.character(startYear:endYe
 BC_dataForProc[is.na(Value), flagObservationStatus := NA]
 BC_dataForProc[is.na(Value), flagMethod := NA]
 
+sessionKey_downUp = swsContext.datasets[[4]]
+CONFIG <- GetDatasetConfig(sessionKey_downUp@domain, sessionKey_downUp@dataset)
+datatoClean=GetData(sessionKey_downUp)
 
+
+# Check if shares are present, otherwise write them (for back-compilation)
+## save back once the shares estimation only (we keep the reference year structure)
+
+if(nrow(nrow(datatoClean[timePointYears %in% as.character(startYear:endYear), ] == 0))){
 
 faosws::SaveData(
   domain = "suafbs",
@@ -3181,18 +3189,24 @@ faosws::SaveData(
   data = BC_dataDownUp,
   waitTimeout = 20000
 )
-
+}
 data_tree_final = BC_dataDownUp[, list(geographicAreaM49, measuredItemParentCPC = measuredItemParentCPC_tree, measuredItemChildCPC = measuredItemChildCPC_tree, timePointYears = timePointYears, shareDownUp =Value)]
 
 data_tree_final[is.nan(shareDownUp) | is.na(shareDownUp), shareDownUp := 0 ]
 
+sessionKey_upDown = swsContext.datasets[[3]]
+CONFIG <- GetDatasetConfig(sessionKey_upDown@domain, sessionKey_upDown@dataset)
+datatoClean=GetData(sessionKey_upDown)
+
+
+if(nrow(datatoClean[timePointYears %in% as.character(startYear:endYear), ] == 0)){
 faosws::SaveData(
   domain = "suafbs",
   dataset = "up_down_share",
   data = BC_dataForProc,
   waitTimeout = 20000
 )
-
+}
 
 data_ShareUpDoawn_final = BC_dataForProc[, list(geographicAreaM49, measuredItemParentCPC = measuredItemParentCPC_tree, measuredItemChildCPC = measuredItemChildCPC_tree, timePointYears = timePointYears, shareUpDown =Value, flagObservationStatus, flagMethod)]
 data_ShareUpDoawn_final[is.nan(shareUpDown) | is.na(shareUpDown), shareUpDown := 0 ]
@@ -4631,7 +4645,7 @@ if (STOP_AFTER_DERIVED == TRUE) {
         from = "do-not-reply@fao.org",
         to = swsContext.userEmail,
         subject = "Production of derived items created",
-        body = paste("The plugin stopped after production of derived items. A file with shareDownUp is available in", sub("/work/SWS_R_Share/", "", shareDownUp_file))
+        body = paste("The plugin stopped after production of derived items.")
 
       )
     }

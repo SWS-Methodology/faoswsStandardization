@@ -40,6 +40,7 @@ library(tidyr)
 # negate in function
 `%!in%`<-Negate(`%in%`)
 
+
 oldProductionCode = "51"
 foodCode = "5141"
 importCode = "5610"
@@ -95,6 +96,26 @@ selectedGEOCode =
   switch(geoM49,
          "session" = sessionCountries,
          "all" = geoKeys)
+
+
+
+# For back-compilation shares downup and updown for 2010-2013
+sessionKey_downUp = swsContext.datasets[[2]]
+CONFIG <- GetDatasetConfig(sessionKey_downUp@domain, sessionKey_downUp@dataset)
+datatoClean=GetData(sessionKey_downUp)
+datatoClean=datatoClean[timePointYears %in% as.character(startYear:endYear)]
+datatoClean[, Value := NA_real_]
+datatoClean[, CONFIG$flags := NA_character_]
+SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
+
+sessionKey_upDown = swsContext.datasets[[3]]
+CONFIG <- GetDatasetConfig(sessionKey_upDown@domain, sessionKey_upDown@dataset)
+datatoClean=GetData(sessionKey_upDown)
+datatoClean=datatoClean[timePointYears %in% as.character(startYear:endYear)]
+datatoClean[, Value := NA_real_]
+datatoClean[, CONFIG$flags := NA_character_]
+SaveData(CONFIG$domain, CONFIG$dataset , data = datatoClean, waitTimeout = Inf)
+
 
 ################################################
 ##### Harvest from Agricultural Production #####
@@ -208,7 +229,6 @@ stokKey = DatasetKey(domain = "Stock", dataset = "stocksdata",
 stockData = GetData(stokKey)
 setnames(stockData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
-
 
 
 ################################################
@@ -534,11 +554,18 @@ key_unb <-
                     keys = GetCodeList(domain = "suafbs", dataset = "sua_unbalanced", 'measuredItemFbsSua')$code),
         timePointYears =
           Dimension(name = "timePointYears",
-                    keys = c(unique(out$timePointYears)))
+                    # add 2014 for BC purpose (to keep "I-")
+                    keys = as.character(c(unique(out$timePointYears), 2014)))
       )
   )
 
 data_suaunbal <- GetData(key_unb)
+
+# Cumulative stocks in 2014 (for BC)
+CumulativeOpening2014 =  data_suaunbal[ measuredElementSuaFbs == "5113" & flagObservationStatus == "I" & flagMethod == "-" & timePointYears == "2014", measuredItemFbsSua]
+
+# keep opening for I-
+StocksToKeep =  data_suaunbal[measuredItemFbsSua %in% CumulativeOpening2014 & measuredElementSuaFbs %in% c("5113", "5071"), ]
 
 # save the trade data to merge back into output
 tradeData <- subset(data_suaunbal,measuredElementSuaFbs %in% c("5910","5610") )
@@ -587,6 +614,22 @@ out2<-out %>% dplyr::anti_join(protected_utilization,
                                     "measuredItemFbsSua","timePointYears"))
 
 out<-rbind(out1,out2, tradeData)
+
+# remove the stocks we want to keep (I-)
+out = rbind(out[!StocksToKeep, on = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", "timePointYears")], 
+            StocksToKeep)
+
+out = out[timePointYears != "2014", ]
+
+
+# Protect historical cumulative stocks
+out[measuredItemFbsSua %in% CumulativeOpening2014 & measuredElementSuaFbs == "5071", `:=`(flagObservationStatus = "E", flagMethod = "h")]
+
+# ANALYSIS OF keeping CUMULATIV STOCKS
+# StocksKept = out[measuredItemFbsSua %in% CumulativeOpening2014 & measuredElementSuaFbs == "5071",]
+# StocksKept[, Flag := paste0("(", flagObservationStatus, ",", flagMethod, ")")] 
+# # We have a lot of Ef (manual) stocks that we're keeping in the new method
+# table(StocksKept[, Flag])
 
 non_existing <-
   data_suaunbal[!out, on = c('geographicAreaM49', 'measuredElementSuaFbs', 'measuredItemFbsSua', 'timePointYears')]
