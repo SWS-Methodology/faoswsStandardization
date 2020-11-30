@@ -617,7 +617,7 @@ out<-rbind(out1,out2, tradeData)
 
 # remove the stocks we want to keep (I-)
 out = rbind(out[!StocksToKeep, on = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", "timePointYears")], 
-            StocksToKeep)
+            StocksToKeep[measuredElementSuaFbs == "5071",])
 
 out = out[timePointYears != "2014", ]
 
