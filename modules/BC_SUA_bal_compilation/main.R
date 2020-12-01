@@ -192,7 +192,7 @@ update_opening_stocks <- function(x) {
         #   z$delta[j] <- - z$new_opening[j]
         # }
         
-      }
+      
       # negative delta cannot be more than opening
       # if (z$delta[j] < 0 & abs(z$delta[j]) > z$new_opening[j]) {
       #   z$delta[j] <- - z$new_opening[j]
@@ -202,6 +202,7 @@ update_opening_stocks <- function(x) {
       }else{
       z$delta[j] = z$new_opening[j-1]
       z$new_opening[j] = 0
+      }
       }
     }
     res[[i]] <- z
@@ -1679,6 +1680,7 @@ if (length(to_generate_by_ident) > 0) {
 
 # Recalculate opening stocks
 
+
 data_for_opening <-
   dt_left_join(
     all_opening_stocks[,
@@ -1698,6 +1700,25 @@ data_for_opening <-
 data_for_opening[is.na(delta), delta := 0]
 
 data_for_opening <- data_for_opening[timePointYears <= endYear+1] # changed for back compilation (note: 2014 needs to be in there!!)
+
+
+### Unprotect cumulative stock variation that resulted in negative opening in 2014
+
+Variation2013 = data[measuredElementSuaFbs == "5071" & timePointYears == "2013", .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua, variation2013 = Value, FlagVariation = paste0("(", flagObservationStatus, ",", flagMethod, ")"))]
+Opening2013 = data_for_opening[timePointYears == "2013", .(geographicAreaM49, measuredItemSuaFbs= measuredItemSuaFbs, opening2013 = new_opening)]
+Opening2014 = data_for_opening[timePointYears == "2014", .(geographicAreaM49, measuredItemSuaFbs= measuredItemSuaFbs, opening2014 = new_opening)]
+
+FirstMerge = merge(Variation2013, Opening2013, by = c("geographicAreaM49", "measuredItemSuaFbs"))
+
+StockCheck = merge(FirstMerge, Opening2014, by = c("geographicAreaM49", "measuredItemSuaFbs"))
+StockCheck[, ConsistencyCheck := dplyr::near(round(opening2013 + variation2013), round(opening2014)) ]
+StockCheckProblems = StockCheck[ConsistencyCheck == FALSE, ]
+
+# stock items to unprotect later
+CumulativeToUnprotect = StockCheckProblems[FlagVariation == "(E,h)", measuredItemSuaFbs]
+
+# assign same flag as estimated stock variation
+data[measuredItemFbsSua %in% CumulativeToUnprotect & measuredElementSuaFbs == "5071" & timePointYears %in% as.character(startYear:endYear), `:=` (flagObservationStatus = "E", flagMethod = "u") ]
 
 data_for_opening <- update_opening_stocks(data_for_opening)
 
@@ -3191,7 +3212,7 @@ datatoClean=GetData(sessionKey_downUp)
 # Check if shares are present, otherwise write them (for back-compilation)
 ## save back once the shares estimation only (we keep the reference year structure)
 
-if(nrow(nrow(datatoClean[timePointYears %in% as.character(startYear:endYear), ] == 0))){
+if(nrow(datatoClean[timePointYears %in% as.character(startYear:endYear), ]) == 0){
 
 faosws::SaveData(
   domain = "suafbs",
@@ -3209,7 +3230,7 @@ CONFIG <- GetDatasetConfig(sessionKey_upDown@domain, sessionKey_upDown@dataset)
 datatoClean=GetData(sessionKey_upDown)
 
 
-if(nrow(datatoClean[timePointYears %in% as.character(startYear:endYear), ] == 0)){
+if(nrow(datatoClean[timePointYears %in% as.character(startYear:endYear), ]) == 0){
 faosws::SaveData(
   domain = "suafbs",
   dataset = "up_down_share",
@@ -3278,7 +3299,7 @@ dbg_print("starting derived production loop")
   
   for (lev in sort(unique(tree$processingLevel))) {
     #testing purpose
-    # lev=0
+     lev=0
     dbg_print(paste("derived production loop, level", lev))
 
     treeCurrentLevel <-
@@ -3400,7 +3421,7 @@ dbg_print("starting derived production loop")
 
         data_for_stocks <-
           data_histmod_stocks[
-            timePointYears %in% as.character(startYear:endYear) ,
+            timePointYears %in% as.character(startYear:(endYear + 1)) , # changed for BC to bring 2014 on board as well
             .(geographicAreaM49, measuredItemSuaFbs,
               timePointYears, delta = delta_pred)
           ]
@@ -3447,10 +3468,15 @@ dbg_print("starting derived production loop")
             timePointYears == as.character(startYear) & delta < 0 & abs(delta) > new_opening,
             delta := - new_opening
           ]
-
+           
+          
           # NOTE: Data here should be ordered by country/item/year (CHECK)
           data_for_stocks <- update_opening_stocks(data_for_stocks)
-
+          
+          # For BC: get rid of 2014 year used for balancing
+          data_for_stocks = data_for_stocks[timePointYears != 2014,]
+          
+          
           data <-
             dt_left_join(
               data,
@@ -5308,8 +5334,9 @@ i <- 1
 
 dbg_print("starting balancing loop")
 
-# XXX Only from 2004 onwards
-uniqueLevels <- uniqueLevels[timePointYears %in% as.character(startYear:endYear)][order(timePointYears)]
+# XXX Only from 2004 onwards 
+#### REVERT BALANCING SEQUENCE FOR BACK-COMPILATION
+uniqueLevels <- uniqueLevels[timePointYears %in% as.character(startYear:endYear)][order(-timePointYears)]
 
 standData <- vector(mode = "list", length = nrow(uniqueLevels))
 
@@ -5352,7 +5379,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
       data_for_opening <-
         dt_left_join(
           all_opening_stocks[
-            timePointYears %in% as.character(startYear:endYear) &
+            timePointYears %in% as.character(startYear:c(endYear + 1)) &
               measuredItemFbsSua %chin% items_stocks_changed,
             .(geographicAreaM49,  measuredItemSuaFbs =  measuredItemFbsSua,
               timePointYears, new_opening = Value)
@@ -5368,7 +5395,9 @@ for (i in seq_len(nrow(uniqueLevels))) {
       dbg_print(paste("update opening stocks", i))
 
       data_for_opening <- update_opening_stocks(data_for_opening)
-
+      # For BC: get rid of 2014 year used for balancing
+      data_for_opening = data_for_opening[timePointYears != 2014,]
+      
       dbg_print(paste("merge data in opening stocks", i))
 
       all_opening_stocks <-
