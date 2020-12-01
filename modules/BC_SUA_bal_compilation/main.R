@@ -191,12 +191,7 @@ update_opening_stocks <- function(x) {
         # if (z$delta[j] < 0 & abs(z$delta[j]) > z$new_opening[j]) {
         #   z$delta[j] <- - z$new_opening[j]
         # }
-        
-      
-      # negative delta cannot be more than opening
-      # if (z$delta[j] < 0 & abs(z$delta[j]) > z$new_opening[j]) {
-      #   z$delta[j] <- - z$new_opening[j]
-      # }
+
       if(z$new_opening[j-1] - z$delta[j] > 0){
         z$new_opening[j] = z$new_opening[j-1] - z$delta[j]
       }else{
@@ -204,6 +199,7 @@ update_opening_stocks <- function(x) {
       z$new_opening[j] = 0
       }
       }
+
     }
     res[[i]] <- z
   }
