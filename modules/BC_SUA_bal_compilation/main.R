@@ -2783,7 +2783,7 @@ CONFIG <- GetDatasetConfig(sessionKey_shareUpDown@domain, sessionKey_shareUpDown
 ## changed for back compilation (to include post-2014 years for backwards MA routine)
 sessionKey_shareUpDown@dimensions$timePointYears@keys = as.character(startYear:max(refYear))
 
-data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
+data_shareUpDown_sws <- GetData(sessionKey_shareUpDown, omitna = FALSE)
 
 data_shareUpDown_sws[
   #timePointYears >= 2014 &
@@ -2943,7 +2943,8 @@ CONFIG <- GetDatasetConfig(sessionKey_shareDownUp@domain, sessionKey_shareDownUp
 ## changed for back compilation (to include post-2014 years for backwards MA routine)
 sessionKey_shareDownUp@dimensions$timePointYears@keys = as.character(startYear:max(refYear))
 
-data_shareDownUp_sws <- GetData(sessionKey_shareDownUp)
+data_shareDownUp_sws <- GetData(sessionKey_shareDownUp, omitna = FALSE)
+
 
 # ########### set parents present in sws and not present in the estimated data to zero ###########
 # #unique(data_shareDownUp_sws$geographicAreaM49) created problem if the downup session start as empty changed with data_tree
@@ -2999,7 +3000,7 @@ data_shareDownUp_sws <- GetData(sessionKey_shareDownUp)
 
 # TODO: clear the shares in pullData (or work with flags somehow). For now all shares will be created everytime balancing is run
 # set the 2010-2013 periods NA
-data_shareDownUp_sws[timePointYears %in% as.character(startYear:endYear), Value := NA ]
+# data_shareDownUp_sws[timePointYears %in% as.character(startYear:endYear), Value := NA ]
 
 setnames(data_shareDownUp_sws,  c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree"),
          c("measuredItemParentCPC", "measuredItemChildCPC"))
@@ -3295,7 +3296,7 @@ dbg_print("starting derived production loop")
   
   for (lev in sort(unique(tree$processingLevel))) {
     #testing purpose
-     lev=0
+     #lev=0
     dbg_print(paste("derived production loop, level", lev))
 
     treeCurrentLevel <-
@@ -6588,8 +6589,6 @@ if (exists("out")) {
     )
   }
 
-  unlink(TMP_DIR, recursive = TRUE)
-
   out[c("inserted", "appended", "ignored", "discarded")] <-
     lapply(
       out[c("inserted", "appended", "ignored", "discarded")],
@@ -6625,6 +6624,25 @@ if (exists("out")) {
 }
 
 
+if(!CheckDebug()){
+  send_mail(
+    from = "do-not-reply@fao.org",
+    to = c("bernhard.dalheimer@fao.org", "amsata.niang@fao.org", "pietro.marinelli@fao.org"),
+    subject = "Results from SUA_bal_compilation plugin",
+    body = c(sprintf("For analysis..."),
+             tmp_file_des_main,
+             tmp_file_des,
+             tmp_file_outliers,
+             tmp_file_imb,
+             StocksMismatch
+    )
+  )
+}
+
+unlink(TMP_DIR, recursive = TRUE)
+
+
+
 ## TODO for back compilation:
 
 # implement stock condition to have 2013 and 2014 aligned
@@ -6632,7 +6650,7 @@ if (exists("out")) {
 
 # revisit the stock implementation (with christian)
 
-# start testing (China, India, Indonesia,...)
+# start testing (China, India, Indonesia, Mexico, Bangladesh, Ethiopia, Senegal...)
 
 # Stock mechanism
 
