@@ -153,6 +153,8 @@ agData = GetData(agKey)
 setnames(agData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
+agData = agData 
+
 ################################################
 #####        Harvest from Industrial       #####
 ################################################
@@ -507,7 +509,14 @@ utilizationTable = ReadDatatable("utilization_table_2018")
 derived = utilizationTable[proxy_primary == "X" | derived == "X", cpc_code]
 
 DerivedProductionToExclude = out[measuredElementSuaFbs == "5510" & measuredItemSuaFbs %in% derived & flagObservationStatus %!in% c("", "T") ,  ]
+
 out = out[!DerivedProductionToExclude, on = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears")]
+
+# Utilization to exclude
+UtilToExclude = out[measuredElementSuaFbs != "5510" & flagObservationStatus == "E" & flagMethod == "f" ,  ]
+out = out[!UtilToExclude, on = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears")]
+
+
 
 # Alternatively
 # out[!(measuredElementSuaFbs == "5510" & measuredElementSuaFbs %in% derived & flagObservationStatus %!in% c("", "T")),  ]
@@ -560,6 +569,7 @@ key_unb <-
   )
 
 data_suaunbal <- GetData(key_unb)
+
 
 # Cumulative stocks in 2014 (for BC)
 CumulativeOpening2014 =  data_suaunbal[ measuredElementSuaFbs == "5113" & flagObservationStatus == "I" & flagMethod == "-" & timePointYears == "2014", measuredItemFbsSua]
