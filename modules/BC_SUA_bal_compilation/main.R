@@ -626,15 +626,26 @@ newBalancing <- function(data, Utilization_Table) {
   # Try to assign the maximum of imbalance to stocks
   # NOTE: in the conditions below, 2 was 0.2, indicating that no more than
   # 20% should go to stocks. Now, the condition was relaxed a lot (200%)
+  
+  
+  # For BC: Create lag to ensure 2014 restiriction
+  
+  modified_opening = copy(all_opening_stocks)
+  modified_opening = all_opening_stocks[order(geographicAreaM49, measuredItemFbsSua, -timePointYears),]
+  modified_opening[, stock_lag := dplyr::lag(Value, 1L)]
+  
   data <-
     dt_left_join(
       data,
-      all_opening_stocks[,
+      modified_opening[,
         .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua,
-          timePointYears, opening_stocks = Value)
+          timePointYears, opening_stocks = Value, stock_lag = stock_lag)
       ],
       by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
     )
+  # Remove copy
+  rm(modified_opening)
+  
   
   data[,
     Value_0 := ifelse(is.na(Value), 0, Value)
@@ -674,7 +685,10 @@ newBalancing <- function(data, Utilization_Table) {
     change_stocks %in% 1L:5L,
     `:=`(flagObservationStatus = "E", flagMethod = "s")
   ]
-    
+  # For BC: ensure that opening of year t is in lign with opening and variation in t-1 and give appropriate flag
+  data[measuredElementSuaFbs == "stockChange" & stock_lag - Value <= 0, `:=` (Value = 0, flagObservationStatus = "E", flagMethod = "n")]
+  
+  data[, stock_lag := NULL]  
   data[, Value_0 := NULL]
 
   data[, opening_stocks := NULL]
@@ -3845,8 +3859,9 @@ dbg_print("starting derived production loop")
     ]
 
     # we estimate processed quantity for parent
-    # based on the historique trend of processed percentage
+    # based on the historique trend of processed percentage (For BC, we do not need to check for NewLoss, because we average backwards)
     datamergeNew[, Processed := ifelse(NewLoss==TRUE,Pshare * (availability-ifelse(is.na(Loss),0,Loss)),Pshare * availability)] 
+    #datamergeNew[, Processed := Pshare * availability] 
     
     # However, we may have cases where some production of child commodities are official
     datamergeNew[sign(Processed) == -1, Processed := 0]
@@ -4416,6 +4431,9 @@ if (FIX_OUTLIERS == TRUE) {
 
   food_items <- commDef[food_item == "X"]$cpc
 
+  
+  
+  
   dout <-
     CJ(
       geographicAreaM49 = unique(data$geographicAreaM49),
@@ -4431,7 +4449,60 @@ if (FIX_OUTLIERS == TRUE) {
   # Protecting here Ee as we should not correct already corrected outliers
   dout[flagObservationStatus == "E" & flagMethod == "e", Protected := TRUE]
 
-  dout[,
+  
+  ### FOR BC: Calculate thresholds from outlier routine based on sua balanced
+  
+  # Download also calories (need them later)
+  elemKeys_all <- c(elemKeys, "664")
+  
+  if (CheckDebug()) {
+    key_all <-
+      DatasetKey(
+        domain = "suafbs",
+        dataset = "sua_balanced",
+        dimensions =
+          list(
+            geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
+            measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys_all),
+            measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
+            # Get from 2010, just for the SUA aggregation
+            timePointYears = Dimension(name = "timePointYears", keys = YEARS)
+          )
+      )
+  } else {
+    key_all <- swsContext.datasets[[1]]
+    
+    key_all@dimensions$timePointYears@keys <- YEARS
+    key_all@dimensions$measuredItemFbsSua@keys <- itemKeys
+    key_all@dimensions$measuredElementSuaFbs@keys <- elemKeys_all
+    key_all@dimensions$geographicAreaM49@keys <- COUNTRY
+  }
+  
+  
+  data_suabal <- GetData(key_all)
+  
+  
+  suabalCJ <-
+    CJ(
+      geographicAreaM49 = unique(data_suabal$geographicAreaM49),
+      timePointYears = unique(as.character(refYear)),
+      measuredItemFbsSua = unique(data_suabal$measuredItemFbsSua),
+      measuredElementSuaFbs = unique(data_suabal$measuredElementSuaFbs)
+    )
+  
+  outlier_suabal = merge(suabalCJ, data_suabal, all.x=T, by = c("geographicAreaM49", "timePointYears", "measuredItemFbsSua", 
+                                                                "measuredElementSuaFbs"))
+
+  # merge in names (will also keep only elemnts for which we need thresholds, i.e. excl. stock opeings)
+  outlier_suabal <- merge(outlier_suabal, codes, by = "measuredElementSuaFbs")
+  
+  outlier_suabal[, measuredElementSuaFbs := name]
+  
+  outlier_suabal[, name := NULL]
+  
+  setnames(outlier_suabal, "measuredItemFbsSua", "measuredItemSuaFbs")
+  
+outlier_suabal[,
     `:=`(
       production = Value[measuredElementSuaFbs  == "production"],
       supply     = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
@@ -4443,46 +4514,131 @@ if (FIX_OUTLIERS == TRUE) {
     by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears')
   ]
 
-  dout[measuredElementSuaFbs %chin% c("feed", "industrial"), element_supply := supply]
-  dout[measuredElementSuaFbs == "seed", element_supply := production]
-  dout[measuredElementSuaFbs == "loss", element_supply := domsupply]
+  outlier_suabal[measuredElementSuaFbs %chin% c("feed", "industrial"), element_supply := supply]
+  outlier_suabal[measuredElementSuaFbs == "seed", element_supply := production]
+  outlier_suabal[measuredElementSuaFbs == "loss", element_supply := domsupply]
 
-  dout[element_supply < 0, element_supply := NA_real_]
+  outlier_suabal[element_supply < 0, element_supply := NA_real_]
 
-  dout[, ratio := Value / element_supply]
+  outlier_suabal[, ratio := Value / element_supply]
 
-  dout[,
-    `:=`(
-      mean_ratio = mean(ratio[timePointYears %in% refYear], na.rm = TRUE),
-      Meanold    = mean(Value[timePointYears %in% refYear], na.rm = TRUE)
-    ),
-    by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
+  
+
+  # Calculate thresholds form sua balanced values
+  outlier_suabal[,
+                 `:=`(
+                   mean_ratio = mean(ratio[timePointYears %in% refYear], na.rm = TRUE),
+                   Meanold    = mean(Value[timePointYears %in% refYear], na.rm = TRUE)
+                 ),
+                 by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
   ]
+  
+  # FOr BC, we dont need thresholds if there is no values in 2014-2018
+  # dout[
+  #   timePointYears %in% as.character(startYear:endYear) & (is.na(mean_ratio) | is.nan(mean_ratio) | is.infinite(mean_ratio)),
+  #   mean_ratio := median(ratio[timePointYears %in% as.character(startYear:endYear)], na.rm = TRUE),
+  #   by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
+  # ]
+  # 
+  # dout[
+  #   timePointYears %in% as.character(startYear:endYear) & (is.na(Meanold) | is.nan(Meanold) | is.infinite(Meanold)),
+  #   Meanold := median(Value[timePointYears %in% as.character(startYear:endYear)], na.rm = TRUE),
+  #   by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
+  # ]
+  
+  # for BC we want NAs in 2014-2018 to delete entries for 2010-2013 
+  outlier_suabal[mean_ratio > 1, mean_ratio := 1]
+  outlier_suabal[mean_ratio < 0, mean_ratio := 0]
+  outlier_suabal[is.na(mean_ratio) | is.nan(mean_ratio), mean_ratio := 0]
+  outlier_suabal[is.na(Meanold) | is.nan(Meanold), Meanold := 0]
+  outlier_suabal[, abs_diff_threshold := ifelse(measuredElementSuaFbs == "feed", 0.1, 0.05)]
+  
+  # This is in forward compilation, where we get thresholds from balanced (but in sua unbalanced) past
+  # dout[,
+  #      `:=`(
+  #        production = Value[measuredElementSuaFbs  == "production"],
+  #        supply     = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
+  #                         - Value[measuredElementSuaFbs %in% c("exports", "stockChange")],
+  #                         na.rm = TRUE),
+  #        domsupply  = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
+  #                         na.rm = TRUE)
+  #      ),
+  #      by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears')
+  # ]
+  # 
+  # dout[measuredElementSuaFbs %chin% c("feed", "industrial"), element_supply := supply]
+  # dout[measuredElementSuaFbs == "seed", element_supply := production]
+  # dout[measuredElementSuaFbs == "loss", element_supply := domsupply]
+  # 
+  # dout[element_supply < 0, element_supply := NA_real_]
+  # 
+  # dout[, ratio := Value / element_supply]
+  # 
+  # 
+  # dout[,
+  #   `:=`(
+  #     mean_ratio = mean(ratio[timePointYears %in% refYear], na.rm = TRUE),
+  #     Meanold    = mean(Value[timePointYears %in% refYear], na.rm = TRUE)
+  #   ),
+  #   by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
+  # ]
 
   # If the element is new, there will be no `mean_ratio` and `Meanold`, thus we
   # use the new values to re-calculate them.
 
-  dout[
-    timePointYears %in% as.character(startYear:endYear) & (is.na(mean_ratio) | is.nan(mean_ratio) | is.infinite(mean_ratio)),
-    mean_ratio := median(ratio[timePointYears %in% as.character(startYear:endYear)], na.rm = TRUE),
-    by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
+  # dout[
+  #   timePointYears %in% as.character(startYear:endYear) & (is.na(mean_ratio) | is.nan(mean_ratio) | is.infinite(mean_ratio)),
+  #   mean_ratio := median(ratio[timePointYears %in% as.character(startYear:endYear)], na.rm = TRUE),
+  #   by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
+  # ]
+  # 
+  # dout[
+  #   timePointYears %in% as.character(startYear:endYear) & (is.na(Meanold) | is.nan(Meanold) | is.infinite(Meanold)),
+  #   Meanold := median(Value[timePointYears %in% as.character(startYear:endYear)], na.rm = TRUE),
+  #   by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
+  # ]
+  # 
+  # dout[mean_ratio > 1, mean_ratio := 1]
+  # 
+  # dout[, abs_diff_threshold := ifelse(measuredElementSuaFbs == "feed", 0.1, 0.05)]
+
+  # now we merge dout with the thresholds calculated in sua balanced
+  
+  dout[,
+                 `:=`(
+                   production = Value[measuredElementSuaFbs  == "production"],
+                   supply     = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
+                                    - Value[measuredElementSuaFbs %in% c("exports", "stockChange")],
+                                    na.rm = TRUE),
+                   domsupply  = sum(Value[measuredElementSuaFbs %in% c("production", "imports")],
+                                    na.rm = TRUE)
+                 ),
+                 by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears')
   ]
-
-  dout[
-    timePointYears %in% as.character(startYear:endYear) & (is.na(Meanold) | is.nan(Meanold) | is.infinite(Meanold)),
-    Meanold := median(Value[timePointYears %in% as.character(startYear:endYear)], na.rm = TRUE),
-    by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
-  ]
-
-  dout[mean_ratio > 1, mean_ratio := 1]
-
-  dout[, abs_diff_threshold := ifelse(measuredElementSuaFbs == "feed", 0.1, 0.05)]
-
+  
+  dout[measuredElementSuaFbs %chin% c("feed", "industrial"), element_supply := supply]
+  dout[measuredElementSuaFbs == "seed", element_supply := production]
+  dout[measuredElementSuaFbs == "loss", element_supply := domsupply]
+  
+  dout[element_supply < 0, element_supply := NA_real_]
+  
+  dout[, ratio := Value / element_supply]
+  
+  
+  
+  
+    dout = merge(dout, 
+        unique(outlier_suabal[, .(measuredElementSuaFbs, geographicAreaM49, measuredItemSuaFbs, 
+                            mean_ratio, Meanold, abs_diff_threshold)]),
+        by = c("measuredElementSuaFbs", "geographicAreaM49", "measuredItemSuaFbs"), all.x=T)
+  
+    
+  
   dout[
     Protected == FALSE &
       timePointYears %in% as.character(startYear:endYear) & # XXX: parameterise
-      mean_ratio > 0 &
-      abs(element_supply) > 0 &
+      mean_ratio > 0 & 
+       abs(element_supply) > 0 &
       measuredElementSuaFbs %chin% c("feed", "seed", "loss", "industrial") &
       # the conditions below define the outlier, or cases that were NA
       (is.na(Value) |
@@ -4493,6 +4649,8 @@ if (FIX_OUTLIERS == TRUE) {
     impute := element_supply * mean_ratio
   ]
 
+  # get rid of feed that is zero in 2014-2018
+  dout[Meanold == 0 & mean_ratio == 0 & measuredElementSuaFbs %in% c("feed", "seed", "industrial", "loss"), impute := 0 ]
 
   # Remove imputation for loss that is non-food and non-primaryProxyPrimary
   dout[
@@ -4507,9 +4665,12 @@ if (FIX_OUTLIERS == TRUE) {
   # In other words, feed has not been run yet if first time.
   #STOP_AFTER_DERIVED = FALSE
   
+  
+  
   if (STOP_AFTER_DERIVED == TRUE) {
     dout <- dout[measuredElementSuaFbs != "feed"]
   }
+
 
   dout <-
     dout[
@@ -4536,8 +4697,11 @@ if (FIX_OUTLIERS == TRUE) {
         Protected = FALSE)
       ]
 
+    data[Value == 0 & flagObservationStatus == "E"& flagMethod == "e", `:=` (Value = NA_real_, flagObservationStatus = NA_character_, flagMethod = NA_character_) ]
+    
+    
     data_outliers <-
-      data[!is.na(Value_imputed) &
+      data[!is.na(Value_imputed) & timePointYears %in% as.character(startYear:endYear) &
            measuredElementSuaFbs %in% c("feed", "seed", "loss", "industrial")]
 
     data[, Value_imputed := NULL]
@@ -5333,21 +5497,25 @@ dbg_print("starting balancing loop")
 
 # XXX Only from 2004 onwards 
 #### REVERT BALANCING SEQUENCE FOR BACK-COMPILATION
-uniqueLevels <- uniqueLevels[timePointYears %in% as.character(startYear:endYear)][order(-timePointYears)]
+uniqueLevels <- uniqueLevels[timePointYears %in% as.character(c(startYear-1):c(endYear + 1))][order(-timePointYears)]
 
 standData <- vector(mode = "list", length = nrow(uniqueLevels))
 
-for (i in seq_len(nrow(uniqueLevels))) {
+# set the first slot to the 2014 (not to be touchd)
+standData[[1]] <- data[timePointYears == "2014", ]
+standData[[1]]$change_stocks = NA_integer_
+# for BC we leave 2014 as it is
+for (i in 2:nrow(uniqueLevels)) {
 
   dbg_print(paste("in balancing loop, start", i))
 
   # For stocks, the first year no need to see back in time. After the first year was done,
   # stocks may have changed, so opening need to be changed in "data".
-
-  if (i > 1) {
+  
+  #if (i > 1) { #for BC we need to align with 2014 opening stocks, too
     dbg_print(paste("check stocks change in balancing", i))
 
-    items_stocks_changed <-
+   items_stocks_changed <- 
       unique(standData[[i-1]][!is.na(change_stocks)]$measuredItemSuaFbs)
 
     if (length(items_stocks_changed) > 0) {
@@ -5357,7 +5525,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
       stocks_modif <-
         rbind(
           # Previous data (balanced)
-          rbindlist(standData)[
+          rbindlist(standData, fill = TRUE)[
             !is.na(Value) &
               measuredElementSuaFbs == 'stockChange' &
               measuredItemSuaFbs %chin% items_stocks_changed,
@@ -5366,7 +5534,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
           # New data (unbalanced)
           data[
             !is.na(Value) &
-              timePointYears > unique(standData[[i-1]]$timePointYears) &
+              timePointYears < unique(standData[[i-1]]$timePointYears) &
               measuredElementSuaFbs == 'stockChange' &
               measuredItemSuaFbs %chin% items_stocks_changed,
             list(geographicAreaM49, timePointYears, measuredItemSuaFbs, delta = Value)
@@ -5425,7 +5593,7 @@ for (i in seq_len(nrow(uniqueLevels))) {
 
       all_opening_stocks[, new_opening := NULL]
     }
-  }
+  #}
 
   filter <- uniqueLevels[i, ]
 
@@ -5459,8 +5627,11 @@ all_opening_stocks[, measuredElementSuaFbs := "5113"]
 
 dbg_print("end of balancing loop")
 
+standData = standData[2:(nrow(uniqueLevels)-1)] 
+
 standData <- rbindlist(standData)
 
+standData = standData[timePointYears != "2009",]
 calculateImbalance(standData)
 
 standData[
@@ -5862,37 +6033,11 @@ standData <- standData[timePointYears %in% as.character(startYear:endYear) & !is
 
 standData[, Protected := NULL]
 
-# Download also calories
-elemKeys_all <- c(elemKeys, "664")
 
 # Get ALL data from SUA BALANCED, do an anti-join, set to NA whatever was not
 # generated here so to clean the session on unbalanced of non-existing cells
 
-if (CheckDebug()) {
-  key_all <-
-    DatasetKey(
-      domain = "suafbs",
-      dataset = "sua_balanced",
-      dimensions =
-        list(
-          geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
-          measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys_all),
-          measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-          # Get from 2010, just for the SUA aggregation
-          timePointYears = Dimension(name = "timePointYears", keys = YEARS)
-        )
-    )
-} else {
-  key_all <- swsContext.datasets[[1]]
-
-  key_all@dimensions$timePointYears@keys <- YEARS
-  key_all@dimensions$measuredItemFbsSua@keys <- itemKeys
-  key_all@dimensions$measuredElementSuaFbs@keys <- elemKeys_all
-  key_all@dimensions$geographicAreaM49@keys <- COUNTRY
-}
-
-
-data_suabal <- GetData(key_all)
+## MOVED PULL FROM SUA BALANCED INTO OUTLIER ROUTINE
 
 ######### Combine old and new calories and data, and get outliers #############
 
@@ -6654,4 +6799,18 @@ unlink(TMP_DIR, recursive = TRUE)
 
 # Stock mechanism
 
-# 
+## Problems to debug:
+
+# 1. Ef (manual estimates) in SUA unbalanced -Done, wait for feedback
+
+# 2. Stocks do not align in Indonesia rice (Claudia, token present)
+
+# 3. Loss numbers left do do
+
+# 4. Processed solved!
+
+# 5. Feed vs Food, Germ of Wheat left to do
+
+# 01379.90 Mexico Crisitna
+
+#Notes if openings are constant, and variation zero compilers have wiggle room in 2010-2013
