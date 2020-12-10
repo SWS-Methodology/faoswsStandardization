@@ -1845,7 +1845,7 @@ itemKeys = GetCodeList("agriculture", "aupus_ratio", "measuredItemCPC")[, code]
 nutrientCodes = c("1001", "1003", "1005")
 
 nutrientData = getNutritiveFactors(measuredElement = nutrientCodes,
-                                   timePointYears = as.character(2014:2018),
+                                   timePointYears = as.character(yearVals),
                                    geographicAreaM49 = COUNTRY
                                    )
 setnames(nutrientData, c("measuredItemCPC", "timePointYearsSP"),
@@ -1900,7 +1900,7 @@ popSWS[geographicAreaM49 == "156", geographicAreaM49 := "1248"]
 # ("the KRI population at 5,122,747 individuals and the overall Iraqi
 # population at 36,004,552 individuals", pag.14; it implies 14.22805%)
 # https://iraq.unfpa.org/sites/default/files/pub-pdf/KRSO%20IOM%20UNFPA%20Demographic%20Survey%20Kurdistan%20Region%20of%20Iraq_0.pdf
-popSWS[geographicAreaM49 == "368" & timePointYears %in% 2014:2018, Value := Value * 0.8577195]
+popSWS[geographicAreaM49 == "368" & timePointYears %in% yearVals, Value := Value * 0.8577195]
 
 
 ############################ / POPULATION ##################################

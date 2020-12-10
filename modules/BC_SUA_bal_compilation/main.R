@@ -363,6 +363,8 @@ calculateImbalance <- function(data,
     imbalance := supply - utilizations
   ]
   
+  data[(is.na(supply) & is.na(utilizations)) | (supply == 0 & utilizations == 0), imbalance :=  NA ]
+  
   if (keep_supply == FALSE) {
     data[, supply := NULL]
   }
@@ -541,7 +543,7 @@ newBalancing <- function(data, Utilization_Table) {
   data[,
     food_resid :=
       # It's a food item & ...
-      (measuredItemSuaFbs %chin% Utilization_Table[food_item == 'X', cpc_code] |
+      (measuredItemSuaFbs %chin% Utilization_Table[food_item == 'X', cpc_code] &
       # food exists & ...
       # !is.na(Value[measuredElementSuaFbs == 'food']) &
       Food_Median > 0 & !is.na(Food_Median)) &
@@ -686,7 +688,8 @@ newBalancing <- function(data, Utilization_Table) {
     `:=`(flagObservationStatus = "E", flagMethod = "s")
   ]
   # For BC: ensure that opening of year t is in lign with opening and variation in t-1 and give appropriate flag
-  data[measuredElementSuaFbs == "stockChange" & stock_lag - Value <= 0, `:=` (Value = 0, flagObservationStatus = "E", flagMethod = "n")]
+  data[measuredElementSuaFbs == "stockChange" & stock_lag - Value < 0, 
+       `:=` (Value = stock_lag, flagObservationStatus = "E", flagMethod = "s")]
   
   data[, stock_lag := NULL]  
   data[, Value_0 := NULL]
@@ -2799,6 +2802,42 @@ sessionKey_shareUpDown@dimensions$timePointYears@keys = as.character(startYear:m
 
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown, omitna = FALSE)
 
+#consistency check: sum of shareupDown by parent should exceed 1.
+message("Line 2690")
+
+data_ShareUpDoawn_final_invalid <-
+  data_shareUpDown_sws[
+    measuredItemChildCPC_tree %!in% zeroWeight,
+    .(sum_shares = round(sum(Value, na.rm = TRUE),1)),
+    by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC_tree")
+  ][
+    !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+  ]
+
+
+if (nrow(data_ShareUpDoawn_final_invalid) > 0) {
+  
+  write.csv(
+    data_ShareUpDoawn_final_invalid,
+    file.path(paste0("ShareUpDown_toCorrect_", COUNTRY, ".csv"))
+  )
+  
+  if (!CheckDebug()) {
+    send_mail(
+      from = "do-not-reply@fao.org",
+      to = swsContext.userEmail,
+      subject = "Some shareUpDown are invalid",
+      body = c(paste("There are some invalid shareUpDown (they do not sum to 1). See attachment and fix them in the SWS shareUpDown dataset"),
+               file.path(paste0("ShareUpDown_toCorrect_", COUNTRY, ".csv")))
+    )
+  }
+  
+  stop("Some shareUpDown can create conflict. Check your email.")
+}
+
+
+
+
 data_shareUpDown_sws[
   #timePointYears >= 2014 &
   ((measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22212") |
@@ -2809,7 +2848,7 @@ data_shareUpDown_sws[
   ]
 
 # set the 2010-2013 periods NA
-data_shareUpDown_sws[timePointYears %in% as.character(startYear:endYear), Value := NA ]
+# data_shareUpDown_sws[timePointYears %in% as.character(startYear:endYear), Value := NA ]
 setnames(data_shareUpDown_sws,  c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree"),
          c("measuredItemParentCPC", "measuredItemChildCPC"))
 BC_dataForProc <-
@@ -2959,6 +2998,44 @@ sessionKey_shareDownUp@dimensions$timePointYears@keys = as.character(startYear:m
 
 data_shareDownUp_sws <- GetData(sessionKey_shareDownUp, omitna = FALSE)
 
+# Check on consistency of shareDownUp
+shareDownUp_invalid <-
+  data_shareDownUp_sws[,
+                .(sum_shares = round(sum(Value),1)),
+                by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC_tree")
+  ][
+    !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+  ][
+    timePointYears  %in% as.character(startYear:endYear)
+  ]
+
+if (nrow(shareDownUp_invalid) > 0) {
+  
+  shareDownUp_invalid <-
+    data_shareDownUp_sws[
+      shareDownUp_invalid,
+      on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC_tree")
+    ]
+  
+  write.csv(
+    shareDownUp_invalid,
+    file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+  )
+  
+  if (!CheckDebug()) {
+    send_mail(
+      from = "do-not-reply@fao.org",
+      to = swsContext.userEmail,
+      subject = "Some shareDownUp are invalid",
+      body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
+               file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+    )
+  }
+  
+  unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+  
+  stop("Some shares are invalid. Check your email.")
+}
 
 # ########### set parents present in sws and not present in the estimated data to zero ###########
 # #unique(data_shareDownUp_sws$geographicAreaM49) created problem if the downup session start as empty changed with data_tree
@@ -4308,12 +4385,12 @@ data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
 
 #shareUpDown_to_save[, Value := round(Value, 3)]
 
-# faosws::SaveData(
-#   domain = "suafbs",
-#   dataset = "up_down_share",
-#   data = shareUpDown_to_save,
-#   waitTimeout = 20000
-# )
+faosws::SaveData(
+  domain = "suafbs",
+  dataset = "up_down_share",
+  data = shareUpDown_to_save,
+  waitTimeout = 20000
+)
 
 
 remove_connection<-data_shareUpDown_sws[((measuredItemParentCPC_tree == "02211" & measuredItemChildCPC_tree == "22212") |
@@ -4842,6 +4919,8 @@ if (exists("data_outliers")) {
 
 data_to_save_unbalanced <- data_to_save_unbalanced[timePointYears %in% startYear:endYear]
 
+
+
 out <-
   SaveData(
     domain = "suafbs",
@@ -5359,14 +5438,30 @@ data[
   )
 ]
 
-data[,
-  `:=`(
-    Food_Median       = median(Value[measuredElementSuaFbs == "food" & timePointYears %in% refYear], na.rm=TRUE),
-    Feed_Median       = median(Value[measuredElementSuaFbs == "feed" & timePointYears %in% refYear], na.rm=TRUE),
-    Industrial_Median = median(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% refYear], na.rm=TRUE)
-  ),
-  by = c("geographicAreaM49", "measuredItemSuaFbs")
+# Back compilation: we take median food information form sua balanced (2014-2018)
+suabal_Food_Median = copy(outlier_suabal)
+suabal_Food_Median[,
+     `:=`(
+       Food_Median       = median(Value[measuredElementSuaFbs == "food" & timePointYears %in% refYear], na.rm=TRUE),
+       Feed_Median       = median(Value[measuredElementSuaFbs == "feed" & timePointYears %in% refYear], na.rm=TRUE),
+       Industrial_Median = median(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% refYear], na.rm=TRUE)
+     ),
+     by = c("geographicAreaM49", "measuredItemSuaFbs")
 ]
+
+Medians_for_balancing =  unique(suabal_Food_Median[, .(geographicAreaM49, measuredItemSuaFbs, Food_Median, Feed_Median, Industrial_Median)])
+
+data = merge(data, Medians_for_balancing, by = c("geographicAreaM49", "measuredItemSuaFbs"))
+
+
+# data[,
+#   `:=`(
+#     Food_Median       = median(Value[measuredElementSuaFbs == "food" & timePointYears %in% refYear], na.rm=TRUE),
+#     Feed_Median       = median(Value[measuredElementSuaFbs == "feed" & timePointYears %in% refYear], na.rm=TRUE),
+#     Industrial_Median = median(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% refYear], na.rm=TRUE)
+#   ),
+#   by = c("geographicAreaM49", "measuredItemSuaFbs")
+# ]
 message("Line 4630")
 
 
@@ -5638,6 +5733,23 @@ standData[
   supply > 0,
   imbalance_percent := imbalance / supply * 100
 ]
+
+# Filter stocks to dinf unusually high openings for starting year (back-compilation) to send by email
+
+StocksTooHigh = merge(
+standData[measuredElementSuaFbs == "stockChange", 
+          .(geographicAreaM49, measuredItemFbsSua=measuredItemSuaFbs, timePointYears, Value, supply, flagObservationStatus, flagMethod) ], 
+all_opening_stocks[, .(geographicAreaM49, measuredItemFbsSua, timePointYears, opening = Value)],
+by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"))
+
+HighStocksToSend = StocksTooHigh[, StockExcessPercent := ((opening) / (supply + Value)) * 100 ]
+HighStocksToSend = HighStocksToSend[StockExcessPercent > 200, ]
+HighStocksToSend = nameData(domain = "suafbs", dataset = "sua_unbalanced", HighStocksToSend)
+HighStocksToSend = HighStocksToSend[order(-supply), ]
+HighStocksToSend = HighStocksToSend[supply > 0 & !is.infinite(StockExcessPercent), ]
+
+tmp_file_highstocks <- file.path(TMP_DIR, paste0("HIGHSTOCKS_", COUNTRY, ".csv"))
+write.csv(HighStocksToSend, tmp_file_highstocks)
 
 # If the imbalance is relatively small (less than 5% in absoulte value)
 # a new allocation is done, this time with no limits.
@@ -6576,6 +6688,13 @@ if (!(TRUE %in% swsContext.computationParams$save_nutrients)) {
   standData <- standData[measuredElementSuaFbs %!in% c('261', '271', '281', '674', '684')]
 }
 
+# set meaningless zeroes and their flags to NA 
+standData[Value == 0 & flagObservationStatus %in% c("I") & flagMethod %in% c("i"),
+          `:=` (Value = NA, flagObservationStatus = NA, flagMethod = NA)]
+
+standData[Value == 0 & flagObservationStatus %in% c("E") & flagMethod %in% c("e"),
+          `:=` (Value = NA, flagObservationStatus = NA, flagMethod = NA)]
+
 out <- SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData, waitTimeout = 20000)
 
 if (exists("out")) {
@@ -6729,7 +6848,8 @@ if (exists("out")) {
                tmp_file_fix_shares,
                tmp_file_NegNetTrade,
                StocksMismatch,
-               tmp_file_Stock_correction
+               tmp_file_Stock_correction,
+               tmp_file_highstocks
               )
     )
   }
@@ -6779,7 +6899,8 @@ if(!CheckDebug()){
              tmp_file_des,
              tmp_file_outliers,
              tmp_file_imb,
-             StocksMismatch
+             StocksMismatch,
+             tmp_file_highstocks
     )
   )
 }
@@ -6814,3 +6935,60 @@ unlink(TMP_DIR, recursive = TRUE)
 # 01379.90 Mexico Crisitna
 
 #Notes if openings are constant, and variation zero compilers have wiggle room in 2010-2013
+
+
+
+
+
+
+
+
+
+## Testing results
+
+# Solved issues:
+#   
+# a) The Ef flags are wiped everywhere, plug-in is updated
+# 
+# b) Missing processed is due to settings of the session, documentation updated
+# 
+# c) Stocks mismatches between years, plug-in updated
+# 
+# d) Adjust outliers to be based on sua balanced, plug-in is updated
+# 
+# d) Germ of wheat appearing in Feed and/or Food (Gluten in Senegal, feed/industrial), addressed in the outlier routine, plug-in is updated
+# 
+# e) Strange loss estimates, due to wrong outlier reference, addressed in outlier routine, plug-in is updated
+#
+# f) Pull derived production as primary for meats
+#
+# g) Message about high stock values
+#
+#
+#
+#
+# Pending issues
+#
+# a) Stock block (Sumeda)
+#
+# b) Clean codes from session (Giulia)
+#
+# 
+# Countries: 
+# China, India, Indonesia, Mexico, Bangladesh, Ethiopia, Senegal
+#
+# Additional tests...
+
+
+# Issues to debug
+
+# shares (no flags), solve
+
+# sweet potatoes in China (Ef), solved
+# Sumeda and Claudia issue, no food, solved 
+# Rachele: flags changing from Th of stocks, solved 
+
+# standardization, TODO
+# calculate Pshares from sua balanced (TODO)
+# strange loss estimates (probably from loss domain)
+

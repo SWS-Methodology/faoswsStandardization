@@ -153,8 +153,6 @@ agData = GetData(agKey)
 setnames(agData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
-agData = agData 
-
 ################################################
 #####        Harvest from Industrial       #####
 ################################################
@@ -508,7 +506,12 @@ if((nrow(indData)==0)|(nrow(tourData)==0)){
 utilizationTable = ReadDatatable("utilization_table_2018")
 derived = utilizationTable[proxy_primary == "X" | derived == "X", cpc_code]
 
-DerivedProductionToExclude = out[measuredElementSuaFbs == "5510" & measuredItemSuaFbs %in% derived & flagObservationStatus %!in% c("", "T") ,  ]
+# keep derived which are from meats
+fbsTree = ReadDatatable("fbs_tree")
+livestockItems =  fbsTree[id3 %in% c("2945", "2946", "2943", "2949"), item_sua_fbs]
+livestockItemDerived = intersect(derived, livestockItems)
+
+DerivedProductionToExclude = out[measuredElementSuaFbs == "5510" & measuredItemSuaFbs %in% derived & flagObservationStatus %!in% c("", "T") ,  ][measuredItemSuaFbs %!in% livestockItemDerived, ]
 
 out = out[!DerivedProductionToExclude, on = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemSuaFbs", "timePointYears")]
 
