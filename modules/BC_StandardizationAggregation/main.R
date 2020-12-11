@@ -35,7 +35,7 @@ if (CheckDebug()) {
   
   # Read settings file sws.yml in working directory. See 
   # sws.yml.example for more information
-  PARAMS <- ReadSettings("modules/fullStandardizationAndBalancing/sws.yml")
+  PARAMS <- ReadSettings("modules/BC_StandardizationAggregation/sws.yml")
   message("Connecting to server: ", PARAMS[["current"]])
   
   R_SWS_SHARE_PATH = PARAMS[["share"]]
@@ -1698,7 +1698,7 @@ data_ShareUpDoawn_final<-data_ShareUpDoawn_final[,colnames(shareUpDownTree),with
      all.x = TRUE
    )
    
-   data_tree<-data_tree[timePointYears>2013]
+   data_tree<-data_tree[timePointYears %in% yearVals]
    
    
    data_tree[,shareDownUp:=(ProcessedParent*shareUpDown*extractionRate)/
