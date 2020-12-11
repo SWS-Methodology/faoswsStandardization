@@ -2799,8 +2799,12 @@ sessionKey_shareUpDown@dimensions$timePointYears@keys = as.character(startYear:m
 
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown, omitna = FALSE)
 
-#consistency check: sum of shareupDown by parent should exceed 1.
+#data_shareUpDown_sws[timePointYears %in% as.character(2010:2013), `:=` (Value = NA_real_, flagObservationStatus = NA_character_, flagMethod = NA_character_)]
+#consistency check: sum of shareupDown by parent should be 1.
 message("Line 2690")
+# items that have been manually changed
+# changedShareItems = unique(data_shareUpDown_sws[flagObservationStatus == "E" & flagMethod == "f", 
+#                                                 .(geographicAreaM49, measuredItemParentCPC_tree, timePointYears)])
 
 data_ShareUpDoawn_final_invalid <-
   data_shareUpDown_sws[
@@ -2808,8 +2812,9 @@ data_ShareUpDoawn_final_invalid <-
     .(sum_shares = round(sum(Value, na.rm = TRUE),1)),
     by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC_tree")
   ][
-    !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
+    !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0) 
   ]
+
 
 
 if (nrow(data_ShareUpDoawn_final_invalid) > 0) {
@@ -2852,7 +2857,7 @@ BC_dataForProc <-
   data_shareUpDown_sws[
      order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, -timePointYears),
      shareUpDown_avr := rollavg(Value, order = 3),
-     by = c("geographicAreaM49", "measuredItemParentCPC")
+     by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")
    ]
 
 # creating zerowight table for back compilation 
@@ -2862,8 +2867,9 @@ BC_dataForProc[, shareUpDown_avr := NULL]
 
 BC_dataForProc[is.nan(Value) | is.na(Value), Value := 0]
 
-BC_dataForProc[ , Value := Value / sum(Value[measuredItemChildCPC %!in% zeroWeight], na.rm = TRUE), 
-                by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")]
+# moved in the saving condition
+ BC_dataForProc[ , Value := Value / sum(Value[measuredItemChildCPC %!in% zeroWeight], na.rm = TRUE), 
+                 by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")]
 BC_zeroweight = BC_dataForProc[measuredItemChildCPC %!in% zeroWeight, ]
 
 # coproduct is defined at the beginning of the shares script (commented for bc)
@@ -3096,7 +3102,7 @@ BC_dataDownUp <-
   data_shareDownUp_sws[
     order(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, -timePointYears),
     shareDownUp_avr := rollavg(Value, order = 3),
-    by = c("geographicAreaM49", "measuredItemParentCPC")
+    by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")
   ]
 
 # creating zerowight table for back compilation 
@@ -3106,7 +3112,8 @@ BC_dataDownUp[, shareDownUp_avr := NULL]
 
 BC_dataDownUp[is.nan(Value) | is.na(Value), Value := 0]
 
-BC_dataDownUp[ , Value := Value / sum(Value, na.rm = TRUE), 
+
+ BC_dataDownUp[ , Value := Value / sum(Value, na.rm = TRUE), 
                 by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears")]
 
 
@@ -3299,6 +3306,9 @@ datatoClean=GetData(sessionKey_downUp)
 
 if(nrow(datatoClean[timePointYears %in% as.character(startYear:endYear), ]) == 0){
 
+  # BC_dataDownUp[ , Value := Value / sum(Value, na.rm = TRUE), 
+  #                by = c("geographicAreaM49", "measuredItemChildCPC_tree", "timePointYears")]
+  
 faosws::SaveData(
   domain = "suafbs",
   dataset = "down_up_share",
@@ -3316,6 +3326,9 @@ datatoClean=GetData(sessionKey_upDown)
 
 
 if(nrow(datatoClean[timePointYears %in% as.character(startYear:endYear), ]) == 0){
+   # BC_dataForProc[ , Value := Value / sum(Value[measuredItemChildCPC_tree %!in% zeroWeight], na.rm = TRUE), 
+   #                 by = c("geographicAreaM49", "measuredItemParentCPC_tree", "timePointYears")]
+  
 faosws::SaveData(
   domain = "suafbs",
   dataset = "up_down_share",
@@ -5436,12 +5449,13 @@ data[
 ]
 
 # Back compilation: we take median food information form sua balanced (2014-2018)
+# Note: in BC, meadian was changed to be the mean!!
 suabal_Food_Median = copy(outlier_suabal)
 suabal_Food_Median[,
      `:=`(
-       Food_Median       = median(Value[measuredElementSuaFbs == "food" & timePointYears %in% refYear], na.rm=TRUE),
-       Feed_Median       = median(Value[measuredElementSuaFbs == "feed" & timePointYears %in% refYear], na.rm=TRUE),
-       Industrial_Median = median(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% refYear], na.rm=TRUE)
+       Food_Median       = mean(Value[measuredElementSuaFbs == "food" & timePointYears %in% refYear], na.rm=TRUE),
+       Feed_Median       = mean(Value[measuredElementSuaFbs == "feed" & timePointYears %in% refYear], na.rm=TRUE),
+       Industrial_Median = mean(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% refYear], na.rm=TRUE)
      ),
      by = c("geographicAreaM49", "measuredItemSuaFbs")
 ]
@@ -6989,3 +7003,5 @@ unlink(TMP_DIR, recursive = TRUE)
 # calculate Pshares from sua balanced (TODO)
 # strange loss estimates (probably from loss domain)
 
+
+# high shares in mexico for skim milk (high shares that can not be changed)
