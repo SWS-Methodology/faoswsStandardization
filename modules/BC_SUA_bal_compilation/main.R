@@ -648,6 +648,8 @@ newBalancing <- function(data, Utilization_Table) {
   # Remove copy
   rm(modified_opening)
   
+  data[ , ProdImp := sum(Value[measuredElementSuaFbs %in% c("production", "import")], na.rm = TRUE), by = c("geographicAreaM49", 
+  "measuredItemSuaFbs", "timePointYears")]
   
   data[,
     Value_0 := ifelse(is.na(Value), 0, Value)
@@ -662,9 +664,9 @@ newBalancing <- function(data, Utilization_Table) {
         # case 1: we don't want stocks to change sign.
         sign(Value_0) * sign(Value_0 + imbalance) == -1                                                  ~ 1L,
         # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
-        Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <= opening_stocks           ~ 2L,
+        Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <= 0.5 * ProdImp            ~ 2L,
         # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
-        Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) > opening_stocks            ~ 3L,
+        Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) >  0.5 * ProdImp            ~ 3L,
         # case 4: if value + imbalance send LESS than 200% of supply, send all
         Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 2) ~ 4L,
         # case 5: if value + imbalance send MORE than 200% of supply, send 200% of supply
@@ -675,7 +677,7 @@ newBalancing <- function(data, Utilization_Table) {
   data[change_stocks == 1L, Value := 0]
   ##all the other cases are left with no constraint for BC
   data[change_stocks == 2L, Value := Value_0 + imbalance]
-  data[change_stocks == 3L, Value := Value_0 + imbalance]
+  data[change_stocks == 3L, Value := - 0.5 * ProdImp]
   data[change_stocks == 4L, Value := Value_0 + imbalance]
   # Only case for which grouping is required
   data[change_stocks == 5L,Value := Value_0 + imbalance]
@@ -693,6 +695,7 @@ newBalancing <- function(data, Utilization_Table) {
 
   data[, opening_stocks := NULL]
   
+  data[, ProdImp := NULL]
   # Recalculate imbalance
   calculateImbalance(data)
 
@@ -900,7 +903,7 @@ message("Line 816")
 dbg_print("download tree")
 
 # tree <- getCommodityTreeNewMethod(COUNTRY, YEARS)
-tree <- getCommodityTreeNewMethod(COUNTRY, as.character(2000:endYear))
+tree <- getCommodityTreeNewMethod(COUNTRY, as.character(2000:max(refYear)))
 stopifnot(nrow(tree) > 0)
 
 tree <- tree[geographicAreaM49 %chin% COUNTRY]
@@ -2149,6 +2152,9 @@ coproduct_for_sharedownup <-
     coproduct_for_sharedownup_plus,
     coproduct_for_sharedownup_or
   )
+
+## solve the problem of wrong connection (raw centrifugal sugar --> bagasse towards raw cane and beet --> bagasse)
+coproduct_for_sharedownup[measured_item_child_cpc == "39140.02" & branch == "23511.01", branch := "2351f"]
 # 
 # 
 #Using the whole tree not by level
@@ -2167,14 +2173,58 @@ ExtrRate <-
       )
     ]
 
+## GET SUA BALANCED from here now to calculate Pshares
+# Download also calories
+elemKeys_all <- c(elemKeys, "664")
+
+# Get ALL data from SUA BALANCED, do an anti-join, set to NA whatever was not
+# generated here so to clean the session on unbalanced of non-existing cells
+
+if (CheckDebug()) {
+  key_all <-
+    DatasetKey(
+      domain = "suafbs",
+      dataset = "sua_balanced",
+      dimensions =
+        list(
+          geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
+          measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys_all),
+          measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
+          # Get from 2010, just for the SUA aggregation
+          timePointYears = Dimension(name = "timePointYears", keys = as.character(2010:2018))
+        )
+    )
+} else {
+  key_all <- swsContext.datasets[[1]]
+  
+  key_all@dimensions$timePointYears@keys <- as.character(2010:2018)
+  key_all@dimensions$measuredItemFbsSua@keys <- itemKeys
+  key_all@dimensions$measuredElementSuaFbs@keys <- elemKeys_all
+  key_all@dimensions$geographicAreaM49@keys <- COUNTRY
+}
+
+
+data_suabal <- GetData(key_all)
+
+dataPshareBalanced = copy(data_suabal)
+
+# merge in names (will also keep only elemnts for which we need thresholds, i.e. excl. stock opeings)
+dataPshareBalanced <- merge(dataPshareBalanced, codes, by = "measuredElementSuaFbs")
+
+dataPshareBalanced[, measuredElementSuaFbs := name]
+
+dataPshareBalanced[, name := NULL]
+
+
 # We include utilizations to identify if proceseed if the only utilization
 data_tree <-
-  data[
+  dataPshareBalanced[
     measuredElementSuaFbs %chin%
       c('production', 'imports', 'exports',
         'stockChange', 'foodManufacturing', 'loss',
         'food', 'industrial', 'feed', 'seed')
   ]
+
 
 
 #subset the tree accordingly to parents and child present in the SUA data
@@ -2186,7 +2236,7 @@ ExtrRate <-
   ]
 
 
-setnames(data_tree, "measuredItemSuaFbs", "measuredItemParentCPC")
+setnames(data_tree, "measuredItemFbsSua", "measuredItemParentCPC")
 
 
  dataProcessingShare<-copy(data_tree)
@@ -2548,6 +2598,9 @@ dataProcessingShare[,
                     by = c(p$geoVar, p$yearVar, p$parentVar)
                     ]
 
+
+## For BC compilation we do not need to create the sums for 2014-2018 Loss and Process 
+# (if not present in 2014-2018, they are not deleted for 2010:2013 instead)
 dataProcessingShare[,SumLoss:=sum(
   Value[measuredElementSuaFbs=="loss" & timePointYears %in% 2014:2018],na.rm = TRUE
   ),
@@ -2569,7 +2622,7 @@ dataProcessingShare[,Prod:=Value[measuredElementSuaFbs=="production"],
                     by=c("geographicAreaM49","measuredItemParentCPC","timePointYears")
                     ]
 
-dataProcessingShare[,RatioLoss:=SumLoss/SumProd]
+ dataProcessingShare[,RatioLoss:=SumLoss/SumProd]
 
 dataProcessingShare[,
                     loss_Median_before :=
@@ -2859,7 +2912,7 @@ BC_dataForProc <-
      shareUpDown_avr := rollavg(Value, order = 3),
      by = c("geographicAreaM49", "measuredItemParentCPC", "measuredItemChildCPC")
    ]
-
+#test = data_shareUpDown_sws[measuredItemParentCPC == "0112" & measuredItemChildCPC == "23120.03", ]
 # creating zerowight table for back compilation 
 BC_dataForProc[timePointYears %in% as.character(startYear:endYear), Value := shareUpDown_avr ]
 
@@ -2920,31 +2973,54 @@ BC_dataForProc = rbind(BC_dataForProc[measuredItemChildCPC %!in% zeroWeight, ], 
   
   #If a new connection parent-child is added, the shareUpDown of all the children are affected
   #So we overwrite the share of all the children of the parent in the new connection
-  # new_connection<- data_ShareUpDoawn_final[!data_ShareUpDoawn_to_use,
-  #                                         on = c('geographicAreaM49', 'measuredItemParentCPC',
-  #                                                'measuredItemChildCPC', 'timePointYears')
-  #                                         ]
+sharesDataFromTree = copy(tree)
+
+sharesDataFromTree = sharesDataFromTree[measuredElementSuaFbs == "extractionRate" & timePointYears %in% as.character(startYear:endYear), ]
+
+sharesDataFromTree[, processingLevel := NULL]
+sharesDataFromTree = unique(sharesDataFromTree)  
+# initialize shares
+sharesDataFromTree[,  `:=` (measuredElementSuaFbs = "5431", Value = 0, flagObservationStatus ="I", flagMethod = "c")]
+
+
+new_connection <- sharesDataFromTree[!BC_dataForProc,
+                                          on = c('geographicAreaM49', 'measuredItemParentCPC',
+                                                 'measuredItemChildCPC', 'timePointYears')
+                                          ]
+
+BC_dataForProc = rbind(BC_dataForProc, new_connection)
   
+if (nrow(new_connection) > 0) {
+  setnames(new_connection, c("measuredItemParentCPC", "measuredItemChildCPC"), c("measuredItemParentCPC_tree", "measuredItemChildCPC_tree"))
+  faosws::SaveData(
+    domain = "suafbs",
+    dataset = "up_down_share",
+    data = new_connection,
+    waitTimeout = 20000
+  )
+}
+
+
 #   # rbind with anti_join
 #   data_ShareUpDoawn_final <-
 #     rbind(
 #       data_ShareUpDoawn_to_use[!new_connection,           #we exclude parent included in the new connection
-#                                on = c('geographicAreaM49', 
+#                                on = c('geographicAreaM49',
 #                                       'measuredItemParentCPC',
 #                                       'timePointYears')],
 #       unique(
 #         data_ShareUpDoawn_final[
-#         unique(new_connection[,c('geographicAreaM49', 
-#                           'measuredItemParentCPC', 
+#         unique(new_connection[,c('geographicAreaM49',
+#                           'measuredItemParentCPC',
 #                           'timePointYears'),with=FALSE]),
-#         on = c('geographicAreaM49', 
-#                'measuredItemParentCPC', 
+#         on = c('geographicAreaM49',
+#                'measuredItemParentCPC',
 #                'timePointYears')
 #       ]
 #       ),
 #       fill = TRUE
 #     )
-#   
+# 
 # }
 
 #consistency check: sum of shareUpDown by parent should exceed 1.
@@ -3328,6 +3404,7 @@ datatoClean=GetData(sessionKey_upDown)
 if(nrow(datatoClean[timePointYears %in% as.character(startYear:endYear), ]) == 0){
    # BC_dataForProc[ , Value := Value / sum(Value[measuredItemChildCPC_tree %!in% zeroWeight], na.rm = TRUE), 
    #                 by = c("geographicAreaM49", "measuredItemParentCPC_tree", "timePointYears")]
+  BC_dataForProc[!is.na(Value) , `:=` (flagObservationStatus = "I", flagMethod = "c")]
   
 faosws::SaveData(
   domain = "suafbs",
@@ -3947,8 +4024,8 @@ dbg_print("starting derived production loop")
 
     # we estimate processed quantity for parent
     # based on the historique trend of processed percentage (For BC, we do not need to check for NewLoss, because we average backwards)
-    datamergeNew[, Processed := ifelse(NewLoss==TRUE,Pshare * (availability-ifelse(is.na(Loss),0,Loss)),Pshare * availability)] 
-    #datamergeNew[, Processed := Pshare * availability] 
+    #datamergeNew[, Processed := ifelse(NewLoss==TRUE,Pshare * (availability-ifelse(is.na(Loss),0,Loss)),Pshare * availability)] 
+    datamergeNew[, Processed := Pshare * availability] # for BC
     
     # However, we may have cases where some production of child commodities are official
     datamergeNew[sign(Processed) == -1, Processed := 0]
@@ -4539,31 +4616,31 @@ if (FIX_OUTLIERS == TRUE) {
   
   ### FOR BC: Calculate thresholds from outlier routine based on sua balanced
   
-  # Download also calories (need them later)
-  elemKeys_all <- c(elemKeys, "664")
-  
-  if (CheckDebug()) {
-    key_all <-
-      DatasetKey(
-        domain = "suafbs",
-        dataset = "sua_balanced",
-        dimensions =
-          list(
-            geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
-            measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys_all),
-            measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-            # Get from 2010, just for the SUA aggregation
-            timePointYears = Dimension(name = "timePointYears", keys = YEARS)
-          )
-      )
-  } else {
-    key_all <- swsContext.datasets[[1]]
-    
-    key_all@dimensions$timePointYears@keys <- YEARS
-    key_all@dimensions$measuredItemFbsSua@keys <- itemKeys
-    key_all@dimensions$measuredElementSuaFbs@keys <- elemKeys_all
-    key_all@dimensions$geographicAreaM49@keys <- COUNTRY
-  }
+  # Download also calories (need them later) moved upwards for the processing shares
+  # elemKeys_all <- c(elemKeys, "664")
+  # 
+  # if (CheckDebug()) {
+  #   key_all <-
+  #     DatasetKey(
+  #       domain = "suafbs",
+  #       dataset = "sua_balanced",
+  #       dimensions =
+  #         list(
+  #           geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
+  #           measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys_all),
+  #           measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
+  #           # Get from 2010, just for the SUA aggregation
+  #           timePointYears = Dimension(name = "timePointYears", keys = YEARS)
+  #         )
+  #     )
+  # } else {
+  #   key_all <- swsContext.datasets[[1]]
+  #   
+  #   key_all@dimensions$timePointYears@keys <- YEARS
+  #   key_all@dimensions$measuredItemFbsSua@keys <- itemKeys
+  #   key_all@dimensions$measuredElementSuaFbs@keys <- elemKeys_all
+  #   key_all@dimensions$geographicAreaM49@keys <- COUNTRY
+  # }
   
   
   data_suabal <- GetData(key_all)

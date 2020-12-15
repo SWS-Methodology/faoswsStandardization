@@ -658,6 +658,13 @@ if (nrow(non_existing) > 0) {
 
 out = out[timePointYears %in% as.character(startYear:endYear), ]
 
+keep_tourist_consumption =  ReadDatatable("keep_tourist_consumption")
+touristCountry = keep_tourist_consumption[, tourist]
+
+# there was a case for wheat flour in brazil, 2010
+out[geographicAreaM49 %!in% touristCountry & measuredElementSuaFbs == "5164", `:=` (Value = NA_real_, flagObservationStatus = NA_character_,
+                                                                                          flagMethod = NA_character_)]
+
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
 
 paste0(stats$inserted, " observations written, ",
