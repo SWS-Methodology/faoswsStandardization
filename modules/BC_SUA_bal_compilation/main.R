@@ -1527,11 +1527,11 @@ all_opening_stocks <- all_opening_stocks[!is.na(timePointYears)]
 #   opening_20 := NULL
 # ]
 
-
+#min(all_opening_stocks$timePointYears)
 complete_all_opening <-
   CJ(
     geographicAreaM49 = unique(all_opening_stocks$geographicAreaM49),
-    timePointYears = as.character(min(all_opening_stocks$timePointYears):min(refYear)),
+    timePointYears = as.character(2010:min(refYear)),
     measuredItemFbsSua = unique(all_opening_stocks$measuredItemFbsSua)
   )
 
@@ -5411,8 +5411,18 @@ dbg_print("set thresholds")
 if (THRESHOLD_METHOD == 'share') {
 
   dbg_print("thresholds, share")
-
-  data[,
+ # BC: we base thresholds on SUA balanced data
+  suabalMinMax = copy(data_suabal)
+  suabalMinMax <- merge(suabalMinMax, codes, by = "measuredElementSuaFbs")
+  
+  suabalMinMax[, measuredElementSuaFbs := name]
+  
+  suabalMinMax[, name := NULL]
+  
+  setnames(suabalMinMax, "measuredItemFbsSua", "measuredItemSuaFbs")
+  
+  
+  suabalMinMax[,
     supply :=
       sum(
         Value[measuredElementSuaFbs %in% c('production', 'imports')],
@@ -5424,26 +5434,26 @@ if (THRESHOLD_METHOD == 'share') {
 
   # NOTE: here we redefine what "supply" is just for seed.
 
-  data[,
+  suabalMinMax[,
     supply := ifelse(measuredElementSuaFbs == "seed", Value[measuredElementSuaFbs == "production"], supply),
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
 
-  data[supply < 0, supply := 0]
+  suabalMinMax[supply < 0, supply := 0]
 
-  data[
+  suabalMinMax[
     !(measuredElementSuaFbs %chin% c("production", "imports", "exports", "stockChange")),
     util_share := Value / supply
   ]
 
-  data[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
+  suabalMinMax[is.infinite(util_share) | is.nan(util_share), util_share := NA_real_]
 
   # share < 0 shouldn't happen. Also, tourist can be negative.
-  data[util_share < 0 & measuredElementSuaFbs != "tourist", util_share := 0]
+  suabalMinMax[util_share < 0 & measuredElementSuaFbs != "tourist", util_share := 0]
 
-  data[util_share > 1, util_share := 1]
+  suabalMinMax[util_share > 1, util_share := 1]
 
-  data[,
+  suabalMinMax[,
     `:=`(
       min_util_share = min(util_share[timePointYears %in% refYear], na.rm = TRUE),
       max_util_share = max(util_share[timePointYears %in% refYear], na.rm = TRUE)
@@ -5451,12 +5461,34 @@ if (THRESHOLD_METHOD == 'share') {
     by = c("measuredItemSuaFbs", "measuredElementSuaFbs", "geographicAreaM49")
   ]
 
-  data[is.infinite(min_util_share) | is.nan(min_util_share), min_util_share := NA_real_]
+  suabalMinMax[is.infinite(min_util_share) | is.nan(min_util_share), min_util_share := NA_real_]
 
-  data[is.infinite(max_util_share) | is.nan(max_util_share), max_util_share := NA_real_]
+  suabalMinMax[is.infinite(max_util_share) | is.nan(max_util_share), max_util_share := NA_real_]
 
-  data[max_util_share > 1, max_util_share := 1]
+  suabalMinMax[max_util_share > 1, max_util_share := 1]
 
+  data = merge(data, unique(suabalMinMax[,.(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, 
+                                     min_util_share, max_util_share)]), 
+               by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs"))
+  
+  
+  data[,
+               supply :=
+                 sum(
+                   Value[measuredElementSuaFbs %in% c('production', 'imports')],
+                   - Value[measuredElementSuaFbs %in% c('exports', 'stockChange')],
+                   na.rm = TRUE
+                 ),
+               by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+  ]
+  
+  # NOTE: here we redefine what "supply" is just for seed.
+  
+  data[,
+               supply := ifelse(measuredElementSuaFbs == "seed", Value[measuredElementSuaFbs == "production"], supply),
+               by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
+  ]
+  
   data[,
     `:=`(
       min_threshold = supply * min_util_share,
@@ -5470,7 +5502,7 @@ if (THRESHOLD_METHOD == 'share') {
   stop("Invalid method.")
 }
 
-
+# what is this adjustment
 data[,
   `:=`(
     min_adj = min_threshold / Value,
@@ -5511,6 +5543,8 @@ data[, new_loss := NULL]
 data[, min_threshold := Value * min_adj]
 data[, max_threshold := Value * max_adj]
 
+
+
 # We need the min and max to be "near" one (but not too near) in case of
 # protected figures, so that they are not changed
 data[Protected == TRUE, min_adj := 0.999]
@@ -5524,6 +5558,7 @@ data[
     max_adj = 1.001
   )
 ]
+
 
 # Back compilation: we take median food information form sua balanced (2014-2018)
 # Note: in BC, meadian was changed to be the mean!!

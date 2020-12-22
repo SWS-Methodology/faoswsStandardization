@@ -665,6 +665,14 @@ touristCountry = keep_tourist_consumption[, tourist]
 out[geographicAreaM49 %!in% touristCountry & measuredElementSuaFbs == "5164", `:=` (Value = NA_real_, flagObservationStatus = NA_character_,
                                                                                           flagMethod = NA_character_)]
 
+# in BC: wipe stock data for non-stockables
+
+nonStockable = out[measuredItemFbsSua %in% utilizationTable[is.na(stock), cpc_code] & measuredElementSuaFbs == "5071", ]
+
+nonStockable[,`:=`(Value = NA_real_, flagObservationStatus = NA_character_, flagMethod = NA_character_)]
+
+out = rbind(out[!nonStockable, on = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", "timePointYears")], nonStockable)
+
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
 
 paste0(stats$inserted, " observations written, ",
