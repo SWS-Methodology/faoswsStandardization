@@ -598,6 +598,7 @@ newBalancing <- function(data, Utilization_Table) {
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ] 
    
+   
   data[,
     supply :=
       sum(
@@ -4853,7 +4854,7 @@ outlier_suabal[,
     data <- dt_full_join(data, dout, by = sel_vars)
 
     data[
-      !is.na(Value_imputed),
+      !is.na(Value_imputed) & (Protected == FALSE | is.na(Protected)),
       `:=`(
         Value = Value_imputed,
         flagObservationStatus = "E",
@@ -5469,7 +5470,7 @@ if (THRESHOLD_METHOD == 'share') {
 
   data = merge(data, unique(suabalMinMax[,.(geographicAreaM49, measuredItemSuaFbs, measuredElementSuaFbs, 
                                      min_util_share, max_util_share)]), 
-               by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs"))
+               by = c("geographicAreaM49", "measuredItemSuaFbs", "measuredElementSuaFbs"), all.x = T)
   
   
   data[,
