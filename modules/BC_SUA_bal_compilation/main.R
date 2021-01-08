@@ -81,7 +81,7 @@ refYear = 2014:2018
 TMP_DIR <- file.path(tempdir(), USER)
 if (!file.exists(TMP_DIR)) dir.create(TMP_DIR, recursive = TRUE)
 
-tmp_file_imb         <- file.path(TMP_DIR, paste0("IMBALANCE_", COUNTRY, ".csv"))
+tmp_file_imb         <- file.path(TMP_DIR, paste0("IMBALANCE_", COUNTRY, ".xlsx"))
 tmp_file_shares      <- file.path(TMP_DIR, paste0("SHARES_", COUNTRY, ".xlsx"))
 tmp_file_negative    <- file.path(TMP_DIR, paste0("NEGATIVE_AVAILAB_", COUNTRY, ".csv"))
 tmp_file_non_exist   <- file.path(TMP_DIR, paste0("NONEXISTENT_", COUNTRY, ".csv"))
@@ -3644,14 +3644,19 @@ dbg_print("starting derived production loop")
             timePointYears == as.character(startYear) & delta < 0 & abs(delta) > new_opening,
             delta := - new_opening
           ]
-           
           
+          data_for_stocks[, naOpening := new_opening]
+          
+          # take care of NA openings of 2014 
+          data_for_stocks[is.na(new_opening), new_opening := 0]
           # NOTE: Data here should be ordered by country/item/year (CHECK)
           data_for_stocks <- update_opening_stocks(data_for_stocks)
           
+          
           # For BC: get rid of 2014 year used for balancing
           data_for_stocks = data_for_stocks[timePointYears != 2014,]
-          
+          data_for_stocks[is.na(naOpening), new_opening := naOpening ]
+          data_for_stocks[,naOpening := NULL ]
           
           data <-
             dt_left_join(
@@ -5777,10 +5782,16 @@ for (i in 2:nrow(uniqueLevels)) {
       data_for_opening <- data_for_opening[order(geographicAreaM49, measuredItemSuaFbs, timePointYears)]
 
       dbg_print(paste("update opening stocks", i))
-
+      
+      # take care of NA stocks in 2014
+      data_for_opening[, naOpening := new_opening ]
+      data_for_opening[is.na(new_opening), new_opening := 0]
+      
       data_for_opening <- update_opening_stocks(data_for_opening)
       # For BC: get rid of 2014 year used for balancing
       data_for_opening = data_for_opening[timePointYears != 2014,]
+      data_for_opening[is.na(naOpening), new_opening := naOpening ]
+      data_for_opening[,naOpening := NULL ]
       
       dbg_print(paste("merge data in opening stocks", i))
 
@@ -6092,7 +6103,7 @@ if (nrow(imbalances_to_send) > 0) {
     nameData('suafbs', 'sua_unbalanced', imbalances_to_send,
              except = c('measuredElementSuaFbs'))
 
-  imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+  #imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
   data_negtrade <-
     imbalances_to_send[
@@ -6130,8 +6141,18 @@ non_existing_for_imputation <-
 
 non_existing_for_imputation[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
+# We want to exclude livestock primary that have heads as units form the imbalance list
+LivestockToExcludeFromFile = itemMap[type %in% c("LSPR", "POPR"), measuredItemSuaFbs]
+imbalances_to_send = imbalances_to_send[measuredItemFbsSua %!in% LivestockToExcludeFromFile,]
 
-write.csv(imbalances_to_send,          tmp_file_imb)
+# Move imbalance list from csv to xls
+wb <- createWorkbook() 
+addWorksheet(wb, "imbalance") 
+writeData(wb, "imbalance", imbalances_to_send) 
+dbg_print(paste("IMBALANCE workbook, save", getwd(), tmp_file_imb)) 
+saveWorkbook(wb, tmp_file_imb, overwrite = TRUE) 
+
+#write.csv(imbalances_to_send,          tmp_file_imb)
 write.csv(data_negtrade,               tmp_file_NegNetTrade)
 write.csv(negative_availability,       tmp_file_negative)
 write.csv(non_existing_for_imputation, tmp_file_non_exist)
@@ -7012,22 +7033,22 @@ if (exists("out")) {
 
 }
 
-
-if(!CheckDebug()){
-  send_mail(
-    from = "do-not-reply@fao.org",
-    to = c("bernhard.dalheimer@fao.org", "amsata.niang@fao.org", "pietro.marinelli@fao.org"),
-    subject = "Results from SUA_bal_compilation plugin",
-    body = c(sprintf("For analysis..."),
-             tmp_file_des_main,
-             tmp_file_des,
-             tmp_file_outliers,
-             tmp_file_imb,
-             StocksMismatch,
-             tmp_file_highstocks
-    )
-  )
-}
+# If we want output send to us
+# if(!CheckDebug()){
+#   send_mail(
+#     from = "do-not-reply@fao.org",
+#     to = c("bernhard.dalheimer@fao.org", "amsata.niang@fao.org", "pietro.marinelli@fao.org"),
+#     subject = "Results from SUA_bal_compilation plugin",
+#     body = c(sprintf("For analysis..."),
+#              tmp_file_des_main,
+#              tmp_file_des,
+#              tmp_file_outliers,
+#              tmp_file_imb,
+#              StocksMismatch,
+#              tmp_file_highstocks
+#     )
+#   )
+# }
 
 unlink(TMP_DIR, recursive = TRUE)
 
