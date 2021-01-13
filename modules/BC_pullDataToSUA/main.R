@@ -98,6 +98,19 @@ selectedGEOCode =
          "all" = geoKeys)
 
 
+# Allow only officers to run more than one country
+officers = c("filipczuk", "tayyib", "habimanad")
+
+USER <- regmatches(
+  swsContext.username,
+  regexpr("(?<=/).+$", swsContext.username, perl = TRUE)
+)
+
+COUNTRY = selectedGEOCode
+if(length(COUNTRY) > 1 & !(USER %in% officers)){
+  stop("You currently can not run the module on multiple countries at once.")
+}
+
 
 # For back-compilation shares downup and updown for 2010-2013
 sessionKey_downUp = swsContext.datasets[[2]]
@@ -504,7 +517,7 @@ if((nrow(indData)==0)|(nrow(tourData)==0)){
 
 ## filter production data for back compilation (Delete all derived production that are not Official or semi-official)
 utilizationTable = ReadDatatable("utilization_table_2018")
-derived = utilizationTable[proxy_primary == "X" | derived == "X", cpc_code]
+derived = utilizationTable[(proxy_primary == "X" & is.na(orphan))   | (derived == "X" & is.na(orphan)), cpc_code]
 
 # keep derived which are from meats
 fbsTree = ReadDatatable("fbs_tree")

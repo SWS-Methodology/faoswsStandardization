@@ -57,6 +57,13 @@ USER <- regmatches(
   regexpr("(?<=/).+$", swsContext.username, perl = TRUE)
 )
 
+# Allow only officers to run more than one country
+officers = c("filipczuk", "tayyib", "habimanad")
+
+if(length(COUNTRY) > 1 & !(USER %in% officers)){
+  stop("You currently can not run the module on multiple countries at once.")
+}
+
 # if (!file.exists(file.path(R_SWS_SHARE_PATH, USER))) {
 #   dir.create(file.path(R_SWS_SHARE_PATH, USER))
 # }
@@ -82,6 +89,7 @@ TMP_DIR <- file.path(tempdir(), USER)
 if (!file.exists(TMP_DIR)) dir.create(TMP_DIR, recursive = TRUE)
 
 tmp_file_imb         <- file.path(TMP_DIR, paste0("IMBALANCE_", COUNTRY, ".xlsx"))
+tmp_file_imbCSV      <- file.path(TMP_DIR, paste0("IMBALANCE_", COUNTRY, ".csv"))
 tmp_file_shares      <- file.path(TMP_DIR, paste0("SHARES_", COUNTRY, ".xlsx"))
 tmp_file_negative    <- file.path(TMP_DIR, paste0("NEGATIVE_AVAILAB_", COUNTRY, ".csv"))
 tmp_file_non_exist   <- file.path(TMP_DIR, paste0("NONEXISTENT_", COUNTRY, ".csv"))
@@ -1734,8 +1742,18 @@ CumulativeToUnprotect = StockCheckProblems[FlagVariation == "(E,h)", measuredIte
 # assign same flag as estimated stock variation
 data[measuredItemFbsSua %in% CumulativeToUnprotect & measuredElementSuaFbs == "5071" & timePointYears %in% as.character(startYear:endYear), `:=` (flagObservationStatus = "E", flagMethod = "u") ]
 
+
+# take care of NA stocks in 2014 to build the series for stocks
+data_for_opening[, naOpening := new_opening]
+data_for_opening[is.na(new_opening), new_opening := 0]
+
 data_for_opening <- update_opening_stocks(data_for_opening)
 
+# put original NAs to 2014 stocks
+data_for_opening[is.na(naOpening) & timePointYears == "2014", new_opening := naOpening ]
+data_for_opening[,naOpening := NULL ]
+
+# reset
 all_opening_stocks <-
   dt_left_join(
     all_opening_stocks,
@@ -2872,10 +2890,10 @@ data_ShareUpDoawn_final_invalid <-
 
 
 if (nrow(data_ShareUpDoawn_final_invalid) > 0) {
-  
+  data_ShareUpDoawn_final_invalid[, measuredItemParentCPC_tree := paste0("'", measuredItemParentCPC_tree)]
   write.csv(
-    data_ShareUpDoawn_final_invalid,
-    file.path(paste0("ShareUpDown_toCorrect_", COUNTRY, ".csv"))
+    data_ShareUpDoawn_final_invalid, 
+    file.path(paste0("ShareUpDown_toCorrect_", COUNTRY, ".csv")), row.names = FALSE
   )
   
   if (!CheckDebug()) {
@@ -3708,6 +3726,10 @@ dbg_print("starting derived production loop")
       }
     }
 
+    ####### Processing check for BC #####################
+    
+    
+    
     
     ############# / Create stocks, if missing ##################
     
@@ -4436,6 +4458,53 @@ dbg_print("starting derived production loop")
   }
 # }
   
+  ### Processed check for BC and remove processed that does not link to children
+  
+  ProcessedCheck = copy(data)
+  setnames(ProcessedCheck, c("measuredItemSuaFbs", "Value"), c("measuredItemParentCPC", "foodManufacturing"))
+  ProcessedCheck = ProcessedCheck[measuredElementSuaFbs == "foodManufacturing" & flagMethod == "i" , ]
+  
+  ProductionCheck = copy(data)
+  setnames(ProductionCheck, c("measuredItemSuaFbs", "Value"), c("measuredItemChildCPC", "production"))
+  ProductionCheck = ProductionCheck[measuredElementSuaFbs == "production" & flagMethod == "c" , ]
+  
+  CheckProcessedData = merge(
+    ProcessedCheck[, .(geographicAreaM49, timePointYears, measuredItemParentCPC, foodManufacturing)],
+    tree[measuredElementSuaFbs == "extractionRate", .(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)],
+    by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears"), all.x = TRUE
+  )
+  
+  CheckProcessedData = merge(
+    CheckProcessedData,
+    ProductionCheck[, .(geographicAreaM49, timePointYears, measuredItemChildCPC, production)],
+    by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears"), all.x = TRUE
+  )
+  
+  CheckProcessedData[, 
+                     ProcessedCheck := sum(production, na.rm = TRUE), 
+                     by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")]
+  
+  CheckProcessedData[ProcessedCheck == 0, foodManufacturing := 0  ]
+  
+  CheckProcessedData = subset(CheckProcessedData, ProcessedCheck == 0)
+  
+  saveProcessedCheck = unique(CheckProcessedData[ , list(geographicAreaM49, measuredItemSuaFbs = measuredItemParentCPC, 
+                                              measuredElementSuaFbs = "foodManufacturing", 
+                                              Value_processedCheck = foodManufacturing,
+                                              timePointYears)])
+  saveProcessedCheck =  saveProcessedCheck[timePointYears %in% as.character(startYear:endYear),]
+  
+  # save these back to data
+  
+  if(nrow(saveProcessedCheck) > 0){
+  data = merge(data,
+          saveProcessedCheck,
+          by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs", "measuredElementSuaFbs"), all.x=T) 
+  
+  data[measuredElementSuaFbs == "foodManufacturing" & !is.na(Value_processedCheck) & Value != 0, Value := Value_processedCheck ]
+  data[, Value_processedCheck := NULL]
+  }
+  
   ## The stocks are not working !!!!
 testSave = data[measuredElementSuaFbs %in% c("production", "foodManufacturing", "stockChanges", "stock") &
                   timePointYears %in% as.character(startYear:endYear), ]
@@ -4452,8 +4521,8 @@ testSave = testSave[, .(geographicAreaM49, measuredItemFbsSua = measuredItemSuaF
 #   waitTimeout = 20000
 # )
 
-data[measuredElementSuaFbs == "production" & dplyr::near(Value,0) & flagObservationStatus == "I" &
-     flagMethod == "c", `:=` (Value = NA, flagObservationStatus = NA, flagMethod = NA) ]
+# data[measuredElementSuaFbs == "production" & dplyr::near(Value,0) & flagObservationStatus == "I" &
+#     flagMethod == "c", `:=` (Value = NA, flagObservationStatus = NA, flagMethod = NA) ]
 
 setkey(data, NULL)
 
@@ -5012,6 +5081,8 @@ if (exists("data_outliers")) {
 
 data_to_save_unbalanced <- data_to_save_unbalanced[timePointYears %in% startYear:endYear]
 
+data_to_save_unbalanced[measuredElementSuaFbs == "5510" & dplyr::near(Value,0) & flagObservationStatus == "I" &
+     flagMethod == "c", `:=` (Value = NA, flagObservationStatus = NA, flagMethod = NA) ]
 
 
 out <-
@@ -6103,7 +6174,7 @@ if (nrow(imbalances_to_send) > 0) {
     nameData('suafbs', 'sua_unbalanced', imbalances_to_send,
              except = c('measuredElementSuaFbs'))
 
-  #imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+
 
   data_negtrade <-
     imbalances_to_send[
@@ -6152,7 +6223,8 @@ writeData(wb, "imbalance", imbalances_to_send)
 dbg_print(paste("IMBALANCE workbook, save", getwd(), tmp_file_imb)) 
 saveWorkbook(wb, tmp_file_imb, overwrite = TRUE) 
 
-#write.csv(imbalances_to_send,          tmp_file_imb)
+imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+write.csv(imbalances_to_send,          tmp_file_imbCSV)
 write.csv(data_negtrade,               tmp_file_NegNetTrade)
 write.csv(negative_availability,       tmp_file_negative)
 write.csv(non_existing_for_imputation, tmp_file_non_exist)
@@ -6986,6 +7058,7 @@ if (exists("out")) {
                tmp_file_outliers,
                tmp_file_shares,
                tmp_file_imb,
+               tmp_file_imbCSV,
                tmp_file_extr,
                tmp_file_negative,
                tmp_file_non_exist,
