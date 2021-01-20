@@ -538,7 +538,9 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
                              childName = "childID",
                              extractionName = "extractionRate",
                              keyCols = c("timePointYearsSP", "geographicAreaFS"),
-                             notStandChild,weight="weight",standard_child="standard_child"){
+                             notStandChild,
+                             weight="weight",
+                             standard_child="standard_child"){
   
   ## Data quality checks
   stopifnot(is(edges, "data.table"))
@@ -570,12 +572,31 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
  
   setnames(edgesCopy, c(parentName, childName, extractionName,p$shareVar,weight,standard_child,"som"),
            c("newParent", parentName, "extractionMult","share.parent","weight.Parent","standard_child.parent","som.parrent"))
+  
+  
   finalEdges = edges[get(parentName) %in% targetNodes, ]
   currEdges = edges[!get(parentName) %in% targetNodes, ]
   
   while(nrow(currEdges) > 0){
     currEdges = merge(currEdges, edgesCopy, by = c(parentName, keyCols),
                       all.x = TRUE, allow.cartesian = TRUE)
+    
+    # We will save multiple parent commodities with zero production but positive availability and more than one child to be standardized
+    # based on availability shares, so we later can add their DES
+    
+    # currEdges = merge(currEdges, 
+    #                   AvailabilityShares, 
+    #                   by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "newParent"), all.x = T)
+    
+    # currEdges[, someStand := sum(standard_child,na.rm = TRUE), by = "measuredItemChildCPC"]
+    # currEdges[, sumShare := sum(share.parent,na.rm = TRUE), by = c("measuredItemChildCPC", "measuredItemParentCPC")]
+    # currEdges[, originalParentShare := share.parent]
+    # MissingDESConnections = rbind(MissingDESConnections, currEdges[sumShare == 0 & share > 0 & someStand > 1 & som > 1, ])
+    # 
+    # currEdges[, sumShare := NULL]
+    # currEdges[, someStand := NULL]
+    # currEdges[, originalParentShare := NULL]
+    
     ## Update edges table with new parents/extraction rates.  For edges that
     ## didn't get changed, we keep the old parent name and extraction rate.
     
@@ -598,6 +619,24 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
     
     currEdges[, c("newParent", "extractionMult","share.parent","weight.Parent","standard_child.parent","som.parrent") := NULL]
     
+    
+    # test = merge(finalEdges, 
+    #              AvailabilityShares, 
+    #              by.x = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears", "measuredItemChildCPC"), 
+    #              by.y = c("geographicAreaM49", "newParent" , "timePointYears", "measuredItemParentCPC"), all.x = T)
+    # 
+    # test[, someStand := sum(standard_child,na.rm = TRUE), by = "measuredItemChildCPC"]
+    # test[, sumShare := sum(share,na.rm = TRUE), by = c("measuredItemChildCPC", "measuredItemParentCPC")]
+    # test[, originalParentShare := share]
+    # test[sumShare == 0 & share > 0 & someStand > 1 & som > 1, 
+    #           share.parent := AvailabilityShare]
+    # 
+    # currEdges[, sumShare := NULL]
+    # currEdges[, someStand := NULL]
+    # currEdges[, originalParentShare := NULL]
+    # currEdges[, availability := NULL]
+    # currEdges[, AvailabilityShare := NULL]
+    
     finalEdges = rbind(finalEdges, currEdges[get(parentName) %in% targetNodes, ])
     currEdges = currEdges[!get(parentName) %in% targetNodes, ]
   }
@@ -608,6 +647,7 @@ collapseEdges_NEW = function(edges, parentName = "parentID",
   
   finalEdges = unique(finalEdges,by=colnames(finalEdges))
   
+  #output = list(finalEdges = finalEdges, MissingDESConnections = MissingDESConnections)
   return(finalEdges)
 }
 
@@ -1139,6 +1179,11 @@ data_tree[,
             ),
           by = c(p$geoVar, p$yearVar, p$parentVar, p$childVar)
           ]
+
+# TO BE USED LATER FOR IMPUTATION if there are multiple parent commodities with no production but positive availability for standardization
+AvailabilityShares = unique(data_tree[, list(geographicAreaM49, measuredItemParentCPC, timePointYears, measuredItemChildCPC, availability)])
+AvailabilityShares[availability < 0, availability := 0]
+AvailabilityShares[, AvailabilityShare := availability / sum(availability, na.rm = T), by =c("timePointYears", "measuredItemChildCPC")]
 
 # used to chack if a parent has processed as utilization
 data_tree[,
@@ -1770,9 +1815,9 @@ level = findProcessingLevel(tree, from = params$parentVar,
                             to = params$childVar, aupusParam = params)
 primaryEl = level[processingLevel == 0, get(params$itemVar)]
 
-data[!(get(params$protected)=="TRUE"|(flagObservationStatus=="I"&flagMethod%in%c("i","e")))
-     &get(params$elementVar)==params$productionCode
-     &!(get(params$itemVar) %in% primaryEl),Value:=NA]
+# data[!(get(params$protected)=="TRUE"|(flagObservationStatus=="I"&flagMethod%in%c("i","e")))
+#      &get(params$elementVar)==params$productionCode
+#      &!(get(params$itemVar) %in% primaryEl),Value:=NA]
 
 
 p=params
@@ -2020,9 +2065,13 @@ onlyCalories<-c("39120.01","23140.01","23220.02","39130.01","39120.02","39120.03
 #########STANDARDIZATION AND AGGREGATION-----------------------------------
 message("Beginning actual standardization process...")
 
+# for merging in availability in collapseEdges
+setnames(AvailabilityShares, 
+         c("measuredItemChildCPC", "measuredItemParentCPC"), 
+         c("measuredItemParentCPC", "newParent"))
  #
  for (i in seq_len(nrow(uniqueLevels))) {
-                   #i=4
+                   
   
   message(paste("Standardizing ",uniqueLevels$geographicAreaM49[i]," for the year ",uniqueLevels$timePointYears[i]))
   
@@ -2104,13 +2153,17 @@ message("Beginning actual standardization process...")
     treeSubset[, c(standParams$yearVar) := dataSubset[, get(standParams$yearVar)][1]]
     treeSubset[, c(standParams$geoVar) := dataSubset[, get(standParams$geoVar)][1]]
   }
+ 
   if(dim(treeSubset)[1]!=0){
     
+    standTree = collapseEdges_NEW(edges = treeSubset, 
+                      keyCols = keyCols,
+                      parentName = standParams$parentVar,
+                      childName = standParams$childVar,
+                      extractionName = standParams$extractVar,
+                      notStandChild = nonStandChildren)
     
-    standTree = collapseEdges_NEW(edges = treeSubset, keyCols = keyCols,
-                              parentName = standParams$parentVar,
-                              childName = standParams$childVar,
-                              extractionName = standParams$extractVar,notStandChild = nonStandChildren)
+    
     standTree[,weight:=1]
     standTree[measuredItemChildCPC %in% zeroWeight , weight:=0]
     standTree[measuredItemParentCPC %in% zeroWeight , weight:=0]
@@ -2122,10 +2175,17 @@ message("Beginning actual standardization process...")
   dataTest<-copy(dataSubset) 
   
   standKey = standParams$mergeKey[standParams$mergeKey != standParams$itemVar]
+  
   treeTest = collapseEdges_NEW(edges = treeSubset, parentName = standParams$parentVar,
-                           childName = standParams$childVar,
-                           extractionName = standParams$extractVar,
-                           keyCols = standKey, notStandChild = nonStandChildren)
+                    childName = standParams$childVar,
+                    extractionName = standParams$extractVar,
+                    keyCols = standKey, notStandChild = nonStandChildren)
+
+  # treeTest = collapseEdges_NEW(edges = treeSubset, parentName = standParams$parentVar,
+  #                          childName = standParams$childVar,
+  #                          extractionName = standParams$extractVar,
+  #                          keyCols = standKey, notStandChild = nonStandChildren,
+  #                          AvailabilityShares = AvailabilityShares)
   
 #build a function that take:
       # treesubset, 
@@ -2302,6 +2362,11 @@ standardization<-function(dataQTY=dataSubset,
   
   setnames(dataDES, params$itemVar, params$childVar)
   
+  # Need to substitute the commod
+  # standTree[measuredItemChildCPC %in% unique(MissingDESConnections[, measuredItemParentCPC]) & 
+  #             measuredItemParentCPC %in%   unique(MissingDESConnections[, newParent])]
+                                          
+  
   dataDES<-merge(dataDES, StandtreeDES,
                    by = c(params$yearVar, params$geoVar, params$childVar),
                    all.x = TRUE, allow.cartesian = TRUE)
@@ -2310,7 +2375,7 @@ standardization<-function(dataQTY=dataSubset,
            c(params$parentVar, params$extractVar, params$shareVar) :=
              list(get(params$childVar), 1, 1)]
   
-  dataDES[,missedDES:=mean(Value,na.rm = TRUE)>0 & sum(share,na.rm = TRUE)==0,
+  dataDES[,missedDES:=mean(Value,na.rm = TRUE)>0 & (sum(share,na.rm = TRUE)==0 | (sum(share,na.rm = TRUE)> 0  & sum(share,na.rm = TRUE) < 1)),
            by = c(params$yearVar, params$geoVar, params$childVar,params$elementVar)
            ]
   
@@ -2967,6 +3032,27 @@ setDT(fbs_des_to_send)
 DesFBS<-fbs_des_to_send[measuredItemFbsSua_description=="GRAND TOTAL - DEMAND"]
 DesFBS[,measuredItemFbsSua_description:="DES from FBS"]
 ComparativeDES<-rbind(DEssua,DesFBS)
+
+# ## figure out where the differneces are coming from
+# 
+# DESbyFBSItem = merge(dataDes, fbsTree[, .(measuredItemSuaFbs, fbsID4)], by = "measuredItemSuaFbs", all.x = T)
+# DESbyFBSItem = DESbyFBSItem[measuredElementSuaFbs == "calories", ]
+# DESbyFBSItem = DESbyFBSItem[,
+#        list(Value=sum(Value,na.rm = TRUE)),
+#        by=c("geographicAreaM49","measuredElementSuaFbs","timePointYears", "fbsID4")
+# ]
+# fbsByItem = fbs_balanced[measuredElementSuaFbs == "664", ]
+# fbsByItem[, fbsID4 := sub("S", "", measuredItemFbsSua)]
+# 
+# SUAFBSCompare = merge(fbsByItem, DESbyFBSItem, by = c("fbsID4", "timePointYears"))
+# Diffs = SUAFBSCompare[abs(Value.x - Value.y) > 2, ]
+# Diffs[, sum(Value.x), by = "timePointYears"][,V1] - Diffs[, sum(Value.y), by = "timePointYears"][,V1]
+# 
+# # The problem commodities are "S2737" and "S2577"
+# # the first two are equal
+# Diffs[measuredItemFbsSua %in% c("S2542", "S2543") , sum(Value.x), by = "timePointYears"]
+# Diffs[measuredItemFbsSua %in% c("S2542", "S2543") , sum(Value.y), by = "timePointYears"]
+# DESbyFBSelement[fbsID4 %in% sub("S", "", fbsByItem[, measuredItemFbsSua]), ]
 
 #if the number of SUAs is more than 1 we cannot include COUNTRY_NAME, in the file name
 if(length(selectedGEOCode)==1){
