@@ -115,7 +115,7 @@ areaKeys = selectedGEOCode
 ptm <- proc.time()
 #tree=getCommodityTreeNewMethod(areaKeys,yearVals)
 message("Downloading tree...")
-tree=getCommodityTreeNewMethod(areaKeys,as.character(2000:2018))
+tree=getCommodityTreeNewMethod(areaKeys,as.character(2000:endYear))
 
 message((proc.time() - ptm)[3])
 
@@ -838,7 +838,7 @@ NonStandardizedChidren<-function(fbsTree,tree,standParams){
 ###########END FUNCTION--------------------------------------------
 #QUick way to have the exact shareDownUp
 #LoadShareUpDowm
-shareUpDownTree=getShareUpDownTree(areaKeys,as.character(2000:2018)) 
+shareUpDownTree=getShareUpDownTree(areaKeys,as.character(2000:endYear)) 
 shareUpDownTree<-shareUpDownTree[!is.na(Value)]
 shareUpDownTree[,shareUpDown:=Value]
 shareUpDownTree[,Value:=NULL]
@@ -973,7 +973,7 @@ key = DatasetKey(domain = "suafbs", dataset = "sua_unbalanced", dimensions = lis
   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
   measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys),
   measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
-  timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2018))))
+  timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:endYear))))
 
 # key = DatasetKey(domain = "suafbs", dataset = "sua_balanced", dimensions = list(
 #   geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = areaKeys),
@@ -1189,7 +1189,7 @@ AvailabilityShares[, AvailabilityShare := availability / sum(availability, na.rm
 data_tree[,
           proc_Median :=
             median(
-              Value[measuredElementSuaFbs == "foodManufacturing" & timePointYears %in% 2000:2018],
+              Value[measuredElementSuaFbs == "foodManufacturing" & timePointYears %in% 2000:endYear],
               na.rm=TRUE
             ),
           by = c(p$parentVar, p$geoVar)
@@ -1929,7 +1929,7 @@ key <-
       list(
         geographicAreaM49 = Dimension(name = "geographicAreaM49", keys = COUNTRY),
         measuredElementSuaFbs = Dimension(name = "measuredElement", keys = "511"), # 511 = Total population
-        timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:2018))
+        timePointYears = Dimension(name = "timePointYears", keys = as.character(2000:endYear))
       )
   )
 
