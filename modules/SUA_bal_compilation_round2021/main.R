@@ -3097,6 +3097,8 @@ setnames(data_tree_final_save,c("measuredItemParentCPC","measuredItemChildCPC","
 # }
 
 
+data_tree_final_save<-data_tree_final_save[timePointYears %in% startYear: endYear]
+
 faosws::SaveData(
   domain = "suafbs",
   dataset = "down_up_share",
@@ -4118,6 +4120,8 @@ setkey(data, NULL)
 computed_shares <- rbindlist(computed_shares)
 
 updated_shareUpDOwn <- rbindlist(updated_shareUpDOwn)
+
+updated_shareUpDOwn<- updated_shareUpDOwn[timePointYears %in% startYear:endYear]
 
 
 shareUpDown_to_save <- copy(updated_shareUpDOwn)
