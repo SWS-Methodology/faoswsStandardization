@@ -529,9 +529,9 @@ if (FILL_EXTRACTION_RATES == TRUE) {
 # the commodity tree (so, they should be fixed there)
 tree[
   #timePointYears >= 2014 &
-    ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
-       #cheese from whole cow milk cannot come from skim mulk of cow
-       (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01")),
+  ((measuredItemParentCPC == "02211" & measuredItemChildCPC == "22212") |
+     #cheese from whole cow milk cannot come from skim mulk of cow
+     (measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22251.01")),
   `:=`(
     Value = NA,
     flagObservationStatus = "M",
@@ -543,7 +543,7 @@ tree[
 
 tree[
   #timePointYears >= 2014 & 
-    geographicAreaM49=="203" &
+  geographicAreaM49=="203" &
     
     #“whole milk powder”  from whole cow milk cannot come from skim mulk of cow
     ((measuredItemParentCPC == "22110.02" & measuredItemChildCPC == "22211") |
@@ -2251,12 +2251,13 @@ CONFIG <- GetDatasetConfig(sessionKey_shareUpDown@domain, sessionKey_shareUpDown
 # taking updown shares from the session
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
 
+shareUpDown_to_save <- shareUpDown_to_save[timePointYears %in% startYear:endYear,]
 
 faosws::SaveData(
-    domain = "suafbs",
-    dataset = "up_down_share",
-    data = shareUpDown_to_save[measuredItemParentCPC_tree %in% Item_Parent, ],
-    waitTimeout = 20000
+  domain = "suafbs",
+  dataset = "up_down_share",
+  data = shareUpDown_to_save[measuredItemParentCPC_tree %in% Item_Parent, ],
+  waitTimeout = 20000
 )
 
 print("Tree corrected succesfully")
