@@ -20,7 +20,7 @@ R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
 if (CheckDebug()) {
   R_SWS_SHARE_PATH <- "//hqlprsws1.hq.un.fao.org/sws_r_share"
   
-  mydir <- "modules/SUA_bal_compilation"
+  mydir <- "modules/SUA_bal_compilation_round2021"
   
   SETTINGS <- faoswsModules::ReadSettings(file.path(mydir, "sws.yml"))
   
