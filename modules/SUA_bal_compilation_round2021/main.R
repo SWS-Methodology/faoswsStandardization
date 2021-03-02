@@ -1348,12 +1348,12 @@ if (nrow(fodder_crops_availab) > 0) {
 #################### / FODDER CROPS ########################################
 
 
-opening_stocks_2014 <-
-  ReadDatatable(
-    "opening_stocks_2014",
-    where = paste0("m49_code IN (",
-                   paste(shQuote(COUNTRY, type = "sh"), collapse = ", "), ")")
-  )
+# opening_stocks_2014 <-
+#   ReadDatatable(
+#     "opening_stocks_2014",
+#     where = paste0("m49_code IN (",
+#                    paste(shQuote(COUNTRY, type = "sh"), collapse = ", "), ")")
+#   )
 
 # The procedure works even if no previous opening stocks  exists, but in that
 # case there is no way to know if data does not exist because there was an
@@ -1375,55 +1375,57 @@ non_null_prev_deltas <-
     ]
   )
 
-opening_stocks_2014[opening_stocks < 0, opening_stocks := 0]
+# opening_stocks_2014[opening_stocks < 0, opening_stocks := 0]
+# 
+# positivelimit <-
+#   data[
+#     timePointYears == "2013" &
+#      measuredItemFbsSua %in% unique(opening_stocks_2014$cpc_code)
+#   ][ ,opening_lim :=
+#         sum(
+#           Value[measuredElementSuaFbs %chin% c("5510", "5610")],
+#           - Value[measuredElementSuaFbs == "5910"],
+#           na.rm = TRUE
+#         ) * 2,
+#     by = c("geographicAreaM49", "measuredItemFbsSua")
+#   ]
+# 
+# setnames(positivelimit,"measuredItemFbsSua", "cpc_code")
+# setnames(positivelimit,"geographicAreaM49", "m49_code")
+# 
+# 
+# positivelimit[ , c("measuredElementSuaFbs", "Value", "flagObservationStatus", "flagMethod", "timePointYears") := NULL]
+# positivelimit<- as.data.table(unique(positivelimit))
+# 
+# opening_stocks_2014<-merge(opening_stocks_2014,positivelimit, by= c("cpc_code", "m49_code") )
+# opening_stocks_2014$opening_lim <- as.integer(opening_stocks_2014$opening_lim)
+# 
+# opening_stocks_2014[opening_stocks > opening_lim, opening_stocks := opening_lim]
+# 
+# opening_stocks_2014[ , opening_lim:= NULL]
 
-positivelimit <-
-  data[
-    timePointYears == "2013" &
-     measuredItemFbsSua %in% unique(opening_stocks_2014$cpc_code)
-  ][ ,opening_lim :=
-        sum(
-          Value[measuredElementSuaFbs %chin% c("5510", "5610")],
-          - Value[measuredElementSuaFbs == "5910"],
-          na.rm = TRUE
-        ) * 2,
-    by = c("geographicAreaM49", "measuredItemFbsSua")
-  ]
+# opening_stocks_2014 <-
+#   opening_stocks_2014[
+#     m49_code %in% COUNTRY,
+#     .(
+#       geographicAreaM49 = m49_code,
+#       measuredItemFbsSua = cpc_code,
+#       timePointYears = "2014",
+#       Value_cumulated = opening_stocks
+#     )
+#   ]
+# 
+# # Keep only those for which recent variations are available
+# opening_stocks_2014 <-
+#   opening_stocks_2014[
+#     non_null_prev_deltas,
+#     on = c("geographicAreaM49", "measuredItemFbsSua"),
+#     nomatch = 0
+#   ]
 
-setnames(positivelimit,"measuredItemFbsSua", "cpc_code")
-setnames(positivelimit,"geographicAreaM49", "m49_code")
 
-
-positivelimit[ , c("measuredElementSuaFbs", "Value", "flagObservationStatus", "flagMethod", "timePointYears") := NULL]
-positivelimit<- as.data.table(unique(positivelimit))
-
-opening_stocks_2014<-merge(opening_stocks_2014,positivelimit, by= c("cpc_code", "m49_code") )
-opening_stocks_2014$opening_lim <- as.integer(opening_stocks_2014$opening_lim)
-
-opening_stocks_2014[opening_stocks > opening_lim, opening_stocks := opening_lim]
-
-opening_stocks_2014[ , opening_lim:= NULL]
-
-opening_stocks_2014 <-
-  opening_stocks_2014[
-    m49_code %in% COUNTRY,
-    .(
-      geographicAreaM49 = m49_code,
-      measuredItemFbsSua = cpc_code,
-      timePointYears = "2014",
-      Value_cumulated = opening_stocks
-    )
-  ]
-
-# Keep only those for which recent variations are available
-opening_stocks_2014 <-
-  opening_stocks_2014[
-    non_null_prev_deltas,
-    on = c("geographicAreaM49", "measuredItemFbsSua"),
-    nomatch = 0
-  ]
-
-original_opening_stocks <- data[measuredElementSuaFbs == "5113"]
+# # test giulia e sumeda
+original_opening_stocks <- data[measuredElementSuaFbs %in% c("5113", "5071") ]
 
 original_opening_stocks <-
   flagValidTable[
@@ -1434,41 +1436,100 @@ original_opening_stocks <-
   ]
 
 
-# Remove protected in 2014 from cumulated
-opening_stocks_2014 <-
-  opening_stocks_2014[
-    !original_opening_stocks[
-      timePointYears == "2014" & Protected == TRUE,
-      .(geographicAreaM49, measuredItemFbsSua)
-    ],
-    on = c("geographicAreaM49", "measuredItemFbsSua")
+StartingOpening<- original_opening_stocks[ , Op14:= Value[measuredElementSuaFbs=="5113"
+                                          & timePointYears==(startYear-1)] + Value[measuredElementSuaFbs=="5071" & timePointYears== (startYear-1)],
+                                          by= c("measuredItemFbsSua", "geographicAreaM49")]
+
+StartingOpening<- StartingOpening[measuredElementSuaFbs=="5113"]
+original_opening_stocks<- original_opening_stocks[ measuredElementSuaFbs=="5113"]
+original_opening_stocks[ , Op14:=NULL]
+
+
+StartingOpening<-StartingOpening[!is.na(Op14)]
+StartingOpening[ , c("timePointYears", "Value", "flagObservationStatus", "flagMethod", "Protected", "measuredElementSuaFbs"):=NULL]
+# StartingOpening[ , ':=' (flagObservationStatus= "I",
+#                          flagMethod="-",
+#                          Protected=TRUE,
+#                          Value= Op14)]
+
+StartingOpening<-unique(StartingOpening)
+StartingOpening[ , timePointYears:= "2014"]
+
+# remove the opening 2014 that are protected in all opening stocks
+StartingOpening <-
+    StartingOpening[
+      !original_opening_stocks[
+        timePointYears == "2014" & Protected == TRUE,
+        .(geographicAreaM49, measuredItemFbsSua)
+      ],
+      on = c("geographicAreaM49", "measuredItemFbsSua")
+    ]
+
+# StartingOpening[ , Op14:=NULL]
+# all_opening_stocks[ , Op14:=NULL]
+# 
+# all_opening_stocks<- rbind(all_opening_stocks, StartingOpening)
+
+all_opening_stocks <-
+    merge(
+      original_opening_stocks,
+      StartingOpening,
+      by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+      all = TRUE
+    )
+
+all_opening_stocks[
+    !Protected %in% TRUE & !is.na(Op14),
+    `:=`(
+      Value = Op14,
+      flagObservationStatus = "I",
+      flagMethod = "-",
+      # We protect these, in any case, because they should not
+      # be overwritten, even if not (semi) official or expert
+      Protected = TRUE,
+      measuredElementSuaFbs = "5113",
+      timePointYears = "2014"
+    )
+  ][,
+    Op14 := NULL
   ]
 
 
-all_opening_stocks <-
-  merge(
-    original_opening_stocks,
-    opening_stocks_2014,
-    by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
-    all = TRUE
-  )
+# # Remove protected in 2014 from cumulated
+# opening_stocks_2014 <-
+#   opening_stocks_2014[
+#     !original_opening_stocks[
+#       timePointYears == "2014" & Protected == TRUE,
+#       .(geographicAreaM49, measuredItemFbsSua)
+#     ],
+#     on = c("geographicAreaM49", "measuredItemFbsSua")
+#   ]
+
+# 
+# all_opening_stocks <-
+#   merge(
+#     original_opening_stocks,
+#     opening_stocks_2014,
+#     by = c("geographicAreaM49", "measuredItemFbsSua", "timePointYears"),
+#     all = TRUE
+#   )
 
 
-all_opening_stocks[
-  !Protected %in% TRUE & is.na(Value) & !is.na(Value_cumulated),
-  `:=`(
-    Value = Value_cumulated,
-    flagObservationStatus = "I",
-    flagMethod = "-",
-    # We protect these, in any case, because they should not
-    # be overwritten, even if not (semi) official or expert
-    Protected = TRUE,
-    measuredElementSuaFbs = "5113",
-    timePointYears = "2014"
-  )
-][,
-  Value_cumulated := NULL
-]
+# all_opening_stocks[
+#   !Protected %in% TRUE & is.na(Value) & !is.na(Value_cumulated),
+#   `:=`(
+#     Value = Value_cumulated,
+#     flagObservationStatus = "I",
+#     flagMethod = "-",
+#     # We protect these, in any case, because they should not
+#     # be overwritten, even if not (semi) official or expert
+#     Protected = TRUE,
+#     measuredElementSuaFbs = "5113",
+#     timePointYears = "2014"
+#   )
+# ][,
+#   Value_cumulated := NULL
+# ]
 
 
 # Now, for all remaining stockable items, we create opening
@@ -2001,6 +2062,7 @@ data <-
 
 # XXX what is primaryInvolvedDescendents ?????????
 #deriv <- CJ(measuredItemSuaFbs = primaryInvolvedDescendents, measuredElementSuaFbs = 'production', geographicAreaM49 = unique(data$geographicAreaM49), timePointYears = unique(data$timePointYears))
+
 deriv <-
   CJ(
     measuredItemSuaFbs    = unique(tree$measuredItemChildCPC),
@@ -2949,18 +3011,20 @@ if (nrow(data_shareDownUp_sws)!=0) {
     
     write.csv(
       shareDownUp_invalid,
-      file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+      file.path(paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
     )
     
+
     if (!CheckDebug()) {
       send_mail(
         from = "do-not-reply@fao.org",
         to = swsContext.userEmail,
         subject = "Some shareDownUp are invalid",
         body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-                 file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+                 file.path (paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
       )
     }
+    
     
     unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
     
