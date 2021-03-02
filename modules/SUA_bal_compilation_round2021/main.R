@@ -5064,9 +5064,9 @@ data[
 
 data[,
      `:=`(
-       Food_Median       = median(Value[measuredElementSuaFbs == "food" & timePointYears %in% 2000:(startYear-1)], na.rm=TRUE),
-       Feed_Median       = median(Value[measuredElementSuaFbs == "feed" & timePointYears %in% 2000:(startYear-1)], na.rm=TRUE),
-       Industrial_Median = median(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% 2000:(startYear-1)], na.rm=TRUE)
+       Food_Median       = median(Value[measuredElementSuaFbs == "food" & timePointYears %in% (startYear-4):(startYear-1)], na.rm=TRUE),
+       Feed_Median       = median(Value[measuredElementSuaFbs == "feed" & timePointYears %in% (startYear-4):(startYear-1)], na.rm=TRUE),
+       Industrial_Median = median(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% (startYear-4):(startYear-1)], na.rm=TRUE)
      ),
      by = c("geographicAreaM49", "measuredItemSuaFbs")
 ]
