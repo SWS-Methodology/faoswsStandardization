@@ -1375,45 +1375,6 @@ non_null_prev_deltas <-
     ]
   )
 
-# opening_stocks_2014[opening_stocks < 0, opening_stocks := 0]
-# 
-# positivelimit <-
-#   data[
-#     timePointYears == "2013" &
-#      measuredItemFbsSua %in% unique(opening_stocks_2014$cpc_code)
-#   ][ ,opening_lim :=
-#         sum(
-#           Value[measuredElementSuaFbs %chin% c("5510", "5610")],
-#           - Value[measuredElementSuaFbs == "5910"],
-#           na.rm = TRUE
-#         ) * 2,
-#     by = c("geographicAreaM49", "measuredItemFbsSua")
-#   ]
-# 
-# setnames(positivelimit,"measuredItemFbsSua", "cpc_code")
-# setnames(positivelimit,"geographicAreaM49", "m49_code")
-# 
-# 
-# positivelimit[ , c("measuredElementSuaFbs", "Value", "flagObservationStatus", "flagMethod", "timePointYears") := NULL]
-# positivelimit<- as.data.table(unique(positivelimit))
-# 
-# opening_stocks_2014<-merge(opening_stocks_2014,positivelimit, by= c("cpc_code", "m49_code") )
-# opening_stocks_2014$opening_lim <- as.integer(opening_stocks_2014$opening_lim)
-# 
-# opening_stocks_2014[opening_stocks > opening_lim, opening_stocks := opening_lim]
-# 
-# opening_stocks_2014[ , opening_lim:= NULL]
-
-# opening_stocks_2014 <-
-#   opening_stocks_2014[
-#     m49_code %in% COUNTRY,
-#     .(
-#       geographicAreaM49 = m49_code,
-#       measuredItemFbsSua = cpc_code,
-#       timePointYears = "2014",
-#       Value_cumulated = opening_stocks
-#     )
-#   ]
 # 
 # # Keep only those for which recent variations are available
 # opening_stocks_2014 <-
@@ -1424,7 +1385,8 @@ non_null_prev_deltas <-
 #   ]
 
 
-# # test giulia e sumeda
+# # The opening stock in the first year is computed as Opening stock t-1 + stock variation t-1 (giulia)
+
 original_opening_stocks <- data[measuredElementSuaFbs %in% c("5113", "5071") ]
 
 original_opening_stocks <-
@@ -1441,18 +1403,45 @@ StartingOpening<- original_opening_stocks[ , Op14:= Value[measuredElementSuaFbs=
                                           by= c("measuredItemFbsSua", "geographicAreaM49")]
 
 StartingOpening<- StartingOpening[measuredElementSuaFbs=="5113"]
+
+StartingOpening<-StartingOpening[!is.na(Op14)]
+StartingOpening[ , c("timePointYears", "Value", "flagObservationStatus", "flagMethod", "Protected", "measuredElementSuaFbs"):=NULL]
+
+StartingOpening<-unique(StartingOpening)
+
+# negative and positive limit
+StartingOpening[Op14 < 0, Op14 := 0]
+
+positivelimit <-
+  data[
+    timePointYears == (startYear-1) &
+     measuredItemFbsSua %in% unique(StartingOpening$measuredItemFbsSua)
+  ][ ,opening_lim :=
+        sum(
+          Value[measuredElementSuaFbs %chin% c("5510", "5610")],
+          - Value[measuredElementSuaFbs == "5910"],
+          na.rm = TRUE
+        ) * 2,
+    by = c("geographicAreaM49", "measuredItemFbsSua")
+  ]
+
+positivelimit[ , c("measuredElementSuaFbs", "Value", "flagObservationStatus", "flagMethod", "timePointYears") := NULL]
+positivelimit<- as.data.table(unique(positivelimit))
+
+StartingOpening<-merge(StartingOpening,positivelimit, by= c("measuredItemFbsSua", "geographicAreaM49") )
+
+StartingOpening$opening_lim <- as.integer(StartingOpening$opening_lim)
+
+StartingOpening[Op14 > opening_lim, Op14 := opening_lim]
+
+StartingOpening[ , opening_lim:= NULL]
+
+
 original_opening_stocks<- original_opening_stocks[ measuredElementSuaFbs=="5113"]
 original_opening_stocks[ , Op14:=NULL]
 
 
-StartingOpening<-StartingOpening[!is.na(Op14)]
-StartingOpening[ , c("timePointYears", "Value", "flagObservationStatus", "flagMethod", "Protected", "measuredElementSuaFbs"):=NULL]
-# StartingOpening[ , ':=' (flagObservationStatus= "I",
-#                          flagMethod="-",
-#                          Protected=TRUE,
-#                          Value= Op14)]
 
-StartingOpening<-unique(StartingOpening)
 StartingOpening[ , timePointYears:= "2014"]
 
 # remove the opening 2014 that are protected in all opening stocks
@@ -1465,10 +1454,6 @@ StartingOpening <-
       on = c("geographicAreaM49", "measuredItemFbsSua")
     ]
 
-# StartingOpening[ , Op14:=NULL]
-# all_opening_stocks[ , Op14:=NULL]
-# 
-# all_opening_stocks<- rbind(all_opening_stocks, StartingOpening)
 
 all_opening_stocks <-
     merge(
@@ -1505,7 +1490,7 @@ all_opening_stocks[
 #     on = c("geographicAreaM49", "measuredItemFbsSua")
 #   ]
 
-# 
+#
 # all_opening_stocks <-
 #   merge(
 #     original_opening_stocks,
