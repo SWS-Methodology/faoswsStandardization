@@ -233,7 +233,7 @@ processedData <-
 ########## OUTLIERS ROUTINE 13-19 #############
 ###############################################
 out_data <- copy(processedData)
-
+dbg_print("Data processed")
 out_data[order(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears), 
                        avg := roll_meanr(Value, 3, na.rm = TRUE),
                        by = c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua")]
@@ -265,7 +265,7 @@ out_data[Value < 100 & flag_Check == FALSE, `:=`(
 ),
 by = c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua")]
 
-
+dbg_print("line 268")
 out_data[ Value >= 100 & Value < 1000 & flag_Check == FALSE, `:=`(
   lower_th = prev_avg - prev_avg*2,
   upper_th = prev_avg + prev_avg*2
@@ -343,7 +343,7 @@ out_data[Value < 100 & flag_Check == TRUE, `:=`(
 ),
 by = c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua")]
 
-
+dbg_print("line 346")
 out_data[ Value >= 100 & Value < 1000 & flag_Check == TRUE, `:=`(
   lower_th = prev_avg - prev_avg*5,
   upper_th = prev_avg + prev_avg*5
@@ -501,7 +501,7 @@ gr_data[ Value >= 20000000 & Value < 50000000 & growth_rate > 0.15 & flag_Check 
 gr_data[ Value>=50000000 & growth_rate > 0.1 & flag_Check == TRUE |  Value>=50000000 & growth_rate < -0.1 & flag_Check == TRUE, grCheck := TRUE]
 
 
-
+dbg_print("End of gr criteria")
 
 
 ############ filter outliers data ############
@@ -614,6 +614,9 @@ if (nrow(shrink_flag_last) > 0) {
 
 }
 
+
+
+dbg_print("end of derived production check.. preparing excel file")
 ######################################
 #                                    #
 #                                    #
@@ -645,8 +648,8 @@ if(nrow(shrink_flag_last) != 0){
 # library(devtools)
 # Sys.setenv(PATH = paste("C:/Rtools/bin", Sys.getenv("PATH"), sep=";"))
 # Sys.setenv(BINPREF = "C:/Rtools/mingw_$(WIN)/bin/")
-
-#saveWorkbook(wb, file = "outliers3.xlsx", overwrite = TRUE)
+# 
+# saveWorkbook(wb, file = "outliers_Thailandia.xlsx", overwrite = TRUE)
 
 
 saveWorkbook(wb, tmp_file_derived, overwrite = TRUE)
