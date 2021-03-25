@@ -80,7 +80,7 @@ YEARS <- as.character(2000:endYear)
 TMP_DIR <- file.path(tempdir(), USER)
 if (!file.exists(TMP_DIR)) dir.create(TMP_DIR, recursive = TRUE)
 
-tmp_file_imb         <- file.path(TMP_DIR, paste0("IMBALANCE_", COUNTRY, ".csv"))
+tmp_file_imb         <- file.path(TMP_DIR, paste0("IMBALANCE_", COUNTRY, ".xlsx"))
 tmp_file_shares      <- file.path(TMP_DIR, paste0("SHARES_", COUNTRY, ".xlsx"))
 tmp_file_negative    <- file.path(TMP_DIR, paste0("NEGATIVE_AVAILAB_", COUNTRY, ".csv"))
 tmp_file_non_exist   <- file.path(TMP_DIR, paste0("NONEXISTENT_", COUNTRY, ".csv"))
@@ -598,6 +598,8 @@ newBalancing <- function(data, Utilization_Table) {
        by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
   
+  calculateImbalance(data)
+  
   # When production needs to be created
   data[
     Protected == FALSE &
@@ -605,14 +607,54 @@ newBalancing <- function(data, Utilization_Table) {
       measuredItemSuaFbs %chin% Utilization_Table[primary_item == "X"]$cpc_code &
       measuredElementSuaFbs == 'production' &
       supply < 0 &
-      stockable == FALSE,
+      stockable == FALSE &
+      !is.na(Value) & Value != 0,
     `:=`(
-      Value = ifelse(is.na(Value), 0, Value) - supply,
+      Value = Value - imbalance,
       flagObservationStatus = "E",
       flagMethod = "c"
-    )
+    )]
+  
+  calculateImbalance(data)
+  
+  # if we have new production or new imports, we assign the imbalance to food (if it is a food item) or to feed(it is a feed item)
+   
+  data[imbalance>0 & (is.na(Production_Median)|Production_Median==0)& (is.na(Import_Median)|Import_Median==0)
+       & Protected==FALSE & measuredElementSuaFbs== "food"
+       & measuredItemSuaFbs %chin% Utilization_Table[food_item == "X"]$cpc_code, 
+       `:=`(
+         Value =
+           ifelse(
+             is.na(Value) & imbalance > 0,
+             imbalance,
+             ifelse(Value + imbalance >= 0, Value + imbalance, 0)
+           ),
+         flagObservationStatus = "E",
+         flagMethod = "h"
+       )
   ]
   
+  # recalculate imbalance
+  
+  calculateImbalance(data)
+  
+  data[imbalance>0 & (is.na(Production_Median)|Production_Median==0)&(is.na(Import_Median)|Import_Median==0) & 
+         Protected==FALSE & measuredElementSuaFbs== "feed"
+       & measuredItemSuaFbs %chin% Utilization_Table[feed == "X"]$cpc_code, 
+       `:=`(
+         Value =
+           ifelse(
+             is.na(Value) & imbalance > 0,
+             imbalance,
+             ifelse(Value + imbalance >= 0, Value + imbalance, 0)
+           ),
+         flagObservationStatus = "E",
+         flagMethod = "h"
+       )
+  ]
+  
+  
+  # recalculate imbalance
   calculateImbalance(data)
   
   # Try to assign the maximum of imbalance to stocks
@@ -1095,7 +1137,7 @@ processed_item_datatable <- ReadDatatable("processed_item")
 processedCPC <- processed_item_datatable[, measured_item_cpc]
 
 
-# XXX what is this for?
+# XXX Get codes to exclude animals from imbalances file at the end 
 itemMap <- GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
 itemMap <- itemMap[, .(measuredItemSuaFbs = code, type)]
 
@@ -1430,9 +1472,13 @@ positivelimit<- as.data.table(unique(positivelimit))
 
 StartingOpening<-merge(StartingOpening,positivelimit, by= c("measuredItemFbsSua", "geographicAreaM49") )
 
+# StartingOpening[opening_lim<0, opening_lim:=0]
+
 StartingOpening$opening_lim <- as.integer(StartingOpening$opening_lim)
 
-StartingOpening[Op14 > opening_lim, Op14 := opening_lim]
+
+
+StartingOpening[opening_lim > 0 & Op14 > opening_lim, Op14 := opening_lim]
 
 StartingOpening[ , opening_lim:= NULL]
 
@@ -2170,6 +2216,9 @@ coproduct_for_sharedownup <-
     coproduct_for_sharedownup_or
   )
 
+## solve the problem of wrong connection (raw centrifugal sugar --> bagasse towards raw cane and beet --> bagasse)
+coproduct_for_sharedownup[measured_item_child_cpc == "39140.02" & branch == "23511.01", branch := "2351f"]
+
 
 #Using the whole tree not by level
 ExtrRate <-
@@ -2311,7 +2360,6 @@ food_proc <-
 
 setnames(food_proc, "Value", "parent_qty_processed")
 
-# avoid recaculation of shareDownUp from 2014 onwards
 food_proc[timePointYears >= startYear, parent_qty_processed := NA_real_]
 
 data_tree <-
@@ -2353,7 +2401,6 @@ setnames(dataprodchild, "Value", "production_of_child")
 
 message("Line 2200")
 
-# to avoid resestimation based on estimated data (processed and production of child) from 2014 onwards
 dataprodchild[timePointYears >= startYear, production_of_child := NA_real_]
 
 data_tree <-
@@ -2599,7 +2646,7 @@ dataProcessingShare[,
                     by = c(p$parentVar, p$geoVar)
 ]
 
-dataProcessingShare[,NewLoss:=ifelse(is.na(loss_Median_before) & !is.na(RatioLoss),TRUE,FALSE)]
+dataProcessingShare[,NewLoss:=ifelse((is.na(loss_Median_before)|loss_Median_before==0) & !is.na(RatioLoss),TRUE,FALSE)]
 
 # dataProcessingShare[,
 #                     NewLoss :=
@@ -2642,7 +2689,7 @@ dataProcessingShare <-
 
 dataProcessingShare[timePointYears %in% yearVals, parent_qty_processed := NA_real_]
 
-#correction of Pshare to adjust prcessed in case of new Loss
+#correction of Pshare to adjust processed in case of new Loss
 
 dataProcessingShare[is.na(RatioLoss),RatioLoss:=0]
 dataProcessingShare[is.na(Prod),Prod:=0]
@@ -2823,6 +2870,7 @@ data_shareUpDown_sws[
   
 ]
 
+
 #saving ShareUpDown For the first time #all flage are (i,c) like production of derived
 if (nrow(data_shareUpDown_sws) == 0) {
   faosws::SaveData(
@@ -2875,7 +2923,7 @@ if (nrow(data_shareUpDown_sws) == 0) {
   
 }
 
-#consistency check: sum of shareUpDown by parent should exceed 1.
+#consistency check: sum of shareUpDown by parent should not exceed 1.
 message("Line 2690")
 
 data_ShareUpDoawn_final_invalid <-
@@ -2927,7 +2975,7 @@ CONFIG <- GetDatasetConfig(sessionKey_shareDownUp@domain, sessionKey_shareDownUp
 data_shareDownUp_sws <- GetData(sessionKey_shareDownUp)
 
 ########### set parents present in sws and not present in the estimated data to zero ###########
-#unique(data_shareDownUp_sws$geographicAreaM49) created problem if the downup session start as empty changed with data_tree
+
 data_tree_test <-
   merge(
     data.table(
@@ -2961,87 +3009,12 @@ missing_connections <- missing_connections[, list(geographicAreaM49,measuredItem
 
 data_tree <- rbind(data_tree, missing_connections)
 
-### WE are here######
-
-
-
-if (nrow(data_shareDownUp_sws)!=0) {
-  
-  SHAREDOWNUP_LOADED <- TRUE
-  
-  shareDownUp_previous <-copy(data_shareDownUp_sws)
-  setnames(shareDownUp_previous,c("Value","measuredItemParentCPC_tree","measuredItemChildCPC_tree"),
-           c("shareDownUp","measuredItemParentCPC","measuredItemChildCPC"))
-  
-  #/correction
-  
-  # Check on consistency of shareDownUp
-  shareDownUp_invalid <-
-    shareDownUp_previous[,
-                         .(sum_shares = round(sum(shareDownUp),1)),
-                         by = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-    ][
-      !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
-    ][
-      timePointYears >= startYear
-    ]
-  
-  if (nrow(shareDownUp_invalid) > 0) {
-    
-    shareDownUp_invalid <-
-      shareDownUp_previous[
-        shareDownUp_invalid,
-        on = c("geographicAreaM49", "timePointYears", "measuredItemChildCPC")
-      ]
-    
-    write.csv(
-      shareDownUp_invalid,
-      file.path(paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
-    )
-    
-
-    if (!CheckDebug()) {
-      send_mail(
-        from = "do-not-reply@fao.org",
-        to = swsContext.userEmail,
-        subject = "Some shareDownUp are invalid",
-        body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-                 file.path (paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-      )
-    }
-    
-    
-    unlink(file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
-    
-    stop("Some shares are invalid. Check your email.")
-  }
-  
-  # shareDownUp_previous[,
-  #   `:=`(
-  #     measuredItemParentCPC = sub("'", "", measuredItemParentCPC),
-  #     measuredItemChildCPC = sub("'", "", measuredItemChildCPC)
-  #   )
-  # ]
-  
-  setnames(shareDownUp_previous, "shareDownUp", "shareDownUp_prev")
-  
-  
-} else {
-  
-  SHAREDOWNUP_LOADED <- FALSE
-  
-  shareDownUp_previous <-
-    data.table(
-      geographicAreaM49 = character(),
-      timePointYears = character(),
-      measuredItemParentCPC = character(),
-      measuredItemChildCPC = character(),
-      shareDownUp_prev = numeric(),
-      protect_share = logical()
-    )
-}
 
 #final sharedowmUp
+
+shareDownUp_previous <-copy(data_shareDownUp_sws)
+setnames(shareDownUp_previous,c("Value","measuredItemParentCPC_tree","measuredItemChildCPC_tree"),
+                   c("shareDownUp_prev","measuredItemParentCPC","measuredItemChildCPC"))
 
 if (nrow(shareDownUp_previous) > 0) {
   data_tree_final <-
@@ -3059,13 +3032,6 @@ if (nrow(shareDownUp_previous) > 0) {
   
   message("Line 2830")
   
-  ##Automatic update of shareDOwnUp (to discuss with Salar)
-  #data_tree_final[,shareDownUp1:=ifelse(protect_share==FALSE & sum(protect_share==TRUE)>0,
-  #                                     shareDownUp/sum(shareDownUp[protect_share==FALSE],na.rm = TRUE)*(1-shareDownUp[protect_share==TRUE]),
-  #                                     shareDownUp
-  #),
-  #by=c(p$geoVar,p$yearVar,p$childVar)
-  #]
   data_tree_final[, shareDownUp_prev := NULL]
   data_tree_final_save <- copy(data_tree_final)
   
@@ -3076,11 +3042,20 @@ if (nrow(shareDownUp_previous) > 0) {
   data_tree_final_save <- copy(data_tree_final)
   data_tree_final_save[,`:=`(flagObservationStatus="I", flagMethod="i",
                              measuredElementSuaFbs="5432")]
-  # write.csv(data_tree_final_save, shareDownUp_file, row.names = FALSE)
 }
 
+data_tree_final_save<-data_tree_final_save[timePointYears %in% startYear:endYear]
+setnames(data_tree_final_save,c("measuredItemParentCPC","measuredItemChildCPC","shareDownUp"),
+         c("measuredItemParentCPC_tree","measuredItemChildCPC_tree","Value"))
 
-# Check on consistency of shareDownUp
+faosws::SaveData(
+  domain = "suafbs",
+  dataset = "down_up_share",
+  data = data_tree_final_save,
+  waitTimeout = 20000
+)
+
+# Check on consistency of shareDownUp (computed + manual Ef in sws) 
 shareDownUp_invalid <-
   data_tree_final[,
                   .(sum_shares = round(sum(shareDownUp),1)),
@@ -3101,7 +3076,7 @@ if (nrow(shareDownUp_invalid) > 0) {
   
   write.csv(
     shareDownUp_invalid,
-    file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+    file.path(paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
   )
   
   if (!CheckDebug()) {
@@ -3110,7 +3085,7 @@ if (nrow(shareDownUp_invalid) > 0) {
       to = swsContext.userEmail,
       subject = "Some shareDownUp are invalid",
       body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-               file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+               file.path(paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
     )
   }
   
@@ -3119,45 +3094,9 @@ if (nrow(shareDownUp_invalid) > 0) {
   stop("Some shares are invalid. Check your email.")
 }
 
-# / Check on consistency of shareDownUp
-
-setnames(data_tree_final_save,c("measuredItemParentCPC","measuredItemChildCPC","shareDownUp"),
-         c("measuredItemParentCPC_tree","measuredItemChildCPC_tree","Value"))
-
-
-# len_downUp <- nrow(data_tree_final_save)
-# 
-# i = 1
-# 
-# while(i < len_downUp){
-#     j = i + 500
-#     if(j > len_downUp){
-#       j = len_downUp
-#     }
-#     
-#     faosws::SaveData(
-#       domain = "suafbs",
-#       dataset = "down_up_share",
-#       data = data_tree_final_save[i:j,],
-#       waitTimeout = 20000
-#     )
-#   
-#     i = j + 1
-# }
-
-
-data_tree_final_save<-data_tree_final_save[timePointYears %in% startYear: endYear]
-
-faosws::SaveData(
-  domain = "suafbs",
-  dataset = "down_up_share",
-  data = data_tree_final_save,
-  waitTimeout = 20000
-)
-
 message("Line 2905")
 
-# / ShareDownUp -------------------------------------------------------
+# / END ShareDownUp -------------------------------------------------------
 
 
 
@@ -3435,7 +3374,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     }
     
     
-    ############# / Create stocks, if missing ##################
+    ############# END / Create stocks, if missing ##################
     
     
     #Correcting stocks
@@ -3574,7 +3513,7 @@ if (length(primaryInvolvedDescendents) == 0) {
     all_opening_stocks[,stockCheck:=NULL]
     # 
     # 
-    ############# / Create stocks, if missing ##################
+    ############# END / Create stocks, if missing ##################
     message("Line 3185")
     
     dataMergeTree <- data[measuredElementSuaFbs %chin% c('production', 'imports', 'exports', 'stockChange')]
@@ -4204,7 +4143,7 @@ remove_connection<-data_shareUpDown_sws[((measuredItemParentCPC_tree == "02211" 
 
 
 if (nrow(remove_connection)>0){
-  
+
   remove_connection[,`:=`(Value = NA, flagObservationStatus = NA, flagMethod = NA)]
   faosws::SaveData(
     domain = "suafbs",
@@ -4324,8 +4263,8 @@ if (FIX_OUTLIERS == TRUE) {
   
   dout[is.na(Protected), Protected := FALSE]
   
-  # Protecting here Ee as we should not correct already corrected outliers
-  dout[flagObservationStatus == "E" & flagMethod == "e", Protected := TRUE]
+  # Protecting here Ee as we should not correct already corrected outliers (commented because otherwise if you change production the outlier is not corrected accordingly)
+  # dout[flagObservationStatus == "E" & flagMethod == "e", Protected := TRUE]
   
   dout[,
        `:=`(
@@ -4376,7 +4315,7 @@ if (FIX_OUTLIERS == TRUE) {
   
   dout[
     Protected == FALSE &
-      timePointYears %in% yearVals & # XXX: parameterise
+      timePointYears %in% yearVals & 
       mean_ratio > 0 &
       abs(element_supply) > 0 &
       measuredElementSuaFbs %chin% c("feed", "seed", "loss", "industrial") &
@@ -4397,6 +4336,16 @@ if (FIX_OUTLIERS == TRUE) {
           measuredItemSuaFbs %chin% primaryProxyPrimary_items),
     impute := NA_real_
   ]
+  
+  fbsTree <- ReadDatatable("fbs_tree")
+
+  # Remove imputation for seed of Fruits and vegetables 
+  dout[
+    measuredElementSuaFbs == "seed" &
+      measuredItemSuaFbs %chin% fbsTree[id3 == "2918"|id3=="2919"]$item_sua_fbs,
+    impute := NA_real_
+  ]
+  
   
   # Exclude feed as the first time it needs to be generated, without saving
   # outliers to sua_unbalanced as they have E,e flag (which is protected...).
@@ -4670,13 +4619,7 @@ if (nrow(negative_availability) > 0) {
 
 
 
-
-
-
 message("Line 4233")
-
-
-
 
 fbsTree <- ReadDatatable("fbs_tree")
 
@@ -4760,7 +4703,7 @@ data[
 data[, new_loss_dm := NULL]
 
 
-######################## / rm new loss in dairy/meat #################
+######################## END / rm new loss in dairy/meat #################
 
 
 
@@ -5066,7 +5009,9 @@ data[,
      `:=`(
        Food_Median       = median(Value[measuredElementSuaFbs == "food" & timePointYears %in% (startYear-4):(startYear-1)], na.rm=TRUE),
        Feed_Median       = median(Value[measuredElementSuaFbs == "feed" & timePointYears %in% (startYear-4):(startYear-1)], na.rm=TRUE),
-       Industrial_Median = median(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% (startYear-4):(startYear-1)], na.rm=TRUE)
+       Industrial_Median = median(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% (startYear-4):(startYear-1)], na.rm=TRUE),
+       Production_Median = median(Value[measuredElementSuaFbs == "production" & timePointYears %in% (startYear-4):(startYear-1)], na.rm=TRUE),
+       Import_Median =  median(Value[measuredElementSuaFbs == "imports" & timePointYears %in% (startYear-4):(startYear-1)], na.rm=TRUE)
      ),
      by = c("geographicAreaM49", "measuredItemSuaFbs")
 ]
@@ -5549,7 +5494,7 @@ if (nrow(imbalances_to_send) > 0) {
     nameData('suafbs', 'sua_unbalanced', imbalances_to_send,
              except = c('measuredElementSuaFbs'))
   
-  imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
+  # imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
   
   data_negtrade <-
     imbalances_to_send[
@@ -5587,8 +5532,22 @@ non_existing_for_imputation <-
 
 non_existing_for_imputation[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
+# exclude Live animals from output files
+itemMap <- GetCodeList(domain = "agriculture", dataset = "aproduction", "measuredItemCPC")
+itemMap <- itemMap[, .(measuredItemSuaFbs = code, type)]
 
-write.csv(imbalances_to_send,          tmp_file_imb)
+LivestockToExcludeFromFile = itemMap[type %in% c("LSPR", "POPR"), measuredItemSuaFbs]
+imbalances_to_send = imbalances_to_send[measuredItemFbsSua %!in% LivestockToExcludeFromFile,]
+data_negtrade = data_negtrade[measuredItemFbsSua %!in% LivestockToExcludeFromFile,]
+negative_availability = negative_availability[measuredItemFbsSua %!in% LivestockToExcludeFromFile,]
+
+wb <- createWorkbook() 
+addWorksheet(wb, "imbalance") 
+writeData(wb, "imbalance", imbalances_to_send) 
+dbg_print(paste("IMBALANCE workbook, save", getwd(), tmp_file_imb)) 
+saveWorkbook(wb, tmp_file_imb, overwrite = TRUE) 
+
+# write.csv(imbalances_to_send,          tmp_file_imb)
 write.csv(data_negtrade,               tmp_file_NegNetTrade)
 write.csv(negative_availability,       tmp_file_negative)
 write.csv(non_existing_for_imputation, tmp_file_non_exist)
@@ -6017,8 +5976,9 @@ ggsave(tmp_file_plot_main_des_diff, plot = plot_main_des_diff)
 
 ##### / Plot of main DES absolute variations
 
-##### Plot of main DES
 
+# ##### Plot of main DES
+# 
 main_des_items <-
   des[,
       .(geographicAreaM49, year = timePointYears, item = measuredItemFbsSua, Value)
@@ -6041,8 +6001,8 @@ tmp_file_plot_main_des_items <-
 
 ggsave(tmp_file_plot_main_des_items, plot = plot_main_des_items)
 
-##### / Plot of main DES
-
+# ##### / Plot of main DES
+# 
 ##### Plot of main diff avg DES
 des_main_diff_avg <-
   des[
@@ -6068,13 +6028,13 @@ plot_des_main_diff_avg <-
 
 
 tmp_file_plot_des_main_diff_avg <-
-  file.path(TMP_DIR, paste0("PLOT_DES_MAIN_DIFF_AVG_", COUNTRY, ".pdf"))
+file.path(TMP_DIR, paste0("PLOT_DES_MAIN_DIFF_AVG_", COUNTRY, ".pdf"))
 
 ggsave(tmp_file_plot_des_main_diff_avg, plot = plot_des_main_diff_avg)
 
-
-##### Plot of main diff avg DES
-
+# 
+# ##### Plot of main diff avg DES
+# 
 des_cast <-
   data.table::dcast(
     des,
@@ -6288,7 +6248,7 @@ if (!(TRUE %in% swsContext.computationParams$save_nutrients)) {
   standData <- standData[measuredElementSuaFbs %!in% c('261', '271', '281', '674', '684')]
 }
 
-out <- SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData, waitTimeout = 20000)
+ out <- SaveData(domain = "suafbs", dataset = "sua_balanced", data = standData, waitTimeout = 20000)
 
 if (exists("out")) {
   
