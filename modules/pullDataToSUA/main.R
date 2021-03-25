@@ -128,6 +128,18 @@ agData = GetData(agKey)
 setnames(agData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
+# Delete seed for fruits and vegetables
+fbsTree <- ReadDatatable("fbs_tree")
+
+# Remove imputation for seed of Fruits and vegetables 
+agData[
+  measuredElementSuaFbs == "5525" &
+    measuredItemSuaFbs %chin% fbsTree[id3 == "2918"|id3=="2919"]$item_sua_fbs,
+  `:=` (Value = NA_real_,
+        flagObservationStatus="",
+        flagMethod="")
+]
+
 ################################################
 #####        Harvest from Industrial       #####
 ################################################
@@ -235,6 +247,9 @@ lossKey = DatasetKey(domain = "lossWaste", dataset = "loss",
 )
 lossData = GetData(lossKey)
 
+# delete losses for Copra, it is not a Primary
+lossData<-lossData[measuredItemSuaFbs!="01492"]
+
 ################################################
 #####      Harvest from Tourism Domain     #####
 ################################################
@@ -279,10 +294,10 @@ if (nrow(tourData) > 0) {
   tourData <- unique(tourData)
 
   tourData$timePointYears <- as.integer(tourData$timePointYears)
-
+# Giulia: the end year was hard coded at 2018
   tourData <- tourData %>%
     dplyr::group_by(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs) %>%
-    tidyr::complete(timePointYears=min(timePointYears):2018,nesting(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs))%>%
+    tidyr::complete(timePointYears=min(timePointYears):endYear,nesting(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs))%>%
     dplyr::arrange(geographicAreaM49,measuredElementSuaFbs,measuredItemSuaFbs,timePointYears) %>%
     tidyr::fill(Value,.direction="down") %>%
     tidyr::fill(flagObservationStatus,.direction="down") %>%
@@ -550,17 +565,22 @@ out<-out %>% dplyr::anti_join(protected_utilization,
                               by=c("geographicAreaM49","measuredElementSuaFbs",
                                    "measuredItemFbsSua","timePointYears"))
 
-non_existing <-
+# wipe cells exept official utilizations inserted in sua unbalanced
+towipe <-
   data_suaunbal[!out, on = c('geographicAreaM49', 'measuredElementSuaFbs', 'measuredItemFbsSua', 'timePointYears')]
 
-non_existing[, `:=`(Value = NA_real_, flagObservationStatus = NA_character_, flagMethod = NA_character_)]
+towipe <-
+  towipe[!protected_utilization, on = c('geographicAreaM49', 'measuredElementSuaFbs', 'measuredItemFbsSua', 'timePointYears')]
 
-if (nrow(non_existing) > 0) {
-  message(paste("PullData: there were", nrow(non_existing), "non existing observations"))
-  out <- rbind(out, non_existing)
+
+towipe[, `:=`(Value = NA_real_, flagObservationStatus = NA_character_, flagMethod = NA_character_)]
+
+if (nrow(towipe) > 0) {
+  message(paste("PullData: there were", nrow(towipe), "non existing observations"))
+  out <- rbind(out, towipe)
 }
 
-# / Wipe cells
+# / Wipe cells/save
 
 
 stats = SaveData(domain = "suafbs", dataset = "sua_unbalanced", data = out, waitTimeout = 2000000)
