@@ -2440,7 +2440,7 @@ data_tree <- data_tree[measuredItemChildCPC %!in% zeroWeight]
 # this dataset will be used when creating processing share and shareUpdown
 dataComplete <- copy(data_tree)
 
-# Quantity of parent destined to the production of the given child (only for child with one parent for the moment) (Giulia:inutile:to delete?)
+# Quantity of parent destined to the production of the given child (only for child with one parent for the moment) (to delete?)
 data_tree[, processed_to_child := ifelse(number_of_parent == 1, production_of_child, NA_real_)]
 
 # if a parent has one child, all the processed goes to that child 
@@ -4124,7 +4124,6 @@ setnames(
 
 # shareUpDown_to_save <- shareUpDown_to_save[!is.na(Value)]
 shareUpDown_to_save[is.na(Value),Value:=0]
-setkey(shareUpDown_to_save, "measuredItemParentCPC_tree")
 
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
 setcolorder(
