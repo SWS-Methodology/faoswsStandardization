@@ -166,6 +166,18 @@ agData = GetData(agKey)
 setnames(agData, c("measuredElement", "measuredItemCPC"),
          c("measuredElementSuaFbs", "measuredItemSuaFbs"))
 
+# Delete seed for fruits and vegetables
+fbsTree <- ReadDatatable("fbs_tree")
+
+# Remove imputation for seed of Fruits and vegetables 
+agData[
+  measuredElementSuaFbs == "5525" &
+    measuredItemSuaFbs %chin% fbsTree[id3 == "2918"|id3=="2919"]$item_sua_fbs,
+  `:=` (Value = NA_real_,
+        flagObservationStatus="",
+        flagMethod="")
+]
+
 ################################################
 #####        Harvest from Industrial       #####
 ################################################
@@ -278,6 +290,9 @@ lossKey = DatasetKey(domain = "lossWaste", dataset = "loss",
                        timePointYears = timeDim)
 )
 lossData = GetData(lossKey)
+
+# delete losses for Copra, it is not a Primary
+lossData<-lossData[measuredItemSuaFbs!="01492"]
 
 ################################################
 #####      Harvest from Tourism Domain     #####
