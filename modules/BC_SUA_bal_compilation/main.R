@@ -118,7 +118,7 @@ p$official <- "Official"
 
 
 shareDownUp_file <-
-  file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_", COUNTRY, ".csv"))
+  file.path(paste0("shareDownUp_", COUNTRY, ".csv"))
 
 
 tourist_cons_table <- ReadDatatable("keep_tourist_consumption")
@@ -617,6 +617,8 @@ newBalancing <- function(data, Utilization_Table) {
     by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs")
   ]
   
+  calculateImbalance(data)
+  
   # When production needs to be created
   data[
     Protected == FALSE &
@@ -624,9 +626,10 @@ newBalancing <- function(data, Utilization_Table) {
       measuredItemSuaFbs %chin% Utilization_Table[primary_item == "X"]$cpc_code &
       measuredElementSuaFbs == 'production' &
       supply < 0 &
-      stockable == FALSE,
+      stockable == FALSE &
+      !is.na(Value) & Value != 0,
     `:=`(
-      Value = ifelse(is.na(Value), 0, Value) - supply,
+      Value = Value - imbalance,
       flagObservationStatus = "E",
       flagMethod = "c"
     )
@@ -963,7 +966,7 @@ message("Line 864")
     merge(
       data.table(
         geographicAreaM49 = unique(tree$geographicAreaM49),
-        timePointYears = sort(unique(tree$timePointYears))
+        timePointYears = as.character(sort(2000:endYear))
       ),
       unique(
         tree[,
@@ -3117,7 +3120,7 @@ if (nrow(shareDownUp_invalid) > 0) {
   
   write.csv(
     shareDownUp_invalid,
-    file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+    file.path(paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
   )
   
   if (!CheckDebug()) {
@@ -3126,7 +3129,7 @@ if (nrow(shareDownUp_invalid) > 0) {
       to = swsContext.userEmail,
       subject = "Some shareDownUp are invalid",
       body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-               file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+               file.path(paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
     )
   }
   
@@ -3233,7 +3236,7 @@ BC_dataDownUp[is.nan(Value) | is.na(Value), Value := 0]
     
     write.csv(
       shareDownUp_invalid,
-      file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
+      file.path(paste0("shareDownUp_INVALID_", COUNTRY, ".csv"))
     )
     
     if (!CheckDebug()) {
@@ -3242,7 +3245,7 @@ BC_dataDownUp[is.nan(Value) | is.na(Value), Value := 0]
         to = swsContext.userEmail,
         subject = "Some shareDownUp are invalid",
         body = c(paste("There are some invalid shareDownUp (they do not sum to 1). See attachment and fix them in", sub("/work/SWS_R_Share/", "", shareDownUp_file)),
-                 file.path(R_SWS_SHARE_PATH, USER, paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
+                 file.path(paste0("shareDownUp_INVALID_", COUNTRY, ".csv")))
       )
     }
     
@@ -4686,7 +4689,7 @@ if (FIX_OUTLIERS == TRUE) {
   dout[is.na(Protected), Protected := FALSE]
 
   # Protecting here Ee as we should not correct already corrected outliers
-  dout[flagObservationStatus == "E" & flagMethod == "e", Protected := TRUE]
+  # dout[flagObservationStatus == "E" & flagMethod == "e", Protected := TRUE]
 
   
   ### FOR BC: Calculate thresholds from outlier routine based on sua balanced
@@ -4898,14 +4901,24 @@ outlier_suabal[,
           measuredItemSuaFbs %chin% primaryProxyPrimary_items),
     impute := NA_real_
   ]
+  
+
+  fbsTree <- ReadDatatable("fbs_tree")
+  
+  # Remove imputation for seed of Fruits and vegetables 
+  dout[
+    measuredElementSuaFbs == "seed" &
+      measuredItemSuaFbs %chin% fbsTree[id3 == "2918"|id3=="2919"]$item_sua_fbs,
+    impute := NA_real_
+  ]
+  
 
   # Exclude feed as the first time it needs to be generated, without saving
   # outliers to sua_unbalanced as they have E,e flag (which is protected...).
   # In other words, feed has not been run yet if first time.
   #STOP_AFTER_DERIVED = FALSE
   
-  
-  
+
   if (STOP_AFTER_DERIVED == TRUE) {
     dout <- dout[measuredElementSuaFbs != "feed"]
   }
