@@ -1408,7 +1408,7 @@ message("Line 1286")
 non_null_prev_deltas <-
   unique(
     data[
-      measuredElementSuaFbs == "5071" & timePointYears %in% 2009:2013
+      measuredElementSuaFbs == "5071" & timePointYears %in% (startYear-5):(startYear-1)
     ][,
       .SD[sum(!dplyr::near(Value, 0)) > 0],
       by = c("geographicAreaM49", "measuredItemFbsSua")
@@ -1440,19 +1440,19 @@ original_opening_stocks <-
   ]
 
 
-StartingOpening<- original_opening_stocks[ , Op14:= Value[measuredElementSuaFbs=="5113"
+StartingOpening<- original_opening_stocks[ , Op1Y:= Value[measuredElementSuaFbs=="5113"
                                           & timePointYears==(startYear-1)] + Value[measuredElementSuaFbs=="5071" & timePointYears== (startYear-1)],
                                           by= c("measuredItemFbsSua", "geographicAreaM49")]
 
 StartingOpening<- StartingOpening[measuredElementSuaFbs=="5113"]
 
-StartingOpening<-StartingOpening[!is.na(Op14)]
+StartingOpening<-StartingOpening[!is.na(Op1Y)]
 StartingOpening[ , c("timePointYears", "Value", "flagObservationStatus", "flagMethod", "Protected", "measuredElementSuaFbs"):=NULL]
 
 StartingOpening<-unique(StartingOpening)
 
 # negative and positive limit
-StartingOpening[Op14 < 0, Op14 := 0]
+StartingOpening[Op1Y < 0, Op1Y := 0]
 
 positivelimit <-
   data[
@@ -1478,23 +1478,23 @@ StartingOpening$opening_lim <- as.integer(StartingOpening$opening_lim)
 
 
 
-StartingOpening[opening_lim > 0 & Op14 > opening_lim, Op14 := opening_lim]
+StartingOpening[opening_lim > 0 & Op1Y > opening_lim, Op1Y := opening_lim]
 
 StartingOpening[ , opening_lim:= NULL]
 
 
 original_opening_stocks<- original_opening_stocks[ measuredElementSuaFbs=="5113"]
-original_opening_stocks[ , Op14:=NULL]
+original_opening_stocks[ , Op1Y:=NULL]
 
 
 
-StartingOpening[ , timePointYears:= "2014"]
+StartingOpening[ , timePointYears:= as.character(startYear)]
 
-# remove the opening 2014 that are protected in all opening stocks
+# remove the opening that are protected in all opening stocks
 StartingOpening <-
     StartingOpening[
       !original_opening_stocks[
-        timePointYears == "2014" & Protected == TRUE,
+        timePointYears == startYear & Protected == TRUE,
         .(geographicAreaM49, measuredItemFbsSua)
       ],
       on = c("geographicAreaM49", "measuredItemFbsSua")
@@ -1510,19 +1510,19 @@ all_opening_stocks <-
     )
 
 all_opening_stocks[
-    !Protected %in% TRUE & !is.na(Op14),
+    !Protected %in% TRUE & !is.na(Op1Y),
     `:=`(
-      Value = Op14,
+      Value = Op1Y,
       flagObservationStatus = "I",
       flagMethod = "-",
       # We protect these, in any case, because they should not
       # be overwritten, even if not (semi) official or expert
       Protected = TRUE,
       measuredElementSuaFbs = "5113",
-      timePointYears = "2014"
+      timePointYears = as.character(startYear)
     )
   ][,
-    Op14 := NULL
+    Op1Y := NULL
   ]
 
 
@@ -1564,11 +1564,11 @@ all_opening_stocks[
 
 
 # Now, for all remaining stockable items, we create opening
-# stocks in 2014 as 20% of supply in 2013
+# stocks in 2014 as 20% of supply in 2013 (they should be 0 now, giulia)
 
 remaining_opening_stocks <-
   data[
-    timePointYears == "2013" &
+    timePointYears == as.character(startYear-1) &
       measuredItemFbsSua %chin%
       setdiff(
         stockable_items,
@@ -1582,7 +1582,7 @@ remaining_opening_stocks <-
           - Value[measuredElementSuaFbs == "5910"],
           na.rm = TRUE
         ) * 0.2,
-      timePointYears = "2014"
+      timePointYears = as.character(startYear)
     ),
     by = c("geographicAreaM49", "measuredItemFbsSua")
   ]
@@ -1613,6 +1613,7 @@ all_opening_stocks[
   opening_20 := NULL
 ]
 
+# to add: delete automatically opening stock for non-stockable commodity, even if they have time-series. giulia
 
 complete_all_opening <-
   CJ(
@@ -2439,10 +2440,10 @@ data_tree <- data_tree[measuredItemChildCPC %!in% zeroWeight]
 # this dataset will be used when creating processing share and shareUpdown
 dataComplete <- copy(data_tree)
 
-# Quantity of parent destined to the production of the given child (only for child with one parent for the moment)
+# Quantity of parent destined to the production of the given child (only for child with one parent for the moment) (Giulia:inutile:to delete?)
 data_tree[, processed_to_child := ifelse(number_of_parent == 1, production_of_child, NA_real_)]
 
-# if a parent has one child, all the production of the child comes from that parent
+# if a parent has one child, all the processed goes to that child 
 data_tree[
   number_of_children == 1,
   processed_to_child := parent_qty_processed * extractionRate,
@@ -4123,8 +4124,11 @@ setnames(
 
 # shareUpDown_to_save <- shareUpDown_to_save[!is.na(Value)]
 shareUpDown_to_save[is.na(Value),Value:=0]
+setkey(shareUpDown_to_save, "measuredItemParentCPC_tree")
 
 data_shareUpDown_sws <- GetData(sessionKey_shareUpDown)
+setcolorder(
+  shareUpDown_to_save, names(data_shareUpDown_sws))
 
 #shareUpDown_to_save[, Value := round(Value, 3)]
 
