@@ -427,7 +427,9 @@ dbg_print("end functions")
 
 dbg_print("download tree")
 
-tree <- getCommodityTreeNewMethod(COUNTRY, YEARS)
+#tree <- getCommodityTreeNewMethod(COUNTRY, YEARS)
+#years range took with suerior margin with eccess (to not define years in back compilation)
+tree <- getCommodityTreeNewMethod(COUNTRY,as.character(2000:2030))
 
 stopifnot(nrow(tree) > 0)
 
@@ -480,7 +482,7 @@ if (FILL_EXTRACTION_RATES == TRUE) {
     merge(
       data.table(
         geographicAreaM49 = unique(tree$geographicAreaM49),
-        timePointYears = as.character(sort(2000:tail(focus_interval,1)))  
+        timePointYears = as.character(sort(2000:(max(tree[, timePointYears]))))  
       ),
       unique(
         tree[,
