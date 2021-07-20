@@ -236,6 +236,9 @@ setnames(indData, c("measuredElement", "measuredItemCPC"),
 setkey(indData, measuredItemSuaFbs)
 
 
+indData<-indData[flagObservationStatus=="" | flagObservationStatus == "T"]
+
+
 ################################################
 #####        Harvest from stockdata        #####
 ################################################
@@ -506,29 +509,32 @@ if (nrow(tourData) > 0) {
 ################################################
 
 message("Merging data files together and saving")
-if((nrow(indData)>0)&(nrow(tourData)>0)){
-  Tourism_Industrial = rbind(tourData,indData)
-  Tourism_Industrial = as.data.frame(Tourism_Industrial)
-  Tourism_Industrial = dplyr::select(Tourism_Industrial,-flagObservationStatus,-flagMethod)
-  Tourism_Industrial = tidyr::spread(Tourism_Industrial,measuredElementSuaFbs,Value)
-  Tourism_Industrial$`5164`[is.na(Tourism_Industrial$`5164`)] = 0
-  Tourism_Industrial = Tourism_Industrial %>%
-    dplyr::rowwise() %>%
-    dplyr::mutate(`5165` = `5165` - `5164`) %>%
-    dplyr::ungroup()
-  Tourism_Industrial$`5165`[Tourism_Industrial$`5165`<0&!is.na(Tourism_Industrial$`5165`)] = 0
-  Tourism_Industrial = tidyr::gather(Tourism_Industrial,measuredElementSuaFbs,Value,-c(geographicAreaM49,
-                                                                                       measuredItemSuaFbs,
-                                                                                       timePointYears))
-  Industrial = dplyr::filter(Tourism_Industrial,measuredElementSuaFbs=="5165")
-  Industrial = as.data.table(Industrial)
-  Industrial$flagObservationStatus = "I"
-  Industrial$flagMethod = "e"
-  out = rbind(agData, stockData,foodData, lossData, tourData,Industrial) #tradeData
-}
-if((nrow(indData)==0)|(nrow(tourData)==0)){
-  out = rbind(agData, stockData,foodData, lossData, tourData,indData) #tradeData
-}
+
+# if((nrow(indData)>0)&(nrow(tourData)>0)){
+#   Tourism_Industrial = rbind(tourData,indData)
+#   Tourism_Industrial = as.data.frame(Tourism_Industrial)
+#   Tourism_Industrial = dplyr::select(Tourism_Industrial,-flagObservationStatus,-flagMethod)
+#   Tourism_Industrial = tidyr::spread(Tourism_Industrial,measuredElementSuaFbs,Value)
+#   Tourism_Industrial$`5164`[is.na(Tourism_Industrial$`5164`)] = 0
+#   Tourism_Industrial = Tourism_Industrial %>%
+#     dplyr::rowwise() %>%
+#     dplyr::mutate(`5165` = `5165` - `5164`) %>%
+#     dplyr::ungroup()
+#   Tourism_Industrial$`5165`[Tourism_Industrial$`5165`<0&!is.na(Tourism_Industrial$`5165`)] = 0
+#   Tourism_Industrial = tidyr::gather(Tourism_Industrial,measuredElementSuaFbs,Value,-c(geographicAreaM49,
+#                                                                                        measuredItemSuaFbs,
+#                                                                                        timePointYears))
+#   Industrial = dplyr::filter(Tourism_Industrial,measuredElementSuaFbs=="5165")
+#   Industrial = as.data.table(Industrial)
+#   Industrial$flagObservationStatus = "I"
+#   Industrial$flagMethod = "e"
+#   out = rbind(agData, stockData,foodData, lossData, tourData,Industrial) #tradeData
+# }
+# if((nrow(indData)==0)|(nrow(tourData)==0))
+
+
+out = rbind(agData, stockData,foodData, lossData, tourData,indData) #tradeData
+
 
 ## filter production data for back compilation (Delete all derived production that are not Official or semi-official)
 utilizationTable = ReadDatatable("utilization_table_2018")
@@ -602,11 +608,11 @@ key_unb <-
 data_suaunbal <- GetData(key_unb)
 
 
-# Cumulative stocks in 2014 (for BC)
-CumulativeOpening2014 =  data_suaunbal[ measuredElementSuaFbs == "5113" & flagObservationStatus == "I" & flagMethod == "-" & timePointYears == "2014", measuredItemFbsSua]
-
-# keep opening for I-
-StocksToKeep =  data_suaunbal[measuredItemFbsSua %in% CumulativeOpening2014 & measuredElementSuaFbs %in% c("5113", "5071"), ]
+# # Cumulative stocks in 2014 (for BC)
+# CumulativeOpening2014 =  data_suaunbal[ measuredElementSuaFbs == "5113" & flagObservationStatus == "I" & flagMethod == "-" & timePointYears == "2014", measuredItemFbsSua]
+# 
+# # keep opening for I-
+# StocksToKeep =  data_suaunbal[measuredItemFbsSua %in% CumulativeOpening2014 & measuredElementSuaFbs %in% c("5113", "5071"), ]
 
 # save the trade data to merge back into output
 tradeData <- subset(data_suaunbal,measuredElementSuaFbs %in% c("5910","5610") )
@@ -656,15 +662,15 @@ out2<-out %>% dplyr::anti_join(protected_utilization,
 
 out<-rbind(out1,out2, tradeData)
 
-# remove the stocks we want to keep (I-)
-out = rbind(out[!StocksToKeep, on = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", "timePointYears")], 
-            StocksToKeep[measuredElementSuaFbs == "5071",])
+# # remove the stocks we want to keep (I-)
+# out = rbind(out[!StocksToKeep, on = c("geographicAreaM49", "measuredElementSuaFbs", "measuredItemFbsSua", "timePointYears")], 
+#             StocksToKeep[measuredElementSuaFbs == "5071",])
+# 
+# out = out[timePointYears != "2014", ]
 
-out = out[timePointYears != "2014", ]
 
-
-# Protect historical cumulative stocks
-out[measuredItemFbsSua %in% CumulativeOpening2014 & measuredElementSuaFbs == "5071", `:=`(flagObservationStatus = "E", flagMethod = "h")]
+# Protect historical cumulative stocks (commented from round 2021, we want more flexibility)
+# out[measuredItemFbsSua %in% CumulativeOpening2014 & measuredElementSuaFbs == "5071", `:=`(flagObservationStatus = "E", flagMethod = "h")]
 
 # ANALYSIS OF keeping CUMULATIV STOCKS
 # StocksKept = out[measuredItemFbsSua %in% CumulativeOpening2014 & measuredElementSuaFbs == "5071",]
