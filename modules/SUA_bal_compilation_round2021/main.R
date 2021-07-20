@@ -601,21 +601,21 @@ newBalancing <- function(data, Utilization_Table) {
   calculateImbalance(data)
   
   # When production needs to be created
-  data[
-    Protected == FALSE &
-      # Only primary
-      measuredItemSuaFbs %chin% Utilization_Table[primary_item == "X"]$cpc_code &
-      measuredElementSuaFbs == 'production' &
-      supply < 0 &
-      stockable == FALSE &
-      !is.na(Value) & Value != 0,
-    `:=`(
-      Value = Value - imbalance,
-      flagObservationStatus = "E",
-      flagMethod = "c"
-    )]
+  # data[
+  #   Protected == FALSE &
+  #     # Only primary
+  #     measuredItemSuaFbs %chin% Utilization_Table[primary_item == "X"]$cpc_code &
+  #     measuredElementSuaFbs == 'production' &
+  #     supply < 0 &
+  #     stockable == FALSE &
+  #     !is.na(Value) & Value != 0,
+  #   `:=`(
+  #     Value = Value - imbalance,
+  #     flagObservationStatus = "E",
+  #     flagMethod = "c"
+  #   )]
   
-  calculateImbalance(data)
+  # calculateImbalance(data)
   
   # if we have new production or new imports, we assign the imbalance to food (if it is a food item) or to feed(it is a feed item)
    
@@ -730,7 +730,7 @@ newBalancing <- function(data, Utilization_Table) {
   ]
   
   if (COUNTRY %in% TourismNoIndustrial) {
-    data[measuredElementSuaFbs == "tourist", Protected := FALSE]
+    data[measuredElementSuaFbs == "tourist" & flagMethod != "f", Protected := FALSE]
     
     adj_tour_ind <-
       data.table::dcast(
@@ -1296,7 +1296,7 @@ dbg_print("download data")
 # LOAD
 data <- GetData(key)
 
-# Remove item that is not par of agriculture domain
+# Remove item that is not part of agriculture domain
 data <- data[measuredItemFbsSua != "F1223"]
 
 
@@ -4098,6 +4098,56 @@ if (length(primaryInvolvedDescendents) == 0) {
     
     data[, imputed_deriv_value := NULL]
   }
+  
+  
+  ### Processed check for BC and remove processed that does not link to children
+  
+  ProcessedCheck = copy(data)
+  setnames(ProcessedCheck, c("measuredItemSuaFbs", "Value"), c("measuredItemParentCPC", "foodManufacturing"))
+  ProcessedCheck = ProcessedCheck[measuredElementSuaFbs == "foodManufacturing" & flagMethod == "i" , ]
+  
+  ProductionCheck = copy(data)
+  setnames(ProductionCheck, c("measuredItemSuaFbs", "Value"), c("measuredItemChildCPC", "production"))
+  ProductionCheck = ProductionCheck[measuredElementSuaFbs == "production" & flagMethod == "c" , ]
+  
+  CheckProcessedData = merge(
+    ProcessedCheck[, .(geographicAreaM49, timePointYears, measuredItemParentCPC, foodManufacturing)],
+    tree[measuredElementSuaFbs == "extractionRate", .(geographicAreaM49, measuredItemParentCPC, measuredItemChildCPC, timePointYears)],
+    by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears"), all.x = TRUE
+  )
+  
+  CheckProcessedData = merge(
+    CheckProcessedData,
+    ProductionCheck[, .(geographicAreaM49, timePointYears, measuredItemChildCPC, production)],
+    by = c("geographicAreaM49", "measuredItemChildCPC", "timePointYears"), all.x = TRUE
+  )
+  
+  CheckProcessedData[, 
+                     ProcessedCheck := sum(production, na.rm = TRUE), 
+                     by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")]
+  
+  CheckProcessedData[ProcessedCheck == 0, foodManufacturing := 0  ]
+  
+  CheckProcessedData = subset(CheckProcessedData, ProcessedCheck == 0)
+  
+  if(nrow(CheckProcessedData)>0) {
+    
+    saveProcessedCheck = unique(CheckProcessedData[ , list(geographicAreaM49, measuredItemSuaFbs = measuredItemParentCPC, 
+                                                           measuredElementSuaFbs = "foodManufacturing", 
+                                                           Value_processedCheck = foodManufacturing,
+                                                           timePointYears)])
+    saveProcessedCheck =  saveProcessedCheck[timePointYears %in% as.character(startYear:endYear),]}
+  
+  # save these back to data
+  if(exists("saveProcessedCheck")){
+    data = merge(data,
+                 saveProcessedCheck,
+                 by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs", "measuredElementSuaFbs"), all.x=T) 
+    
+    data[measuredElementSuaFbs == "foodManufacturing" & !is.na(Value_processedCheck) & Value != 0, Value := Value_processedCheck ]
+    data[, Value_processedCheck := NULL]
+  }
+  
 }
 # end of derived production loop
 
