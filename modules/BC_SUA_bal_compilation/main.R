@@ -77,13 +77,13 @@ FIX_OUTLIERS <- TRUE
 
 FILL_EXTRACTION_RATES <- TRUE
 
-YEARS <- as.character(2000:2018)
+YEARS <- as.character(2000:2019)
 
 # Define query related timePointYears
 startYear = 2010
 endYear = 2013
 
-refYear = 2014:2018  
+refYear = 2014:2019  
 
 TMP_DIR <- file.path(tempdir(), USER)
 if (!file.exists(TMP_DIR)) dir.create(TMP_DIR, recursive = TRUE)
@@ -91,12 +91,12 @@ if (!file.exists(TMP_DIR)) dir.create(TMP_DIR, recursive = TRUE)
 tmp_file_imb         <- file.path(TMP_DIR, paste0("IMBALANCE_", COUNTRY, ".xlsx"))
 tmp_file_imbCSV      <- file.path(TMP_DIR, paste0("IMBALANCE_", COUNTRY, ".csv"))
 tmp_file_shares      <- file.path(TMP_DIR, paste0("SHARES_", COUNTRY, ".xlsx"))
-tmp_file_negative    <- file.path(TMP_DIR, paste0("NEGATIVE_AVAILAB_", COUNTRY, ".csv"))
-tmp_file_non_exist   <- file.path(TMP_DIR, paste0("NONEXISTENT_", COUNTRY, ".csv"))
-tmp_file_fix_shares  <- file.path(TMP_DIR, paste0("FIXED_PROC_SHARES_", COUNTRY, ".csv"))
-tmp_file_NegNetTrade <- file.path(TMP_DIR, paste0("NEG_NET_TRADE_", COUNTRY, ".csv"))
-tmp_file_Stock_correction <- file.path(TMP_DIR, paste0("STOCK_CORRECTION_", COUNTRY, ".csv"))
-
+# tmp_file_negative    <- file.path(TMP_DIR, paste0("NEGATIVE_AVAILAB_", COUNTRY, ".csv"))
+# tmp_file_non_exist   <- file.path(TMP_DIR, paste0("NONEXISTENT_", COUNTRY, ".csv"))
+# tmp_file_fix_shares  <- file.path(TMP_DIR, paste0("FIXED_PROC_SHARES_", COUNTRY, ".csv"))
+# tmp_file_NegNetTrade <- file.path(TMP_DIR, paste0("NEG_NET_TRADE_", COUNTRY, ".csv"))
+# tmp_file_Stock_correction <- file.path(TMP_DIR, paste0("STOCK_CORRECTION_", COUNTRY, ".csv"))
+# (deletefile)
 # Always source files in R/ (useful for local runs).
 # Your WD should be in faoswsStandardization/
 sapply(dir("R", full.names = TRUE), source)
@@ -619,27 +619,68 @@ newBalancing <- function(data, Utilization_Table) {
   
   calculateImbalance(data)
   
-  # When production needs to be created
-  data[
-    Protected == FALSE &
-      # Only primary
-      measuredItemSuaFbs %chin% Utilization_Table[primary_item == "X"]$cpc_code &
-      measuredElementSuaFbs == 'production' &
-      supply < 0 &
-      stockable == FALSE &
-      !is.na(Value) & Value != 0,
-    `:=`(
-      Value = Value - imbalance,
-      flagObservationStatus = "E",
-      flagMethod = "c"
-    )
-  ]
-  
-  calculateImbalance(data)
+  # When production needs to be created . ELIMINATO!
+  # data[
+  #   Protected == FALSE &
+  #     # Only primary
+  #     measuredItemSuaFbs %chin% Utilization_Table[primary_item == "X"]$cpc_code &
+  #     measuredElementSuaFbs == 'production' &
+  #     supply < 0 &
+  #     stockable == FALSE &
+  #     !is.na(Value) & Value != 0,
+  #   `:=`(
+  #     Value = Value - imbalance,
+  #     flagObservationStatus = "E",
+  #     flagMethod = "c"
+  #   )
+  # ]
+  # 
+  # calculateImbalance(data)
   
   # Try to assign the maximum of imbalance to stocks
   # NOTE: in the conditions below, 2 was 0.2, indicating that no more than
   # 20% should go to stocks. Now, the condition was relaxed a lot (200%)
+  
+  # if we have new production or new imports, we assign the imbalance to food (if it is a food item) or to feed(it is a feed item)
+  
+  data[imbalance>0 & (is.na(Production_Median)|Production_Median==0) & (is.na(Import_Median)|Import_Median==0)
+       & Protected==FALSE & measuredElementSuaFbs== "food"
+       & measuredItemSuaFbs %chin% Utilization_Table[food_item == "X"]$cpc_code, 
+       `:=`(
+         Value =
+           ifelse(
+             is.na(Value) & imbalance > 0,
+             imbalance,
+             ifelse(Value + imbalance >= 0, Value + imbalance, 0)
+           ),
+         flagObservationStatus = "E",
+         flagMethod = "h"
+       )
+  ]
+  
+  # recalculate imbalance
+  
+  calculateImbalance(data)
+  
+  data[imbalance>0 & (is.na(Production_Median)|Production_Median==0)&(is.na(Import_Median)|Import_Median==0) & 
+         Protected==FALSE & measuredElementSuaFbs== "feed"
+       & measuredItemSuaFbs %chin% Utilization_Table[feed == "X"]$cpc_code, 
+       `:=`(
+         Value =
+           ifelse(
+             is.na(Value) & imbalance > 0,
+             imbalance,
+             ifelse(Value + imbalance >= 0, Value + imbalance, 0)
+           ),
+         flagObservationStatus = "E",
+         flagMethod = "h"
+       )
+  ]
+  
+  
+  # recalculate imbalance
+  calculateImbalance(data)
+  
   
   
   # For BC: Create lag to ensure 2014 restiriction
@@ -647,6 +688,8 @@ newBalancing <- function(data, Utilization_Table) {
   modified_opening = copy(all_opening_stocks)
   modified_opening = all_opening_stocks[order(geographicAreaM49, measuredItemFbsSua, -timePointYears),]
   modified_opening[, stock_lag := dplyr::lag(Value, 1L)]
+  
+  data[supply<0, supply:=0]
   
   data <-
     dt_left_join(
@@ -663,6 +706,9 @@ newBalancing <- function(data, Utilization_Table) {
   data[ , ProdImp := sum(Value[measuredElementSuaFbs %in% c("production", "import")], na.rm = TRUE), by = c("geographicAreaM49", 
   "measuredItemSuaFbs", "timePointYears")]
   
+  data[ , Poslim := supply*2, by = c("geographicAreaM49","measuredItemSuaFbs", "timePointYears")]
+  
+  
   data[,
     Value_0 := ifelse(is.na(Value), 0, Value)
   ][
@@ -674,40 +720,50 @@ newBalancing <- function(data, Utilization_Table) {
       # The numbers indicate the case. Assignmnet (value and flags) will be done below
       case_when(
         # case 1: we don't want stocks to change sign.
-        sign(Value_0) * sign(Value_0 + imbalance) == -1                                                  ~ 1L,
-        # case 2: if value + imbalance takes LESS than opening stock, take all from stocks
-        Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) <= 0.5 * ProdImp            ~ 2L,
-        # case 3: if value + imbalance takes MORE than opening stock, take max opening stocks
-        Value_0 <= 0 & (Value_0 + imbalance <= 0) & abs(Value_0 + imbalance) >  0.5 * ProdImp            ~ 3L,
-        # case 4: if value + imbalance send LESS than 200% of supply, send all
-        Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks <= supply * 2) ~ 4L,
-        # case 5: if value + imbalance send MORE than 200% of supply, send 200% of supply
-        Value_0 >= 0 & (Value_0 + imbalance >= 0) & (Value_0 + imbalance + opening_stocks > supply * 2)  ~ 5L
+        sign(Value_0) * sign(Value_0 + imbalance) == -1                                                                            ~ 1L,
+        # case 2: if positive variation does not match opening of successive year
+        Value_0 >= 0 & (stock_lag-(Value_0+imbalance) < 0)                                                                           ~ 2L,
+        # case 3: if negative stock generate too high stock, set to max withdrawal=supply*2-opening
+        Value_0 <= 0 & (Value_0 + imbalance <= 0) & (opening_stocks - (Value_0 + imbalance) > supply * 2) & Poslim<=opening_stocks   ~ 3L,
+        # case 4: if negative stock generate too high stock, set to max withdrawal=supply*2-opening
+        Value_0 <= 0 & (Value_0 + imbalance <= 0) & (opening_stocks - (Value_0 + imbalance) > supply * 2) & Poslim>opening_stocks  ~ 4L,
+        # case 5: negative stock is not too high  ok
+        Value_0 <= 0 & (Value_0 + imbalance <= 0) & (opening_stocks - (Value_0 + imbalance) <= supply * 2)  ~ 5L,
+        # case 6: if positive variation is ok
+        Value_0 >= 0 & (stock_lag-(Value_0+imbalance) >= 0)                                                 ~ 6L
+        
       )
   ]
 
   data[change_stocks == 1L, Value := 0]
+  
   ##all the other cases are left with no constraint for BC
-  data[change_stocks == 2L, Value := Value_0 + imbalance]
-  data[change_stocks == 3L, Value := - 0.5 * ProdImp]
-  data[change_stocks == 4L, Value := Value_0 + imbalance]
-  # Only case for which grouping is required
-  data[change_stocks == 5L,Value := Value_0 + imbalance]
-
+  data[change_stocks == 2L, Value := stock_lag]
+  data[change_stocks == 3L,Value := 0]
+  data[change_stocks == 4L,Value := opening_stocks-(supply*2)]
+  data[change_stocks == 5L, Value := Value_0 + imbalance]
+  data[change_stocks == 6L, Value := Value_0 + imbalance]
+  
   data[
-    change_stocks %in% 1L:5L,
+    change_stocks %in% 1L:6L,
     `:=`(flagObservationStatus = "E", flagMethod = "s")
   ]
-  # For BC: ensure that opening of year t is in lign with opening and variation in t-1 and give appropriate flag
-  data[measuredElementSuaFbs == "stockChange" & stock_lag - Value < 0, 
-       `:=` (Value = stock_lag, flagObservationStatus = "E", flagMethod = "s")]
   
+  # # For BC: ensure that opening of year t is in lign with opening and variation in t-1 and give appropriate flag (this check has
+  # been incorporated into the 6 conditions)
+  
+  # data[measuredElementSuaFbs == "stockChange" & stock_lag - Value < 0, 
+  #      `:=` (Value = stock_lag, flagObservationStatus = "E", flagMethod = "s")]
+  # 
+  
+ 
   data[, stock_lag := NULL]  
   data[, Value_0 := NULL]
 
   data[, opening_stocks := NULL]
   
   data[, ProdImp := NULL]
+  data[, Poslim := NULL]
   # Recalculate imbalance
   calculateImbalance(data)
 
@@ -725,7 +781,7 @@ newBalancing <- function(data, Utilization_Table) {
   ]
   
   if (COUNTRY %in% TourismNoIndustrial) {
-    data[measuredElementSuaFbs == "tourist", Protected := FALSE]
+    data[measuredElementSuaFbs == "tourist" & flagMethod!= "f", Protected := FALSE]
     
     adj_tour_ind <-
       data.table::dcast(
@@ -849,7 +905,7 @@ newBalancing <- function(data, Utilization_Table) {
   
   # Assign the residual imbalance to industrial if the conditions are met
   data[geographicAreaM49 %in% TourismNoIndustrial & measuredItemSuaFbs %in% Utilization_Table[food_item == 'X', cpc_code],
-       industrial_resid == FALSE
+       industrial_resid := FALSE
        ]
   
   data[
@@ -897,6 +953,7 @@ newBalancing <- function(data, Utilization_Table) {
   data[, c("supply", "utilizations", "imbalance", "mov_share_rebased") := NULL]
     
   return(data)
+                  
 }
 
 
@@ -966,7 +1023,7 @@ message("Line 864")
     merge(
       data.table(
         geographicAreaM49 = unique(tree$geographicAreaM49),
-        timePointYears = as.character(sort(2000:endYear))
+        timePointYears = as.character(sort(2000:max(refYear)))
       ),
       unique(
         tree[,
@@ -1095,9 +1152,10 @@ tree_to_send[,
     measuredItemChildCPC_tree = paste0("'", measuredItemChildCPC_tree))
 ]
 
-tmp_file_extr <- file.path(TMP_DIR, paste0("FILLED_ER_", COUNTRY, ".csv"))
-
-write.csv(tree_to_send, tmp_file_extr)
+# tmp_file_extr <- file.path(TMP_DIR, paste0("FILLED_ER_", COUNTRY, ".csv"))
+# 
+# write.csv(tree_to_send, tmp_file_extr)
+# (deletefile)
 
 # XXX remove NAs
 tree <- tree[!is.na(Value)]
@@ -1163,11 +1221,11 @@ stopifnot(nrow(popSWS) > 0)
 popSWS[geographicAreaM49 == "156", geographicAreaM49 := "1248"]
 
 # Fix for missing regional official data in the country total
-# Source: DEMOGRAPHIC SURVEY, Kurdistan Region of Iraq, July 2018, IOM UN Migration
+# Source: DEMOGRAPHIC SURVEY, Kurdistan Region of Iraq, July 2019, IOM UN Migration
 # ("the KRI population at 5,122,747 individuals and the overall Iraqi
 # population at 36,004,552 individuals", pag.14; it implies 14.22805%)
 # https://iraq.unfpa.org/sites/default/files/pub-pdf/KRSO%20IOM%20UNFPA%20Demographic%20Survey%20Kurdistan%20Region%20of%20Iraq_0.pdf
-popSWS[geographicAreaM49 == "368" & timePointYears %in% 2014:2018, Value := Value * 0.8577195]
+popSWS[geographicAreaM49 == "368" & timePointYears %in% startYear:endYear, Value := Value * 0.8577195]
 
 
 ############################ / POPULATION ##################################
@@ -1429,7 +1487,7 @@ opening_stocks_2014 <-
     )
   ]
 
-# Keep only those for which recent variations are available (for back compilation: stocks make sense if we have stocks in 2014-2018)
+# Keep only those for which recent variations are available (for back compilation: stocks make sense if we have stocks in 2014-2019)
 opening_stocks_2014 <-
   opening_stocks_2014[
     non_null_prev_deltas,
@@ -1729,18 +1787,18 @@ data_for_opening <- data_for_opening[timePointYears <= endYear+1] # changed for 
 
 ### Unprotect cumulative stock variation that resulted in negative opening in 2014
 
-Variation2013 = data[measuredElementSuaFbs == "5071" & timePointYears == "2013", .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua, variation2013 = Value, FlagVariation = paste0("(", flagObservationStatus, ",", flagMethod, ")"))]
-Opening2013 = data_for_opening[timePointYears == "2013", .(geographicAreaM49, measuredItemSuaFbs= measuredItemSuaFbs, opening2013 = new_opening)]
-Opening2014 = data_for_opening[timePointYears == "2014", .(geographicAreaM49, measuredItemSuaFbs= measuredItemSuaFbs, opening2014 = new_opening)]
+# Variation2013 = data[measuredElementSuaFbs == "5071" & timePointYears == "2013", .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua, variation2013 = Value, FlagVariation = paste0("(", flagObservationStatus, ",", flagMethod, ")"))]
+# Opening2013 = data_for_opening[timePointYears == "2013", .(geographicAreaM49, measuredItemSuaFbs= measuredItemSuaFbs, opening2013 = new_opening)]
+# Opening2014 = data_for_opening[timePointYears == "2014", .(geographicAreaM49, measuredItemSuaFbs= measuredItemSuaFbs, opening2014 = new_opening)]
+# 
+# FirstMerge = merge(Variation2013, Opening2013, by = c("geographicAreaM49", "measuredItemSuaFbs"))
+# 
+# StockCheck = merge(FirstMerge, Opening2014, by = c("geographicAreaM49", "measuredItemSuaFbs"))
+# StockCheck[, ConsistencyCheck := dplyr::near(round(opening2013 + variation2013), round(opening2014)) ]
+# StockCheckProblems = StockCheck[ConsistencyCheck == FALSE, ]
 
-FirstMerge = merge(Variation2013, Opening2013, by = c("geographicAreaM49", "measuredItemSuaFbs"))
-
-StockCheck = merge(FirstMerge, Opening2014, by = c("geographicAreaM49", "measuredItemSuaFbs"))
-StockCheck[, ConsistencyCheck := dplyr::near(round(opening2013 + variation2013), round(opening2014)) ]
-StockCheckProblems = StockCheck[ConsistencyCheck == FALSE, ]
-
-# stock items to unprotect later
-CumulativeToUnprotect = StockCheckProblems[FlagVariation == "(E,h)", measuredItemSuaFbs]
+# stock items to unprotect (unprotect all the stock variation with Eh for round 2021)
+CumulativeToUnprotect = data[flagObservationStatus== "E" & flagMethod== "h" & measuredElementSuaFbs == "5071" & timePointYears %in% as.character(startYear:endYear), measuredItemFbsSua]
 
 # assign same flag as estimated stock variation
 data[measuredItemFbsSua %in% CumulativeToUnprotect & measuredElementSuaFbs == "5071" & timePointYears %in% as.character(startYear:endYear), `:=` (flagObservationStatus = "E", flagMethod = "u") ]
@@ -1749,6 +1807,20 @@ data[measuredItemFbsSua %in% CumulativeToUnprotect & measuredElementSuaFbs == "5
 # take care of NA stocks in 2014 to build the series for stocks
 data_for_opening[, naOpening := new_opening]
 data_for_opening[is.na(new_opening), new_opening := 0]
+
+data_for_opening <- update_opening_stocks(data_for_opening)
+
+
+# if there are manual insertion of stock variations that are not consistent with opening 2014, set them to 0, todo(giulia)
+data_for_opening2<-copy(data_for_opening)
+data_for_opening2<- data_for_opening2[order(geographicAreaM49, measuredItemSuaFbs, -timePointYears)]
+data_for_opening2<-data_for_opening2[, stock_lag := dplyr::lag(new_opening, 1L)]
+data_for_opening2<-data_for_opening2[ , diff:=stock_lag-delta]
+data_for_opening2<-data_for_opening2[, remove:= ifelse(diff<0 & !is.na(diff),TRUE,FALSE)]
+
+RemoveVar<-unique(data_for_opening2[remove==TRUE])
+RemoveVar<-RemoveVar[ , c(1,2,3,9), with=FALSE]
+
 
 data_for_opening <- update_opening_stocks(data_for_opening)
 
@@ -1825,6 +1897,17 @@ data[, measuredElementSuaFbs := name]
 
 data[, name := NULL]
 
+if (nrow(RemoveVar) !=0) {
+  
+  RemoveVar<-setnames(RemoveVar, "measuredItemSuaFbs", "measuredItemFbsSua")
+  data<-merge(data, RemoveVar, by= c("measuredItemFbsSua", "geographicAreaM49", "timePointYears"), all.x = T)
+  data<- data[remove==TRUE & measuredElementSuaFbs=="stockChange", Value:=0]
+  
+  data<-data[ , remove:=NULL]
+  
+}
+
+
 # NOTE: if this should be used again (#38), camelCase the element names (#45)
 #data <-
 #  elementCodesToNames(
@@ -1849,7 +1932,7 @@ message("Line 1686")
 # remove the NEW feed item if the NEGATIVE imbalance obtained by including
 # it is more than 50% of supply (e.g., -72%).
 
-# THIS PART IS NOT NEEDED FOR BACK COMPILATION, because nef feed are already generated in the 2014-2018
+# THIS PART IS NOT NEEDED FOR BACK COMPILATION, because nef feed are already generated in the 2014-2019
 # new_feed <-
 #   data[
 #     measuredElementSuaFbs == "feed",
@@ -2213,13 +2296,13 @@ if (CheckDebug()) {
           measuredElementSuaFbs = Dimension(name = "measuredElementSuaFbs", keys = elemKeys_all),
           measuredItemFbsSua = Dimension(name = "measuredItemFbsSua", keys = itemKeys),
           # Get from 2010, just for the SUA aggregation
-          timePointYears = Dimension(name = "timePointYears", keys = as.character(2010:2018))
+          timePointYears = Dimension(name = "timePointYears", keys = as.character(2010:2019))
         )
     )
 } else {
   key_all <- swsContext.datasets[[1]]
   
-  key_all@dimensions$timePointYears@keys <- as.character(2010:2018)
+  key_all@dimensions$timePointYears@keys <- as.character(2010:2019)
   key_all@dimensions$measuredItemFbsSua@keys <- itemKeys
   key_all@dimensions$measuredElementSuaFbs@keys <- elemKeys_all
   key_all@dimensions$geographicAreaM49@keys <- COUNTRY
@@ -2292,7 +2375,7 @@ setnames(data_tree, "measuredItemFbsSua", "measuredItemParentCPC")
 # data_tree[,
 #   proc_Median :=
 #     median(
-#       Value[measuredElementSuaFbs == "foodManufacturing" & timePointYears %in% 2000:2018],
+#       Value[measuredElementSuaFbs == "foodManufacturing" & timePointYears %in% 2000:2019],
 #       na.rm=TRUE
 #     ),
 #   by = c(p$parentVar, p$geoVar)
@@ -2621,16 +2704,16 @@ dataProcessingShare[,
                     ]
 
 
-## For BC compilation we do not need to create the sums for 2014-2018 Loss and Process 
-# (if not present in 2014-2018, they are not deleted for 2010:2013 instead)
+## For BC compilation we do not need to create the sums for 2014-2019 Loss and Process 
+# (if not present in 2014-2019, they are not deleted for 2010:2013 instead)
 dataProcessingShare[,SumLoss:=sum(
-  Value[measuredElementSuaFbs=="loss" & timePointYears %in% 2014:2018],na.rm = TRUE
+  Value[measuredElementSuaFbs=="loss" & timePointYears %in% 2014:2019],na.rm = TRUE
   ),
   by=c("geographicAreaM49","measuredItemParentCPC")
   ]
 
 dataProcessingShare[,SumProd:=sum(
-  Value[measuredElementSuaFbs=="production" & timePointYears %in% 2014:2018],na.rm = TRUE
+  Value[measuredElementSuaFbs=="production" & timePointYears %in% 2014:2019],na.rm = TRUE
 ),
 by=c("geographicAreaM49","measuredItemParentCPC")
 ]
@@ -2659,7 +2742,7 @@ dataProcessingShare[,NewLoss:=ifelse(is.na(loss_Median_before) & !is.na(RatioLos
 
 # dataProcessingShare[,
 #                     NewLoss :=
-#        # have  loss for 2014-2018 & ...
+#        # have  loss for 2014-2019 & ...
 #        !is.na(RatioLoss)&
 #           # does not have past losses &
 #        is.na(loss_Median_before) &
@@ -2890,7 +2973,7 @@ data_ShareUpDoawn_final_invalid <-
     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0) 
   ]
 
-
+data_ShareUpDoawn_final_invalid<-data_ShareUpDoawn_final_invalid[timePointYears%in%startYear:endYear]
 
 if (nrow(data_ShareUpDoawn_final_invalid) > 0) {
   data_ShareUpDoawn_final_invalid[, measuredItemParentCPC_tree := paste0("'", measuredItemParentCPC_tree)]
@@ -2943,7 +3026,7 @@ BC_dataForProc[, shareUpDown_avr := NULL]
 BC_dataForProc[is.nan(Value) | is.na(Value), Value := 0]
 
 # moved in the saving condition
- BC_dataForProc[ , Value := Value / sum(Value[measuredItemChildCPC %!in% zeroWeight], na.rm = TRUE), 
+BC_dataForProc[ , Value := Value / sum(Value[measuredItemChildCPC %!in% zeroWeight], na.rm = TRUE), 
                  by = c("geographicAreaM49", "measuredItemParentCPC", "timePointYears")]
 BC_zeroweight = BC_dataForProc[measuredItemChildCPC %!in% zeroWeight, ]
 
@@ -2991,7 +3074,7 @@ BC_dataForProc = rbind(BC_dataForProc[measuredItemChildCPC %!in% zeroWeight, ], 
   # data_ShareUpDoawn_to_use <-
   #   data_ShareUpDoawn_to_use[, colnames(data_ShareUpDoawn_final), with = FALSE]
   # 
-  # data_ShareUpDoawn_final<-data_ShareUpDoawn_final[timePointYears %in% as.character(2014:2018)]
+  # data_ShareUpDoawn_final<-data_ShareUpDoawn_final[timePointYears %in% as.character(2014:2019)]
   
   #If a new connection parent-child is added, the shareUpDown of all the children are affected
   #So we overwrite the share of all the children of the parent in the new connection
@@ -3056,6 +3139,8 @@ data_ShareUpDoawn_final_invalid <-
   ][
     !dplyr::near(sum_shares, 1) & !dplyr::near(sum_shares, 0)
   ]
+
+data_ShareUpDoawn_final_invalid<-data_ShareUpDoawn_final_invalid[timePointYears%in%startYear:endYear]
 
 
 if (nrow(data_ShareUpDoawn_final_invalid) > 0) {
@@ -3446,20 +3531,21 @@ message("Line 2905")
 
 
 # stockable items for which a historical series of at least
-# 5 non-missing/non-null data points exist
+# 5 non-missing/non-null data points exist (changed 2021)
 historical_avail_stocks <-
   data[
     measuredElementSuaFbs == "stockChange" &
-      timePointYears < startYear & # we reversed this for back compilation and check for stocks in 2014-2018
+      timePointYears > endYear & # we reversed this for back compilation and check for stocks in 2014-2019
       !is.na(Value) &
       stockable == TRUE,
     .(n = sum(!dplyr::near(Value, 0))),
     by = c("geographicAreaM49", "measuredItemSuaFbs")
   ][
-    n >= 5
+    n >= 3
   ][,
     n := NULL
   ]
+
 
 
 # Keep processingShare and shareDownUp
@@ -3535,7 +3621,8 @@ dbg_print("starting derived production loop")
       data$stockable == TRUE &
       data$measuredItemSuaFbs %chin% items_to_generate_stocks &
       #data$measuredItemSuaFbs %chin% treeCurrentLevel$measuredItemParentCPC &
-      data$measuredElementSuaFbs %chin% c('production', 'imports', 'exports')
+      data$measuredElementSuaFbs %chin% c('production', 'imports', 'exports') &
+      !(is.na(data$production) & is.na(data$imports) & is.na(data$exports))
 
     if (any(condition_for_stocks)) {
       dbg_print("generating stocks")
@@ -3670,6 +3757,7 @@ dbg_print("starting derived production loop")
           
           # take care of NA openings of 2014 
           data_for_stocks[is.na(new_opening), new_opening := 0]
+          
           # NOTE: Data here should be ordered by country/item/year (CHECK)
           data_for_stocks <- update_opening_stocks(data_for_stocks)
           
@@ -3685,6 +3773,8 @@ dbg_print("starting derived production loop")
               data_for_stocks,
               by = c('geographicAreaM49', 'timePointYears', 'measuredItemSuaFbs')
             )
+          
+          # data<-data[measuredElementSuaFbs=="stockChange" & flagObservationStatus=="E" & flagMethod=="f", Protected:=FALSE]
 
           data[
             measuredElementSuaFbs == "stockChange" &
@@ -4040,12 +4130,12 @@ dbg_print("starting derived production loop")
     
     datamergeNew[is.na(shareUpDown),shareUpDown:=0]
     
-    #Update of the share up down
-    datamergeNew[extractionRate>0 ,
-                  shareUpDown:=ifelse(Protected==TRUE & AllProotected!=1,(production*shareDownUp/extractionRate) / sum(production[Protected==TRUE] * shareDownUp[Protected==TRUE] / extractionRate[Protected==TRUE], na.rm = TRUE)*
-                                        (1-sum(shareUpDown[Protected==FALSE],na.rm = TRUE)),shareUpDown),
-                  by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
-                  ]
+    #Update of the share up down (da vedere, giulia)
+    # # datamergeNew[extractionRate>0 ,
+    #               shareUpDown:=ifelse(Protected==TRUE & AllProotected!=1,(production*shareDownUp/extractionRate) / sum(production[Protected==TRUE] * shareDownUp[Protected==TRUE] / extractionRate[Protected==TRUE], na.rm = TRUE)*
+    #                                     (1-sum(shareUpDown[Protected==FALSE],na.rm = TRUE)),shareUpDown),
+    #               by=c("geographicAreaM49","timePointYears","measuredItemParentCPC")
+    #               ]
     datamergeNew[,AllProotected:=NULL]
     # calculate the number of child of each parent where processed used to be send
     datamergeNew[,
@@ -4294,7 +4384,7 @@ dbg_print("starting derived production loop")
     
     data[
       measuredElementSuaFbs == "foodManufacturing" &
-        Protected == FALSE & !is.na(Processed) & Processed_estimed == FALSE,
+        Protected == FALSE &!is.na(Processed) & Processed_estimed == FALSE,
       `:=`(
         Value = Processed,
         flagObservationStatus = "E",
@@ -4304,7 +4394,11 @@ dbg_print("starting derived production loop")
     ][,
       c("Processed", "processed_down_up") := NULL
     ]
-    
+    # if we want to save also the empty (that will overwrite previously estimated processed)
+    # [is.na(Value),`:=`(
+    #   flagObservationStatus = "",
+    #   flagMethod ="") ]
+    # 
     
     ####### estimating production of derived
     data_production <-
@@ -4491,15 +4585,16 @@ dbg_print("starting derived production loop")
   
   CheckProcessedData = subset(CheckProcessedData, ProcessedCheck == 0)
   
+  if(nrow(CheckProcessedData)>0) {
+  
   saveProcessedCheck = unique(CheckProcessedData[ , list(geographicAreaM49, measuredItemSuaFbs = measuredItemParentCPC, 
                                               measuredElementSuaFbs = "foodManufacturing", 
                                               Value_processedCheck = foodManufacturing,
                                               timePointYears)])
-  saveProcessedCheck =  saveProcessedCheck[timePointYears %in% as.character(startYear:endYear),]
+  saveProcessedCheck =  saveProcessedCheck[timePointYears %in% as.character(startYear:endYear),]}
   
   # save these back to data
-  
-  if(nrow(saveProcessedCheck) > 0){
+  if(exists("saveProcessedCheck")){
   data = merge(data,
           saveProcessedCheck,
           by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs", "measuredElementSuaFbs"), all.x=T) 
@@ -4756,7 +4851,7 @@ outlier_suabal[,
     by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears')
   ]
 
-  outlier_suabal[measuredElementSuaFbs %chin% c("feed", "industrial"), element_supply := supply]
+  outlier_suabal[measuredElementSuaFbs %chin% c("feed", "industrial", "tourist"), element_supply := supply]
   outlier_suabal[measuredElementSuaFbs == "seed", element_supply := production]
   outlier_suabal[measuredElementSuaFbs == "loss", element_supply := domsupply]
 
@@ -4775,7 +4870,7 @@ outlier_suabal[,
                  by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
   ]
   
-  # FOr BC, we dont need thresholds if there is no values in 2014-2018
+  # FOr BC, we dont need thresholds if there is no values in 2014-2019
   # dout[
   #   timePointYears %in% as.character(startYear:endYear) & (is.na(mean_ratio) | is.nan(mean_ratio) | is.infinite(mean_ratio)),
   #   mean_ratio := median(ratio[timePointYears %in% as.character(startYear:endYear)], na.rm = TRUE),
@@ -4788,7 +4883,7 @@ outlier_suabal[,
   #   by = c('geographicAreaM49', 'measuredItemSuaFbs', 'measuredElementSuaFbs')
   # ]
   
-  # for BC we want NAs in 2014-2018 to delete entries for 2010-2013 
+  # for BC we want NAs in 2014-2019 to delete entries for 2010-2013 
   outlier_suabal[mean_ratio > 1, mean_ratio := 1]
   outlier_suabal[mean_ratio < 0, mean_ratio := 0]
   outlier_suabal[is.na(mean_ratio) | is.nan(mean_ratio), mean_ratio := 0]
@@ -4858,7 +4953,7 @@ outlier_suabal[,
                  by = c('geographicAreaM49', 'measuredItemSuaFbs', 'timePointYears')
   ]
   
-  dout[measuredElementSuaFbs %chin% c("feed", "industrial"), element_supply := supply]
+  dout[measuredElementSuaFbs %chin% c("feed", "industrial", "tourist"), element_supply := supply]
   dout[measuredElementSuaFbs == "seed", element_supply := production]
   dout[measuredElementSuaFbs == "loss", element_supply := domsupply]
   
@@ -4874,14 +4969,14 @@ outlier_suabal[,
                             mean_ratio, Meanold, abs_diff_threshold)]),
         by = c("measuredElementSuaFbs", "geographicAreaM49", "measuredItemSuaFbs"), all.x=T)
   
-    
+  dout<- dout[is.na(ratio), ratio:=0]  
   
   dout[
     Protected == FALSE &
       timePointYears %in% as.character(startYear:endYear) & # XXX: parameterise
       mean_ratio > 0 & 
        abs(element_supply) > 0 &
-      measuredElementSuaFbs %chin% c("feed", "seed", "loss", "industrial") &
+      measuredElementSuaFbs %chin% c("feed", "seed", "loss", "industrial", "tourist") &
       # the conditions below define the outlier, or cases that were NA
       (is.na(Value) |
          abs(ratio - mean_ratio) > abs_diff_threshold |
@@ -4891,8 +4986,8 @@ outlier_suabal[,
     impute := element_supply * mean_ratio
   ]
 
-  # get rid of feed that is zero in 2014-2018
-  dout[Meanold == 0 & mean_ratio == 0 & measuredElementSuaFbs %in% c("feed", "seed", "industrial", "loss"), impute := 0 ]
+  # get rid of utilizations that are zero in 2014-2019
+  dout[Meanold == 0 & mean_ratio == 0 & measuredElementSuaFbs %in% c("feed", "seed", "industrial", "loss", "tourist"), impute := 0 ]
 
   # Remove imputation for loss that is non-food and non-primaryProxyPrimary
   dout[
@@ -4926,7 +5021,7 @@ outlier_suabal[,
 
   dout <-
     dout[
-      !is.na(impute) & (is.na(Value) | round(Value, 1) != round(impute, 1)),
+      !is.na(impute) & (is.na(Value) | round(Value, 1) != round(impute, 1) | Value==0),
       list(
         geographicAreaM49,
         measuredItemSuaFbs,
@@ -4948,13 +5043,13 @@ outlier_suabal[,
         flagMethod = "e",
         Protected = FALSE)
       ]
-
-    data[Value == 0 & flagObservationStatus == "E"& flagMethod == "e", `:=` (Value = NA_real_, flagObservationStatus = NA_character_, flagMethod = NA_character_) ]
+    
+     data[Value == 0 & flagObservationStatus == "E"& flagMethod == "e", `:=` (Value = NA_real_, flagObservationStatus = NA_character_, flagMethod = NA_character_) ]
     
     
     data_outliers <-
       data[!is.na(Value_imputed) & timePointYears %in% as.character(startYear:endYear) &
-           measuredElementSuaFbs %in% c("feed", "seed", "loss", "industrial")]
+           measuredElementSuaFbs %in% c("feed", "seed", "loss", "industrial", "tourist")]
 
     data[, Value_imputed := NULL]
   }
@@ -5126,7 +5221,11 @@ if (STOP_AFTER_DERIVED == TRUE) {
   } else {
     print("The SUA_bal_compilation plugin had a problem when saving derived data.")
   }
-
+  
+  dbg_print("Plugin stopped after derived, as requested. This is fine.")
+  paste0("Plugin stopped after derived, as requested. This is fine.")
+  print("Plugin stopped after derived, as requested. This is fine.")
+  message("Plugin stopped after derived, as requested. This is fine.")
   stop("Plugin stopped after derived, as requested. This is fine.")
 }
 
@@ -5488,9 +5587,10 @@ new_elements <- nameData("suafbs", "sua_unbalanced", new_elements, except = "mea
 
 new_elements[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
 
-tmp_file_new <- file.path(TMP_DIR, paste0("NEW_ELEMENTS_", COUNTRY, ".csv"))
-
-write.csv(new_elements, tmp_file_new)
+# tmp_file_new <- file.path(TMP_DIR, paste0("NEW_ELEMENTS_", COUNTRY, ".csv"))
+# 
+# write.csv(new_elements, tmp_file_new)
+# (deletefile)
 
 # / Filter elements that appear for the first time
 
@@ -5650,19 +5750,21 @@ data[
 ]
 
 
-# Back compilation: we take median food information form sua balanced (2014-2018)
+# Back compilation: we take median food information form sua balanced (2014-2019)
 # Note: in BC, meadian was changed to be the mean!!
 suabal_Food_Median = copy(outlier_suabal)
 suabal_Food_Median[,
      `:=`(
        Food_Median       = mean(Value[measuredElementSuaFbs == "food" & timePointYears %in% refYear], na.rm=TRUE),
        Feed_Median       = mean(Value[measuredElementSuaFbs == "feed" & timePointYears %in% refYear], na.rm=TRUE),
-       Industrial_Median = mean(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% refYear], na.rm=TRUE)
+       Industrial_Median = mean(Value[measuredElementSuaFbs == "industrial" & timePointYears %in% refYear], na.rm=TRUE),
+       Production_Median = mean(Value[measuredElementSuaFbs == "production" & timePointYears %in% refYear], na.rm=TRUE),
+       Import_Median     = mean(Value[measuredElementSuaFbs == "imports" & timePointYears %in% refYear], na.rm=TRUE)
      ),
      by = c("geographicAreaM49", "measuredItemSuaFbs")
 ]
 
-Medians_for_balancing =  unique(suabal_Food_Median[, .(geographicAreaM49, measuredItemSuaFbs, Food_Median, Feed_Median, Industrial_Median)])
+Medians_for_balancing =  unique(suabal_Food_Median[, .(geographicAreaM49, measuredItemSuaFbs, Food_Median, Feed_Median, Industrial_Median, Production_Median,Import_Median)])
 
 data = merge(data, Medians_for_balancing, by = c("geographicAreaM49", "measuredItemSuaFbs"))
 
@@ -5812,6 +5914,8 @@ standData <- vector(mode = "list", length = nrow(uniqueLevels))
 # set the first slot to the 2014 (not to be touchd)
 standData[[1]] <- data[timePointYears == "2014", ]
 standData[[1]]$change_stocks = NA_integer_
+
+
 # for BC we leave 2014 as it is
 for (i in 2:nrow(uniqueLevels)) {
 
@@ -5870,6 +5974,7 @@ for (i in 2:nrow(uniqueLevels)) {
       # take care of NA stocks in 2014
       data_for_opening[, naOpening := new_opening ]
       data_for_opening[is.na(new_opening), new_opening := 0]
+    
       
       data_for_opening <- update_opening_stocks(data_for_opening)
       # For BC: get rid of 2014 year used for balancing
@@ -5937,6 +6042,7 @@ for (i in 2:nrow(uniqueLevels)) {
   dbg_print(paste("in balancing loop, end", i))
 }
 
+
 all_opening_stocks[, measuredElementSuaFbs := "5113"]
 
 dbg_print("end of balancing loop")
@@ -5944,6 +6050,49 @@ dbg_print("end of balancing loop")
 standData = standData[2:(nrow(uniqueLevels)-1)] 
 
 standData <- rbindlist(standData)
+
+
+# if there are manual insertion of stock variations that are not consistent with opening 2014, set them to 0, todo(giulia)
+
+data_for_opening <-
+  dt_left_join(
+    all_opening_stocks[,
+                       .(geographicAreaM49, measuredItemSuaFbs = measuredItemFbsSua,
+                         timePointYears, new_opening = Value)
+    ],
+    standData[
+      measuredElementSuaFbs == 'stockChange' &
+        timePointYears %in% as.character(startYear:(endYear +1)) & # changed years for back compilation 
+        !is.na(Value),
+      .(geographicAreaM49, measuredItemSuaFbs,
+        timePointYears, delta = Value)
+    ],
+    by = c("geographicAreaM49", "measuredItemSuaFbs", "timePointYears")
+  )
+
+data_for_opening[is.na(delta), delta := 0]
+
+data_for_opening <- data_for_opening[timePointYears <= endYear+1] # changed for back compilation (note: 2014 needs to be in there!!)
+
+data_for_opening2<-copy(data_for_opening)
+data_for_opening2<- data_for_opening2[order(geographicAreaM49, measuredItemSuaFbs, -timePointYears)]
+data_for_opening2<-data_for_opening2[, stock_lag := dplyr::lag(new_opening, 1L)]
+data_for_opening2<-data_for_opening2[ , diff:=stock_lag-delta]
+data_for_opening2<-data_for_opening2[, remove:= ifelse(diff<0 & !is.na(diff),TRUE,FALSE)]
+RemoveVar2<-unique(data_for_opening2[remove==TRUE])
+RemoveVar2<-RemoveVar2[ , c(1,2,3,8), with=FALSE]
+
+
+if (nrow(RemoveVar2) !=0) {
+
+standData<-merge(standData, RemoveVar2, by= c("measuredItemSuaFbs", "geographicAreaM49", "timePointYears"), all.x = T)
+standData<- standData[remove==TRUE & measuredElementSuaFbs=="stockChange", Value:=0]
+
+standData<-standData[ , remove:=NULL]
+}
+  
+
+
 
 standData = standData[timePointYears != "2009",]
 calculateImbalance(standData)
@@ -6227,7 +6376,11 @@ non_existing_for_imputation[, measuredItemFbsSua := paste0("'", measuredItemFbsS
 
 # We want to exclude livestock primary that have heads as units form the imbalance list
 LivestockToExcludeFromFile = itemMap[type %in% c("LSPR", "POPR"), measuredItemSuaFbs]
-imbalances_to_send = imbalances_to_send[measuredItemFbsSua %!in% LivestockToExcludeFromFile,]
+if ("measuredItemFbsSua" %in% names(imbalances_to_send)) {
+  imbalances_to_send = imbalances_to_send[measuredItemFbsSua %!in% LivestockToExcludeFromFile,]
+  
+}
+
 
 # Move imbalance list from csv to xls
 wb <- createWorkbook() 
@@ -6236,13 +6389,14 @@ writeData(wb, "imbalance", imbalances_to_send)
 dbg_print(paste("IMBALANCE workbook, save", getwd(), tmp_file_imb)) 
 saveWorkbook(wb, tmp_file_imb, overwrite = TRUE) 
 
+if("measuredItemFbsSua" %in% names(imbalances_to_send)) {
 imbalances_to_send[, measuredItemFbsSua := paste0("'", measuredItemFbsSua)]
-write.csv(imbalances_to_send,          tmp_file_imbCSV)
-write.csv(data_negtrade,               tmp_file_NegNetTrade)
-write.csv(negative_availability,       tmp_file_negative)
-write.csv(non_existing_for_imputation, tmp_file_non_exist)
-write.csv(fixed_proc_shares,           tmp_file_fix_shares)
-
+write.csv(imbalances_to_send,          tmp_file_imbCSV)}
+# write.csv(data_negtrade,               tmp_file_NegNetTrade)
+# write.csv(negative_availability,       tmp_file_negative)
+# write.csv(non_existing_for_imputation, tmp_file_non_exist)
+# write.csv(fixed_proc_shares,           tmp_file_fix_shares)
+# (deletefile)
 
 
 # FIXME: see also the one done for elementToCodeNames
@@ -6393,12 +6547,12 @@ combined_calories <-
   combined_calories[order(geographicAreaM49, measuredItemFbsSua, timePointYears)]
 
 ### Change for the back compilation what is Historical value
-# Historical value for back compilation is 2014-2018 period
+# Historical value for back compilation is 2014-2019 period
 combined_calories <-
   combined_calories[,
     `:=`(
       perc.change = (Value / shift(Value) - 1) * 100,
-      Reference_value_2014_2018 = mean(Value[timePointYears %in% refYear], na.rm = TRUE)
+      Reference_value_2014_2019 = mean(Value[timePointYears %in% refYear], na.rm = TRUE)
     ),
     by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
   ]
@@ -6490,7 +6644,7 @@ if (nrow(new_sua_bal) > 0) {
   new_sua_bal <-
     new_sua_bal[,
       .(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs,
-        timePointYears, Reference_value_2014_2018 = Meanold, outlier = "OUTLIER")
+        timePointYears, Reference_value_2014_2019 = Meanold, outlier = "OUTLIER")
     ]
 
   sel_vars <-
@@ -6513,7 +6667,7 @@ if (nrow(new_sua_bal) > 0) {
   out_elems_items[is.na(outlier), outlier := ""]
 
   out_elems_items[,
-                  Reference_value_2014_2018 := unique(na.omit(Reference_value_2014_2018)),
+                  Reference_value_2014_2019 := unique(na.omit(Reference_value_2014_2019)),
     c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
   ]
 
@@ -6530,22 +6684,22 @@ if (nrow(new_sua_bal) > 0) {
                      measuredItemFbsSua, timePointYears, Value,
                      flagObservationStatus, flagMethod,
                      perc.change = NA_real_,
-                     Reference_value_2014_2018 = NA_real_, outlier)]
+                     Reference_value_2014_2019 = NA_real_, outlier)]
 }
 
 out_elems_items <- rbind(combined_calories, out_elems_items, fill = TRUE)
 
 out_elems_items[, Value := round(Value, 2)]
 out_elems_items[, perc.change := round(perc.change, 2)]
-out_elems_items[, Reference_value_2014_2018 := round(Reference_value_2014_2018, 2)]
+out_elems_items[, Reference_value_2014_2019 := round(Reference_value_2014_2019, 2)]
 
 
-tmp_file_outliers <- file.path(TMP_DIR, paste0("OUTLIERS_", COUNTRY, ".csv"))
+# tmp_file_outliers <- file.path(TMP_DIR, paste0("OUTLIERS_", COUNTRY, ".csv"))
 
 out_elems_items <-
   nameData("suafbs", "sua_unbalanced", out_elems_items, except = "timePointYears")
 
-write.csv(out_elems_items, tmp_file_outliers)
+# write.csv(out_elems_items, tmp_file_outliers)
 
 message("Line 5462")
 
@@ -6636,10 +6790,10 @@ plot_main_des_diff <-
     ggtitle("Absolute variation of DES and main variations of items",
             subtitle = COUNTRY_NAME)
 
-tmp_file_plot_main_des_diff <-
-  file.path(TMP_DIR, paste0("PLOT_MAIN_DES_DIFF_", COUNTRY, ".pdf"))
-
-ggsave(tmp_file_plot_main_des_diff, plot = plot_main_des_diff)
+# tmp_file_plot_main_des_diff <-
+#   file.path(TMP_DIR, paste0("PLOT_MAIN_DES_DIFF_", COUNTRY, ".pdf"))
+# 
+# ggsave(tmp_file_plot_main_des_diff, plot = plot_main_des_diff)
 
 ##### / Plot of main DES absolute variations
 
@@ -6656,16 +6810,16 @@ main_des_items <-
 
 main_des_items[item == "S2901", item := "GRAND TOTAL"]
 
-plot_main_des_items <-
-  ggplot(main_des_items, aes(x = year, Value, group = item, color = item)) +
-    geom_line(size = 1) +
-    geom_point(size = 3) +
-    ggtitle("Main DES items (> 100 Calories)", subtitle = COUNTRY_NAME)
-
-tmp_file_plot_main_des_items <-
-  file.path(TMP_DIR, paste0("PLOT_MAIN_DES_ITEMS_", COUNTRY, ".pdf"))
-
-ggsave(tmp_file_plot_main_des_items, plot = plot_main_des_items)
+# plot_main_des_items <-
+#   ggplot(main_des_items, aes(x = year, Value, group = item, color = item)) +
+#     geom_line(size = 1) +
+#     geom_point(size = 3) +
+#     ggtitle("Main DES items (> 100 Calories)", subtitle = COUNTRY_NAME)
+# 
+# tmp_file_plot_main_des_items <-
+#   file.path(TMP_DIR, paste0("PLOT_MAIN_DES_ITEMS_", COUNTRY, ".pdf"))
+# 
+# ggsave(tmp_file_plot_main_des_items, plot = plot_main_des_items)
 
 ##### / Plot of main DES
 
@@ -6686,20 +6840,20 @@ des_main_diff_avg <- melt(des_main_diff_avg, c("geographicAreaM49", "measuredIte
 
 des_main_diff_avg <- nameData("suafbs", "sua_unbalanced", des_main_diff_avg, except = "geographicAreaM49")
 
-plot_des_main_diff_avg <-
-  ggplot(des_main_diff_avg,
-         aes(x = measuredItemFbsSua_description, y = value,
-             group = rev(variable), fill = variable)) +
-    geom_col(position = "dodge") +
-    coord_flip() +
-    ggtitle("Main diff (> 20 Cal) in DES average pre (<= 2013) and post (>= 2014)",
-            subtitle = COUNTRY_NAME)
-
-
-tmp_file_plot_des_main_diff_avg <-
-  file.path(TMP_DIR, paste0("PLOT_DES_MAIN_DIFF_AVG_", COUNTRY, ".pdf"))
-
-ggsave(tmp_file_plot_des_main_diff_avg, plot = plot_des_main_diff_avg)
+# plot_des_main_diff_avg <-
+#   ggplot(des_main_diff_avg,
+#          aes(x = measuredItemFbsSua_description, y = value,
+#              group = rev(variable), fill = variable)) +
+#     geom_col(position = "dodge") +
+#     coord_flip() +
+#     ggtitle("Main diff (> 20 Cal) in DES average pre (<= 2013) and post (>= 2014)",
+#             subtitle = COUNTRY_NAME)
+# 
+# 
+# tmp_file_plot_des_main_diff_avg <-
+#   file.path(TMP_DIR, paste0("PLOT_DES_MAIN_DIFF_AVG_", COUNTRY, ".pdf"))
+# 
+# ggsave(tmp_file_plot_des_main_diff_avg, plot = plot_des_main_diff_avg)
 
 
 ##### Plot of main diff avg DES
@@ -6854,11 +7008,11 @@ style_cal_gt_100 <- createStyle(fgFill = "red")
 style_percent    <- createStyle(numFmt = "PERCENTAGE")
 style_mean_diff  <- createStyle(borderColour = "blue", borderStyle = "double", border = "TopBottomLeftRight")
 
-# All zeros in 2014-2018, that were not zeros in 2010-2013
-# For BC: All zeros in <=2013, that were not zeros in 2014-2018
+# All zeros in 2014-2019, that were not zeros in 2010-2013
+# For BC: All zeros in <=2013, that were not zeros in 2014-2019
 zeros <-
   des_main[, .SD, .SDcols = as.character(startYear:endYear)] == 0 &
-  des_main[, rowMeans(.SD), .SDcols = as.character(refYear)] > 0
+  des_main[, rowMeans(.SD), .SDcols = c(sort(unique(des$timePointYears)))] > 0
 
 for (i in which(names(des_level_diff_cast) %in% min(startYear):max(refYear))) {
   addStyle(wb, "DES_MAIN", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 10], style = style_cal_gt_10, gridExpand = TRUE)
@@ -6880,16 +7034,17 @@ for (i in which(names(des_level_diff_cast) %in% min(startYear):max(refYear))) {
   addStyle(wb, "DES_MAIN_diff", cols = i, rows = 1 + (1:nrow(des_level_diff_cast))[abs(des_level_diff_cast[[i]]) > 100], style = style_cal_gt_100, gridExpand = TRUE)
 }
 
+
 high_variation_mean <-
-  abs(des_main[, rowMeans(.SD), .SDcols = as.character(2010:2013)] / des_main[, rowMeans(.SD), .SDcols = as.character(2014:2018)] - 1) > 0.30
+  abs(des_main[, rowMeans(.SD), .SDcols = as.character(2010:2013)] / des_main[, rowMeans(.SD), .SDcols = as.character(2014:max(unique(des$timePointYears)))] - 1) > 0.30
 
 if (any(high_variation_mean == TRUE)) {
   high_variation_mean <- 1 + (1:nrow(des_main))[high_variation_mean]
-  addStyle(wb, sheet = "DES_MAIN", style_mean_diff, rows = high_variation_mean, cols = which(names(des_level_diff_cast) %in% 2014:2018), gridExpand = TRUE, stack = TRUE)
+  addStyle(wb, sheet = "DES_MAIN", style_mean_diff, rows = high_variation_mean, cols = which(names(des_level_diff_cast) %in% 2014:2019), gridExpand = TRUE, stack = TRUE)
 }
 
 
-addStyle(wb, sheet = "DES_MAIN_diff_perc", style_percent, rows = 1:nrow(des_level_diff_cast) + 1, cols = which(names(des_level_diff_cast) %in% 2011:2018), gridExpand = TRUE, stack = TRUE)
+addStyle(wb, sheet = "DES_MAIN_diff_perc", style_percent, rows = 1:nrow(des_level_diff_cast) + 1, cols = which(names(des_level_diff_cast) %in% 2011:2019), gridExpand = TRUE, stack = TRUE)
 
 setColWidths(wb, "DES_MAIN", 4, 40)
 setColWidths(wb, "DES_MAIN_diff", 4, 40)
@@ -7015,7 +7170,7 @@ if (exists("out")) {
           in the AVERAGE DES pre (year <= 2013) and post (year >= 2014)
 
       - DES_MAIN_ITEMS_*.xlsx = as DES_*.csv, but only with items that
-          accounted for nearly 90%% on average over 2014-2018
+          accounted for nearly 90%% on average over 2014-2019
 
       - DES_*.csv = calculation of DES (total and by items)
 
@@ -7063,23 +7218,23 @@ if (exists("out")) {
       to = swsContext.userEmail,
       subject = "Results from SUA_bal_compilation plugin",
       body = c(body_message,
-               tmp_file_plot_main_des_items,
-               tmp_file_plot_main_des_diff,
-               tmp_file_plot_des_main_diff_avg,
+               # tmp_file_plot_main_des_items,
+               # tmp_file_plot_main_des_diff,
+               # tmp_file_plot_des_main_diff_avg,
                tmp_file_des_main,
                tmp_file_des,
-               tmp_file_outliers,
+               # tmp_file_outliers,
                tmp_file_shares,
                tmp_file_imb,
                tmp_file_imbCSV,
-               tmp_file_extr,
-               tmp_file_negative,
-               tmp_file_non_exist,
-               tmp_file_new,
-               tmp_file_fix_shares,
-               tmp_file_NegNetTrade,
+               # tmp_file_extr,
+               # tmp_file_negative,
+               # tmp_file_non_exist,
+               # tmp_file_new,
+               # tmp_file_fix_shares,
+               # tmp_file_NegNetTrade,
                StocksMismatch,
-               tmp_file_Stock_correction,
+               # tmp_file_Stock_correction,
                tmp_file_highstocks
               )
     )
@@ -7225,3 +7380,4 @@ unlink(TMP_DIR, recursive = TRUE)
 
 
 # high shares in mexico for skim milk (high shares that can not be changed)
+
