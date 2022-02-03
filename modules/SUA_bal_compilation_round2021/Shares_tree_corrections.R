@@ -2164,7 +2164,7 @@ data_ShareUpDoawn[, shareUpDown := NA_real_]
 
 # Giulia: qui inserire una condizione, se parent qty processed =na la shares Up Down ==0 . cosi risolvi cherries e oil of linseed
 data_ShareUpDoawn[
- extractionRate>0,
+  extractionRate>0,
   shareUpDown := ifelse( !is.na(parent_qty_processed),(production_of_child / extractionRate) * shareDownUp / sum(production_of_child / extractionRate * shareDownUp, na.rm = TRUE),0),
   by = c("geographicAreaM49", "timePointYears", "measuredItemParentCPC")
   ]
