@@ -44,12 +44,17 @@ dbg_print <- function(x) {
 }
 
 #years to identify the outlier in the 2013-2014 gap
-YEARS <- 2010:2019
-#years to work with. Serie to check anomalies
-FOCUS_INTERVAL <- 2014:2019
+start_year <- as.character(as.numeric(swsContext.computationParams$start_year)-1)
 
-startYear <- 2013
-endYear <- 2019
+end_year <- as.character(swsContext.computationParams$end_year)
+
+#need to extract data to have at least 3 years before to compute the mean moving avg
+YEARS <- as.character((as.numeric(start_year)-3):as.numeric(end_year))
+#years to work with. Serie to check anomalies
+FOCUS_INTERVAL <- start_year:end_year
+
+#startYear <- 2013
+#endYear <- 2019
 
 `%!in%` <- Negate(`%in%`)
 
@@ -218,6 +223,30 @@ key@dimensions$geographicAreaM49@keys <- COUNTRY
 
 data <- GetData(key)
 
+if(nrow(data) == 0){
+  
+  
+  wb <- createWorkbook(USER)
+  
+  
+  saveWorkbook(wb, tmp_file_derived, overwrite = TRUE)
+  
+  body_message = paste("Plugin completed. No derived faostat data to check",
+                       sep='\n')
+  
+  send_mail(from = "no-reply@fao.org", 
+            to = swsContext.userEmail,
+            subject = paste0("Derived outliers in ", COUNTRY_NAME), 
+            body = c(body_message, tmp_file_derived))
+  
+  unlink(TMP_DIR, recursive = TRUE)
+  
+  
+  print('No derived Faostat data to check')
+  stop('No derived Faostat data to check')
+  
+}
+
 processedData <-
   expandYear(
     data       = data,
@@ -226,7 +255,7 @@ processedData <-
     itemVar    = "measuredItemFbsSua",
     valueVar   = "Value",
     yearVar = "timePointYears",
-    newYears=2018
+    newYears=as.numeric(end_year)
   )
 
 ###############################################
@@ -235,22 +264,23 @@ processedData <-
 out_data <- copy(processedData)
 dbg_print("Data processed")
 out_data[order(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears), 
-                       avg := roll_meanr(Value, 3, na.rm = TRUE),
-                       by = c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua")]
+         avg := roll_meanr(Value, 3, na.rm = TRUE),
+         by = c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua")]
 
 out_data[order(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears),prev_avg:=lag(avg),
-          by= c("geographicAreaM49","measuredItemFbsSua","measuredElementSuaFbs")]
+         by= c("geographicAreaM49","measuredItemFbsSua","measuredElementSuaFbs")]
 
 out_data[, avg := NULL]
 
 out_data <- out_data[order(geographicAreaM49, measuredElementSuaFbs, 
-                              measuredItemFbsSua),] [order( -timePointYears ),]
+                           measuredItemFbsSua),] [order( -timePointYears ),]
 
-out_data <- out_data[timePointYears %in% as.character(startYear:endYear),]
+out_data <- out_data[timePointYears %in% as.character(start_year:end_year),]
 
-out_data[,flag_Check:=ifelse(flagObservationStatus %in% "T",TRUE,FALSE)]
+out_data[,flag_Check:=ifelse(flagObservationStatus %in% c("","T"),TRUE,FALSE)]
 
 out_data[,`:=`(lower_th = NA_real_, upper_th = NA_real_)]
+
 
 ######################################
 #                                    #
@@ -412,7 +442,7 @@ dbg_print("End of soft criteria")
 
 
 out_data[,outCheck:=ifelse(Value <lower_th  |
-                              Value > upper_th ,TRUE,FALSE)]
+                             Value > upper_th ,TRUE,FALSE)]
 
 out_data[(prev_avg/Value) > 9 ,outCheck:=TRUE]
 
@@ -423,6 +453,8 @@ out_data[Value < 1000 & prev_avg < 1000, outCheck:=FALSE]
 
 out_data[,zeroCheck:=ifelse(prev_avg > 0 & Value == 0 ,TRUE,FALSE)]
 
+out_data[,sparseCheck:=ifelse(prev_avg == 0 & is.na(Value) ,TRUE,FALSE)]
+
 out_data[,naCheck:=ifelse(prev_avg > 0 & is.na(Value) ,TRUE,FALSE)]
 
 
@@ -430,95 +462,97 @@ out_data[,naCheck:=ifelse(prev_avg > 0 & is.na(Value) ,TRUE,FALSE)]
 ###############################################
 ########### Growth ROUTINE 11-12 ##############
 ###############################################
-gr_data <- processedData[timePointYears %in% c("2010","2011","2012"),]
-
-gr_data <- gr_data[order(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs, timePointYears)]
-
-gr_data[,
-        `:=`(
-          growth_rate = Value / shift(Value) - 1
-        ),
-        by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
-        ]
-
-gr_data[,flag_Check:=ifelse(flagObservationStatus %in% "T",TRUE,FALSE)]
-
-gr_data[,`:=`(grCheck = FALSE)]
-######################################
-#                                    #
-#                                    #
-#          G RATE CRITERIA           #
-#                                    #
-#                                    #
-######################################
-
-#### STRICT ####
-
-gr_data[Value < 100 & growth_rate > 5 & flag_Check == FALSE | Value < 100 & growth_rate < -5 & flag_Check == FALSE, grCheck := TRUE]
-
-gr_data[ Value >= 100 & Value < 1000 & growth_rate > 2 & flag_Check == FALSE | Value >= 100 & Value < 1000 & growth_rate < -2 & flag_Check == FALSE, grCheck := TRUE]
-
-gr_data[ Value >= 1000 & Value < 5000 & growth_rate > 1.5 & flag_Check == FALSE | Value >= 1000 & Value < 5000 & growth_rate < -1.5 & flag_Check == FALSE, grCheck := TRUE]
-
-gr_data[ Value >= 5000 & Value < 10000 & growth_rate > 0.7 & flag_Check == FALSE | Value >= 5000 & Value < 10000 & growth_rate < -0.7 & flag_Check == FALSE, grCheck := TRUE]
-
-gr_data[ Value >= 10000 & Value < 50000 & growth_rate > 0.6 & flag_Check == FALSE | Value >= 10000 & Value < 50000 & growth_rate < -0.6 & flag_Check == FALSE, grCheck := TRUE]
-
-gr_data[ Value >= 50000 & Value < 100000 & growth_rate > 0.5 & flag_Check == FALSE | Value >= 50000 & Value < 100000 & growth_rate < -0.5 & flag_Check == FALSE, grCheck := TRUE]
-
-gr_data[ Value >= 100000 & Value < 500000 & growth_rate > 0.4 & flag_Check == FALSE | Value >= 100000 & Value < 500000 & growth_rate < -0.4 & flag_Check == FALSE, grCheck := TRUE]
-
-gr_data[ Value >= 500000 & Value < 1000000 & growth_rate > 0.3 & flag_Check == FALSE | Value >= 500000 & Value < 1000000 & growth_rate < -0.3 & flag_Check == FALSE, grCheck := TRUE]
-
-gr_data[ Value >= 1000000 & Value < 3000000 & growth_rate > 0.15 & flag_Check == FALSE| Value >= 1000000 & Value < 3000000 & growth_rate < -0.15 & flag_Check == FALSE, grCheck := TRUE]
-
-gr_data[ Value >= 3000000 & Value < 50000000 & growth_rate > 0.1 & flag_Check == FALSE | Value >= 3000000 & Value < 50000000 & growth_rate < -0.1 & flag_Check == FALSE, grCheck := TRUE]
-
-gr_data[ Value>=50000000 & growth_rate > 0.1 & flag_Check == FALSE |  Value>=50000000 & growth_rate < -0.1 & flag_Check == FALSE, grCheck := TRUE]
-
-#### SOFT ####
-
-gr_data[Value < 100 & growth_rate > 9 & flag_Check == TRUE | Value < 100 & growth_rate < -9 & flag_Check == TRUE, grCheck := TRUE]
-
-gr_data[ Value >= 100 & Value < 1000 & growth_rate > 5 & flag_Check == TRUE | Value >= 100 & Value < 1000 & growth_rate < -5 & flag_Check == TRUE, grCheck := TRUE]
-
-gr_data[ Value >= 1000 & Value < 10000 & growth_rate > 1 & flag_Check == TRUE | Value >= 1000 & Value < 10000 & growth_rate < -1 & flag_Check == TRUE, grCheck := TRUE]
-
-gr_data[ Value >= 10000 & Value < 50000 & growth_rate > 0.7 & flag_Check == TRUE | Value >= 10000 & Value < 50000 & growth_rate < -0.7 & flag_Check == TRUE, grCheck := TRUE]
-
-gr_data[ Value >= 50000 & Value < 100000 & growth_rate > 0.6 & flag_Check == TRUE | Value >= 50000 & Value < 100000 & growth_rate < -0.6 & flag_Check == TRUE, grCheck := TRUE]
-
-gr_data[ Value >= 100000 & Value < 500000 & growth_rate > 0.5 & flag_Check == TRUE | Value >= 100000 & Value < 500000 & growth_rate < -0.5 & flag_Check == TRUE, grCheck := TRUE]
-
-gr_data[ Value >= 500000 & Value < 1000000 & growth_rate > 0.4 & flag_Check == TRUE | Value >= 500000 & Value < 1000000 & growth_rate < -0.4 & flag_Check == TRUE, grCheck := TRUE]
-
-gr_data[ Value >= 1000000 & Value < 3000000 & growth_rate > 0.4 & flag_Check == TRUE | Value >= 1000000 & Value < 3000000 & growth_rate < -0.4 & flag_Check == TRUE, grCheck := TRUE]
-
-gr_data[ Value >= 3000000 & Value < 20000000 & growth_rate > 0.3 & flag_Check == TRUE | Value >= 3000000 & Value < 20000000 & growth_rate < -0.3 & flag_Check == TRUE, grCheck := TRUE]
-
-gr_data[ Value >= 20000000 & Value < 50000000 & growth_rate > 0.15 & flag_Check == TRUE | Value >= 20000000 & Value < 50000000 & growth_rate < -0.15 & flag_Check == TRUE, grCheck := TRUE]
-
-gr_data[ Value>=50000000 & growth_rate > 0.1 & flag_Check == TRUE |  Value>=50000000 & growth_rate < -0.1 & flag_Check == TRUE, grCheck := TRUE]
-
-
-dbg_print("End of gr criteria")
+# gr_data <- processedData[timePointYears %in% c("2010","2011","2012"),]
+# 
+# gr_data <- gr_data[order(geographicAreaM49, measuredItemFbsSua, measuredElementSuaFbs, timePointYears)]
+# 
+# gr_data[,
+#         `:=`(
+#           growth_rate = Value / shift(Value) - 1
+#         ),
+#         by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
+#         ]
+# 
+# gr_data[,flag_Check:=ifelse(flagObservationStatus %in% "T",TRUE,FALSE)]
+# 
+# gr_data[,`:=`(grCheck = FALSE)]
+# ######################################
+# #                                    #
+# #                                    #
+# #          G RATE CRITERIA           #
+# #                                    #
+# #                                    #
+# ######################################
+# 
+# #### STRICT ####
+# 
+# gr_data[Value < 100 & growth_rate > 5 & flag_Check == FALSE | Value < 100 & growth_rate < -5 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 100 & Value < 1000 & growth_rate > 2 & flag_Check == FALSE | Value >= 100 & Value < 1000 & growth_rate < -2 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 1000 & Value < 5000 & growth_rate > 1.5 & flag_Check == FALSE | Value >= 1000 & Value < 5000 & growth_rate < -1.5 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 5000 & Value < 10000 & growth_rate > 0.7 & flag_Check == FALSE | Value >= 5000 & Value < 10000 & growth_rate < -0.7 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 10000 & Value < 50000 & growth_rate > 0.6 & flag_Check == FALSE | Value >= 10000 & Value < 50000 & growth_rate < -0.6 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 50000 & Value < 100000 & growth_rate > 0.5 & flag_Check == FALSE | Value >= 50000 & Value < 100000 & growth_rate < -0.5 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 100000 & Value < 500000 & growth_rate > 0.4 & flag_Check == FALSE | Value >= 100000 & Value < 500000 & growth_rate < -0.4 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 500000 & Value < 1000000 & growth_rate > 0.3 & flag_Check == FALSE | Value >= 500000 & Value < 1000000 & growth_rate < -0.3 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 1000000 & Value < 3000000 & growth_rate > 0.15 & flag_Check == FALSE| Value >= 1000000 & Value < 3000000 & growth_rate < -0.15 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 3000000 & Value < 50000000 & growth_rate > 0.1 & flag_Check == FALSE | Value >= 3000000 & Value < 50000000 & growth_rate < -0.1 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# gr_data[ Value>=50000000 & growth_rate > 0.1 & flag_Check == FALSE |  Value>=50000000 & growth_rate < -0.1 & flag_Check == FALSE, grCheck := TRUE]
+# 
+# #### SOFT ####
+# 
+# gr_data[Value < 100 & growth_rate > 9 & flag_Check == TRUE | Value < 100 & growth_rate < -9 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 100 & Value < 1000 & growth_rate > 5 & flag_Check == TRUE | Value >= 100 & Value < 1000 & growth_rate < -5 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 1000 & Value < 10000 & growth_rate > 1 & flag_Check == TRUE | Value >= 1000 & Value < 10000 & growth_rate < -1 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 10000 & Value < 50000 & growth_rate > 0.7 & flag_Check == TRUE | Value >= 10000 & Value < 50000 & growth_rate < -0.7 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 50000 & Value < 100000 & growth_rate > 0.6 & flag_Check == TRUE | Value >= 50000 & Value < 100000 & growth_rate < -0.6 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 100000 & Value < 500000 & growth_rate > 0.5 & flag_Check == TRUE | Value >= 100000 & Value < 500000 & growth_rate < -0.5 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 500000 & Value < 1000000 & growth_rate > 0.4 & flag_Check == TRUE | Value >= 500000 & Value < 1000000 & growth_rate < -0.4 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 1000000 & Value < 3000000 & growth_rate > 0.4 & flag_Check == TRUE | Value >= 1000000 & Value < 3000000 & growth_rate < -0.4 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 3000000 & Value < 20000000 & growth_rate > 0.3 & flag_Check == TRUE | Value >= 3000000 & Value < 20000000 & growth_rate < -0.3 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# gr_data[ Value >= 20000000 & Value < 50000000 & growth_rate > 0.15 & flag_Check == TRUE | Value >= 20000000 & Value < 50000000 & growth_rate < -0.15 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# gr_data[ Value>=50000000 & growth_rate > 0.1 & flag_Check == TRUE |  Value>=50000000 & growth_rate < -0.1 & flag_Check == TRUE, grCheck := TRUE]
+# 
+# 
+# dbg_print("End of gr criteria")
 
 
 ############ filter outliers data ############
 
-outliers1 <- out_data[outCheck==TRUE | zeroCheck ==TRUE | naCheck == TRUE,]
+outliers1 <- out_data[outCheck==TRUE | zeroCheck ==TRUE | sparseCheck == TRUE |naCheck == TRUE,]
 
-outliers2 <- gr_data[grCheck == TRUE,]
+#outliers2 <- gr_data[grCheck == TRUE,]
 
-outlier_final <- rbind(outliers1[, c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua","timePointYears","Value","flagObservationStatus"), with= FALSE],
-                       outliers2[, c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua","timePointYears","Value","flagObservationStatus"), with = FALSE])
+# outlier_final <- rbind(outliers1[, c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua","timePointYears","Value","flagObservationStatus"), with= FALSE],
+#                        outliers2[, c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua","timePointYears","Value","flagObservationStatus"), with = FALSE])
+
+outlier_final <- outliers1[,c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua","timePointYears","Value","flagObservationStatus"), with= FALSE]
 
 #trasforma i valori con la virgola qui
 
 ######################## EXPAND FORM #####################
 
 
-data_dcast <- processedData[measuredItemFbsSua %in% unique(outlier_final$measuredItemFbsSua),]
+data_dcast <- processedData[measuredItemFbsSua %in% unique(outlier_final$measuredItemFbsSua) & timePointYears %in% YEARS,]
 
 data_dcast$Value = format(round(data_dcast$Value, 0),nsmall=0 , big.mark=",",scientific=FALSE)
 
@@ -527,12 +561,12 @@ shrink_flag <- unite(data_dcast, flag, c(flagObservationStatus,flagMethod), remo
 shrink_flag <- unite(shrink_flag, Value, c(Value,flag), remove=TRUE, sep = " ")
 
 if (nrow(shrink_flag) > 0) {
-
+  
   data_dcast <- dcast(shrink_flag, geographicAreaM49 + measuredElementSuaFbs + measuredItemFbsSua  ~ timePointYears, 
-                        value.var = c("Value"))
-
+                      value.var = c("Value"))
+  
   data_dcast <- nameData("suafbs", "sua_balanced", data_dcast)
-
+  
 }
 
 ######################################
@@ -547,16 +581,16 @@ check_last_year <- copy(processedData)
 
 
 check_last_year[order(geographicAreaM49, measuredElementSuaFbs, measuredItemFbsSua, timePointYears), 
-         avg := roll_meanr(Value, 3, na.rm = TRUE),
-         by = c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua")]
+                avg := roll_meanr(Value, 3, na.rm = TRUE),
+                by = c("geographicAreaM49","measuredElementSuaFbs","measuredItemFbsSua")]
 
 check_last_year[order(geographicAreaM49,measuredItemFbsSua,measuredElementSuaFbs,timePointYears),prev_avg:=lag(avg),
-         by= c("geographicAreaM49","measuredItemFbsSua","measuredElementSuaFbs")]
+                by= c("geographicAreaM49","measuredItemFbsSua","measuredElementSuaFbs")]
 
 check_last_year[, avg := NULL]
 
 check_last_year <- check_last_year[order(geographicAreaM49, measuredElementSuaFbs, 
-                           measuredItemFbsSua),] [order( -timePointYears ),]
+                                         measuredItemFbsSua),] [order( -timePointYears ),]
 
 
 check_last_year[,`:=`(missing = FALSE)]
@@ -568,29 +602,29 @@ missing_last_year <- check_last_year[is.na(Value) & timePointYears %in% as.chara
 #se il 19 c e e non è ufficiale mentre negli anni prima c e almeno un ufficiale
 
 missing_last_year[,
-               `:=`(
-                 mean = mean(Value[timePointYears %in% as.character((FOCUS_INTERVAL[1]+2): (tail(FOCUS_INTERVAL,1)))], na.rm = TRUE)
-               ),
-               by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
-               ]
+                  `:=`(
+                    mean = mean(Value[timePointYears %in% as.character((tail(FOCUS_INTERVAL,1)-2): (tail(FOCUS_INTERVAL,1)))], na.rm = TRUE)
+                  ),
+                  by = c("geographicAreaM49", "measuredItemFbsSua", "measuredElementSuaFbs")
+                  ]
 
 missing_last_year = missing_last_year[!is.nan(mean),]
 
 ###########################################
 #### RIMUOVI -2 metti -1 IN LAST CHECK 2019 OFFICIAL
 ###########################################
-missing_last_year[, exists:= ifelse(timePointYears %in% as.character((FOCUS_INTERVAL[1]+2): (tail(FOCUS_INTERVAL,1)-1)) 
-                                  & flagObservationStatus %in% c("","T"),TRUE,FALSE),
-               by = c("geographicAreaM49","measuredItemFbsSua","measuredElementSuaFbs")]
+missing_last_year[, exists:= ifelse(timePointYears %in% as.character((tail(FOCUS_INTERVAL,1)-2): (tail(FOCUS_INTERVAL,1)-1)) 
+                                    & flagObservationStatus %in% c("","T"),TRUE,FALSE),
+                  by = c("geographicAreaM49","measuredItemFbsSua","measuredElementSuaFbs")]
 
-missing_last_year[, exists:= ifelse(sum(exists) >1 ,TRUE,FALSE),
-               by = c("geographicAreaM49","measuredItemFbsSua","measuredItemFbsSua")]
+missing_last_year[, exists:= ifelse(sum(exists) >=1 ,TRUE,FALSE),
+                  by = c("geographicAreaM49","measuredItemFbsSua","measuredItemFbsSua")]
 
 
 missing_last_year[,`:=`(miss_official = FALSE)]
 
 missing_last_year[timePointYears %in% as.character(tail(FOCUS_INTERVAL,1))  & flagObservationStatus %!in% c("","T") 
-                          & exists == TRUE, miss_official := TRUE]
+                  & exists == TRUE, miss_official := TRUE]
 
 missing_last_year <- missing_last_year[miss_official == TRUE | missing == TRUE,]
 
@@ -606,12 +640,12 @@ shrink_flag_last <- unite(last_check, flag, c(flagObservationStatus,flagMethod),
 shrink_flag_last <- unite(shrink_flag_last, Value, c(Value,flag), remove=TRUE, sep = " ")
 
 if (nrow(shrink_flag_last) > 0) {
-
+  
   data_last_dcast <- dcast(shrink_flag_last, geographicAreaM49 + measuredElementSuaFbs + measuredItemFbsSua  ~ timePointYears, 
-                    value.var = c("Value"))
-
+                           value.var = c("Value"))
+  
   data_last_dcast <- nameData("suafbs", "sua_balanced", data_last_dcast)
-
+  
 }
 
 
@@ -633,7 +667,7 @@ if(nrow(shrink_flag) != 0){
   
   addWorksheet(wb, "Derived_outliers")
   writeDataTable(wb, "Derived_outliers",data_dcast)
-
+  
   
 }
 
@@ -643,20 +677,20 @@ if(nrow(shrink_flag_last) != 0){
   writeDataTable(wb, "Last_year_check",data_last_dcast)
   
 }
-
-
+# 
+# 
 # library(devtools)
 # Sys.setenv(PATH = paste("C:/Rtools/bin", Sys.getenv("PATH"), sep=";"))
 # Sys.setenv(BINPREF = "C:/Rtools/mingw_$(WIN)/bin/")
 # 
-# saveWorkbook(wb, file = "outliers_Thailandia.xlsx", overwrite = TRUE)
+# saveWorkbook(wb, file = "CHECK.xlsx", overwrite = TRUE)
 
 
 saveWorkbook(wb, tmp_file_derived, overwrite = TRUE)
 
 body_message = paste("Plugin completed. Derived Items to check.
                      ######### Excel sheets description #########
-                     Derived_outliers: Anomalies in series 2011-2019;
+                     Derived_outliers: Anomalies in series;
                      Last_year_check: Missing values or missing official figures identified in the last year of the analysis.
                      ",
                      sep='\n')
